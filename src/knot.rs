@@ -1,6 +1,6 @@
 use crate::{
-    follow::{Follow, Next},
-    line::Line
+    follow::{Follow, LineBuffer, Next},
+    line::Line,
 };
 
 #[derive(Debug)]
@@ -9,23 +9,31 @@ pub struct Knot {
 }
 
 impl Knot {
-    fn from_string<T: Into<String>>(text: T) -> Knot {
+    pub fn from_string<T: Into<String>>(text: T) -> Knot {
         Knot {
-            lines: text.into().lines().map(|line| Line::from_string(line)).collect()
+            lines: text
+                .into()
+                .lines()
+                .map(|line| Line::from_string(line))
+                .collect(),
         }
     }
 }
 
 impl Follow for Knot {
-    fn follow(&self, buffer: &mut String) -> Next {
-        self.lines.iter().for_each(|line| {
-            line.follow(buffer);
-        });
+    fn follow(&self, buffer: &mut LineBuffer) -> Next {
+        for line in &self.lines {
+            match line.follow(buffer) {
+                Next::Divert(name) => {
+                    return Next::Divert(name);
+                }
+                _ => (),
+            }
+        }
 
-        Next::Done
+        Next::Line
     }
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -43,7 +51,31 @@ Hello, are you there?
 
         let mut buffer = String::new();
 
-        assert_eq!(knot.follow(&mut buffer), Next::Done);
+        assert_eq!(knot.follow_into_string(&mut buffer), Next::Line);
         assert_eq!(buffer, text);
+    }
+
+    #[test]
+    fn knot_with_divert_shortcuts_at_it() {
+        let name = "fool".to_string();
+
+        let pre = "Mrs. Bennet was making a fool of herself.";
+        let after = "After Mrs. Bennet left, Elizabet went upstairs to look after Jane.";
+
+        let text = format!(
+            "\
+{}
+-> {}
+{}
+",
+            pre, name, after
+        );
+
+        let knot = Knot::from_string(text);
+
+        let mut buffer = String::new();
+
+        assert_eq!(knot.follow_into_string(&mut buffer), Next::Divert(name));
+        assert_eq!(buffer.trim(), pre);
     }
 }

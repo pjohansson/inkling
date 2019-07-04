@@ -1,40 +1,77 @@
 use crate::{
-    consts::GLUE_MARKER,
-    follow::{Follow, Next},
+    consts::{GLUE_MARKER, DIVERT_MARKER, TAG_MARKER},
+    follow::{Follow, LineBuffer, Next},
 };
 
 #[derive(Debug)]
 pub struct Line {
-    text: String,
-    next: Next,
+    pub text: String,
+    pub next: Next,
+    pub tags: Vec<String>,
+}
+
+impl Follow for Line {
+    fn follow(&self, buffer: &mut LineBuffer) -> Next {
+        buffer.push(self.into());
+
+        self.next.clone()
+    }
 }
 
 impl Line {
     pub fn from_string(line: &str) -> Line {
-        let parts = line.split("->").collect::<Vec<_>>();
+        let mut content = line.to_string();
 
-        let line_has_divert = parts.len() > 1;
+        let tags = parse_tags(&mut content);
+        let divert = parse_divert(&mut content);
 
-        let text = with_line_glue_or_newline(parts[0], line_has_divert);
+        // Diverts always act as glue
+        let text = add_line_glue_or_newline(&content, divert.is_some());
 
-        let next = if line_has_divert {
-            let name = parts[1].trim().to_string();
+        let next = if let Some(name) = divert {
             Next::Divert(name)
         } else {
-            Next::Done
+            Next::Line
         };
 
-        Line {
-            text,
-            next,
+        Line { text, next, tags }
+    }
+}
+
+/// Split diverts off the given line and return it separately if found.
+fn parse_divert(line: &mut String) -> Option<String> {
+    match line.find(DIVERT_MARKER) {
+        Some(i) => {
+            let part = line.split_off(i);
+
+            part.trim_start_matches(DIVERT_MARKER)
+                .split(DIVERT_MARKER)
+                .map(|knot_name| knot_name.trim().to_string())
+                .next()
+        },
+        None => None,
+    }
+}
+
+/// Split any found tags off the given line and return them separately.
+fn parse_tags(line: &mut String) -> Vec<String> {
+    match line.find(TAG_MARKER) {
+        Some(i) => {
+            let part = line.split_off(i);
+
+            part.trim_matches(TAG_MARKER)
+                .split(TAG_MARKER)
+                .map(|tag| tag.to_string())
+                .collect::<Vec<_>>()
         }
+        None => Vec::new(),
     }
 }
 
 /// If the line has glue, remove the glue marker, retain ending whitespace and do not
 /// add a newline character. If it does not have glue, remove all whitespace and add
 /// a newline character.
-fn with_line_glue_or_newline(line: &str, always_add_glue: bool) -> String {
+fn add_line_glue_or_newline(line: &str, always_add_glue: bool) -> String {
     let mut text = line.trim_start().to_string();
     let mut add_glue = always_add_glue;
 
@@ -51,14 +88,6 @@ fn with_line_glue_or_newline(line: &str, always_add_glue: bool) -> String {
     text
 }
 
-impl Follow for Line {
-    fn follow(&self, buffer: &mut String) -> Next {
-        buffer.push_str(&self.text);
-
-        self.next.clone()
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -68,14 +97,17 @@ mod tests {
         let line = "Hello, world!";
         let mut buffer = String::new();
 
-        assert_eq!(Line::from_string(line).follow(&mut buffer), Next::Done);
+        assert_eq!(
+            Line::from_string(line).follow_into_string(&mut buffer),
+            Next::Line
+        );
         assert_eq!(buffer.trim(), line);
     }
 
     #[test]
     fn read_line_adds_newline_character_at_end() {
         let mut buffer = String::new();
-        Line::from_string("Hello, world!").follow(&mut buffer);
+        Line::from_string("Hello, world!").follow_into_string(&mut buffer);
 
         assert!(buffer.ends_with('\n'));
     }
@@ -86,7 +118,7 @@ mod tests {
         let trimmed = format!("{}\n", line.trim());
 
         let mut buffer = String::new();
-        Line::from_string(line).follow(&mut buffer);
+        Line::from_string(line).follow_into_string(&mut buffer);
 
         assert_eq!(buffer, trimmed);
     }
@@ -100,7 +132,7 @@ mod tests {
         let trimmed = format!("{}{}", line.trim_start(), whitespace);
 
         let mut buffer = String::new();
-        Line::from_string(&padded_line).follow(&mut buffer);
+        Line::from_string(&padded_line).follow_into_string(&mut buffer);
 
         assert_eq!(buffer, trimmed);
     }
@@ -111,7 +143,10 @@ mod tests {
         let line = format!("-> {}", name);
         let mut buffer = String::new();
 
-        assert_eq!(Line::from_string(&line).follow(&mut buffer), Next::Divert(name.to_string()));
+        assert_eq!(
+            Line::from_string(&line).follow_into_string(&mut buffer),
+            Next::Divert(name.to_string())
+        );
         assert_eq!(buffer, "");
     }
 
@@ -123,7 +158,10 @@ mod tests {
 
         let mut buffer = String::new();
 
-        assert_eq!(Line::from_string(&line).follow(&mut buffer), Next::Divert(name.to_string()));
+        assert_eq!(
+            Line::from_string(&line).follow_into_string(&mut buffer),
+            Next::Divert(name.to_string())
+        );
         assert_eq!(buffer, head);
     }
 
@@ -135,7 +173,50 @@ mod tests {
 
         let mut buffer = String::new();
 
-        assert_eq!(Line::from_string(&line).follow(&mut buffer), Next::Divert(name.to_string()));
+        assert_eq!(
+            Line::from_string(&line).follow_into_string(&mut buffer),
+            Next::Divert(name.to_string())
+        );
         assert_eq!(buffer, head);
+    }
+
+    #[test]
+    fn tags_are_not_added_if_none_are_given() {
+        let head = "Hello, world! ";
+        let name = "knot_name";
+        let text = format!("{}->{}", head, name);
+
+        let mut buffer = LineBuffer::new();
+
+        Line::from_string(&text).follow(&mut buffer);
+        assert!(buffer[0].tags.is_empty());
+    }
+
+    #[test]
+    fn multiple_tags_can_be_specified() {
+        let head = "Hello, world!";
+
+        let tag1 = "blue colour".to_string();
+        let tag2 = "transparent".to_string();
+        let tag3 = "italic text".to_string();
+
+        let text = format!(
+            "{head}{marker}{}{marker}{}{marker}{}",
+            tag1,
+            tag2,
+            tag3,
+            head = head,
+            marker = TAG_MARKER
+        );
+
+        let mut buffer = LineBuffer::new();
+        Line::from_string(&text).follow(&mut buffer);
+
+        let tags = &buffer[0].tags;
+
+        assert_eq!(tags.len(), 3);
+        assert_eq!(tags[0], tag1);
+        assert_eq!(tags[1], tag2);
+        assert_eq!(tags[2], tag3);
     }
 }
