@@ -1,41 +1,115 @@
 use crate::{
-    consts::{GLUE_MARKER, DIVERT_MARKER, TAG_MARKER},
-    follow::{Follow, LineBuffer, Next},
+    consts::{CHOICE_MARKER, DIVERT_MARKER, GLUE_MARKER, TAG_MARKER},
 };
 
-#[derive(Debug)]
+use std::str::FromStr;
+
+#[derive(Clone, Debug, PartialEq)]
+/// What action that is prompted by following a story.
+pub enum LineKind {
+    /// Move on with the story.
+    Regular,
+    /// Divert to a new knot with the given name.
+    Divert(String),
+    // Choice for the user.
+    // Choice(Choice),
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct Choice {
+    pub selection_text: String,
+    pub line: Line,
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub struct Line {
     pub text: String,
-    pub next: Next,
+    pub kind: LineKind,
     pub tags: Vec<String>,
+    pub glue_start: bool,
+    pub glue_end: bool,
 }
 
-impl Follow for Line {
-    fn follow(&self, buffer: &mut LineBuffer) -> Next {
-        buffer.push(self.into());
-
-        self.next.clone()
-    }
+enum ParsedLine {
+    Choice(Choice),
+    Line(Line),
 }
 
-impl Line {
-    pub fn from_string(line: &str) -> Line {
-        let mut content = line.to_string();
+impl FromStr for Line {
+    type Err = ();
 
-        let tags = parse_tags(&mut content);
-        let divert = parse_divert(&mut content);
+    fn from_str(line: &str) -> Result<Self, Self::Err> {
+
+
+        let mut text = line.to_string();
+
+        let tags = parse_tags(&mut text);
+        let divert = parse_divert(&mut text);
+
+        text = text.trim().to_string();
 
         // Diverts always act as glue
-        let text = add_line_glue_or_newline(&content, divert.is_some());
+        let (glue_start, glue_end) = parse_line_glue(&mut text, divert.is_some());
 
-        let next = if let Some(name) = divert {
-            Next::Divert(name)
+        let kind = if let Some(name) = divert {
+            LineKind::Divert(name)
         } else {
-            Next::Line
+            LineKind::Regular
         };
 
-        Line { text, next, tags }
+        Ok(Line {
+            text,
+            kind,
+            tags,
+            glue_start,
+            glue_end,
+        })
     }
+}
+
+// impl Line {
+//     pub fn from_string(line: &str) -> Line {
+//         let mut text = line.to_string();
+
+//         let tags = parse_tags(&mut text);
+//         let divert = parse_divert(&mut text);
+
+//         text = text.trim().to_string();
+
+//         // Diverts always act as glue
+//         let (glue_start, glue_end) = parse_line_glue(&mut text, divert.is_some());
+
+//         let kind = if let Some(name) = divert {
+//             LineKind::Divert(name)
+//         } else {
+//             LineKind::Regular
+//         };
+
+//         Line {
+//             text,
+//             kind,
+//             tags,
+//             glue_start,
+//             glue_end,
+//         }
+//     }
+// }
+
+/// Parse and remove glue markers from either side, retaining enclosed whitespace. 
+/// A divert always acts as right glue.
+fn parse_line_glue(line: &mut String, has_divert: bool) -> (bool, bool) {
+    let glue_left = line.starts_with(GLUE_MARKER);
+    let glue_right = line.ends_with(GLUE_MARKER) || has_divert;
+
+    if glue_left {
+        *line = line.trim_start_matches(GLUE_MARKER).to_string();
+    }
+
+    if glue_right {
+        *line = line.trim_end_matches(GLUE_MARKER).to_string();
+    }
+
+    (glue_left, glue_right)
 }
 
 /// Split diverts off the given line and return it separately if found.
@@ -48,7 +122,7 @@ fn parse_divert(line: &mut String) -> Option<String> {
                 .split(DIVERT_MARKER)
                 .map(|knot_name| knot_name.trim().to_string())
                 .next()
-        },
+        }
         None => None,
     }
 }
@@ -68,116 +142,91 @@ fn parse_tags(line: &mut String) -> Vec<String> {
     }
 }
 
-/// If the line has glue, remove the glue marker, retain ending whitespace and do not
-/// add a newline character. If it does not have glue, remove all whitespace and add
-/// a newline character.
-fn add_line_glue_or_newline(line: &str, always_add_glue: bool) -> String {
-    let mut text = line.trim_start().to_string();
-    let mut add_glue = always_add_glue;
-
-    if let Some(i) = text.rfind(GLUE_MARKER) {
-        text.truncate(i);
-        add_glue = true;
-    }
-
-    if !add_glue {
-        text = text.trim_end().to_string();
-        text.push('\n');
-    }
-
-    text
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn read_simple_line() {
-        let line = "Hello, world!";
-        let mut buffer = String::new();
+        let text = "Hello, world!";
 
-        assert_eq!(
-            Line::from_string(line).follow_into_string(&mut buffer),
-            Next::Line
-        );
-        assert_eq!(buffer.trim(), line);
-    }
+        let line = Line::from_str(text).unwrap();
 
-    #[test]
-    fn read_line_adds_newline_character_at_end() {
-        let mut buffer = String::new();
-        Line::from_string("Hello, world!").follow_into_string(&mut buffer);
-
-        assert!(buffer.ends_with('\n'));
+        assert_eq!(&line.text, text);
+        assert_eq!(line.kind, LineKind::Regular);
     }
 
     #[test]
     fn read_line_trims_whitespace() {
-        let line = "   Hello, world!   ";
-        let trimmed = format!("{}\n", line.trim());
+        let text = "   Hello, world!   ";
+        let line = Line::from_str(text).unwrap();
 
-        let mut buffer = String::new();
-        Line::from_string(line).follow_into_string(&mut buffer);
-
-        assert_eq!(buffer, trimmed);
+        assert_eq!(&line.text, text.trim());
     }
 
     #[test]
-    fn read_line_with_glue_retains_end_whitespace_but_not_newline() {
-        let line = "Hello, world!";
+    fn line_with_glue_retains_whitespace_on_side() {
+        let text = "Hello, world!";
         let whitespace = "    ";
 
-        let padded_line = format!("   {}{}{}", line, whitespace, GLUE_MARKER);
-        let trimmed = format!("{}{}", line.trim_start(), whitespace);
+        let line_with_left_glue = format!(
+            "{marker}{pad}{text}",
+            pad = &whitespace,
+            text = &text,
+            marker = GLUE_MARKER
+        );
 
-        let mut buffer = String::new();
-        Line::from_string(&padded_line).follow_into_string(&mut buffer);
+        let line_with_right_glue = format!(
+            "{text}{pad}{marker}",
+            text = &text,
+            pad = &whitespace,
+            marker = GLUE_MARKER
+        );
 
-        assert_eq!(buffer, trimmed);
+        let line_left = Line::from_str(&line_with_left_glue).unwrap();
+
+        assert_eq!(line_left.text, format!("{}{}", &whitespace, &text));
+        assert!(line_left.glue_start);
+        assert!(!line_left.glue_end);
+
+        let line_right = Line::from_str(&line_with_right_glue).unwrap();
+
+        assert_eq!(line_right.text, format!("{}{}", &text, &whitespace));
+        assert!(!line_right.glue_start);
+        assert!(line_right.glue_end);
     }
 
     #[test]
     fn divert_line_returns_knot_name() {
         let name = "knot_name";
-        let line = format!("-> {}", name);
-        let mut buffer = String::new();
+        let text = format!("-> {}", name);
 
-        assert_eq!(
-            Line::from_string(&line).follow_into_string(&mut buffer),
-            Next::Divert(name.to_string())
-        );
-        assert_eq!(buffer, "");
+        let line = Line::from_str(&text).unwrap();
+        
+        assert_eq!(&line.text, "");
+        assert_eq!(line.kind, LineKind::Divert(name.to_string()));
     }
 
     #[test]
     fn embedded_divert_returns_knot_name() {
         let head = "Hello, world!";
         let name = "knot_name";
-        let line = format!("{}->{}", head, name);
+        let text = format!("{}->{}", head, name);
 
-        let mut buffer = String::new();
-
-        assert_eq!(
-            Line::from_string(&line).follow_into_string(&mut buffer),
-            Next::Divert(name.to_string())
-        );
-        assert_eq!(buffer, head);
+        let line = Line::from_str(&text).unwrap();
+        assert_eq!(&line.text, head);
+        assert_eq!(line.kind, LineKind::Divert(name.to_string()));
     }
 
     #[test]
     fn diverts_in_lines_acts_as_glue() {
         let head = "Hello, world! ";
         let name = "knot_name";
-        let line = format!("{}->{}", head, name);
+        let text = format!("{}->{}", head, name);
 
-        let mut buffer = String::new();
+        let line = Line::from_str(&text).unwrap();
 
-        assert_eq!(
-            Line::from_string(&line).follow_into_string(&mut buffer),
-            Next::Divert(name.to_string())
-        );
-        assert_eq!(buffer, head);
+        assert!(line.glue_end);
     }
 
     #[test]
@@ -186,10 +235,8 @@ mod tests {
         let name = "knot_name";
         let text = format!("{}->{}", head, name);
 
-        let mut buffer = LineBuffer::new();
-
-        Line::from_string(&text).follow(&mut buffer);
-        assert!(buffer[0].tags.is_empty());
+        let line = Line::from_str(&text).unwrap();
+        assert!(line.tags.is_empty());
     }
 
     #[test]
@@ -201,22 +248,38 @@ mod tests {
         let tag3 = "italic text".to_string();
 
         let text = format!(
-            "{head}{marker}{}{marker}{}{marker}{}",
+            "{head}{sep}{}{sep}{}{sep}{}",
             tag1,
             tag2,
             tag3,
             head = head,
-            marker = TAG_MARKER
+            sep = TAG_MARKER
         );
 
-        let mut buffer = LineBuffer::new();
-        Line::from_string(&text).follow(&mut buffer);
-
-        let tags = &buffer[0].tags;
+        let line = Line::from_str(&text).unwrap();
+        let tags = &line.tags;
 
         assert_eq!(tags.len(), 3);
         assert_eq!(tags[0], tag1);
         assert_eq!(tags[1], tag2);
         assert_eq!(tags[2], tag3);
+    }
+
+    #[test]
+    fn parse_choice_with_text() {
+        let head = "Choice text";
+        let text = format!(" {}{}", CHOICE_MARKER, head);
+
+        let line = Line::from_str(&text).unwrap();
+
+        assert!(line.text.is_empty());
+
+        match line.kind {
+            // LineKind::Choice(choice) => {
+            //     assert_eq!(&choice.choice_text.text, head);
+            //     assert_eq!(&choice.display_text.text, head);
+            // },
+            _ => panic!("line is not a choice"),
+        }
     }
 }

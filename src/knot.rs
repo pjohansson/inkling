@@ -1,6 +1,10 @@
+use std::{
+    collections::HashMap,
+    str::FromStr,
+};
+
 use crate::{
-    follow::{Follow, LineBuffer, Next},
-    line::Line,
+    line::{Line, LineKind},
 };
 
 #[derive(Debug)]
@@ -8,31 +12,66 @@ pub struct Knot {
     lines: Vec<Line>,
 }
 
-impl Knot {
-    pub fn from_string<T: Into<String>>(text: T) -> Knot {
-        Knot {
-            lines: text
-                .into()
-                .lines()
-                .map(|line| Line::from_string(line))
-                .collect(),
-        }
-    }
+pub type LineBuffer = Vec<Line>;
+
+#[derive(Clone, Debug, PartialEq)]
+/// What action that is prompted by following a story.
+pub enum Next {
+    /// Finished with the story.
+    Done,
+    /// Divert to a new knot with the given name.
+    Divert(String),
+    // /// Choice for the user.
+    // Choice(MultiChoice),
 }
 
-impl Follow for Knot {
+impl Knot {
+    /// Follow a story while reading every line into a buffer.
     fn follow(&self, buffer: &mut LineBuffer) -> Next {
         for line in &self.lines {
-            match line.follow(buffer) {
-                Next::Divert(name) => {
-                    return Next::Divert(name);
-                }
+            buffer.push(line.clone());
+
+            match &line.kind {
+                LineKind::Divert(name) => return Next::Divert(name.clone()),
                 _ => (),
             }
         }
 
-        Next::Line
+        Next::Done
     }
+
+    /// Follow a story while reading every line into a pure text buffer,
+    /// discarding other data.
+    fn follow_into_string(&self, buffer: &mut String) -> Next {
+        let mut line_buffer = Vec::new();
+        let result = self.follow(&mut line_buffer);
+
+        for line in line_buffer {
+            buffer.push_str(&line.text);
+
+            if !line.glue_end {
+                buffer.push('\n');
+            }
+        }
+
+        result
+    }
+}
+
+impl FromStr for Knot {
+    type Err = ();
+
+    fn from_str(content: &str) -> Result<Self, Self::Err> {
+        let lines = parse_lines(content)?;
+
+        Ok(Knot { 
+            lines,
+        })
+    }
+}
+
+fn parse_lines(s: &str) -> Result<Vec<Line>, ()> {
+    s.lines().map(|line| Line::from_str(line)).collect()
 }
 
 #[cfg(test)]
@@ -47,11 +86,11 @@ Hello?
 Hello, are you there?
 ";
 
-        let knot = Knot::from_string(text);
+        let knot = Knot::from_str(text).unwrap();
 
         let mut buffer = String::new();
 
-        assert_eq!(knot.follow_into_string(&mut buffer), Next::Line);
+        assert_eq!(knot.follow_into_string(&mut buffer), Next::Done);
         assert_eq!(buffer, text);
     }
 
@@ -71,11 +110,11 @@ Hello, are you there?
             pre, name, after
         );
 
-        let knot = Knot::from_string(text);
+        let knot = Knot::from_str(&text).unwrap();
 
         let mut buffer = String::new();
 
         assert_eq!(knot.follow_into_string(&mut buffer), Next::Divert(name));
-        assert_eq!(buffer.trim(), pre);
+        assert_eq!(buffer.trim_end(), pre);
     }
 }
