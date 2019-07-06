@@ -26,7 +26,7 @@ pub struct Line {
     pub glue_end: bool,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum ParsedLine {
     Choice { level: u8, choice: Choice },
     Gather { level: u8, line: Line },
@@ -51,15 +51,17 @@ fn parse_choice(line: &str) -> Option<Result<ParsedLine, <ParsedLine as FromStr>
     let parsed_choice = parse_markers_and_text(line, CHOICE_MARKER)?;
 
     let choice = parsed_choice
-        .and_then(|(level, line_text)| {
-            Ok((level, Line::from_str(line_text)?))
-        })
+        .and_then(|(level, line_text)| Ok((level, Line::from_str(line_text)?)))
         .map(|(level, line)| {
-            (level, Choice { selection_text: String::new(), line })
+            (
+                level,
+                Choice {
+                    selection_text: String::new(),
+                    line,
+                },
+            )
         })
-        .map(|(level, choice)| {
-            ParsedLine::Choice { level, choice }
-        });
+        .map(|(level, choice)| ParsedLine::Choice { level, choice });
 
     Some(choice)
 }
@@ -68,12 +70,8 @@ fn parse_gather(line: &str) -> Option<Result<ParsedLine, <Line as FromStr>::Err>
     let parsed_gather = parse_markers_and_text(line, GATHER_MARKER)?;
 
     let gather = parsed_gather
-        .and_then(|(level, line_text)| {
-            Ok((level, Line::from_str(line_text)?))
-        })
-        .map(|(level, line)| {
-            ParsedLine::Gather { level, line }
-        });
+        .and_then(|(level, line_text)| Ok((level, Line::from_str(line_text)?)))
+        .map(|(level, line)| ParsedLine::Gather { level, line });
 
     Some(gather)
 }
