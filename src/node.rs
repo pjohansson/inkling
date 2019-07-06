@@ -8,7 +8,7 @@ pub struct DialogueNode {
 }
 
 impl DialogueNode {
-    /// Parse a set of `ParsedLine` items and return a full graph representation of it.
+    /// Parse a set of `ParsedLine` items and create a full graph representation of it.
     pub fn from_lines(lines: &[ParsedLine]) -> Self {
         parse_full_node(lines)
     }
@@ -20,7 +20,10 @@ enum NodeItem {
     Line(Line),
     /// Nested node, either a `MultiChoice` which has `Choices` as children, or a `Choice`
     /// which has more `Line`s and possibly further `MultiChoice`s.
-    Node { kind: NodeType, node: Box<DialogueNode> },
+    Node {
+        kind: NodeType,
+        node: Box<DialogueNode>,
+    },
 }
 
 #[derive(Debug)]
@@ -51,8 +54,16 @@ fn parse_full_node(lines: &[ParsedLine]) -> DialogueNode {
 
                 if let Some(line) = gather {
                     items.push(line);
+
+                    // `parse_multichoice_with_gather` advances the index to the next line
+                    // after this group if a gather was found, but this loop also does that
+                    // at every iteration. Retract the index once to compensate.
                     index -= 1;
                 }
+            }
+            ParsedLine::Gather { line, .. } => {
+                let item = NodeItem::Line(line.clone());
+                items.push(item);
             }
             _ => (),
         };
@@ -63,11 +74,14 @@ fn parse_full_node(lines: &[ParsedLine]) -> DialogueNode {
     DialogueNode { items }
 }
 
-/// After parsing a group of choices, check whether it ended because of a `Gather`. 
+/// After parsing a group of choices, check whether it ended because of a `Gather`.
 /// If so, return the `NodeItem::Line` object from that gather so that it can be appended
 /// *after* the node, not inside it.
-fn parse_multichoice_with_gather(index: &mut usize, current_level: u8, lines: &[ParsedLine]) 
--> (NodeItem, Option<NodeItem>) {
+fn parse_multichoice_with_gather(
+    index: &mut usize,
+    current_level: u8,
+    lines: &[ParsedLine],
+) -> (NodeItem, Option<NodeItem>) {
     let node = parse_multichoice(index, current_level, lines);
     let mut gather = None;
 
@@ -98,7 +112,7 @@ fn parse_multichoice(index: &mut usize, current_level: u8, lines: &[ParsedLine])
     }
 }
 
-/// Parse a single `Choice` node. The node ends either when another `Choice` node with 
+/// Parse a single `Choice` node. The node ends either when another `Choice` node with
 /// the same level or below is encountered, when a `Gather` with the same level or below
 /// is encountered or when all lines are read.
 fn parse_choice(index: &mut usize, current_level: u8, lines: &[ParsedLine]) -> Option<NodeItem> {
@@ -114,7 +128,7 @@ fn parse_choice(index: &mut usize, current_level: u8, lines: &[ParsedLine]) -> O
         }
         ParsedLine::Gather { level, .. } if *level <= current_level => {
             return None;
-        },
+        }
         ParsedLine::Choice { choice, .. } => choice.clone(),
         _ => panic!(
             "could not correctly parse a `NodeItem` of type `Choice`: \
@@ -141,7 +155,7 @@ fn parse_choice(index: &mut usize, current_level: u8, lines: &[ParsedLine]) -> O
 
                 items.push(multi_choice);
 
-                if let Some(line) = gather {  
+                if let Some(line) = gather {
                     items.push(line);
                 }
 
@@ -177,7 +191,10 @@ mod tests {
     use std::{ops::Index, str::FromStr};
 
     fn get_empty_choice(level: u8) -> ParsedLine {
-        let choice = Choice { selection_text: String::new(), line: Line::from_str("").unwrap() };
+        let choice = Choice {
+            selection_text: String::new(),
+            line: Line::from_str("").unwrap(),
+        };
         ParsedLine::Choice { level, choice }
     }
 
@@ -425,11 +442,7 @@ mod tests {
         let choice1 = get_empty_choice(1);
         let gather1 = get_empty_gather(1);
 
-        let lines_without_gather = vec![
-            choice1.clone(),
-            choice1.clone(),
-            choice1.clone(),
-        ];
+        let lines_without_gather = vec![choice1.clone(), choice1.clone(), choice1.clone()];
 
         let mut index = 0;
 
@@ -460,9 +473,7 @@ mod tests {
         let choice1 = get_empty_choice(1);
         let gather1 = get_empty_gather(1);
 
-        let lines_without_gather = vec![
-            choice1.clone(),
-        ];
+        let lines_without_gather = vec![choice1.clone()];
 
         let mut index = 0;
 
@@ -470,10 +481,7 @@ mod tests {
 
         assert_eq!(index, 1);
 
-        let lines_with_gather = vec![
-            choice1.clone(),
-            gather1.clone(),
-        ];
+        let lines_with_gather = vec![choice1.clone(), gather1.clone()];
 
         index = 0;
 
@@ -518,7 +526,7 @@ mod tests {
             choice2.clone(),
             choice2.clone(),
             choice1.clone(),
-            gather1.clone(), 
+            gather1.clone(),
             choice1.clone(), // 9
         ];
 
@@ -554,8 +562,8 @@ mod tests {
         let gather2 = get_empty_gather(2);
 
         let lines = vec![
-            line.clone(), 
-            choice1.clone(), // Multichoice starts here as second level-1 element 
+            line.clone(),
+            choice1.clone(), // Multichoice starts here as second level-1 element
             choice2.clone(), // First element of level-2 multichoice
             choice2.clone(),
             gather2.clone(), // Breaks level-2 multichoice; becomes second element
@@ -577,6 +585,52 @@ mod tests {
         assert!(root.items[1][0][1].is_line());
     }
 
+    #[test]
+    fn parse_empty_list_return_empty_node() {
+        let root = parse_full_node(&[]);
+        assert_eq!(root.items.len(), 0);
+    }
+
+    #[test]
+    fn parse_list_with_only_choices_works() {
+        let choice = get_empty_choice(1);
+        let root = parse_full_node(&[choice.clone(), choice.clone(), choice.clone()]);
+
+        assert_eq!(root.items.len(), 1);
+        assert!(root.items[0].is_multichoice());
+        assert_eq!(root.items[0].len(), 3);
+    }
+
+    #[test]
+    fn parse_list_with_non_matched_gathers_turns_them_into_lines() {
+        let gather = get_empty_gather(1);
+        let root = parse_full_node(&[gather.clone(), gather.clone(), gather.clone()]);
+
+        assert_eq!(root.items.len(), 3);
+
+        for item in root.items {
+            assert!(item.is_line());
+        }
+    }
+
+    #[test]
+    fn parse_list_with_high_leveled_choices_still_just_nests_them() {
+        let choice1 = get_empty_choice(64);
+        let choice2 = get_empty_choice(128);
+
+        let root = parse_full_node(&[
+            choice1.clone(),
+            choice1.clone(),
+            choice2.clone(),
+            choice2.clone(),
+            choice1.clone(),
+        ]);
+
+        assert_eq!(root.items.len(), 1);
+        assert_eq!(root.items[0].len(), 3);
+        assert_eq!(root.items[0][1][0].len(), 2);
+    }
+
     /***************************************************
      * Helper functions to do test assertion and debug *
      ***************************************************/
@@ -595,7 +649,7 @@ mod tests {
     }
 
     impl NodeItem {
-        // If this is another node (`NodeItem::Node`), return a string representation 
+        // If this is another node (`NodeItem::Node`), return a string representation
         // of the entire graph spawning from it.
         fn display(&self) -> String {
             let mut buffer = String::new();

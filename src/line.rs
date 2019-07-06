@@ -3,6 +3,38 @@ use crate::consts::{CHOICE_MARKER, DIVERT_MARKER, GATHER_MARKER, GLUE_MARKER, TA
 use std::str::FromStr;
 
 #[derive(Clone, Debug, PartialEq)]
+/// A single line of text used in a story. Can contain diverts to new knots, which should
+/// be followed when walking through the story.
+pub struct Line {
+    /// Text contained in the line.
+    pub text: String,
+    /// Contains what result following the line will have, either being a regular line
+    /// or a divert to another part of the story.
+    pub kind: LineKind,
+    /// Tags marking the line. Can be used to process the line before displaying it.
+    pub tags: Vec<String>,
+    /// Glue represents how the line connects to a prior or following line. If there is glue,
+    /// no newline should be added between them. `glue_start` denotes whether the line should
+    /// glue to the previous line.
+    pub glue_start: bool,
+    /// Glue represents how the line connects to a prior or following line. If there is glue,
+    /// no newline should be added between them. `glue_end` denotes whether the line should
+    /// glue to the following line.
+    pub glue_end: bool,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+/// A single choice in a (usually) set of choices presented to the user.
+pub struct Choice {
+    /// Text presented to the user to represent the choice.
+    pub selection_text: String,
+    /// Text that the choice produces when selected, replacing the `selection_text` line.
+    /// Can be empty, in which case the presented text is removed before the story flow
+    /// continues to the next line.
+    pub line: Line,
+}
+
+#[derive(Clone, Debug, PartialEq)]
 /// What action that is prompted by following a story.
 pub enum LineKind {
     /// Move on with the story.
@@ -11,25 +43,16 @@ pub enum LineKind {
     Divert(String),
 }
 
-#[derive(Clone, Debug, PartialEq)]
-pub struct Choice {
-    pub selection_text: String,
-    pub line: Line,
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct Line {
-    pub text: String,
-    pub kind: LineKind,
-    pub tags: Vec<String>,
-    pub glue_start: bool,
-    pub glue_end: bool,
-}
-
 #[derive(Clone, Debug)]
+/// Denotes the behavior of a parsed line, used when constructing the graph of a set
+/// of parsed lines.
 pub enum ParsedLine {
+    /// Parsed line is a choice presented to the user, with a set nesting `level`.
     Choice { level: u8, choice: Choice },
+    /// Parsed line is a gather point for choices at set nesting `level`. All nodes
+    /// with equal to or higher nesting `level`s will collapse here.
     Gather { level: u8, line: Line },
+    /// Regular line, which can still divert to other knots and have formatting.
     Line(Line),
 }
 
