@@ -90,7 +90,8 @@ fn parse_choice(line: &str) -> Option<Result<ParsedLine, <ParsedLine as FromStr>
 }
 
 fn parse_gather(line: &str) -> Option<Result<ParsedLine, <Line as FromStr>::Err>> {
-    let parsed_gather = parse_markers_and_text(line, GATHER_MARKER)?;
+    let line_exclude_diverts = line.trim_start_matches(DIVERT_MARKER);
+    let parsed_gather = parse_markers_and_text(line_exclude_diverts, GATHER_MARKER)?;
 
     let gather = parsed_gather
         .and_then(|(level, line_text)| Ok((level, Line::from_str(line_text)?)))
@@ -277,6 +278,15 @@ mod tests {
 
         assert_eq!(level, 4);
         assert_eq!(line, Line::from_str(line_text).unwrap());
+    }
+
+    #[test]
+    fn line_with_beginning_divert_parsed_into_line_instead_of_gather() {
+        let knot_name = "knot_name";
+        let text = format!("{} {}", DIVERT_MARKER, knot_name);
+        let line = ParsedLine::from_str(&text).unwrap().line();
+
+        assert_eq!(line.kind, LineKind::Divert(knot_name.to_string()));
     }
 
     #[test]
