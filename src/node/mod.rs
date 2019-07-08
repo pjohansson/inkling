@@ -1,6 +1,6 @@
-#[allow(dead_code)]
 mod follow;
 mod node;
 mod parse;
 
-pub use node::DialogueNode;
+pub use follow::Stack;
+pub use node::{DialogueNode, NodeItem, NodeType};
