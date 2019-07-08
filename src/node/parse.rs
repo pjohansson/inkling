@@ -1,41 +1,9 @@
-use crate::line::{Choice, Line, ParsedLine};
+use crate::line::ParsedLine;
 
-#[derive(Debug)]
-/// Node in a graph representation of a dialogue tree.
-pub struct DialogueNode {
-    /// Children of current node.
-    items: Vec<NodeItem>,
-}
+use super::node::{DialogueNode, NodeItem, NodeType};
 
-impl DialogueNode {
-    /// Parse a set of `ParsedLine` items and create a full graph representation of it.
-    pub fn from_lines(lines: &[ParsedLine]) -> Self {
-        parse_full_node(lines)
-    }
-}
-
-#[derive(Debug)]
-enum NodeItem {
-    /// Regular line of marked up text.
-    Line(Line),
-    /// Nested node, either a `MultiChoice` which has `Choices` as children, or a `Choice`
-    /// which has more `Line`s and possibly further `MultiChoice`s.
-    Node {
-        kind: NodeType,
-        node: Box<DialogueNode>,
-    },
-}
-
-#[derive(Debug)]
-enum NodeType {
-    /// Root of a set of choices. All node items will be of type `Choice`.
-    MultiChoice,
-    /// Choice in a set of choices. All node items will be lines or further `MultiChoice` nodes.
-    Choice(Choice),
-}
-
-/// Used to parse the input lines from beginning to end, returning the constructed `Node`.
-fn parse_full_node(lines: &[ParsedLine]) -> DialogueNode {
+/// Used to parse the input lines from beginning to end, returning the constructed `DialogueNode`.
+pub fn parse_full_node(lines: &[ParsedLine]) -> DialogueNode {
     let mut items = Vec::new();
 
     let mut index = 0;
@@ -49,13 +17,13 @@ fn parse_full_node(lines: &[ParsedLine]) -> DialogueNode {
                 items.push(item);
             }
             ParsedLine::Choice { level, .. } => {
-                let (item, gather) = parse_multichoice_with_gather(&mut index, *level, lines);
+                let (item, gather) = parse_choice_set_with_gather(&mut index, *level, lines);
                 items.push(item);
 
                 if let Some(line) = gather {
                     items.push(line);
 
-                    // `parse_multichoice_with_gather` advances the index to the next line
+                    // `parse_choice_set_with_gather` advances the index to the next line
                     // after this group if a gather was found, but this loop also does that
                     // at every iteration. Retract the index once to compensate.
                     index -= 1;
@@ -77,12 +45,12 @@ fn parse_full_node(lines: &[ParsedLine]) -> DialogueNode {
 /// After parsing a group of choices, check whether it ended because of a `Gather`.
 /// If so, return the `NodeItem::Line` object from that gather so that it can be appended
 /// *after* the node, not inside it.
-fn parse_multichoice_with_gather(
+fn parse_choice_set_with_gather(
     index: &mut usize,
     current_level: u8,
     lines: &[ParsedLine],
 ) -> (NodeItem, Option<NodeItem>) {
-    let node = parse_multichoice(index, current_level, lines);
+    let node = parse_choice_set(index, current_level, lines);
     let mut gather = None;
 
     if let Some(ParsedLine::Gather { level, line }) = lines.get(*index) {
@@ -95,19 +63,19 @@ fn parse_multichoice_with_gather(
     (node, gather)
 }
 
-/// Parse a set of `Choice`s with the same level, grouping them into a single `MultiChoice`
+/// Parse a set of `Choice`s with the same level, grouping them into a single `ChoiceSet`
 /// node that is returned.
-fn parse_multichoice(index: &mut usize, current_level: u8, lines: &[ParsedLine]) -> NodeItem {
+fn parse_choice_set(index: &mut usize, current_level: u8, lines: &[ParsedLine]) -> NodeItem {
     let mut choices = Vec::new();
 
-    while let Some(choice) = parse_choice(index, current_level, lines) {
+    while let Some(choice) = parse_single_choice(index, current_level, lines) {
         choices.push(choice);
     }
 
     let node = DialogueNode { items: choices };
 
     NodeItem::Node {
-        kind: NodeType::MultiChoice,
+        kind: NodeType::ChoiceSet,
         node: Box::new(node),
     }
 }
@@ -115,14 +83,18 @@ fn parse_multichoice(index: &mut usize, current_level: u8, lines: &[ParsedLine])
 /// Parse a single `Choice` node. The node ends either when another `Choice` node with
 /// the same level or below is encountered, when a `Gather` with the same level or below
 /// is encountered or when all lines are read.
-fn parse_choice(index: &mut usize, current_level: u8, lines: &[ParsedLine]) -> Option<NodeItem> {
+fn parse_single_choice(
+    index: &mut usize,
+    current_level: u8,
+    lines: &[ParsedLine],
+) -> Option<NodeItem> {
     if *index >= lines.len() {
         return None;
     }
 
     let head = &lines[*index];
 
-    let choice: Choice = match head {
+    let choice = match head {
         ParsedLine::Choice { level, .. } if *level < current_level => {
             return None;
         }
@@ -151,7 +123,7 @@ fn parse_choice(index: &mut usize, current_level: u8, lines: &[ParsedLine]) -> O
             }
             ParsedLine::Choice { level, .. } if *level == current_level => break,
             ParsedLine::Choice { level, .. } if *level > current_level => {
-                let (multi_choice, gather) = parse_multichoice_with_gather(index, *level, lines);
+                let (multi_choice, gather) = parse_choice_set_with_gather(index, *level, lines);
 
                 items.push(multi_choice);
 
@@ -159,7 +131,7 @@ fn parse_choice(index: &mut usize, current_level: u8, lines: &[ParsedLine]) -> O
                     items.push(line);
                 }
 
-                // `parse_multichoice` advances the index to the next line after the group,
+                // `parse_choice_set` advances the index to the next line after the group,
                 // but this loop also does that at every iteration. Retract the index once
                 // to compensate.
                 *index -= 1;
@@ -188,24 +160,10 @@ fn parse_choice(index: &mut usize, current_level: u8, lines: &[ParsedLine]) -> O
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::{ops::Index, str::FromStr};
 
-    fn get_empty_choice(level: u8) -> ParsedLine {
-        let choice = Choice {
-            selection_text: String::new(),
-            line: Line::from_str("").unwrap(),
-        };
-        ParsedLine::Choice { level, choice }
-    }
+    use std::str::FromStr;
 
-    fn get_empty_gather(level: u8) -> ParsedLine {
-        let line = Line::from_str("").unwrap();
-        ParsedLine::Gather { level, line }
-    }
-
-    fn get_line(s: &str) -> ParsedLine {
-        ParsedLine::Line(Line::from_str(s).unwrap())
-    }
+    use crate::line::{Choice, Line};
 
     #[test]
     fn parsing_choices_at_same_level_returns_when_encountering_other_choice() {
@@ -216,22 +174,22 @@ mod tests {
 
         let mut index = 0;
 
-        let first = parse_choice(&mut index, level, &lines).unwrap();
+        let first = parse_single_choice(&mut index, level, &lines).unwrap();
         assert_eq!(index, 1);
         assert!(first.is_choice());
         assert!(first.node().items.is_empty());
 
-        let second = parse_choice(&mut index, level, &lines).unwrap();
+        let second = parse_single_choice(&mut index, level, &lines).unwrap();
         assert_eq!(index, 2);
         assert!(second.is_choice());
         assert!(second.node().items.is_empty());
 
-        let third = parse_choice(&mut index, level, &lines).unwrap();
+        let third = parse_single_choice(&mut index, level, &lines).unwrap();
         assert_eq!(index, 3);
         assert!(third.is_choice());
         assert!(third.node().items.is_empty());
 
-        assert!(parse_choice(&mut index, level, &lines).is_none());
+        assert!(parse_single_choice(&mut index, level, &lines).is_none());
     }
 
     #[test]
@@ -254,7 +212,7 @@ mod tests {
 
         let mut index = 0;
 
-        match parse_choice(&mut index, 1, &lines).unwrap() {
+        match parse_single_choice(&mut index, 1, &lines).unwrap() {
             NodeItem::Node {
                 kind: NodeType::Choice(parsed),
                 ..
@@ -269,7 +227,7 @@ mod tests {
     fn parsing_choices_adds_found_regular_lines_as_items() {
         let level = 1;
         let choice = get_empty_choice(level);
-        let line = get_line("");
+        let line = get_parsed_line("");
 
         let lines = vec![
             choice.clone(),
@@ -281,8 +239,8 @@ mod tests {
 
         let mut index = 0;
 
-        let first = parse_choice(&mut index, level, &lines).unwrap();
-        let second = parse_choice(&mut index, level, &lines).unwrap();
+        let first = parse_single_choice(&mut index, level, &lines).unwrap();
+        let second = parse_single_choice(&mut index, level, &lines).unwrap();
         assert_eq!(index, 5);
 
         assert!(first.is_choice());
@@ -304,15 +262,15 @@ mod tests {
 
         let mut index = 0;
 
-        assert!(parse_choice(&mut index, 2, &lines).is_some());
-        assert!(parse_choice(&mut index, 2, &lines).is_some());
-        assert!(parse_choice(&mut index, 2, &lines).is_none());
+        assert!(parse_single_choice(&mut index, 2, &lines).is_some());
+        assert!(parse_single_choice(&mut index, 2, &lines).is_some());
+        assert!(parse_single_choice(&mut index, 2, &lines).is_none());
 
         assert_eq!(index, 2);
     }
 
     #[test]
-    fn parsing_multichoice_returns_all_choices_with_nested_content() {
+    fn parsing_choice_set_returns_all_choices_with_nested_content() {
         let choice = get_empty_choice(1);
         let line1 = ParsedLine::Line(Line::from_str("one").unwrap());
         let line2 = ParsedLine::Line(Line::from_str("two").unwrap());
@@ -329,10 +287,10 @@ mod tests {
 
         let mut index = 0;
 
-        let root = parse_multichoice(&mut index, 1, &lines);
+        let root = parse_choice_set(&mut index, 1, &lines);
 
         assert_eq!(index, 6);
-        assert!(root.is_multichoice());
+        assert!(root.is_choice_set());
 
         assert_eq!(root.len(), 3);
 
@@ -346,25 +304,25 @@ mod tests {
     }
 
     #[test]
-    fn parsing_choices_turns_nested_choices_into_multichoices() {
+    fn parsing_choices_turns_nested_choices_into_choice_sets() {
         let choice1 = get_empty_choice(1);
         let choice2 = get_empty_choice(2);
         let lines = vec![choice1.clone(), choice2.clone()];
 
         let mut index = 0;
 
-        let root = parse_choice(&mut index, 1, &lines).unwrap();
+        let root = parse_single_choice(&mut index, 1, &lines).unwrap();
 
         assert!(root.is_choice());
         assert_eq!(index, 2);
 
         assert_eq!(root.len(), 1);
-        assert!(root[0].is_multichoice());
+        assert!(root[0].is_choice_set());
         assert!(root[0][0].is_choice());
     }
 
     #[test]
-    fn parsing_multichoice_returns_early_if_lower_level_choice_is_encountered() {
+    fn parsing_choice_set_returns_early_if_lower_level_choice_is_encountered() {
         let choice1 = get_empty_choice(1);
         let choice2 = get_empty_choice(2);
 
@@ -372,14 +330,14 @@ mod tests {
 
         let mut index = 0;
 
-        let root = parse_multichoice(&mut index, 2, &lines);
+        let root = parse_choice_set(&mut index, 2, &lines);
 
         assert_eq!(index, 1);
         assert_eq!(root.len(), 1);
     }
 
     #[test]
-    fn parsing_multichoice_returns_handles_multiple_simultaneous_drops_in_level() {
+    fn parsing_choice_set_returns_handles_multiple_simultaneous_drops_in_level() {
         let choice2 = get_empty_choice(2);
         let choice3 = get_empty_choice(3);
         let choice4 = get_empty_choice(4);
@@ -393,7 +351,7 @@ mod tests {
 
         let mut index = 0;
 
-        let root = parse_multichoice(&mut index, 2, &lines);
+        let root = parse_choice_set(&mut index, 2, &lines);
 
         assert_eq!(index, 4);
         assert_eq!(root.len(), 2);
@@ -406,7 +364,7 @@ mod tests {
         let choice3 = get_empty_choice(3);
         let choice4 = get_empty_choice(4);
 
-        let line = get_line("");
+        let line = get_parsed_line("");
 
         let lines = vec![
             choice1.clone(),
@@ -423,22 +381,22 @@ mod tests {
 
         let mut index = 0;
 
-        let root = parse_multichoice(&mut index, 1, &lines);
+        let root = parse_choice_set(&mut index, 1, &lines);
 
         assert_eq!(index, 10);
-        assert!(root.is_multichoice());
+        assert!(root.is_choice_set());
 
-        // Assert that the level 3 choice has two lines and one final multichoice
+        // Assert that the level 3 choice has two lines and one final choice_set
         let node = &root[1][0][0][0][0];
 
         assert_eq!(node.len(), 3);
         assert!(node[0].is_line());
         assert!(node[1].is_line());
-        assert!(node[2].is_multichoice());
+        assert!(node[2].is_choice_set());
     }
 
     #[test]
-    fn multichoice_wrapper_adds_gather_line_if_present() {
+    fn choice_set_wrapper_adds_gather_line_if_present() {
         let choice1 = get_empty_choice(1);
         let gather1 = get_empty_gather(1);
 
@@ -446,9 +404,9 @@ mod tests {
 
         let mut index = 0;
 
-        let (root, line) = parse_multichoice_with_gather(&mut index, 1, &lines_without_gather);
+        let (root, line) = parse_choice_set_with_gather(&mut index, 1, &lines_without_gather);
 
-        assert!(root.is_multichoice());
+        assert!(root.is_choice_set());
         assert_eq!(root.len(), 3);
         assert!(line.is_none());
 
@@ -461,15 +419,15 @@ mod tests {
 
         index = 0;
 
-        let (root, line) = parse_multichoice_with_gather(&mut index, 1, &lines_with_gather);
+        let (root, line) = parse_choice_set_with_gather(&mut index, 1, &lines_with_gather);
 
-        assert!(root.is_multichoice());
+        assert!(root.is_choice_set());
         assert_eq!(root.len(), 2);
         assert!(line.unwrap().is_line());
     }
 
     #[test]
-    fn multichoice_wrapper_increments_index_if_gather() {
+    fn choice_set_wrapper_increments_index_if_gather() {
         let choice1 = get_empty_choice(1);
         let gather1 = get_empty_gather(1);
 
@@ -477,7 +435,7 @@ mod tests {
 
         let mut index = 0;
 
-        parse_multichoice_with_gather(&mut index, 1, &lines_without_gather);
+        parse_choice_set_with_gather(&mut index, 1, &lines_without_gather);
 
         assert_eq!(index, 1);
 
@@ -485,13 +443,13 @@ mod tests {
 
         index = 0;
 
-        parse_multichoice_with_gather(&mut index, 1, &lines_with_gather);
+        parse_choice_set_with_gather(&mut index, 1, &lines_with_gather);
 
         assert_eq!(index, 2);
     }
 
     #[test]
-    fn gathers_end_multichoices_at_same_level() {
+    fn gathers_end_choice_sets_at_same_level() {
         let choice1 = get_empty_choice(1);
         let gather1 = get_empty_gather(1);
 
@@ -504,7 +462,7 @@ mod tests {
 
         let mut index = 0;
 
-        let root = parse_multichoice(&mut index, 1, &lines);
+        let root = parse_choice_set(&mut index, 1, &lines);
 
         assert_eq!(index, 2);
         assert_eq!(root.len(), 2);
@@ -532,15 +490,15 @@ mod tests {
 
         let mut index = 0;
 
-        let (root, _) = parse_multichoice_with_gather(&mut index, 1, &lines);
+        let (root, _) = parse_choice_set_with_gather(&mut index, 1, &lines);
 
         assert_eq!(index, 9);
         assert_eq!(root.len(), 3);
     }
 
     #[test]
-    fn parse_node_with_two_initial_items_then_nest_into_a_multichoice() {
-        let line = get_line("");
+    fn parse_node_with_two_initial_items_then_nest_into_a_choice_set() {
+        let line = get_parsed_line("");
         let choice1 = get_empty_choice(1);
 
         let lines = vec![line.clone(), line.clone(), choice1.clone(), choice1.clone()];
@@ -550,12 +508,12 @@ mod tests {
         assert_eq!(root.items.len(), 3);
         assert!(root.items[0].is_line());
         assert!(root.items[1].is_line());
-        assert!(root.items[2].is_multichoice());
+        assert!(root.items[2].is_choice_set());
     }
 
     #[test]
     fn parse_node_with_a_gather_adds_line() {
-        let line = get_line("");
+        let line = get_parsed_line("");
         let choice1 = get_empty_choice(1);
         let choice2 = get_empty_choice(2);
         let gather1 = get_empty_gather(1);
@@ -563,23 +521,23 @@ mod tests {
 
         let lines = vec![
             line.clone(),
-            choice1.clone(), // Multichoice starts here as second level-1 element
-            choice2.clone(), // First element of level-2 multichoice
+            choice1.clone(), // ChoiceSet starts here as second level-1 element
+            choice2.clone(), // First element of level-2 ChoiceSet
             choice2.clone(),
-            gather2.clone(), // Breaks level-2 multichoice; becomes second element
+            gather2.clone(), // Breaks level-2 ChoiceSet; becomes second element
             choice1.clone(),
             gather2.clone(),
             choice1.clone(),
-            gather1.clone(), // Breaks multichoice; becomes third level-1 element
+            gather1.clone(), // Breaks ChoiceSet; becomes third level-1 element
             choice1.clone(), // Fourth level-1 element due to gather
         ];
 
         let root = parse_full_node(&lines);
 
         assert_eq!(root.items.len(), 4);
-        assert!(root.items[1].is_multichoice());
+        assert!(root.items[1].is_choice_set());
         assert!(root.items[2].is_line());
-        assert!(root.items[3].is_multichoice());
+        assert!(root.items[3].is_choice_set());
 
         assert_eq!(root.items[1][0].len(), 2);
         assert!(root.items[1][0][1].is_line());
@@ -597,7 +555,7 @@ mod tests {
         let root = parse_full_node(&[choice.clone(), choice.clone(), choice.clone()]);
 
         assert_eq!(root.items.len(), 1);
-        assert!(root.items[0].is_multichoice());
+        assert!(root.items[0].is_choice_set());
         assert_eq!(root.items[0].len(), 3);
     }
 
@@ -631,123 +589,22 @@ mod tests {
         assert_eq!(root.items[0][1][0].len(), 2);
     }
 
-    /***************************************************
-     * Helper functions to do test assertion and debug *
-     ***************************************************/
+    pub fn get_empty_choice(level: u8) -> ParsedLine {
+        let choice = Choice {
+            selection_text: String::new(),
+            line: Line::from_str("").unwrap(),
+        };
 
-    impl DialogueNode {
-        // Return a string representation of the entire graph of nodes.
-        fn display(&self) -> String {
-            let mut buffer = String::new();
-
-            for item in &self.items {
-                item.display_indent(&mut buffer, 0);
-            }
-
-            buffer
-        }
+        ParsedLine::Choice { level, choice }
     }
 
-    impl NodeItem {
-        // If this is another node (`NodeItem::Node`), return a string representation
-        // of the entire graph spawning from it.
-        fn display(&self) -> String {
-            let mut buffer = String::new();
+    pub fn get_empty_gather(level: u8) -> ParsedLine {
+        let line = Line::from_str("").unwrap();
 
-            self.display_indent(&mut buffer, 0);
-
-            buffer
-        }
-
-        // Recursively descend into children, writing their structure into the buffer
-        // with indents added for every level.
-        fn display_indent(&self, buffer: &mut String, level: usize) {
-            let indent = format!("{:width$}", ' ', width = 4 * level);
-
-            match self {
-                NodeItem::Line(line) => {
-                    let s = format!("{indent}Line(\"{}\")\n", &line.text, indent = indent);
-                    buffer.push_str(&s);
-                }
-
-                NodeItem::Node { kind, node } => {
-                    let variant = match kind {
-                        NodeType::MultiChoice => "MultiChoice [\n",
-                        NodeType::Choice(..) => "Choice [\n",
-                    };
-
-                    let s = format!("{indent}{}", variant, indent = indent);
-                    buffer.push_str(&s);
-
-                    for item in &node.items {
-                        item.display_indent(buffer, level + 1);
-                    }
-
-                    let s = format!("{indent}]\n", indent = indent);
-                    buffer.push_str(&s);
-                }
-            }
-        }
-
-        // If `Self` is `NodeItem::Node`, return the length of its direct children.
-        // Panics if `Self` is not `Node`.
-        fn len(&self) -> usize {
-            match self {
-                NodeItem::Node { node, .. } => node.items.len(),
-                _ => panic!("expected a `Node` but found {:?}", self),
-            }
-        }
-
-        // If `Self` is `NodeItem::Node`, return the boxed `Node`.
-        // Panics if `Self` is not `Node`.
-        fn node(&self) -> &DialogueNode {
-            match self {
-                NodeItem::Node { node, .. } => &node,
-                _ => panic!("expected a `Node` but found {:?}", self),
-            }
-        }
-
-        // Return `true` if `Self` is both `NodeItem::Node` and its kind is `NodeType::Choice`.
-        fn is_choice(&self) -> bool {
-            match self {
-                NodeItem::Node {
-                    kind: NodeType::Choice(..),
-                    ..
-                } => true,
-                _ => false,
-            }
-        }
-
-        // Return `true` if `Self` is `NodeItem::Line`.
-        fn is_line(&self) -> bool {
-            match self {
-                NodeItem::Line(..) => true,
-                _ => false,
-            }
-        }
-
-        // Return `true` if `Self` is both `NodeItem::Node` and its kind is `NodeType::MultiChoice`.
-        fn is_multichoice(&self) -> bool {
-            match self {
-                NodeItem::Node {
-                    kind: NodeType::MultiChoice,
-                    ..
-                } => true,
-                _ => false,
-            }
-        }
+        ParsedLine::Gather { level, line }
     }
 
-    // If `Self` is `NodeItem::Node`, return the child item with given index.
-    // Panics if `Self` is not `Node`.
-    impl Index<usize> for NodeItem {
-        type Output = Self;
-
-        fn index(&self, index: usize) -> &Self::Output {
-            match self {
-                NodeItem::Node { node, .. } => &node.items[index],
-                _ => panic!("expected a `Node` but found {:?}", self),
-            }
-        }
+    pub fn get_parsed_line(s: &str) -> ParsedLine {
+        ParsedLine::Line(Line::from_str(s).unwrap())
     }
 }
