@@ -2,8 +2,8 @@ use crate::{
     error::{
         BadGraphKind, FollowError, IncorrectStackKind, InternalError, NodeItemKind, WhichIndex,
     },
-    knot::{LineBuffer, Next},
     line::{Choice, LineKind},
+    story::{FollowResult, LineBuffer, Next},
 };
 
 pub type Stack = Vec<usize>;
@@ -29,7 +29,7 @@ impl DialogueNode {
         current_level: usize,
         buffer: &mut LineBuffer,
         stack: &mut Stack,
-    ) -> Result<Next, FollowError> {
+    ) -> FollowResult {
         let index = add_or_get_mut_stack_index_for_level(current_level, stack)?;
 
         while *index < self.items.len() {
@@ -81,7 +81,7 @@ impl DialogueNode {
         current_level: usize,
         buffer: &mut LineBuffer,
         stack: &mut Stack,
-    ) -> Result<Next, FollowError> {
+    ) -> FollowResult {
         let result = if current_level < stack.len() - 1 {
             let next_level_node = self.follow_stack_to_next_choice(current_level, None, stack)?;
 

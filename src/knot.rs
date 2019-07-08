@@ -4,6 +4,7 @@ use crate::{
     error::FollowError,
     line::{Choice, Line, LineKind, ParsedLine},
     node::{DialogueNode, Stack},
+    story::{FollowResult, LineBuffer, Next},
 };
 
 #[derive(Debug)]
@@ -13,22 +14,9 @@ pub struct Knot {
     prev_choice_set: Vec<Choice>,
 }
 
-pub type LineBuffer = Vec<Line>;
-
-#[derive(Clone, Debug, PartialEq)]
-/// What action that is prompted by following a story.
-pub enum Next {
-    /// Finished with the current node or story.
-    Done,
-    /// Divert to a new knot with the given name.
-    Divert(String),
-    /// Choice for the user.
-    ChoiceSet(Vec<Choice>),
-}
-
 impl Knot {
     /// Follow a story while reading every line into a buffer.
-    fn follow(&mut self, buffer: &mut LineBuffer) -> Result<Next, FollowError> {
+    pub fn follow(&mut self, buffer: &mut LineBuffer) -> FollowResult {
         let result = self.root.follow(0, buffer, &mut self.stack);
 
         match &result {
@@ -40,11 +28,22 @@ impl Knot {
     }
 
     /// Follow a story while reading every line into a buffer.
-    fn follow_with_choice(
+    pub fn follow_with_choice(
         &mut self,
         choice_index: usize,
         buffer: &mut LineBuffer,
-    ) -> Result<Next, FollowError> {
+    ) -> FollowResult {
+        self.add_choice_to_buffer(choice_index, buffer)?;
+
+        self.root
+            .follow_with_choice(choice_index, 0, buffer, &mut self.stack)
+    }
+
+    fn add_choice_to_buffer(
+        &self,
+        choice_index: usize,
+        buffer: &mut LineBuffer,
+    ) -> Result<(), FollowError> {
         let choice = self
             .prev_choice_set
             .get(choice_index)
@@ -55,13 +54,12 @@ impl Knot {
 
         buffer.push(choice.line.clone());
 
-        self.root
-            .follow_with_choice(choice_index, 0, buffer, &mut self.stack)
+        Ok(())
     }
 
     /// Follow a story while reading every line into a pure text buffer,
     /// discarding other data.
-    fn follow_into_string(&mut self, buffer: &mut String) -> Result<Next, FollowError> {
+    fn follow_into_string(&mut self, buffer: &mut String) -> FollowResult {
         let mut line_buffer = Vec::new();
         let result = self.follow(&mut line_buffer)?;
 
@@ -302,7 +300,10 @@ Line 6
         knot.follow(&mut buffer).unwrap();
 
         match knot.follow_with_choice(2, &mut buffer) {
-            Err(FollowError::InvalidChoice { selection: 2, num_choices: 2 }) => (),
+            Err(FollowError::InvalidChoice {
+                selection: 2,
+                num_choices: 2,
+            }) => (),
             Err(FollowError::InvalidChoice { .. }) => panic!(),
             _ => panic!("expected a `FollowError::InvalidChoice` but did not get it"),
         }

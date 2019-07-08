@@ -56,6 +56,9 @@ pub enum InternalError {
         kind: IncorrectStackKind,
         stack: Stack,
     },
+    UnknownKnot {
+        name: String,
+    },
 }
 
 impl fmt::Display for InternalError {
@@ -71,6 +74,11 @@ impl fmt::Display for InternalError {
                 "Expected a `DialogueNode` that is a {:?} but got a {:?} \
                  (node level: {}, index: {})",
                 expected, found, node_level, index
+            ),
+            InternalError::UnknownKnot { name } => write!(
+                f,
+                "Tried to follow a knot with name {} but no such knot exists",
+                name
             ),
             InternalError::IncorrectStack { kind, stack } => match kind {
                 IncorrectStackKind::NotTruncated { node_level } => write!(
