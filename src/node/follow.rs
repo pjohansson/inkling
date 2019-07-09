@@ -2,8 +2,8 @@ use crate::{
     error::{
         BadGraphKind, FollowError, IncorrectStackKind, InternalError, NodeItemKind, WhichIndex,
     },
+    follow::{FollowResult, LineDataBuffer, Next},
     line::{Choice, LineKind},
-    story::{FollowResult, LineBuffer, Next},
 };
 
 pub type Stack = Vec<usize>;
@@ -27,7 +27,7 @@ impl DialogueNode {
     pub fn follow(
         &self,
         current_level: usize,
-        buffer: &mut LineBuffer,
+        buffer: &mut LineDataBuffer,
         stack: &mut Stack,
     ) -> FollowResult {
         let index = add_or_get_mut_stack_index_for_level(current_level, stack)?;
@@ -79,7 +79,7 @@ impl DialogueNode {
         &self,
         choice: usize,
         current_level: usize,
-        buffer: &mut LineBuffer,
+        buffer: &mut LineDataBuffer,
         stack: &mut Stack,
     ) -> FollowResult {
         let result = if current_level < stack.len() - 1 {
@@ -314,7 +314,7 @@ mod tests {
         str::FromStr,
     };
 
-    use crate::line::Line;
+    use crate::line::LineData;
 
     #[test]
     fn follow_a_pure_line_node_adds_lines_to_buffer() {
@@ -425,7 +425,7 @@ mod tests {
         let destination = "to_node";
         let divert = LineKind::Divert(destination.to_string());
 
-        let mut line_divert = Line::from_str("").unwrap();
+        let mut line_divert = LineData::from_str("").unwrap();
         line_divert.kind = divert.clone();
 
         let item_divert = get_node_item_with_line(&line_divert);
@@ -450,7 +450,7 @@ mod tests {
         let destination = "to_node";
         let divert = LineKind::Divert(destination.to_string());
 
-        let mut line_divert = Line::from_str("").unwrap();
+        let mut line_divert = LineData::from_str("").unwrap();
         line_divert.kind = divert.clone();
 
         let item_divert = get_node_item_with_line(&line_divert);
@@ -475,7 +475,7 @@ mod tests {
         let divert = LineKind::Divert(destination.to_string());
         let divert_text = "They moved on to the next scene";
 
-        let mut line_divert = Line::from_str(divert_text).unwrap();
+        let mut line_divert = LineData::from_str(divert_text).unwrap();
         line_divert.kind = divert.clone();
 
         let item_divert = get_node_item_with_line(&line_divert);
@@ -531,10 +531,10 @@ mod tests {
         let mut choice_set = get_choice_set_with_empty_choices(2);
         let item1 = get_node_item_line("Hello, world!");
 
-        let line2 = Line::from_str("Hello?").unwrap();
+        let line2 = LineData::from_str("Hello?").unwrap();
         let item2 = get_node_item_with_line(&line2);
 
-        let line3 = Line::from_str("Hello, is anyone there?").unwrap();
+        let line3 = LineData::from_str("Hello, is anyone there?").unwrap();
         let item3 = get_node_item_with_line(&line3);
 
         // Add two lines to second choice in the set
@@ -906,10 +906,10 @@ mod tests {
 
         // If `Self` is `NodeItem::Line`, return the boxed line.
         // Panics if `Self` is not `Line`.
-        pub fn line(&self) -> &Line {
+        pub fn line(&self) -> &LineData {
             match self {
                 NodeItem::Line(line) => &line,
-                _ => panic!("expected a `Line` but found {:?}", self),
+                _ => panic!("expected a `LineData` but found {:?}", self),
             }
         }
 
@@ -997,24 +997,26 @@ mod tests {
     }
 
     pub fn get_node_item_line(s: &str) -> NodeItem {
-        NodeItem::Line(Line::from_str(s).unwrap())
+        NodeItem::Line(LineData::from_str(s).unwrap())
     }
 
-    pub fn get_node_item_with_line(line: &Line) -> NodeItem {
+    pub fn get_node_item_with_line(line: &LineData) -> NodeItem {
         NodeItem::Line(line.clone())
     }
 
-    pub fn get_line_and_node_item_line(s: &str) -> (Line, NodeItem) {
-        let line = Line::from_str(s).unwrap();
+    pub fn get_line_and_node_item_line(s: &str) -> (LineData, NodeItem) {
+        let line = LineData::from_str(s).unwrap();
         let item = NodeItem::Line(line.clone());
 
         (line, item)
     }
 
     pub fn get_choice_set_with_empty_choices(num: usize) -> NodeItem {
+        let line = LineData::from_str("").unwrap();
+
         let empty_choice = Choice {
-            selection_text: String::new(),
-            line: Line::from_str("").unwrap(),
+            displayed: line.clone(),
+            line,
         };
 
         let items = (0..num)

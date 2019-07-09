@@ -1,4 +1,4 @@
-use crate::line::{Choice, Line, ParsedLine};
+use crate::line::{Choice, LineData, ParsedLine};
 
 use super::parse::parse_full_node;
 
@@ -19,7 +19,7 @@ impl DialogueNode {
 #[derive(Debug)]
 pub enum NodeItem {
     /// Regular line of marked up text.
-    Line(Line),
+    Line(LineData),
     /// Nested node, either a `ChoiceSet` which has `Choice`s as children, or a
     /// `Choice` which has more `Line`s and possibly further `ChoiceSet`s.
     Node {

@@ -163,7 +163,7 @@ mod tests {
 
     use std::str::FromStr;
 
-    use crate::line::{Choice, Line};
+    use crate::line::{Choice, LineData};
 
     #[test]
     fn parsing_choices_at_same_level_returns_when_encountering_other_choice() {
@@ -197,9 +197,9 @@ mod tests {
         let selection_text = "Netherfield Park".to_string();
         let text = "\"To Netherfield Park, then\", I exclaimed.";
 
-        let line = Line::from_str(text).unwrap();
+        let line = LineData::from_str(text).unwrap();
         let choice = Choice {
-            selection_text,
+            displayed: line.clone(),
             line,
         };
 
@@ -272,9 +272,9 @@ mod tests {
     #[test]
     fn parsing_choice_set_returns_all_choices_with_nested_content() {
         let choice = get_empty_choice(1);
-        let line1 = ParsedLine::Line(Line::from_str("one").unwrap());
-        let line2 = ParsedLine::Line(Line::from_str("two").unwrap());
-        let line3 = ParsedLine::Line(Line::from_str("three").unwrap());
+        let line1 = ParsedLine::Line(LineData::from_str("one").unwrap());
+        let line2 = ParsedLine::Line(LineData::from_str("two").unwrap());
+        let line3 = ParsedLine::Line(LineData::from_str("three").unwrap());
 
         let lines = vec![
             choice.clone(),
@@ -590,21 +590,22 @@ mod tests {
     }
 
     pub fn get_empty_choice(level: u8) -> ParsedLine {
+        let line = LineData::from_str("").unwrap();
         let choice = Choice {
-            selection_text: String::new(),
-            line: Line::from_str("").unwrap(),
+            displayed: line.clone(),
+            line,
         };
 
         ParsedLine::Choice { level, choice }
     }
 
     pub fn get_empty_gather(level: u8) -> ParsedLine {
-        let line = Line::from_str("").unwrap();
+        let line = LineData::from_str("").unwrap();
 
         ParsedLine::Gather { level, line }
     }
 
     pub fn get_parsed_line(s: &str) -> ParsedLine {
-        ParsedLine::Line(Line::from_str(s).unwrap())
+        ParsedLine::Line(LineData::from_str(s).unwrap())
     }
 }

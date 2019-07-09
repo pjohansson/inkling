@@ -2,9 +2,9 @@ use std::{collections::HashMap, str::FromStr};
 
 use crate::{
     error::FollowError,
-    line::{Choice, Line, LineKind, ParsedLine},
+    follow::{FollowResult, LineDataBuffer, Next},
+    line::{Choice, LineData, LineKind, ParsedLine},
     node::{DialogueNode, Stack},
-    story::{FollowResult, LineBuffer, Next},
 };
 
 #[derive(Debug)]
@@ -16,33 +16,41 @@ pub struct Knot {
 
 impl Knot {
     /// Follow a story while reading every line into a buffer.
-    pub fn follow(&mut self, buffer: &mut LineBuffer) -> FollowResult {
-        let result = self.root.follow(0, buffer, &mut self.stack);
+    pub fn follow(&mut self, buffer: &mut LineDataBuffer) -> FollowResult {
+        let result = self.root.follow(0, buffer, &mut self.stack)?;
 
         match &result {
-            Ok(Next::ChoiceSet(choices)) => self.prev_choice_set = choices.clone(),
-            _ => (),
+            Next::ChoiceSet(choices) => self.prev_choice_set = choices.clone(),
+            Next::Done | Next::Divert(..) => self.stack.clear(),
         }
 
-        result
+        Ok(result)
     }
 
     /// Follow a story while reading every line into a buffer.
     pub fn follow_with_choice(
         &mut self,
         choice_index: usize,
-        buffer: &mut LineBuffer,
+        buffer: &mut LineDataBuffer,
     ) -> FollowResult {
         self.add_choice_to_buffer(choice_index, buffer)?;
 
-        self.root
-            .follow_with_choice(choice_index, 0, buffer, &mut self.stack)
+        let result = self
+            .root
+            .follow_with_choice(choice_index, 0, buffer, &mut self.stack)?;
+
+        match result {
+            Next::Done | Next::Divert(..) => self.stack.clear(),
+            _ => (),
+        }
+
+        Ok(result)
     }
 
     fn add_choice_to_buffer(
         &self,
         choice_index: usize,
-        buffer: &mut LineBuffer,
+        buffer: &mut LineDataBuffer,
     ) -> Result<(), FollowError> {
         let choice = self
             .prev_choice_set
@@ -55,23 +63,6 @@ impl Knot {
         buffer.push(choice.line.clone());
 
         Ok(())
-    }
-
-    /// Follow a story while reading every line into a pure text buffer,
-    /// discarding other data.
-    fn follow_into_string(&mut self, buffer: &mut String) -> FollowResult {
-        let mut line_buffer = Vec::new();
-        let result = self.follow(&mut line_buffer)?;
-
-        for line in line_buffer {
-            buffer.push_str(&line.text);
-
-            if !line.glue_end {
-                buffer.push('\n');
-            }
-        }
-
-        Ok(result)
     }
 }
 
@@ -100,18 +91,41 @@ mod tests {
 
     #[test]
     fn knot_from_plain_text_lines_fully_replicates_them() {
-        let text = "\
-Hello, world!
-Hello?
-Hello, are you there?
-";
+        let lines = vec!["Hello, world!", "Hello?", "Hello, are you there?"];
+
+        let mut text = String::new();
+        for line in lines.iter() {
+            text.push_str(&line);
+            text.push('\n');
+        }
+
+        let mut knot = Knot::from_str(&text).unwrap();
+
+        let mut buffer = Vec::new();
+
+        assert_eq!(knot.follow(&mut buffer).unwrap(), Next::Done);
+
+        assert_eq!(buffer.len(), 3);
+
+        for (result, original) in buffer.iter().zip(lines.iter()) {
+            assert_eq!(&result.text, original);
+        }
+    }
+
+    #[test]
+    fn knot_restarts_from_their_first_line_when_run_again() {
+        let text = "Hello, World!";
 
         let mut knot = Knot::from_str(text).unwrap();
 
-        let mut buffer = String::new();
+        let mut buffer = Vec::new();
 
-        assert_eq!(knot.follow_into_string(&mut buffer).unwrap(), Next::Done);
-        assert_eq!(buffer, text);
+        knot.follow(&mut buffer).unwrap();
+        knot.follow(&mut buffer).unwrap();
+
+        assert_eq!(buffer.len(), 2);
+        assert_eq!(&buffer[0].text, text);
+        assert_eq!(&buffer[1].text, text);
     }
 
     #[test]
@@ -131,15 +145,14 @@ Hello, are you there?
         );
 
         let mut knot = Knot::from_str(&text).unwrap();
-        eprintln!("{:#?}", &knot);
 
-        let mut buffer = String::new();
+        let mut buffer = Vec::new();
 
-        assert_eq!(
-            knot.follow_into_string(&mut buffer).unwrap(),
-            Next::Divert(name)
-        );
-        assert_eq!(buffer.trim_end(), pre);
+        assert_eq!(knot.follow(&mut buffer).unwrap(), Next::Divert(name));
+
+        assert_eq!(buffer.len(), 2);
+        assert_eq!(&buffer[0].text, pre);
+        assert_eq!(&buffer[1].text, "");
     }
 
     #[test]
@@ -161,9 +174,9 @@ Hello, are you there?
 
         let mut knot = Knot::from_str(&text).unwrap();
 
-        let mut buffer = String::new();
+        let mut buffer = Vec::new();
 
-        let choices = match knot.follow_into_string(&mut buffer).unwrap() {
+        let choices = match knot.follow(&mut buffer).unwrap() {
             Next::ChoiceSet(choices) => choices,
             _ => panic!("did not get a `ChoiceSet`"),
         };
@@ -180,13 +193,31 @@ Hello, are you there?
 
         let mut knot = Knot::from_str(&text).unwrap();
 
-        let mut buffer = LineBuffer::new();
+        let mut buffer = LineDataBuffer::new();
 
         knot.follow(&mut buffer).unwrap();
         knot.follow_with_choice(0, &mut buffer).unwrap();
 
         assert_eq!(buffer.len(), 1);
         assert_eq!(&buffer[0].text, choice);
+    }
+
+    #[test]
+    fn when_a_knot_is_finished_after_a_choice_the_stack_is_reset() {
+        let text = "\
+* Choice 1
+* Choice 2
+";
+
+        let mut knot = Knot::from_str(text).unwrap();
+
+        let mut buffer = Vec::new();
+
+        knot.follow(&mut buffer).unwrap();
+        assert!(!knot.stack.is_empty());
+
+        knot.follow_with_choice(0, &mut buffer).unwrap();
+        assert!(knot.stack.is_empty());
     }
 
     #[test]
@@ -211,7 +242,7 @@ Hello, are you there?
 
         let mut knot = Knot::from_str(&text).unwrap();
 
-        let mut buffer = LineBuffer::new();
+        let mut buffer = LineDataBuffer::new();
 
         knot.follow(&mut buffer).unwrap();
         knot.follow_with_choice(1, &mut buffer).unwrap();
@@ -244,13 +275,13 @@ Hello, are you there?
 
         let mut knot = Knot::from_str(&text).unwrap();
 
-        let mut results_choice1 = LineBuffer::new();
+        let mut results_choice1 = LineDataBuffer::new();
 
         knot.follow(&mut results_choice1).unwrap();
         knot.follow_with_choice(0, &mut results_choice1).unwrap();
         knot.stack.clear();
 
-        let mut results_choice2 = LineBuffer::new();
+        let mut results_choice2 = LineDataBuffer::new();
 
         knot.follow(&mut results_choice2).unwrap();
         knot.follow_with_choice(1, &mut results_choice2).unwrap();
@@ -277,7 +308,7 @@ Line 6
 ";
         let mut knot = Knot::from_str(&text).unwrap();
 
-        let mut buffer = LineBuffer::new();
+        let mut buffer = LineDataBuffer::new();
 
         knot.follow(&mut buffer).unwrap();
         knot.follow_with_choice(0, &mut buffer).unwrap();
@@ -295,7 +326,7 @@ Line 6
 ";
         let mut knot = Knot::from_str(&text).unwrap();
 
-        let mut buffer = LineBuffer::new();
+        let mut buffer = LineDataBuffer::new();
 
         knot.follow(&mut buffer).unwrap();
 

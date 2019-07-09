@@ -5,7 +5,7 @@ use std::str::FromStr;
 #[derive(Clone, Debug, PartialEq)]
 /// A single line of text used in a story. Can contain diverts to new knots, which should
 /// be followed when walking through the story.
-pub struct Line {
+pub struct LineData {
     /// Text contained in the line.
     pub text: String,
     /// Contains what result following the line will have, either being a regular line
@@ -27,11 +27,11 @@ pub struct Line {
 /// A single choice in a (usually) set of choices presented to the user.
 pub struct Choice {
     /// Text presented to the user to represent the choice.
-    pub selection_text: String,
-    /// Text that the choice produces when selected, replacing the `selection_text` line.
+    pub displayed: LineData,
+    /// Text that the choice produces when selected, replacing the `displayed` line.
     /// Can be empty, in which case the presented text is removed before the story flow
     /// continues to the next line.
-    pub line: Line,
+    pub line: LineData,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -51,9 +51,9 @@ pub enum ParsedLine {
     Choice { level: u8, choice: Choice },
     /// Parsed line is a gather point for choices at set nesting `level`. All nodes
     /// with equal to or higher nesting `level`s will collapse here.
-    Gather { level: u8, line: Line },
+    Gather { level: u8, line: LineData },
     /// Regular line, which can still divert to other knots and have formatting.
-    Line(Line),
+    Line(LineData),
 }
 
 impl FromStr for ParsedLine {
@@ -66,20 +66,20 @@ impl FromStr for ParsedLine {
     }
 }
 
-fn parse_line(line: &str) -> Result<ParsedLine, <Line as FromStr>::Err> {
-    Line::from_str(line).map(|line| ParsedLine::Line(line))
+fn parse_line(line: &str) -> Result<ParsedLine, <LineData as FromStr>::Err> {
+    LineData::from_str(line).map(|line| ParsedLine::Line(line))
 }
 
 fn parse_choice(line: &str) -> Option<Result<ParsedLine, <ParsedLine as FromStr>::Err>> {
     let parsed_choice = parse_markers_and_text(line, CHOICE_MARKER)?;
 
     let choice = parsed_choice
-        .and_then(|(level, line_text)| Ok((level, Line::from_str(line_text)?)))
+        .and_then(|(level, line_text)| Ok((level, LineData::from_str(line_text)?)))
         .map(|(level, line)| {
             (
                 level,
                 Choice {
-                    selection_text: String::new(),
+                    displayed: line.clone(),
                     line,
                 },
             )
@@ -89,12 +89,12 @@ fn parse_choice(line: &str) -> Option<Result<ParsedLine, <ParsedLine as FromStr>
     Some(choice)
 }
 
-fn parse_gather(line: &str) -> Option<Result<ParsedLine, <Line as FromStr>::Err>> {
+fn parse_gather(line: &str) -> Option<Result<ParsedLine, <LineData as FromStr>::Err>> {
     let line_minus_diverts = line.trim_start().trim_start_matches(DIVERT_MARKER);
     let parsed_gather = parse_markers_and_text(line_minus_diverts, GATHER_MARKER)?;
 
     let gather = parsed_gather
-        .and_then(|(level, line_text)| Ok((level, Line::from_str(line_text)?)))
+        .and_then(|(level, line_text)| Ok((level, LineData::from_str(line_text)?)))
         .map(|(level, line)| ParsedLine::Gather { level, line });
 
     Some(gather)
@@ -123,7 +123,7 @@ fn split_markers_from_text(line: &str, marker: char) -> Result<(&str, &str), Str
     Ok(line.split_at(i))
 }
 
-impl FromStr for Line {
+impl FromStr for LineData {
     type Err = String;
 
     fn from_str(line: &str) -> Result<Self, Self::Err> {
@@ -143,7 +143,7 @@ impl FromStr for Line {
             LineKind::Regular
         };
 
-        Ok(Line {
+        Ok(LineData {
             text,
             kind,
             tags,
@@ -217,17 +217,17 @@ mod tests {
             }
         }
 
-        fn gather(self) -> (u8, Line) {
+        fn gather(self) -> (u8, LineData) {
             match self {
                 ParsedLine::Gather { level, line } => (level, line),
                 _ => panic!("tried to unwrap into a `Gather`, but was `{:?}`", &self),
             }
         }
 
-        fn line(self) -> Line {
+        fn line(self) -> LineData {
             match self {
                 ParsedLine::Line(line) => line,
-                _ => panic!("tried to unwrap into a `Line`, but was `{:?}`", &self),
+                _ => panic!("tried to unwrap into a `LineData`, but was `{:?}`", &self),
             }
         }
     }
@@ -248,13 +248,23 @@ mod tests {
         let (level, choice) = ParsedLine::from_str(&text1).unwrap().choice();
 
         assert_eq!(level, 1);
-        assert_eq!(choice.line, Line::from_str(line_text).unwrap());
+        assert_eq!(choice.line, LineData::from_str(line_text).unwrap());
 
         let text2 = format!("** {}", line_text);
         let (level, choice) = ParsedLine::from_str(&text2).unwrap().choice();
 
         assert_eq!(level, 2);
-        assert_eq!(choice.line, Line::from_str(line_text).unwrap());
+        assert_eq!(choice.line, LineData::from_str(line_text).unwrap());
+    }
+
+    #[test]
+    fn parsing_choice_sets_displayed_and_line() {
+        let line_text = "Hello, world!";
+        let choice_text = format!("* {}", line_text);
+
+        let (_, choice) = parse_choice(&choice_text).unwrap().unwrap().choice();
+
+        assert_eq!(&choice.displayed, &choice.line);
     }
 
     #[test]
@@ -265,13 +275,13 @@ mod tests {
         let (level, line) = ParsedLine::from_str(&text1).unwrap().gather();
 
         assert_eq!(level, 1);
-        assert_eq!(line, Line::from_str(line_text).unwrap());
+        assert_eq!(line, LineData::from_str(line_text).unwrap());
 
         let text2 = format!("-- {}", line_text);
         let (level, line) = ParsedLine::from_str(&text2).unwrap().gather();
 
         assert_eq!(level, 2);
-        assert_eq!(line, Line::from_str(line_text).unwrap());
+        assert_eq!(line, LineData::from_str(line_text).unwrap());
     }
 
     #[test]
@@ -282,7 +292,7 @@ mod tests {
         let (level, line) = ParsedLine::from_str(&text).unwrap().gather();
 
         assert_eq!(level, 4);
-        assert_eq!(line, Line::from_str(line_text).unwrap());
+        assert_eq!(line, LineData::from_str(line_text).unwrap());
     }
 
     #[test]
@@ -298,7 +308,7 @@ mod tests {
     fn read_simple_line() {
         let text = "Hello, world!";
 
-        let line = Line::from_str(text).unwrap();
+        let line = LineData::from_str(text).unwrap();
 
         assert_eq!(&line.text, text);
         assert_eq!(line.kind, LineKind::Regular);
@@ -307,13 +317,13 @@ mod tests {
     #[test]
     fn read_line_trims_whitespace() {
         let text = "   Hello, world!   ";
-        let line = Line::from_str(text).unwrap();
+        let line = LineData::from_str(text).unwrap();
 
         assert_eq!(&line.text, text.trim());
     }
 
     #[test]
-    fn line_with_glue_retains_whitespace_on_side() {
+    fn line_with_glue_retains_whitespace_on_end_side() {
         let text = "Hello, world!";
         let whitespace = "    ";
 
@@ -331,13 +341,13 @@ mod tests {
             marker = GLUE_MARKER
         );
 
-        let line_left = Line::from_str(&line_with_left_glue).unwrap();
+        let line_left = LineData::from_str(&line_with_left_glue).unwrap();
 
         assert_eq!(line_left.text, format!(" {}", &text));
         assert!(line_left.glue_start);
         assert!(!line_left.glue_end);
 
-        let line_right = Line::from_str(&line_with_right_glue).unwrap();
+        let line_right = LineData::from_str(&line_with_right_glue).unwrap();
 
         assert_eq!(line_right.text, format!("{} ", &text));
         assert!(!line_right.glue_start);
@@ -349,7 +359,7 @@ mod tests {
         let name = "knot_name";
         let text = format!("-> {}", name);
 
-        let line = Line::from_str(&text).unwrap();
+        let line = LineData::from_str(&text).unwrap();
 
         assert_eq!(&line.text, "");
         assert_eq!(line.kind, LineKind::Divert(name.to_string()));
@@ -361,7 +371,7 @@ mod tests {
         let name = "knot_name";
         let text = format!("{}->{}", head, name);
 
-        let line = Line::from_str(&text).unwrap();
+        let line = LineData::from_str(&text).unwrap();
         assert_eq!(&line.text, head);
         assert_eq!(line.kind, LineKind::Divert(name.to_string()));
     }
@@ -372,14 +382,14 @@ mod tests {
         let name = "knot_name";
         let text = format!("{}->{}", head, name);
 
-        let line = Line::from_str(&text).unwrap();
+        let line = LineData::from_str(&text).unwrap();
 
         assert!(line.glue_end);
     }
 
     #[test]
     fn lines_trim_extra_whitespace_between_words() {
-        let line = Line::from_str("Hello,      World!   ").unwrap();
+        let line = LineData::from_str("Hello,      World!   ").unwrap();
         assert_eq!(&line.text, "Hello, World!");
     }
 
@@ -389,7 +399,7 @@ mod tests {
         let name = "knot_name";
         let text = format!("{}->{}", head, name);
 
-        let line = Line::from_str(&text).unwrap();
+        let line = LineData::from_str(&text).unwrap();
         assert!(line.tags.is_empty());
     }
 
@@ -410,7 +420,7 @@ mod tests {
             sep = TAG_MARKER
         );
 
-        let line = Line::from_str(&text).unwrap();
+        let line = LineData::from_str(&text).unwrap();
         let tags = &line.tags;
 
         assert_eq!(tags.len(), 3);
