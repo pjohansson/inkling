@@ -11,4 +11,6 @@ mod line;
 mod node;
 mod story;
 
-pub use story::{copy_lines_into_string, Line, LineBuffer, Story, StoryAction};
+pub use story::{
+    copy_lines_into_string, read_story_from_string, Line, LineBuffer, Story, StoryAction,
+};

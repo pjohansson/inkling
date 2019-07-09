@@ -1,15 +1,15 @@
-use std::{collections::HashMap, str::FromStr};
-
 use crate::{
     error::FollowError,
     follow::{FollowResult, LineDataBuffer, Next},
-    line::{Choice, LineData, LineKind, ParsedLine},
+    line::{Choice, ParsedLine},
     node::{DialogueNode, Stack},
 };
 
+use std::str::FromStr;
+
 #[derive(Debug)]
 pub struct Knot {
-    root: DialogueNode,
+    pub(crate) root: DialogueNode,
     stack: Stack,
     prev_choice_set: Vec<Choice>,
 }
@@ -47,6 +47,20 @@ impl Knot {
         Ok(result)
     }
 
+    pub fn from_lines(lines: &[&str]) -> Result<Self, String> {
+        let parsed_lines = lines
+            .into_iter()
+            .map(|line| ParsedLine::from_str(line).unwrap())
+            .collect::<Vec<_>>();
+        let root = DialogueNode::from_lines(&parsed_lines);
+
+        Ok(Knot {
+            root,
+            stack: Vec::new(),
+            prev_choice_set: Vec::new(),
+        })
+    }
+
     fn add_choice_to_buffer(
         &self,
         choice_index: usize,
@@ -66,50 +80,27 @@ impl Knot {
     }
 }
 
-impl FromStr for Knot {
-    type Err = String;
-
-    fn from_str(content: &str) -> Result<Self, Self::Err> {
-        let lines = parse_lines(content)?;
-        let root = DialogueNode::from_lines(&lines);
-
-        Ok(Knot {
-            root,
-            stack: Vec::new(),
-            prev_choice_set: Vec::new(),
-        })
-    }
-}
-
-fn parse_lines(s: &str) -> Result<Vec<ParsedLine>, String> {
-    s.lines().map(|line| ParsedLine::from_str(line)).collect()
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    #[test]
-    fn knot_from_plain_text_lines_fully_replicates_them() {
-        let lines = vec!["Hello, world!", "Hello?", "Hello, are you there?"];
+    impl FromStr for Knot {
+        type Err = String;
 
-        let mut text = String::new();
-        for line in lines.iter() {
-            text.push_str(&line);
-            text.push('\n');
+        fn from_str(content: &str) -> Result<Self, Self::Err> {
+            let lines = parse_lines(content)?;
+            let root = DialogueNode::from_lines(&lines);
+
+            Ok(Knot {
+                root,
+                stack: Vec::new(),
+                prev_choice_set: Vec::new(),
+            })
         }
+    }
 
-        let mut knot = Knot::from_str(&text).unwrap();
-
-        let mut buffer = Vec::new();
-
-        assert_eq!(knot.follow(&mut buffer).unwrap(), Next::Done);
-
-        assert_eq!(buffer.len(), 3);
-
-        for (result, original) in buffer.iter().zip(lines.iter()) {
-            assert_eq!(&result.text, original);
-        }
+    fn parse_lines(s: &str) -> Result<Vec<ParsedLine>, String> {
+        s.lines().map(|line| ParsedLine::from_str(line)).collect()
     }
 
     #[test]

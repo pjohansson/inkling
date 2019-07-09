@@ -1,5 +1,3 @@
-//! Errors from creating or walking through stories.
-
 use std::{error::Error, fmt};
 
 use crate::node::{NodeItem, NodeType, Stack};
@@ -7,7 +5,7 @@ pub use internal::InternalError;
 pub(crate) use internal::*;
 
 #[derive(Debug)]
-/// Error from following a story.
+/// Error from walking through a story.
 pub enum FollowError {
     /// Issue with walking through the story due to some internal inconsistency.
     InternalError(InternalError),
@@ -50,7 +48,7 @@ impl From<InternalError> for FollowError {
     }
 }
 
-pub(crate) mod internal {
+mod internal {
     //! Internal errors from `inkling` itself.
 
     use crate::node::{NodeItem, NodeType, Stack};
@@ -71,9 +69,8 @@ pub(crate) mod internal {
             kind: IncorrectStackKind,
             stack: Stack,
         },
-        UnknownKnot {
-            name: String,
-        },
+        /// The story tried to move to a knot that doesn't exist.
+        UnknownKnot { name: String },
     }
 
     impl fmt::Display for InternalError {
@@ -206,5 +203,4 @@ pub(crate) mod internal {
         Parent,
         Child,
     }
-
 }
