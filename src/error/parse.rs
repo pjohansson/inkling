@@ -6,12 +6,18 @@ pub enum ParseError {
     /// Error from constructing a kot.
     KnotError(KnotError),
     /// Error from parsing a single line.
-    LineError,
+    LineError(LineError),
 }
 
 impl From<KnotError> for ParseError {
     fn from(err: KnotError) -> Self {
         ParseError::KnotError(err)
+    }
+}
+
+impl From<LineError> for ParseError {
+    fn from(err: LineError) -> Self {
+        ParseError::LineError(err)
     }
 }
 
@@ -21,4 +27,10 @@ pub enum KnotError {
     Empty,
     /// Could not parse a name for the knot. The offending string is encapsulated.
     NoName { string: String },
+}
+
+#[derive(Debug)]
+pub enum LineError {
+    /// A line parsed as a choice has no set text to display as choice.
+    NoDisplayText,
 }

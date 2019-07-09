@@ -1,4 +1,7 @@
-use crate::consts::{CHOICE_MARKER, DIVERT_MARKER, GATHER_MARKER, GLUE_MARKER, TAG_MARKER};
+use crate::{
+    consts::{CHOICE_MARKER, DIVERT_MARKER, GATHER_MARKER, GLUE_MARKER, TAG_MARKER},
+    error::{LineError, ParseError},
+};
 
 use std::str::FromStr;
 
@@ -57,7 +60,7 @@ pub enum ParsedLine {
 }
 
 impl FromStr for ParsedLine {
-    type Err = String;
+    type Err = ParseError;
 
     fn from_str(line: &str) -> Result<Self, Self::Err> {
         parse_choice(line)
@@ -66,65 +69,62 @@ impl FromStr for ParsedLine {
     }
 }
 
-fn parse_line(line: &str) -> Result<ParsedLine, <LineData as FromStr>::Err> {
+fn parse_line(line: &str) -> Result<ParsedLine, ParseError> {
     LineData::from_str(line).map(|line| ParsedLine::Line(line))
 }
 
-fn parse_choice(line: &str) -> Option<Result<ParsedLine, <ParsedLine as FromStr>::Err>> {
-    let parsed_choice = parse_markers_and_text(line, CHOICE_MARKER)?;
+fn parse_choice(line: &str) -> Option<Result<ParsedLine, ParseError>> {
+    let (level, line_text) = parse_markers_and_text(line, CHOICE_MARKER)?;
 
-    let choice = parsed_choice
-        .and_then(|(level, line_text)| Ok((level, LineData::from_str(line_text)?)))
-        .map(|(level, line)| {
-            (
-                level,
-                Choice {
-                    displayed: line.clone(),
-                    line,
-                },
-            )
-        })
-        .map(|(level, choice)| ParsedLine::Choice { level, choice });
+    if line_text.is_empty() {
+        return Some(Err(LineError::NoDisplayText.into()));
+    }
 
-    Some(choice)
+    match LineData::from_str(line_text) {
+        Ok(line) => {
+            let choice = Choice {
+                displayed: line.clone(),
+                line,
+            };
+
+            Some(Ok(ParsedLine::Choice { level, choice }))
+        }
+        Err(err) => Some(Err(err)),
+    }
 }
 
-fn parse_gather(line: &str) -> Option<Result<ParsedLine, <LineData as FromStr>::Err>> {
+fn parse_gather(line: &str) -> Option<Result<ParsedLine, ParseError>> {
     let line_minus_diverts = line.trim_start().trim_start_matches(DIVERT_MARKER);
-    let parsed_gather = parse_markers_and_text(line_minus_diverts, GATHER_MARKER)?;
+    let parsed_gather = parse_markers_and_text(line_minus_diverts, GATHER_MARKER);
 
-    let gather = parsed_gather
-        .and_then(|(level, line_text)| Ok((level, LineData::from_str(line_text)?)))
-        .map(|(level, line)| ParsedLine::Gather { level, line });
-
-    Some(gather)
+    parsed_gather.map(|(level, line_text)| match LineData::from_str(line_text) {
+        Ok(line) => Ok(ParsedLine::Gather { level, line }),
+        Err(err) => Err(err),
+    })
 }
 
-fn parse_markers_and_text(line: &str, marker: char) -> Option<Result<(u8, &str), String>> {
+fn parse_markers_and_text(line: &str, marker: char) -> Option<(u8, &str)> {
     if line.trim_start().starts_with(marker) {
-        let (markers, line_text) = match split_markers_from_text(line, marker) {
-            Ok(result) => result,
-            Err(err) => return Some(Err(err)),
-        };
-
+        let (markers, line_text) = split_markers_from_text(line, marker);
         let num = markers.matches(|c| c == marker).count() as u8;
 
-        Some(Ok((num, line_text)))
+        Some((num, line_text))
     } else {
         None
     }
 }
 
-fn split_markers_from_text(line: &str, marker: char) -> Result<(&str, &str), String> {
-    let i = line
-        .find(|c: char| !(c == marker || c.is_whitespace()))
-        .ok_or(String::from("no text after choice"))?;
+fn split_markers_from_text(line: &str, marker: char) -> (&str, &str) {
+    let split_at = line.find(|c: char| !(c == marker || c.is_whitespace()));
 
-    Ok(line.split_at(i))
+    match split_at {
+        Some(i) => line.split_at(i),
+        None => (line, ""),
+    }
 }
 
 impl FromStr for LineData {
-    type Err = String;
+    type Err = ParseError;
 
     fn from_str(line: &str) -> Result<Self, Self::Err> {
         let mut text = trim_whitespace(line);
@@ -282,6 +282,16 @@ mod tests {
 
         assert_eq!(level, 2);
         assert_eq!(line, LineData::from_str(line_text).unwrap());
+    }
+
+    #[test]
+    fn choice_markers_require_text() {
+        assert!(ParsedLine::from_str("*").is_err());
+    }
+
+    #[test]
+    fn gather_markers_do_not_require_text() {
+        assert!(ParsedLine::from_str("-").is_ok());
     }
 
     #[test]

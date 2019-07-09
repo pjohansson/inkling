@@ -1,5 +1,5 @@
 use crate::{
-    error::FollowError,
+    error::{FollowError, ParseError},
     follow::{FollowResult, LineDataBuffer, Next},
     line::{Choice, ParsedLine},
     node::{DialogueNode, Stack},
@@ -85,7 +85,7 @@ mod tests {
     use super::*;
 
     impl FromStr for Knot {
-        type Err = String;
+        type Err = ParseError;
 
         fn from_str(content: &str) -> Result<Self, Self::Err> {
             let lines = parse_lines(content)?;
@@ -99,7 +99,7 @@ mod tests {
         }
     }
 
-    fn parse_lines(s: &str) -> Result<Vec<ParsedLine>, String> {
+    fn parse_lines(s: &str) -> Result<Vec<ParsedLine>, ParseError> {
         s.lines().map(|line| ParsedLine::from_str(line)).collect()
     }
 
