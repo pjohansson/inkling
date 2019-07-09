@@ -127,7 +127,7 @@ impl FromStr for Line {
     type Err = String;
 
     fn from_str(line: &str) -> Result<Self, Self::Err> {
-        let mut text = line.to_string();
+        let mut text = trim_whitespace(line);
 
         let tags = parse_tags(&mut text);
         let divert = parse_divert(&mut text);
@@ -151,6 +151,11 @@ impl FromStr for Line {
             glue_end,
         })
     }
+}
+
+fn trim_whitespace(line: &str) -> String {
+    let words: Vec<&str> = line.split_whitespace().collect();
+    words.join(" ")
 }
 
 /// Parse and remove glue markers from either side, retaining enclosed whitespace.
@@ -328,13 +333,13 @@ mod tests {
 
         let line_left = Line::from_str(&line_with_left_glue).unwrap();
 
-        assert_eq!(line_left.text, format!("{}{}", &whitespace, &text));
+        assert_eq!(line_left.text, format!(" {}", &text));
         assert!(line_left.glue_start);
         assert!(!line_left.glue_end);
 
         let line_right = Line::from_str(&line_with_right_glue).unwrap();
 
-        assert_eq!(line_right.text, format!("{}{}", &text, &whitespace));
+        assert_eq!(line_right.text, format!("{} ", &text));
         assert!(!line_right.glue_start);
         assert!(line_right.glue_end);
     }
@@ -370,6 +375,12 @@ mod tests {
         let line = Line::from_str(&text).unwrap();
 
         assert!(line.glue_end);
+    }
+
+    #[test]
+    fn lines_trim_extra_whitespace_between_words() {
+        let line = Line::from_str("Hello,      World!   ").unwrap();
+        assert_eq!(&line.text, "Hello, World!");
     }
 
     #[test]
