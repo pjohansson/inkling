@@ -90,7 +90,7 @@ fn parse_choice(line: &str) -> Option<Result<ParsedLine, <ParsedLine as FromStr>
 }
 
 fn parse_gather(line: &str) -> Option<Result<ParsedLine, <Line as FromStr>::Err>> {
-    let line_minus_diverts = line.trim_start_matches(DIVERT_MARKER);
+    let line_minus_diverts = line.trim_start().trim_start_matches(DIVERT_MARKER);
     let parsed_gather = parse_markers_and_text(line_minus_diverts, GATHER_MARKER)?;
 
     let gather = parsed_gather
@@ -283,7 +283,7 @@ mod tests {
     #[test]
     fn line_with_beginning_divert_parses_into_line_instead_of_gather() {
         let knot_name = "knot_name";
-        let text = format!("{} {}", DIVERT_MARKER, knot_name);
+        let text = format!("    {} {}", DIVERT_MARKER, knot_name);
         let line = ParsedLine::from_str(&text).unwrap().line();
 
         assert_eq!(line.kind, LineKind::Divert(knot_name.to_string()));
