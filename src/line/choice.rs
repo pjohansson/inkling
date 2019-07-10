@@ -1,7 +1,5 @@
 use crate::{
-    consts::{
-        CHOICE_MARKER, STICKY_CHOICE_MARKER,
-    },
+    consts::{CHOICE_MARKER, STICKY_CHOICE_MARKER},
     error::{LineError, ParseError},
 };
 
@@ -287,10 +285,12 @@ pub(crate) mod tests {
 
     #[test]
     fn choices_can_be_parsed_with_conditions() {
-        let (_, choice) = ParsedLine::from_str("* {knot_name} Hello, World!").unwrap().choice();
+        let (_, choice) = ParsedLine::from_str("* {knot_name} Hello, World!")
+            .unwrap()
+            .choice();
         assert_eq!(choice.conditions.len(), 1);
     }
-    
+
     #[test]
     fn choices_with_conditions_still_require_some_text() {
         assert!(ParsedLine::from_str("* {knot_name}").is_err());

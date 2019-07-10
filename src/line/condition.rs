@@ -5,13 +5,13 @@ use std::cmp::Ordering;
 #[derive(Clone, Debug, PartialEq)]
 /// Condition to show choice (or maybe part of line, in the future)
 pub enum Condition {
-    /// Use a knot (or maybe other string-like variable) to check whether its value 
+    /// Use a knot (or maybe other string-like variable) to check whether its value
     /// compares to the set condition.
     NumVisits {
         name: String,
         rhs_value: i32,
         ordering: Ordering,
-        not: bool,              // negation of the condition, ie. !(condition)
+        not: bool, // negation of the condition, ie. !(condition)
     },
 }
 

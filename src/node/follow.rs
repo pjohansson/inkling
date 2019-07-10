@@ -722,7 +722,6 @@ mod tests {
 
     #[test]
     fn after_follow_with_choice_returns_previous_levels_continue_through_their_children() {
-        let empty_choice_line = LineData::from_str("").unwrap();
         let (line1, item1) = get_line_and_node_item_line("Hello, world!");
         let (line2, item2) = get_line_and_node_item_line("Hello, to you too!");
 

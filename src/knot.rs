@@ -1,7 +1,6 @@
 use crate::{
-    error::{FollowError, ParseError},
     follow::{FollowResult, LineDataBuffer, Next},
-    line::{ChoiceData, ParsedLine},
+    line::ParsedLine,
     node::{DialogueNode, Stack},
 };
 
@@ -63,6 +62,8 @@ impl Knot {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    use crate::error::{FollowError, ParseError};
 
     impl FromStr for Knot {
         type Err = ParseError;

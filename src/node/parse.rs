@@ -33,7 +33,6 @@ pub fn parse_full_node(lines: &[ParsedLine]) -> DialogueNode {
                 let item = NodeItem::Line(line.clone());
                 items.push(item);
             }
-            _ => (),
         };
 
         index += 1;
@@ -166,7 +165,9 @@ mod tests {
 
     use std::str::FromStr;
 
-    use crate::line::{choice::tests::ChoiceBuilder, line::tests::LineBuilder, ChoiceData, LineData};
+    use crate::line::{
+        choice::tests::ChoiceBuilder, line::tests::LineBuilder, ChoiceData, LineData,
+    };
 
     #[test]
     fn parsing_choices_at_same_level_returns_when_encountering_other_choice() {
@@ -235,7 +236,6 @@ mod tests {
 
     #[test]
     fn parsing_choice_returns_choice_data_in_root() {
-        let selection_text = "Netherfield Park".to_string();
         let text = "\"To Netherfield Park, then\", I exclaimed.";
 
         let line = LineData::from_str(text).unwrap();

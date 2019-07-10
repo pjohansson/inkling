@@ -104,7 +104,11 @@ You head back.
 
     assert_eq!(&choices[0].text, "Head back.");
 
-    let choices = story.resume_with_choice(&choices[0], &mut line_buffer).unwrap().get_choices().unwrap();
+    let choices = story
+        .resume_with_choice(&choices[0], &mut line_buffer)
+        .unwrap()
+        .get_choices()
+        .unwrap();
 
     assert_eq!(&choices[0].text, "Left");
     assert_eq!(&choices[1].text, "Right");

@@ -21,8 +21,8 @@ pub struct Line {
     pub tags: Vec<String>,
 }
 
-#[derive(Clone, Debug, PartialEq)]
-/// A choice presented to the user.
+#[derive(Clone, Debug)]
+/// Choice presented to the user.
 pub struct Choice {
     /// Text content.
     pub text: String,
@@ -47,7 +47,7 @@ pub struct Story {
 ///
 /// # Examples
 /// ```
-/// # use inkling::{read_story_from_string, StoryAction};
+/// # use inkling::{read_story_from_string, Prompt};
 /// let content = "\
 /// Professor Lidenbrock had barely a spattering of water left in his flask.
 /// *   Axel got the last of it.
@@ -58,28 +58,28 @@ pub struct Story {
 /// let mut line_buffer = Vec::new();
 ///
 /// match story.start(&mut line_buffer).unwrap() {
-///     StoryAction::Choice(choice_set) => {
+///     Prompt::Choice(choice_set) => {
 ///         println!("Choose:");
 ///         for (i, choice) in choice_set.iter().enumerate() {
 ///             println!("{}. {}", i + 1, choice.text);
 ///         }
 ///     },
-///     StoryAction::Done => { /* the story reached its end */ },
+///     Prompt::Done => { /* the story reached its end */ },
 /// }
 /// ```
-pub enum StoryAction {
+pub enum Prompt {
     /// The story reached an end.
     Done,
     /// A choice was encountered.
     Choice(Vec<Choice>),
 }
 
-impl StoryAction {
+impl Prompt {
     /// If a set of choices was returned, retrieve them without having to match.
     ///
     /// # Examples
     /// ```
-    /// # use inkling::{read_story_from_string, StoryAction};
+    /// # use inkling::{read_story_from_string, Prompt};
     /// let content = "\
     /// Professor Lidenbrock had barely a spattering of water left in his flask.
     /// *   Axel got the last of it.
@@ -95,7 +95,7 @@ impl StoryAction {
     /// ```
     pub fn get_choices(&self) -> Option<Vec<Choice>> {
         match self {
-            StoryAction::Choice(choices) => Some(choices.clone()),
+            Prompt::Choice(choices) => Some(choices.clone()),
             _ => None,
         }
     }
@@ -127,7 +127,7 @@ impl Story {
     ///
     /// assert_eq!(line_buffer.last().unwrap().text, "on the empty sky.\n");
     /// ```
-    pub fn start(&mut self, line_buffer: &mut LineBuffer) -> Result<StoryAction, FollowError> {
+    pub fn start(&mut self, line_buffer: &mut LineBuffer) -> Result<Prompt, FollowError> {
         let root_knot_name: String = self
             .stack
             .last()
@@ -152,7 +152,7 @@ impl Story {
     /// The input line buffer is not cleared before reading new lines into it.
     /// # Examples
     /// ```
-    /// # use inkling::{read_story_from_string, StoryAction};
+    /// # use inkling::{read_story_from_string, Prompt};
     /// let content = "\
     /// Just as Nancy picked the old diary up from the table she heard
     /// the door behind her creak open. Someone’s coming!
@@ -170,19 +170,19 @@ impl Story {
     /// let mut story = read_story_from_string(content).unwrap();
     /// let mut line_buffer = Vec::new();
     ///
-    /// if let StoryAction::Choice(choices) = story.start(&mut line_buffer).unwrap() {
+    /// if let Prompt::Choice(choices) = story.start(&mut line_buffer).unwrap() {
     ///     story.resume_with_choice(&choices[0], &mut line_buffer);
     /// }
-    /// 
+    ///
     /// assert_eq!(line_buffer.last().unwrap().text, "“Miao!”\n");
-    /// 
+    ///
     /// ```
     pub fn resume_with_choice(
         &mut self,
         choice: &Choice,
         // index: usize,
         line_buffer: &mut LineBuffer,
-    ) -> Result<StoryAction, FollowError> {
+    ) -> Result<Prompt, FollowError> {
         let index = choice.index;
 
         Self::follow_story_wrapper(
@@ -200,7 +200,7 @@ impl Story {
         &mut self,
         func: F,
         line_buffer: &mut LineBuffer,
-    ) -> Result<StoryAction, FollowError>
+    ) -> Result<Prompt, FollowError>
     where
         F: FnOnce(&mut Self, &mut LineDataBuffer) -> Result<Next, FollowError>,
     {
@@ -212,9 +212,9 @@ impl Story {
         match result {
             Next::ChoiceSet(choice_set) => {
                 let user_choice_lines = prepare_choices_for_user(&choice_set, &self.knots)?;
-                Ok(StoryAction::Choice(user_choice_lines))
+                Ok(Prompt::Choice(user_choice_lines))
             }
-            Next::Done => Ok(StoryAction::Done),
+            Next::Done => Ok(Prompt::Done),
             Next::Divert(..) => unreachable!("diverts are treated in the closure"),
         }
     }
@@ -461,21 +461,21 @@ We arrived into London at 9.45pm exactly.
         let mut buffer = Vec::new();
 
         match story.start(&mut buffer).unwrap() {
-            StoryAction::Done => (),
+            Prompt::Done => (),
             _ => panic!("story should be done when diverting to DONE knot"),
         }
 
         story.stack = vec!["knot_end".to_string()];
 
         match story.start(&mut buffer).unwrap() {
-            StoryAction::Done => (),
+            Prompt::Done => (),
             _ => panic!("story should be done when diverting to END knot"),
         }
     }
 
     #[test]
     fn divert_to_knot_increments_visit_count() {
-        let mut knot = Knot::from_str("").unwrap();
+        let knot = Knot::from_str("").unwrap();
 
         let mut knots = HashMap::new();
         knots.insert("knot".to_string(), knot);

@@ -15,7 +15,7 @@ He befriended thousands of climbers and children sightseeing in Switzerland.
     let mut line_buffer = Vec::new();
 
     match story.start(&mut line_buffer) {
-        Ok(StoryAction::Done) => {
+        Ok(Prompt::Done) => {
             assert_eq!(line_buffer.len(), 2);
         }
         _ => panic!("error while reading a flat story from string"),
@@ -42,7 +42,7 @@ He just woke from a nightmare.
     let mut line_buffer = Vec::new();
 
     match story.start(&mut line_buffer) {
-        Ok(StoryAction::Done) => {
+        Ok(Prompt::Done) => {
             assert_eq!(line_buffer.len(), 5);
             assert_eq!(&line_buffer[4].text, "He just woke from a nightmare.\n");
         }
@@ -66,7 +66,7 @@ He just woke from a nightmare.
     let mut line_buffer = Vec::new();
 
     match story.start(&mut line_buffer) {
-        Ok(StoryAction::Done) => {
+        Ok(Prompt::Done) => {
             assert_eq!(line_buffer.len(), 3);
             assert_eq!(&line_buffer[2].text, "He just woke from a nightmare.\n");
         }
@@ -102,7 +102,7 @@ He identifies himself as being from Europol and passes the barrier.
     let mut line_buffer = Vec::new();
 
     match story.start(&mut line_buffer) {
-        Ok(StoryAction::Done) => {
+        Ok(Prompt::Done) => {
             assert_eq!(line_buffer.len(), 7);
             assert_eq!(
                 &line_buffer[6].text,
@@ -151,7 +151,9 @@ The fight barely lasts a moment before Gesicht sedates him with a large dose of 
     );
     assert_eq!(&choices[1].text, "The fugitive desperately fights back.");
 
-    story.resume_with_choice(&choices[1], &mut line_buffer).unwrap();
+    story
+        .resume_with_choice(&choices[1], &mut line_buffer)
+        .unwrap();
     assert_eq!(
         line_buffer.last().unwrap().text,
         "“What was the point in all that?”\n"
@@ -167,8 +169,14 @@ fn following_a_choice_adds_a_copy_of_the_choice_line_to_the_buffer() {
     let mut story = read_story_from_string(content).unwrap();
     let mut line_buffer = Vec::new();
 
-    let choices = story.start(&mut line_buffer).unwrap().get_choices().unwrap();
-    story.resume_with_choice(&choices[0], &mut line_buffer).unwrap();
+    let choices = story
+        .start(&mut line_buffer)
+        .unwrap()
+        .get_choices()
+        .unwrap();
+    story
+        .resume_with_choice(&choices[0], &mut line_buffer)
+        .unwrap();
 
     assert_eq!(line_buffer.len(), 1);
     assert_eq!(&line_buffer[0].text, "Gesicht took the fugitive in.\n");
@@ -191,10 +199,24 @@ A robot in a frilly apron welcomes him in.
     let mut story = read_story_from_string(content).unwrap();
     let mut line_buffer = Vec::new();
 
-    let choices = story.start(&mut line_buffer).unwrap().get_choices().unwrap();
-    let choices = story.resume_with_choice(&choices[0], &mut line_buffer).unwrap().get_choices().unwrap();
-    let choices = story.resume_with_choice(&choices[1], &mut line_buffer).unwrap().get_choices().unwrap();
-    story.resume_with_choice(&choices[0], &mut line_buffer).unwrap();
+    let choices = story
+        .start(&mut line_buffer)
+        .unwrap()
+        .get_choices()
+        .unwrap();
+    let choices = story
+        .resume_with_choice(&choices[0], &mut line_buffer)
+        .unwrap()
+        .get_choices()
+        .unwrap();
+    let choices = story
+        .resume_with_choice(&choices[1], &mut line_buffer)
+        .unwrap()
+        .get_choices()
+        .unwrap();
+    story
+        .resume_with_choice(&choices[0], &mut line_buffer)
+        .unwrap();
 
     assert_eq!(
         line_buffer.last().unwrap().text,
@@ -219,8 +241,14 @@ Gesicht notices that a destroyed patrol bot is being thrown away.
     let mut story = read_story_from_string(content).unwrap();
     let mut line_buffer = Vec::new();
 
-    let choices = story.start(&mut line_buffer).unwrap().get_choices().unwrap();
-    story.resume_with_choice(&choices[0], &mut line_buffer).unwrap();
+    let choices = story
+        .start(&mut line_buffer)
+        .unwrap()
+        .get_choices()
+        .unwrap();
+    story
+        .resume_with_choice(&choices[0], &mut line_buffer)
+        .unwrap();
 
     assert_eq!(
         line_buffer.last().unwrap().text,
@@ -287,6 +315,8 @@ The elevator doors swung open.
 
     assert_eq!(&choices[0].text, "“Brau 1589...”");
 
-    story.resume_with_choice(&choices[0], &mut line_buffer).unwrap();
+    story
+        .resume_with_choice(&choices[0], &mut line_buffer)
+        .unwrap();
     assert_eq!(line_buffer[0].text, "“Brau 1589,” he said.\n");
 }

@@ -1,8 +1,6 @@
 use crate::{
-    consts::{
-        CHOICE_MARKER, DIVERT_MARKER, GATHER_MARKER, GLUE_MARKER, STICKY_CHOICE_MARKER, TAG_MARKER,
-    },
-    error::{LineError, ParseError},
+    consts::{DIVERT_MARKER, GATHER_MARKER, GLUE_MARKER, TAG_MARKER},
+    error::ParseError,
 };
 
 use std::str::FromStr;

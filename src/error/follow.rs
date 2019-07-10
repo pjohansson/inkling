@@ -1,6 +1,5 @@
 use std::{error::Error, fmt};
 
-use crate::node::{NodeItem, NodeType, Stack};
 pub use internal::InternalError;
 pub(crate) use internal::*;
 

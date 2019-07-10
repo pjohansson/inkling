@@ -7,9 +7,7 @@ use crate::{
     line::{ChoiceData, Condition, LineData},
 };
 
-use std::{
-    collections::HashMap,
-};
+use std::collections::HashMap;
 
 use super::story::{Choice, Line, LineBuffer};
 
@@ -34,32 +32,31 @@ pub fn process_buffer(into_buffer: &mut LineBuffer, from_buffer: LineDataBuffer)
 /// Prepared the choices with the text that will be displayed to the user.
 /// Preserve line tags in case processing is desired. Choices are filtered
 /// based on a set condition (currently: visited or not, unless sticky).
-pub fn prepare_choices_for_user(choices: &[ChoiceData], knots: &HashMap<String, Knot>) -> Result<Vec<Choice>, InternalError> {
+pub fn prepare_choices_for_user(
+    choices: &[ChoiceData],
+    knots: &HashMap<String, Knot>,
+) -> Result<Vec<Choice>, InternalError> {
     let checked_choices = check_choices_for_conditions(choices, knots)?;
 
-    let filtered_choices = choices.iter()
+    let filtered_choices = choices
+        .iter()
         .enumerate()
-        .map(|(i, choice)| {
-            Choice {
-                text: choice.displayed.text.trim().to_string(),
-                tags: choice.displayed.tags.clone(),
-                index: i,
-            }
+        .map(|(i, choice)| Choice {
+            text: choice.displayed.text.trim().to_string(),
+            tags: choice.displayed.tags.clone(),
+            index: i,
         })
         .zip(checked_choices.into_iter())
-        .filter_map(|(choice, keep)| {
-            if keep {
-                Some(choice)
-            } else {
-                None
-            }
-        })
+        .filter_map(|(choice, keep)| if keep { Some(choice) } else { None })
         .collect();
-    
+
     Ok(filtered_choices)
 }
 
-fn check_choices_for_conditions(choices: &[ChoiceData], knots: &HashMap<String, Knot>) -> Result<Vec<bool>, InternalError> {
+fn check_choices_for_conditions(
+    choices: &[ChoiceData],
+    knots: &HashMap<String, Knot>,
+) -> Result<Vec<bool>, InternalError> {
     let mut checked_conditions = Vec::new();
 
     for choice in choices.iter() {
@@ -109,7 +106,10 @@ fn add_line_ending(line: &mut LineData, next_line: Option<&LineData>) {
     }
 }
 
-fn check_condition(condition: &Condition, knots: &HashMap<String, Knot>) -> Result<bool, InternalError> {
+fn check_condition(
+    condition: &Condition,
+    knots: &HashMap<String, Knot>,
+) -> Result<bool, InternalError> {
     match condition {
         Condition::NumVisits {
             name,
@@ -117,7 +117,12 @@ fn check_condition(condition: &Condition, knots: &HashMap<String, Knot>) -> Resu
             ordering,
             not,
         } => {
-            let num_visits = knots.get(name).ok_or(InternalError::UnknownKnot { name: name.to_string() })?.num_visited as i32;
+            let num_visits = knots
+                .get(name)
+                .ok_or(InternalError::UnknownKnot {
+                    name: name.to_string(),
+                })?
+                .num_visited as i32;
 
             let value = num_visits.cmp(rhs_value) == *ordering;
 
@@ -134,14 +139,9 @@ fn check_condition(condition: &Condition, knots: &HashMap<String, Knot>) -> Resu
 mod tests {
     use super::*;
 
-    use crate::{
-        line::{choice::tests::ChoiceBuilder, line::tests::LineBuilder},
-    };
+    use crate::line::{choice::tests::ChoiceBuilder, line::tests::LineBuilder};
 
-    use std::{
-        cmp::Ordering,
-        str::FromStr,
-    };
+    use std::{cmp::Ordering, str::FromStr};
 
     #[test]
     fn check_some_conditions_against_number_of_visits_in_a_hash_map() {
@@ -391,9 +391,18 @@ mod tests {
         let removed_line = LineBuilder::new("Removed").build();
 
         let choices = vec![
-            ChoiceBuilder::empty().with_displayed(removed_line.clone()).with_conditions(&[unfulfilled_condition.clone()]).build(),
-            ChoiceBuilder::empty().with_displayed(kept_line.clone()).with_conditions(&[fulfilled_condition.clone()]).build(),
-            ChoiceBuilder::empty().with_displayed(removed_line.clone()).with_conditions(&[fulfilled_condition, unfulfilled_condition]).build(),
+            ChoiceBuilder::empty()
+                .with_displayed(removed_line.clone())
+                .with_conditions(&[unfulfilled_condition.clone()])
+                .build(),
+            ChoiceBuilder::empty()
+                .with_displayed(kept_line.clone())
+                .with_conditions(&[fulfilled_condition.clone()])
+                .build(),
+            ChoiceBuilder::empty()
+                .with_displayed(removed_line.clone())
+                .with_conditions(&[fulfilled_condition, unfulfilled_condition])
+                .build(),
         ];
 
         let displayed_choices = prepare_choices_for_user(&choices, &knots).unwrap();
