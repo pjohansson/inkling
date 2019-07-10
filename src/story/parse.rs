@@ -78,7 +78,10 @@ fn divide_into_knots(mut content: Vec<&str>) -> Vec<Vec<&str>> {
         buffer.push(content.split_off(i));
     }
 
-    buffer.push(content);
+    if !content.is_empty() {
+        buffer.push(content);
+    }
+
     buffer.into_iter().rev().collect()
 }
 
@@ -110,6 +113,7 @@ fn remove_empty_and_comment_lines(content: Vec<&str>) -> Vec<&str> {
         .filter(|line| {
             !(line.starts_with(LINE_COMMENT_MARKER) || line.starts_with(TODO_COMMENT_MARKER))
         })
+        .filter(|line| !line.trim().is_empty())
         .collect()
 }
 
@@ -122,9 +126,38 @@ pub mod tests {
     use super::*;
 
     #[test]
+    fn read_knots_from_string_works_for_single_nameless_knot() {
+        let content = "\
+First line.
+Second line.
+";
+
+        let (head, knots) = read_knots_from_string(content).unwrap();
+
+        assert_eq!(head, ROOT_KNOT_NAME);
+        assert_eq!(knots.len(), 1);
+    }
+
+    #[test]
+    fn read_knots_from_string_works_for_single_named_knot() {
+        let content = "\
+== head ==
+First line.
+Second line.
+";
+
+        let (head, knots) = read_knots_from_string(content).unwrap();
+
+        assert_eq!(head, "head");
+        assert_eq!(knots.len(), 1);
+
+        let knot = knots.get(&head).unwrap();
+        assert_eq!(knot.root.items.len(), 2);
+    }
+
+    #[test]
     fn divide_into_knots_splits_given_string_at_knot_markers() {
         let content = vec![
-            "",
             "== Knot one ",
             "Line 1",
             "Line 2",
@@ -136,9 +169,18 @@ pub mod tests {
 
         let knot_lines = divide_into_knots(content.clone());
 
-        assert_eq!(knot_lines[0][..], content[0..1]);
-        assert_eq!(knot_lines[1][..], content[1..5]);
-        assert_eq!(knot_lines[2][..], content[5..]);
+        assert_eq!(knot_lines[0][..], content[0..4]);
+        assert_eq!(knot_lines[1][..], content[4..]);
+    }
+
+    #[test]
+    fn divide_into_knots_adds_content_from_nameless_knots_first() {
+        let content = vec!["Line 1", "Line 2", "== Knot one ", "Line 3"];
+
+        let knot_lines = divide_into_knots(content.clone());
+
+        assert_eq!(knot_lines[0][..], content[0..2]);
+        assert_eq!(knot_lines[1][..], content[2..]);
     }
 
     #[test]
@@ -162,12 +204,14 @@ pub mod tests {
         let content = vec![
             "Good line",
             "// Comment line is remove",
+            "",        // removed
+            "       ", // removed
             "TODO: As is todo comments",
             "TODO but not without a semi colon!",
         ];
 
         let lines = remove_empty_and_comment_lines(content.clone());
-        assert_eq!(&lines, &[content[0].clone(), content[3].clone()]);
+        assert_eq!(&lines, &[content[0].clone(), content[5].clone()]);
     }
 
     #[test]

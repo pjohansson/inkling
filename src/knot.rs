@@ -120,7 +120,7 @@ mod tests {
 
         assert_eq!(buffer.len(), 2);
         assert_eq!(&buffer[0].text, pre);
-        assert_eq!(&buffer[1].text, "");
+        assert_eq!(buffer[1].text.trim(), "");
     }
 
     #[test]

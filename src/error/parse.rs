@@ -33,4 +33,6 @@ pub enum KnotError {
 pub enum LineError {
     /// A line parsed as a choice has no set text to display as choice.
     NoDisplayText,
+    /// A choice line contained both choice ('*') and sticky choice ('+') markers.
+    MultipleChoiceType { line: String },
 }

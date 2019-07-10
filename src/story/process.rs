@@ -12,7 +12,7 @@ use super::story::{Line, LineBuffer};
 pub fn process_buffer(into_buffer: &mut LineBuffer, from_buffer: LineDataBuffer) {
     let mut iter = from_buffer
         .into_iter()
-        .filter(|line| !line.text.is_empty())
+        .filter(|line| !line.text.trim().is_empty())
         .peekable();
 
     while let Some(mut line) = iter.next() {
@@ -26,11 +26,12 @@ pub fn process_buffer(into_buffer: &mut LineBuffer, from_buffer: LineDataBuffer)
 }
 
 /// Prepared the choices with the text that will be displayed to the user.
-/// Preserve line tags in case processing is desired.
+/// Preserve line tags in case processing is desired. Choices are filtered
+/// based on a set condition (currently: visited or not, unless sticky).
 pub fn prepare_choices_for_user(choices: &[Choice]) -> Vec<Line> {
     choices
         .iter()
-        .filter(|choice| choice.num_visited == 0)
+        .filter(|choice| choice.is_sticky || choice.num_visited == 0)
         .map(|choice| Line {
             text: choice.displayed.text.clone(),
             tags: choice.displayed.tags.clone(),
@@ -70,57 +71,10 @@ fn add_line_ending(line: &mut LineData, next_line: Option<&LineData>) {
 mod tests {
     use super::*;
 
-    use crate::line::LineKind;
-
-    struct LineBuilder {
-        text: String,
-        kind: LineKind,
-        tags: Vec<String>,
-        glue_start: bool,
-        glue_end: bool,
-    }
-
-    impl LineBuilder {
-        fn new(text: &str) -> Self {
-            LineBuilder {
-                text: text.to_string(),
-                kind: LineKind::Regular,
-                tags: Vec::new(),
-                glue_start: false,
-                glue_end: false,
-            }
-        }
-
-        fn build(self) -> LineData {
-            LineData {
-                text: self.text,
-                kind: self.kind,
-                tags: self.tags,
-                glue_start: self.glue_start,
-                glue_end: self.glue_end,
-            }
-        }
-
-        fn with_glue_start(mut self) -> Self {
-            self.glue_start = true;
-            self
-        }
-
-        fn with_glue_end(mut self) -> Self {
-            self.glue_end = true;
-            self
-        }
-
-        fn with_kind(mut self, kind: LineKind) -> Self {
-            self.kind = kind;
-            self
-        }
-
-        fn with_tags(mut self, tags: Vec<String>) -> Self {
-            self.tags = tags;
-            self
-        }
-    }
+    use crate::line::{
+        tests::{ChoiceBuilder, LineBuilder},
+        LineKind,
+    };
 
     #[test]
     fn processing_line_buffer_removes_empty_lines() {
@@ -248,16 +202,12 @@ mod tests {
         let displayed2 = LineBuilder::new("Choice 2").build();
 
         let choices = vec![
-            Choice {
-                displayed: displayed1.clone(),
-                line: LineBuilder::new("Not displayed to user").build(),
-                num_visited: 0,
-            },
-            Choice {
-                displayed: displayed2.clone(),
-                line: LineBuilder::new("Not displayed to user").build(),
-                num_visited: 0,
-            },
+            ChoiceBuilder::empty()
+                .with_displayed(displayed1.clone())
+                .build(),
+            ChoiceBuilder::empty()
+                .with_displayed(displayed2.clone())
+                .build(),
         ];
 
         let displayed_choices = prepare_choices_for_user(&choices);
@@ -274,11 +224,7 @@ mod tests {
             .with_tags(tags.clone())
             .build();
 
-        let choices = vec![Choice {
-            displayed: line.clone(),
-            line: LineBuilder::new("").build(),
-            num_visited: 0,
-        }];
+        let choices = vec![ChoiceBuilder::empty().with_displayed(line).build()];
 
         let displayed_choices = prepare_choices_for_user(&choices);
 
@@ -286,25 +232,48 @@ mod tests {
     }
 
     #[test]
-    fn preparing_choices_filters_choices_which_have_been_visited() {
-        let line = LineBuilder::new("").build();
+    fn preparing_choices_filters_choices_which_have_been_visited_for_non_sticky_lines() {
+        let kept_line = LineBuilder::new("Kept").build();
+        let removed_line = LineBuilder::new("Removed").build();
 
         let choices = vec![
-            Choice {
-                displayed: LineBuilder::new("Kept").build(),
-                line: line.clone(),
-                num_visited: 0,
-            },
-            Choice {
-                displayed: LineBuilder::new("Removed").build(),
-                line: line.clone(),
-                num_visited: 1,
-            },
-            Choice {
-                displayed: LineBuilder::new("Kept").build(),
-                line: line.clone(),
-                num_visited: 0,
-            },
+            ChoiceBuilder::empty()
+                .with_displayed(kept_line.clone())
+                .build(),
+            ChoiceBuilder::empty()
+                .with_displayed(removed_line.clone())
+                .with_num_visited(1)
+                .build(),
+            ChoiceBuilder::empty()
+                .with_displayed(kept_line.clone())
+                .build(),
+        ];
+
+        let displayed_choices = prepare_choices_for_user(&choices);
+
+        assert_eq!(displayed_choices.len(), 2);
+        assert_eq!(&displayed_choices[0].text, "Kept");
+        assert_eq!(&displayed_choices[1].text, "Kept");
+    }
+
+    #[test]
+    fn preparing_choices_does_not_filter_visited_sticky_lines() {
+        let kept_line = LineBuilder::new("Kept").build();
+        let removed_line = LineBuilder::new("Removed").build();
+
+        let choices = vec![
+            ChoiceBuilder::empty()
+                .with_displayed(kept_line.clone())
+                .build(),
+            ChoiceBuilder::empty()
+                .with_displayed(removed_line.clone())
+                .with_num_visited(1)
+                .build(),
+            ChoiceBuilder::empty()
+                .with_displayed(kept_line.clone())
+                .with_num_visited(1)
+                .is_sticky()
+                .build(),
         ];
 
         let displayed_choices = prepare_choices_for_user(&choices);

@@ -1,7 +1,5 @@
 use crate::line::ParsedLine;
 
-use std::cell::Cell;
-
 use super::node::{DialogueNode, NodeItem, NodeType};
 
 /// Used to parse the input lines from beginning to end, returning the constructed `DialogueNode`.
@@ -94,6 +92,8 @@ fn parse_single_choice(
         return None;
     }
 
+    let mut items = Vec::new();
+
     let head = &lines[*index];
 
     let choice = match head {
@@ -111,8 +111,9 @@ fn parse_single_choice(
         ),
     };
 
+    items.push(NodeItem::Line(choice.line.clone()));
+
     // This skips to the next index, where the choice's content or a new choice will appear
-    let mut items = Vec::new();
     *index += 1;
 
     while *index < lines.len() {
@@ -165,7 +166,10 @@ mod tests {
 
     use std::str::FromStr;
 
-    use crate::line::{Choice, LineData};
+    use crate::line::{
+        tests::{ChoiceBuilder, LineBuilder},
+        Choice, LineData,
+    };
 
     #[test]
     fn parsing_choices_at_same_level_returns_when_encountering_other_choice() {
@@ -179,19 +183,57 @@ mod tests {
         let first = parse_single_choice(&mut index, level, &lines).unwrap();
         assert_eq!(index, 1);
         assert!(first.is_choice());
-        assert!(first.node().items.is_empty());
+        assert_eq!(first.node().items.len(), 1);
 
         let second = parse_single_choice(&mut index, level, &lines).unwrap();
         assert_eq!(index, 2);
         assert!(second.is_choice());
-        assert!(second.node().items.is_empty());
+        assert_eq!(second.node().items.len(), 1);
 
         let third = parse_single_choice(&mut index, level, &lines).unwrap();
         assert_eq!(index, 3);
         assert!(third.is_choice());
-        assert!(third.node().items.is_empty());
+        assert_eq!(third.node().items.len(), 1);
 
         assert!(parse_single_choice(&mut index, level, &lines).is_none());
+    }
+
+    #[test]
+    fn parsing_choice_sets_choice_line_in_items_if_not_empty() {
+        let line = LineData::from_str("Choice line").unwrap();
+        let choice = ChoiceBuilder::empty().with_line(line.clone()).build();
+        let parsed_choice = ParsedLine::Choice { level: 1, choice };
+
+        let lines = vec![parsed_choice];
+
+        let mut index = 0;
+        let node_item = parse_single_choice(&mut index, 0, &lines).unwrap();
+
+        match node_item {
+            NodeItem::Node { node, .. } => {
+                assert_eq!(node.items.len(), 1);
+            }
+            _ => panic!(),
+        }
+    }
+
+    #[test]
+    fn parsing_choice_sets_choice_line_in_items_if_it_has_a_divert() {
+        let line = LineBuilder::new("").with_divert("to_knot").build();
+        let choice = ChoiceBuilder::empty().with_line(line.clone()).build();
+        let parsed_choice = ParsedLine::Choice { level: 1, choice };
+
+        let lines = vec![parsed_choice];
+
+        let mut index = 0;
+        let node_item = parse_single_choice(&mut index, 0, &lines).unwrap();
+
+        match node_item {
+            NodeItem::Node { node, .. } => {
+                assert_eq!(node.items.len(), 1);
+            }
+            _ => panic!(),
+        }
     }
 
     #[test]
@@ -200,11 +242,10 @@ mod tests {
         let text = "\"To Netherfield Park, then\", I exclaimed.";
 
         let line = LineData::from_str(text).unwrap();
-        let choice = Choice {
-            displayed: line.clone(),
-            line,
-            num_visited: 0,
-        };
+        let choice = ChoiceBuilder::empty()
+            .with_displayed(line.clone())
+            .with_line(line.clone())
+            .build();
 
         let input = ParsedLine::Choice {
             level: 1,
@@ -247,13 +288,15 @@ mod tests {
         assert_eq!(index, 5);
 
         assert!(first.is_choice());
-        assert_eq!(first.len(), 2);
+        assert_eq!(first.len(), 3);
         assert!(first.node().items[0].is_line());
         assert!(first.node().items[1].is_line());
+        assert!(first.node().items[2].is_line());
 
         assert!(second.is_choice());
-        assert_eq!(second.len(), 1);
+        assert_eq!(second.len(), 2);
         assert!(second.node().items[0].is_line());
+        assert!(second.node().items[1].is_line());
     }
 
     #[test]
@@ -301,9 +344,9 @@ mod tests {
             assert!(item.is_choice());
         }
 
-        assert_eq!(root[0].len(), 2);
-        assert_eq!(root[1].len(), 1);
-        assert_eq!(root[2].len(), 0);
+        assert_eq!(root[0].len(), 3);
+        assert_eq!(root[1].len(), 2);
+        assert_eq!(root[2].len(), 1);
     }
 
     #[test]
@@ -319,9 +362,9 @@ mod tests {
         assert!(root.is_choice());
         assert_eq!(index, 2);
 
-        assert_eq!(root.len(), 1);
-        assert!(root[0].is_choice_set());
-        assert!(root[0][0].is_choice());
+        assert_eq!(root.len(), 2);
+        assert!(root[1].is_choice_set());
+        assert!(root[1][0].is_choice());
     }
 
     #[test]
@@ -370,16 +413,16 @@ mod tests {
         let line = get_parsed_line("");
 
         let lines = vec![
-            choice1.clone(),
+            choice1.clone(), // 0
             choice2.clone(),
             choice2.clone(),
-            choice1.clone(),
-            choice2.clone(),
+            choice1.clone(), // 1
+            choice2.clone(), //
             choice3.clone(),
             line.clone(),
             line.clone(),
             choice4.clone(),
-            choice1.clone(),
+            choice1.clone(), // 2
         ];
 
         let mut index = 0;
@@ -390,12 +433,13 @@ mod tests {
         assert!(root.is_choice_set());
 
         // Assert that the level 3 choice has two lines and one final choice_set
-        let node = &root[1][0][0][0][0];
+        let node = &root[1][1][0][1][0];
 
-        assert_eq!(node.len(), 3);
+        assert_eq!(node.len(), 4);
         assert!(node[0].is_line());
         assert!(node[1].is_line());
-        assert!(node[2].is_choice_set());
+        assert!(node[2].is_line());
+        assert!(node[3].is_choice_set());
     }
 
     #[test]
@@ -542,8 +586,8 @@ mod tests {
         assert!(root.items[2].is_line());
         assert!(root.items[3].is_choice_set());
 
-        assert_eq!(root.items[1][0].len(), 2);
-        assert!(root.items[1][0][1].is_line());
+        assert_eq!(root.items[1][0].len(), 3);
+        assert!(root.items[1][0][2].is_line());
     }
 
     #[test]
@@ -589,17 +633,11 @@ mod tests {
 
         assert_eq!(root.items.len(), 1);
         assert_eq!(root.items[0].len(), 3);
-        assert_eq!(root.items[0][1][0].len(), 2);
+        assert_eq!(root.items[0][1][1].len(), 2);
     }
 
     pub fn get_empty_choice(level: u8) -> ParsedLine {
-        let line = LineData::from_str("").unwrap();
-        let choice = Choice {
-            displayed: line.clone(),
-            line,
-            num_visited: 0,
-        };
-
+        let choice = Choice::empty();
         ParsedLine::Choice { level, choice }
     }
 

@@ -90,15 +90,14 @@ impl DialogueNode {
         let result = if current_level < stack.len() - 1 {
             // We have not yet advanced to the last point in the stack. Follow the stack
             // and descend deeper.
-            let (next_level_node, _) = self.follow_stack_to_next_choice(current_level, None, stack)?;
+            let (next_level_node, _) =
+                self.follow_stack_to_next_choice(current_level, None, stack)?;
 
             next_level_node.follow_with_choice(choice, current_level + 2, buffer, stack)
         } else {
             // We are now at the last point in the stack. Pick the given choice and follow it.
-            let (choice_node, choice_item) =
+            let (choice_node, _) =
                 self.follow_stack_to_next_choice(current_level, Some(choice), stack)?;
-            
-            self.add_choice_line_to_buffer(choice_item, buffer);
 
             stack.push(choice);
 
@@ -113,12 +112,6 @@ impl DialogueNode {
                 self.follow(current_level, buffer, stack)
             }
             _ => Ok(result),
-        }
-    }
-
-    fn add_choice_line_to_buffer(&self, node_item: &NodeItem, buffer: &mut LineDataBuffer) {
-        if let NodeItem::Node { kind: NodeType::Choice(choice), .. } = node_item {
-            buffer.push(choice.line.clone());
         }
     }
 
@@ -165,12 +158,12 @@ impl DialogueNode {
             })?;
 
         // let choice_node: &DialogueNode = get_choice_node(choice_item, choice_index, current_level + 1).map_err(|err| err.into())?;
-        match get_choice_node(choice_item, choice_index, current_level + 1).map_err(|err| err.into()) {
+        match get_choice_node(choice_item, choice_index, current_level + 1)
+            .map_err(|err| err.into())
+        {
             Ok(choice_node) => Ok((choice_node, choice_item)),
             Err(err) => Err(err),
         }
-
-        // Ok((choice_node, choice_item))
     }
 
     // Safely get the `NodeItem` at given index.
@@ -322,9 +315,9 @@ fn get_choice_from_node_item(
 
             Ok(Choice {
                 num_visited,
-                .. choice.clone()
+                ..choice.clone()
             })
-        },
+        }
         _ => Err(InternalError::BadGraph(BadGraphKind::ExpectedNode {
             index,
             node_level,
@@ -343,7 +336,7 @@ mod tests {
         str::FromStr,
     };
 
-    use crate::line::{LineData, tests::ChoiceBuilder};
+    use crate::line::{tests::ChoiceBuilder, LineData};
 
     #[test]
     fn follow_a_pure_line_node_adds_lines_to_buffer() {
@@ -351,9 +344,7 @@ mod tests {
         let (line2, item2) = get_line_and_node_item_line("Hello?");
         let (line3, item3) = get_line_and_node_item_line("Hello, is anyone there?");
 
-        let node = DialogueNode::with_items(
-            vec![item1, item2, item3],
-        );
+        let node = DialogueNode::with_items(vec![item1, item2, item3]);
 
         let mut buffer = Vec::new();
         let mut stack = Vec::new();
@@ -376,9 +367,7 @@ mod tests {
     fn follow_a_node_pushes_last_index_to_stack() {
         let item = get_node_item_line("");
 
-        let node = DialogueNode::with_items(
-            vec![item.clone(), item],
-        );
+        let node = DialogueNode::with_items(vec![item.clone(), item]);
 
         let mut buffer = Vec::new();
         let mut stack = Vec::new();
@@ -394,9 +383,7 @@ mod tests {
         let (_, item2) = get_line_and_node_item_line("Hello?");
         let (line3, item3) = get_line_and_node_item_line("Hello, is anyone there?");
 
-        let node = DialogueNode::with_items(
-            vec![item1, item2, item3],
-        );
+        let node = DialogueNode::with_items(vec![item1, item2, item3]);
 
         let level = 5;
 
@@ -459,9 +446,8 @@ mod tests {
 
         let item_divert = get_node_item_with_line(&line_divert);
 
-        let node = DialogueNode::with_items(
-            vec![item.clone(), item.clone(), item_divert, item.clone()],
-        );
+        let node =
+            DialogueNode::with_items(vec![item.clone(), item.clone(), item_divert, item.clone()]);
 
         let mut buffer = Vec::new();
         let mut stack = Vec::new();
@@ -484,9 +470,8 @@ mod tests {
 
         let item_divert = get_node_item_with_line(&line_divert);
 
-        let node = DialogueNode::with_items(
-            vec![item.clone(), item_divert, item.clone(), item.clone()],
-        );
+        let node =
+            DialogueNode::with_items(vec![item.clone(), item_divert, item.clone(), item.clone()]);
 
         let mut buffer = Vec::new();
         let mut stack = Vec::new();
@@ -509,9 +494,8 @@ mod tests {
 
         let item_divert = get_node_item_with_line(&line_divert);
 
-        let node = DialogueNode::with_items(
-            vec![item.clone(), item_divert, item.clone(), item.clone()],
-        );
+        let node =
+            DialogueNode::with_items(vec![item.clone(), item_divert, item.clone(), item.clone()]);
 
         let mut buffer = Vec::new();
         let mut stack = Vec::new();
@@ -529,9 +513,7 @@ mod tests {
         let choice_set = get_choice_set_with_empty_choices(num_choices);
         let choice_set_copy = get_choice_set_with_empty_choices(num_choices);
 
-        let node = DialogueNode::with_items(
-            vec![item.clone(), choice_set],
-        );
+        let node = DialogueNode::with_items(vec![item.clone(), choice_set]);
 
         let mut buffer = Vec::new();
         let mut stack = Vec::new();
@@ -598,9 +580,7 @@ mod tests {
         choice_set[1].node_mut().items.push(item2.clone());
         choice_set[1].node_mut().items.push(item3.clone());
 
-        let node = DialogueNode::with_items(
-            vec![item1.clone(), choice_set],
-        );
+        let node = DialogueNode::with_items(vec![item1.clone(), choice_set]);
 
         let mut buffer = Vec::new();
         let mut stack = Vec::new();
@@ -613,9 +593,9 @@ mod tests {
         node.follow_with_choice(1, stack.len() - 1, &mut buffer, &mut stack)
             .unwrap();
 
-        assert_eq!(buffer.len(), 4);
-        assert_eq!(buffer[2], line2);
-        assert_eq!(buffer[3], line3);
+        assert_eq!(buffer.len(), 3);
+        assert_eq!(buffer[1], line2);
+        assert_eq!(buffer[2], line3);
     }
 
     #[test]
@@ -631,9 +611,7 @@ mod tests {
             .items
             .push(get_choice_set_with_empty_choices(1));
 
-        let node = DialogueNode::with_items(
-            vec![item1, choice_set],
-        );
+        let node = DialogueNode::with_items(vec![item1, choice_set]);
 
         let mut buffer = Vec::new();
         let mut stack = Vec::new();
@@ -655,13 +633,11 @@ mod tests {
     fn follow_with_choice_pops_stack_when_returning_from_choice_set() {
         let item = get_node_item_line("Hello, world!");
 
-        let node = DialogueNode::with_items(
-            vec![
-                item,
-                get_choice_set_with_empty_choices(1),
-                get_choice_set_with_empty_choices(1),
-            ],
-        );
+        let node = DialogueNode::with_items(vec![
+            item,
+            get_choice_set_with_empty_choices(1),
+            get_choice_set_with_empty_choices(1),
+        ]);
 
         let mut buffer = Vec::new();
         let mut stack = Vec::new();
@@ -721,9 +697,7 @@ mod tests {
             .items
             .push(target_siblings_choice_set2);
 
-        let node = DialogueNode::with_items(
-            vec![item.clone(), container_choice_set, item.clone()],
-        );
+        let node = DialogueNode::with_items(vec![item.clone(), container_choice_set, item.clone()]);
 
         let mut buffer = Vec::new();
 
@@ -737,50 +711,13 @@ mod tests {
 
         assert_eq!(
             buffer.len(),
-            2,
+            1,
             "buffer after nested follow does not contain the right number of lines"
         );
         assert_eq!(
-            buffer[1], line_target,
+            buffer[0], line_target,
             "buffer after nested follow does not contain the target line"
         );
-    }
-
-    #[test]
-    fn follow_with_choice_adds_choice_line_to_buffer() {
-        let line = LineData::from_str("Hello, World!").unwrap();
-        let choice = ChoiceBuilder::empty().with_line(line.clone()).build();
-
-        let items = vec![
-            NodeItem::Node {
-                kind: NodeType::Choice(choice),
-                node: Box::new(DialogueNode::with_items(vec![])),
-            }
-        ];
-
-        let choice_set = NodeItem::Node {
-            kind: NodeType::ChoiceSet,
-            node: Box::new(DialogueNode::with_items(items))
-        };
-
-        let node = DialogueNode::with_items(
-            vec![
-                choice_set,
-            ],
-        );
-
-        let mut buffer = Vec::new();
-        let mut stack = vec![0];
-
-        match node
-            .follow_with_choice(0, 0, &mut buffer, &mut stack)
-            .unwrap()
-        {
-            Next::Done => (),
-            _ => panic!("after following `Next::Done` was expected, but it wasn't"),
-        }
-
-        assert_eq!(buffer, &[line]);
     }
 
     #[test]
@@ -803,13 +740,11 @@ mod tests {
         // After choice set there is a line that should be added when the choice returns
         container_choice_set[0].node_mut().items.push(item1);
 
-        let node = DialogueNode::with_items(
-            vec![
-                container_choice_set,
-                // After the first choice set there is a second line that should be added
-                item2,
-            ],
-        );
+        let node = DialogueNode::with_items(vec![
+            container_choice_set,
+            // After the first choice set there is a second line that should be added
+            item2,
+        ]);
 
         let mut buffer = Vec::new();
 
@@ -821,7 +756,7 @@ mod tests {
             _ => panic!("after following `Next::Done` was expected, but it wasn't"),
         }
 
-        assert_eq!(buffer, &[empty_choice_line, line1, line2]);
+        assert_eq!(buffer, &[line1, line2]);
     }
 
     #[test]
@@ -837,9 +772,7 @@ mod tests {
 
         choice_set[1].node_mut().items.push(item2.clone());
 
-        let root = DialogueNode::with_items(
-            vec![choice_set],
-        );
+        let root = DialogueNode::with_items(vec![choice_set]);
 
         let (node, _) = root.follow_stack_to_next_choice(0, None, &stack).unwrap();
 
@@ -860,9 +793,7 @@ mod tests {
 
         choice_set[1].node_mut().items.push(item.clone());
 
-        let root = DialogueNode::with_items(
-            vec![choice_set],
-        );
+        let root = DialogueNode::with_items(vec![choice_set]);
 
         let (node, _) = root
             .follow_stack_to_next_choice(current_level, None, &stack)
@@ -887,9 +818,7 @@ mod tests {
 
         choice_set[1].node_mut().items.push(item2.clone());
 
-        let root = DialogueNode::with_items(
-            vec![choice_set],
-        );
+        let root = DialogueNode::with_items(vec![choice_set]);
 
         let (node, _) = root
             .follow_stack_to_next_choice(0, Some(0), &stack)
@@ -904,9 +833,7 @@ mod tests {
         let choice = 2;
         let choice_set = get_choice_set_with_empty_choices(choice);
 
-        let node = DialogueNode::with_items(
-            vec![choice_set],
-        );
+        let node = DialogueNode::with_items(vec![choice_set]);
 
         let mut buffer = Vec::new();
         let mut stack = vec![0];
@@ -920,7 +847,10 @@ mod tests {
     #[test]
     fn get_choice_from_node_item_sets_the_number_of_visits() {
         let line = LineData::from_str("").unwrap();
-        let choice = ChoiceBuilder::empty().with_line(line).with_num_visited(5).build();
+        let choice = ChoiceBuilder::empty()
+            .with_line(line)
+            .with_num_visited(5)
+            .build();
 
         let node = DialogueNode::with_items(vec![]);
         node.num_visited.set(5);

@@ -186,7 +186,6 @@ impl Story {
 
         match result {
             Next::ChoiceSet(choice_set) => {
-                dbg!(&choice_set);
                 let user_choice_lines = prepare_choices_for_user(&choice_set);
                 Ok(StoryAction::Choice(user_choice_lines))
             }
@@ -270,82 +269,6 @@ mod tests {
     use super::*;
 
     use std::str::FromStr;
-
-    #[test]
-    fn following_story_removes_empty_lines_through_choices_and_diverts() {
-        let knot1_name = "back_in_london";
-        let knot2_name = "hurry_outside";
-        let knot3_name = "dragged_outside";
-        let knot4_name = "as_fast_as_we_could";
-
-        let knot1_lines = vec![
-            "We arrived into London at 9.45pm exactly.",
-            "",
-            "*	\"There is not a moment to lose!\" I declared.",
-            "	-> hurry_outside ",
-            "",
-            "*	\"Monsieur, let us savour this moment!\" I declared.",
-            "	My master clouted me firmly around the head and dragged me out of the door. ",
-            "	-> dragged_outside ",
-            "",
-            "*	[We hurried home] -> hurry_outside",
-            "",
-        ];
-
-        let knot2_lines = vec!["We hurried home to Savile Row -> as_fast_as_we_could", ""];
-
-        let knot3_lines = vec![
-            "He insisted that we hurried home to Savile Row ",
-            "-> as_fast_as_we_could",
-        ];
-
-        let knot4_lines = vec!["<> as fast as we could."];
-
-        let mut knots = HashMap::new();
-
-        knots.insert(
-            knot1_name.to_string(),
-            Knot::from_str(&knot1_lines.join("\n")).unwrap(),
-        );
-        knots.insert(
-            knot2_name.to_string(),
-            Knot::from_str(&knot2_lines.join("\n")).unwrap(),
-        );
-        knots.insert(
-            knot3_name.to_string(),
-            Knot::from_str(&knot3_lines.join("\n")).unwrap(),
-        );
-        knots.insert(
-            knot4_name.to_string(),
-            Knot::from_str(&knot4_lines.join("\n")).unwrap(),
-        );
-
-        let mut story = Story {
-            knots,
-            stack: vec![knot1_name.to_string()],
-        };
-
-        let mut buffer = Vec::new();
-
-        story.start(&mut buffer).unwrap();
-        story.resume_with_choice(1, &mut buffer).unwrap();
-
-        let buffer_as_string =
-            buffer
-                .iter()
-                .map(|line| line.text.clone())
-                .fold(String::new(), |mut acc, line| {
-                    acc.push_str(&line);
-                    acc
-                });
-
-        let buffer_lines = buffer_as_string.lines().collect::<Vec<_>>();
-        assert_eq!(buffer_lines.len(), 4);
-        assert_eq!(
-            buffer_lines[3],
-            "He insisted that we hurried home to Savile Row as fast as we could."
-        );
-    }
 
     #[test]
     fn story_internally_follows_through_knots_when_diverts_are_found() {
