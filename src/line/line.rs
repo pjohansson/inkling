@@ -65,12 +65,21 @@ fn parse_line(line: &str) -> Result<ParsedLine, ParseError> {
 }
 
 fn parse_gather(line: &str) -> Option<Result<ParsedLine, ParseError>> {
-    let line_minus_diverts = line.trim_start().trim_start_matches(DIVERT_MARKER);
-    let parsed_gather = parse_markers_and_text(line_minus_diverts, GATHER_MARKER);
+    let (line_without_divert, line_from_divert) = if let Some(i) = line.find(DIVERT_MARKER) {
+        line.split_at(i)
+    } else {
+        (line, "")
+    };
 
-    parsed_gather.map(|(level, line_text)| match LineData::from_str(line_text) {
-        Ok(line) => Ok(ParsedLine::Gather { level, line }),
-        Err(err) => Err(err),
+    let parsed_gather = parse_markers_and_text(line_without_divert, GATHER_MARKER);
+
+    parsed_gather.map(|(level, line_text)| {
+        let line_with_divert = format!("{}{}", line_text, line_from_divert);
+
+        match LineData::from_str(&line_with_divert) {
+            Ok(line) => Ok(ParsedLine::Gather { level, line }),
+            Err(err) => Err(err),
+        }
     })
 }
 
@@ -298,6 +307,13 @@ pub(crate) mod tests {
     fn gather_markers_do_not_require_text() {
         assert!(ParsedLine::from_str("-").is_ok());
     }
+
+    #[test]
+    fn diverts_can_come_directly_after_gathers() {
+        let (_, gather) = ParsedLine::from_str("- -> name").unwrap().gather();
+        assert_eq!(gather.kind, LineKind::Divert("name".to_string()));
+    }
+
 
     #[test]
     fn markers_can_be_whitespace_separated() {
