@@ -1,6 +1,6 @@
-use crate::line::{Choice, LineData, ParsedLine};
+use crate::line::{ChoiceData, LineData, ParsedLine};
 
-use std::cell::{Cell, RefCell};
+use std::cell::Cell;
 
 use super::parse::parse_full_node;
 
@@ -43,5 +43,5 @@ pub enum NodeType {
     /// Root of a set of choices. All node items will be of type `Choice`.
     ChoiceSet,
     /// Choice in a set of choices. All node items will be lines or further `ChoiceSet` nodes.
-    Choice(Choice),
+    Choice(ChoiceData),
 }

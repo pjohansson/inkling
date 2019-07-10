@@ -1,6 +1,6 @@
 use crate::{
     error::FollowError,
-    line::{Choice, LineData},
+    line::{ChoiceData, LineData},
 };
 
 pub type FollowResult = Result<Next, FollowError>;
@@ -14,5 +14,5 @@ pub enum Next {
     /// Divert to a new knot with the given name.
     Divert(String),
     /// Choice for the user.
-    ChoiceSet(Vec<Choice>),
+    ChoiceSet(Vec<ChoiceData>),
 }

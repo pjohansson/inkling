@@ -93,7 +93,11 @@ fn read_knot_name(line: &str) -> Result<String, ParseError> {
             .trim();
 
         if trimmed_name.contains(|c: char| c.is_whitespace()) {
-            Err(KnotError::InvalidName { line: line.to_string(), kind: KnotNameError::ContainsWhitespace }.into())
+            Err(KnotError::InvalidName {
+                line: line.to_string(),
+                kind: KnotNameError::ContainsWhitespace,
+            }
+            .into())
         } else {
             Ok(trimmed_name.to_string())
         }

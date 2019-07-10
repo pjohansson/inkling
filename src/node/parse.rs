@@ -166,10 +166,7 @@ mod tests {
 
     use std::str::FromStr;
 
-    use crate::line::{
-        tests::{ChoiceBuilder, LineBuilder},
-        Choice, LineData,
-    };
+    use crate::line::{choice::tests::ChoiceBuilder, line::tests::LineBuilder, ChoiceData, LineData};
 
     #[test]
     fn parsing_choices_at_same_level_returns_when_encountering_other_choice() {
@@ -637,7 +634,7 @@ mod tests {
     }
 
     pub fn get_empty_choice(level: u8) -> ParsedLine {
-        let choice = Choice::empty();
+        let choice = ChoiceData::empty();
         ParsedLine::Choice { level, choice }
     }
 

@@ -1,7 +1,7 @@
 use crate::{
     error::{FollowError, ParseError},
     follow::{FollowResult, LineDataBuffer, Next},
-    line::{Choice, ParsedLine},
+    line::{ChoiceData, ParsedLine},
     node::{DialogueNode, Stack},
 };
 
@@ -11,6 +11,7 @@ use std::str::FromStr;
 pub struct Knot {
     pub(crate) root: DialogueNode,
     stack: Stack,
+    pub num_visited: u32,
 }
 
 impl Knot {
@@ -54,6 +55,7 @@ impl Knot {
         Ok(Knot {
             root,
             stack: Vec::new(),
+            num_visited: 0,
         })
     }
 }
@@ -72,6 +74,7 @@ mod tests {
             Ok(Knot {
                 root,
                 stack: Vec::new(),
+                num_visited: 0,
             })
         }
     }

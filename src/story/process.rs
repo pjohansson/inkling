@@ -1,11 +1,17 @@
 //! Process lines to their final form, which will be displayed to the user.
 
 use crate::{
+    error::InternalError,
     follow::LineDataBuffer,
-    line::{Choice, LineData},
+    knot::Knot,
+    line::{ChoiceData, Condition, LineData},
 };
 
-use super::story::{Line, LineBuffer};
+use std::{
+    collections::HashMap,
+};
+
+use super::story::{Choice, Line, LineBuffer};
 
 /// Process full `LineData` lines to their final state: remove empty lines, add newlines
 /// unless glue is present.
@@ -28,15 +34,51 @@ pub fn process_buffer(into_buffer: &mut LineBuffer, from_buffer: LineDataBuffer)
 /// Prepared the choices with the text that will be displayed to the user.
 /// Preserve line tags in case processing is desired. Choices are filtered
 /// based on a set condition (currently: visited or not, unless sticky).
-pub fn prepare_choices_for_user(choices: &[Choice]) -> Vec<Line> {
-    choices
-        .iter()
-        .filter(|choice| choice.is_sticky || choice.num_visited == 0)
-        .map(|choice| Line {
-            text: choice.displayed.text.clone(),
-            tags: choice.displayed.tags.clone(),
+pub fn prepare_choices_for_user(choices: &[ChoiceData], knots: &HashMap<String, Knot>) -> Result<Vec<Choice>, InternalError> {
+    let checked_choices = check_choices_for_conditions(choices, knots)?;
+
+    let filtered_choices = choices.iter()
+        .enumerate()
+        .map(|(i, choice)| {
+            Choice {
+                text: choice.displayed.text.trim().to_string(),
+                tags: choice.displayed.tags.clone(),
+                index: i,
+            }
         })
-        .collect()
+        .zip(checked_choices.into_iter())
+        .filter_map(|(choice, keep)| {
+            if keep {
+                Some(choice)
+            } else {
+                None
+            }
+        })
+        .collect();
+    
+    Ok(filtered_choices)
+}
+
+fn check_choices_for_conditions(choices: &[ChoiceData], knots: &HashMap<String, Knot>) -> Result<Vec<bool>, InternalError> {
+    let mut checked_conditions = Vec::new();
+
+    for choice in choices.iter() {
+        let mut keep = true;
+
+        for condition in choice.conditions.iter() {
+            keep = check_condition(condition, knots)?;
+
+            if !keep {
+                break;
+            }
+        }
+
+        keep = keep && (choice.is_sticky || choice.num_visited == 0);
+
+        checked_conditions.push(keep);
+    }
+
+    Ok(checked_conditions)
 }
 
 /// Add a newline character if the line is not glued to the next. Retain only a single
@@ -67,14 +109,100 @@ fn add_line_ending(line: &mut LineData, next_line: Option<&LineData>) {
     }
 }
 
+fn check_condition(condition: &Condition, knots: &HashMap<String, Knot>) -> Result<bool, InternalError> {
+    match condition {
+        Condition::NumVisits {
+            name,
+            rhs_value,
+            ordering,
+            not,
+        } => {
+            let num_visits = knots.get(name).ok_or(InternalError::UnknownKnot { name: name.to_string() })?.num_visited as i32;
+
+            let value = num_visits.cmp(rhs_value) == *ordering;
+
+            if *not {
+                Ok(!value)
+            } else {
+                Ok(value)
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    use crate::line::{
-        tests::{ChoiceBuilder, LineBuilder},
-        LineKind,
+    use crate::{
+        line::{choice::tests::ChoiceBuilder, line::tests::LineBuilder},
     };
+
+    use std::{
+        cmp::Ordering,
+        str::FromStr,
+    };
+
+    #[test]
+    fn check_some_conditions_against_number_of_visits_in_a_hash_map() {
+        let mut knot = Knot::from_str("").unwrap();
+        knot.num_visited = 3;
+
+        let name = "knot_name".to_string();
+
+        let mut knots = HashMap::new();
+        knots.insert(name.clone(), knot);
+
+        let greater_than_condition = Condition::NumVisits {
+            name: name.clone(),
+            rhs_value: 2,
+            ordering: Ordering::Greater,
+            not: false,
+        };
+
+        assert!(check_condition(&greater_than_condition, &knots).unwrap());
+
+        let less_than_condition = Condition::NumVisits {
+            name: name.clone(),
+            rhs_value: 2,
+            ordering: Ordering::Less,
+            not: false,
+        };
+
+        assert!(!check_condition(&less_than_condition, &knots).unwrap());
+
+        let equal_condition = Condition::NumVisits {
+            name: name.clone(),
+            rhs_value: 3,
+            ordering: Ordering::Equal,
+            not: false,
+        };
+
+        assert!(check_condition(&equal_condition, &knots).unwrap());
+
+        let not_equal_condition = Condition::NumVisits {
+            name: name.clone(),
+            rhs_value: 3,
+            ordering: Ordering::Equal,
+            not: true,
+        };
+
+        assert!(!check_condition(&not_equal_condition, &knots).unwrap());
+    }
+
+    #[test]
+    fn if_condition_checks_knot_that_is_not_in_map_an_error_is_raised() {
+        let knots = HashMap::new();
+
+        let gt_condition = Condition::NumVisits {
+            name: "knot_name".to_string(),
+            rhs_value: 0,
+            ordering: Ordering::Greater,
+            not: false,
+        };
+
+        assert!(check_condition(&gt_condition, &knots).is_err());
+    }
 
     #[test]
     fn processing_line_buffer_removes_empty_lines() {
@@ -210,7 +338,9 @@ mod tests {
                 .build(),
         ];
 
-        let displayed_choices = prepare_choices_for_user(&choices);
+        let empty_hash_map = HashMap::new();
+
+        let displayed_choices = prepare_choices_for_user(&choices, &empty_hash_map).unwrap();
 
         assert_eq!(displayed_choices.len(), 2);
         assert_eq!(displayed_choices[0].text, displayed1.text);
@@ -226,9 +356,50 @@ mod tests {
 
         let choices = vec![ChoiceBuilder::empty().with_displayed(line).build()];
 
-        let displayed_choices = prepare_choices_for_user(&choices);
+        let empty_hash_map = HashMap::new();
+
+        let displayed_choices = prepare_choices_for_user(&choices, &empty_hash_map).unwrap();
 
         assert_eq!(displayed_choices[0].tags, tags);
+    }
+
+    #[test]
+    fn processing_choices_checks_conditions() {
+        let name = "knot_name".to_string();
+
+        let mut knot = Knot::from_str("").unwrap();
+        knot.num_visited = 1;
+
+        let mut knots = HashMap::new();
+        knots.insert(name.clone(), knot);
+
+        let fulfilled_condition = Condition::NumVisits {
+            name: name.clone(),
+            rhs_value: 0,
+            ordering: Ordering::Greater,
+            not: false,
+        };
+
+        let unfulfilled_condition = Condition::NumVisits {
+            name: name.clone(),
+            rhs_value: 2,
+            ordering: Ordering::Greater,
+            not: false,
+        };
+
+        let kept_line = LineBuilder::new("Kept").build();
+        let removed_line = LineBuilder::new("Removed").build();
+
+        let choices = vec![
+            ChoiceBuilder::empty().with_displayed(removed_line.clone()).with_conditions(&[unfulfilled_condition.clone()]).build(),
+            ChoiceBuilder::empty().with_displayed(kept_line.clone()).with_conditions(&[fulfilled_condition.clone()]).build(),
+            ChoiceBuilder::empty().with_displayed(removed_line.clone()).with_conditions(&[fulfilled_condition, unfulfilled_condition]).build(),
+        ];
+
+        let displayed_choices = prepare_choices_for_user(&choices, &knots).unwrap();
+
+        assert_eq!(displayed_choices.len(), 1);
+        assert_eq!(&displayed_choices[0].text, "Kept");
     }
 
     #[test]
@@ -249,7 +420,9 @@ mod tests {
                 .build(),
         ];
 
-        let displayed_choices = prepare_choices_for_user(&choices);
+        let empty_hash_map = HashMap::new();
+
+        let displayed_choices = prepare_choices_for_user(&choices, &empty_hash_map).unwrap();
 
         assert_eq!(displayed_choices.len(), 2);
         assert_eq!(&displayed_choices[0].text, "Kept");
@@ -276,7 +449,9 @@ mod tests {
                 .build(),
         ];
 
-        let displayed_choices = prepare_choices_for_user(&choices);
+        let empty_hash_map = HashMap::new();
+
+        let displayed_choices = prepare_choices_for_user(&choices, &empty_hash_map).unwrap();
 
         assert_eq!(displayed_choices.len(), 2);
         assert_eq!(&displayed_choices[0].text, "Kept");

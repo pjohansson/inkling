@@ -3,7 +3,7 @@ use crate::{
         BadGraphKind, FollowError, IncorrectStackKind, InternalError, NodeItemKind, WhichIndex,
     },
     follow::{FollowResult, LineDataBuffer, Next},
-    line::{Choice, LineKind},
+    line::{ChoiceData, LineKind},
 };
 
 pub type Stack = Vec<usize>;
@@ -279,7 +279,7 @@ fn get_choice_node(
 fn get_choices_from_set(
     choice_set: &NodeItem,
     node_level: usize,
-) -> Result<Vec<Choice>, InternalError> {
+) -> Result<Vec<ChoiceData>, InternalError> {
     match choice_set {
         NodeItem::Node {
             kind: NodeType::ChoiceSet,
@@ -305,7 +305,7 @@ fn get_choice_from_node_item(
     item: &NodeItem,
     index: usize,
     node_level: usize,
-) -> Result<Choice, InternalError> {
+) -> Result<ChoiceData, InternalError> {
     match item {
         NodeItem::Node {
             kind: NodeType::Choice(choice),
@@ -313,7 +313,7 @@ fn get_choice_from_node_item(
         } => {
             let num_visited = node.num_visited.get();
 
-            Ok(Choice {
+            Ok(ChoiceData {
                 num_visited,
                 ..choice.clone()
             })
@@ -336,7 +336,7 @@ mod tests {
         str::FromStr,
     };
 
-    use crate::line::{tests::ChoiceBuilder, LineData};
+    use crate::line::{choice::tests::ChoiceBuilder, LineData};
 
     #[test]
     fn follow_a_pure_line_node_adds_lines_to_buffer() {
@@ -933,7 +933,7 @@ mod tests {
 
         // If `Self` is `NodeItem::Node` and kind is `NodeType::Choice`, return the choice.
         // Panics if `Self` is otherwise.
-        pub fn choice(&self) -> &Choice {
+        pub fn choice(&self) -> &ChoiceData {
             match self {
                 NodeItem::Node {
                     kind: NodeType::Choice(choice),
@@ -1054,7 +1054,7 @@ mod tests {
     }
 
     pub fn get_choice_set_with_empty_choices(num: usize) -> NodeItem {
-        let empty_choice = Choice::empty();
+        let empty_choice = ChoiceData::empty();
 
         let items = (0..num)
             .map(|_| NodeItem::Node {

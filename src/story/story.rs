@@ -21,6 +21,17 @@ pub struct Line {
     pub tags: Vec<String>,
 }
 
+#[derive(Clone, Debug, PartialEq)]
+/// A choice presented to the user.
+pub struct Choice {
+    /// Text content.
+    pub text: String,
+    /// Tags associated with the choice.
+    pub tags: Vec<String>,
+    /// Internal index of choice in set.
+    pub(crate) index: usize,
+}
+
 /// Convenience type to indicate when a buffer of `Line` objects is being manipulated.
 pub type LineBuffer = Vec<Line>;
 
@@ -31,6 +42,7 @@ pub struct Story {
     stack: Vec<String>,
 }
 
+#[derive(Debug)]
 /// Result from following a `Story`.
 ///
 /// # Examples
@@ -58,8 +70,8 @@ pub struct Story {
 pub enum StoryAction {
     /// The story reached an end.
     Done,
-    /// A choice was encountered. Tags found with the choice are preserved.
-    Choice(Vec<Line>),
+    /// A choice was encountered.
+    Choice(Vec<Choice>),
 }
 
 impl StoryAction {
@@ -81,7 +93,7 @@ impl StoryAction {
     ///     /* do what you want */
     /// }
     /// ```
-    pub fn get_choices(&self) -> Option<Vec<Line>> {
+    pub fn get_choices(&self) -> Option<Vec<Choice>> {
         match self {
             StoryAction::Choice(choices) => Some(choices.clone()),
             _ => None,
@@ -116,6 +128,14 @@ impl Story {
     /// assert_eq!(line_buffer.last().unwrap().text, "on the empty sky.\n");
     /// ```
     pub fn start(&mut self, line_buffer: &mut LineBuffer) -> Result<StoryAction, FollowError> {
+        let root_knot_name: String = self
+            .stack
+            .last()
+            .cloned()
+            .ok_or::<FollowError>(InternalError::NoKnotStack.into())?;
+
+        self.increment_knot_visit_counter(&root_knot_name)?;
+
         Self::follow_story_wrapper(
             self,
             |_self, buffer| Self::follow_knot(_self, buffer),
@@ -123,8 +143,7 @@ impl Story {
         )
     }
 
-    /// Resume the story with the choice corresponding to the input `index`. Indexing starts
-    /// from 0, so the third choice in a set will have index 2.
+    /// Resume the story with a choice from the given set.
     ///
     /// The story continues until it reaches a dead end or another set of choices
     /// is encountered.
@@ -133,7 +152,7 @@ impl Story {
     /// The input line buffer is not cleared before reading new lines into it.
     /// # Examples
     /// ```
-    /// # use inkling::read_story_from_string;
+    /// # use inkling::{read_story_from_string, StoryAction};
     /// let content = "\
     /// Just as Nancy picked the old diary up from the table she heard
     /// the door behind her creak open. Someone’s coming!
@@ -151,16 +170,21 @@ impl Story {
     /// let mut story = read_story_from_string(content).unwrap();
     /// let mut line_buffer = Vec::new();
     ///
-    /// story.start(&mut line_buffer);
-    /// story.resume_with_choice(0, &mut line_buffer);
-    ///
+    /// if let StoryAction::Choice(choices) = story.start(&mut line_buffer).unwrap() {
+    ///     story.resume_with_choice(&choices[0], &mut line_buffer);
+    /// }
+    /// 
     /// assert_eq!(line_buffer.last().unwrap().text, "“Miao!”\n");
+    /// 
     /// ```
     pub fn resume_with_choice(
         &mut self,
-        index: usize,
+        choice: &Choice,
+        // index: usize,
         line_buffer: &mut LineBuffer,
     ) -> Result<StoryAction, FollowError> {
+        let index = choice.index;
+
         Self::follow_story_wrapper(
             self,
             |_self, buffer| Self::follow_knot_with_choice(_self, index, buffer),
@@ -187,7 +211,7 @@ impl Story {
 
         match result {
             Next::ChoiceSet(choice_set) => {
-                let user_choice_lines = prepare_choices_for_user(&choice_set);
+                let user_choice_lines = prepare_choices_for_user(&choice_set, &self.knots)?;
                 Ok(StoryAction::Choice(user_choice_lines))
             }
             Next::Done => Ok(StoryAction::Done),
@@ -234,17 +258,31 @@ impl Story {
             .and_then(|knot| f(knot, buffer))?;
 
         match result {
-            Next::Divert(to_knot) => {
-                if &to_knot == DONE_KNOT || &to_knot == END_KNOT {
-                    Ok(Next::Done)
-                } else {
-                    self.stack.last_mut().map(|knot_name| *knot_name = to_knot);
-
-                    self.follow_knot(buffer)
-                }
-            }
+            Next::Divert(destination) => self.divert_to_knot(&destination, buffer),
             _ => Ok(result),
         }
+    }
+
+    fn divert_to_knot(&mut self, destination: &str, buffer: &mut LineDataBuffer) -> FollowResult {
+        if destination == DONE_KNOT || destination == END_KNOT {
+            Ok(Next::Done)
+        } else {
+            self.increment_knot_visit_counter(destination)?;
+
+            self.stack
+                .last_mut()
+                .map(|knot_name| *knot_name = destination.to_string());
+            self.follow_knot(buffer)
+        }
+    }
+
+    fn increment_knot_visit_counter(&mut self, knot_name: &str) -> Result<(), InternalError> {
+        self.knots
+            .get_mut(knot_name)
+            .map(|knot| knot.num_visited += 1)
+            .ok_or(InternalError::UnknownKnot {
+                name: knot_name.to_string(),
+            })
     }
 }
 
@@ -433,5 +471,26 @@ We arrived into London at 9.45pm exactly.
             StoryAction::Done => (),
             _ => panic!("story should be done when diverting to END knot"),
         }
+    }
+
+    #[test]
+    fn divert_to_knot_increments_visit_count() {
+        let mut knot = Knot::from_str("").unwrap();
+
+        let mut knots = HashMap::new();
+        knots.insert("knot".to_string(), knot);
+
+        let mut buffer = Vec::new();
+
+        let mut story = Story {
+            knots,
+            stack: vec!["knot".to_string()],
+        };
+
+        assert_eq!(story.knots.get("knot").unwrap().num_visited, 0);
+
+        story.divert_to_knot("knot", &mut buffer).unwrap();
+
+        assert_eq!(story.knots.get("knot").unwrap().num_visited, 1);
     }
 }

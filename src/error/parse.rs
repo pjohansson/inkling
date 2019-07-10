@@ -37,6 +37,11 @@ pub enum KnotNameError {
 
 #[derive(Debug)]
 pub enum LineError {
+    /// Could not parse a condition.
+    BadCondition {
+        condition: String,
+        full_line: String,
+    },
     /// A line parsed as a choice has no set text to display as choice.
     NoDisplayText,
     /// A choice line contained both choice ('*') and sticky choice ('+') markers.

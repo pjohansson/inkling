@@ -69,6 +69,8 @@ mod internal {
             kind: IncorrectStackKind,
             stack: Stack,
         },
+        /// No root knot has been set to begin following the story from.
+        NoKnotStack,
         /// The story tried to move to a knot that doesn't exist.
         UnknownKnot { name: String },
     }
@@ -86,6 +88,11 @@ mod internal {
                     "Expected a `DialogueNode` that is a {:?} but got a {:?} \
                      (node level: {}, index: {})",
                     expected, found, node_level, index
+                ),
+                InternalError::NoKnotStack => write!(
+                    f,
+                    "`Story` object was created but no root `Knot` was set to start \
+                     following the story from"
                 ),
                 InternalError::UnknownKnot { name } => write!(
                     f,
