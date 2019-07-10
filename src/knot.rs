@@ -11,7 +11,6 @@ use std::str::FromStr;
 pub struct Knot {
     pub(crate) root: DialogueNode,
     stack: Stack,
-    prev_choice_set: Vec<Choice>,
 }
 
 impl Knot {
@@ -20,8 +19,8 @@ impl Knot {
         let result = self.root.follow(0, buffer, &mut self.stack)?;
 
         match &result {
-            Next::ChoiceSet(choices) => self.prev_choice_set = choices.clone(),
             Next::Done | Next::Divert(..) => self.stack.clear(),
+            Next::ChoiceSet(..) => (),
         }
 
         Ok(result)
@@ -33,8 +32,6 @@ impl Knot {
         choice_index: usize,
         buffer: &mut LineDataBuffer,
     ) -> FollowResult {
-        self.add_choice_to_buffer(choice_index, buffer)?;
-
         let result = self
             .root
             .follow_with_choice(choice_index, 0, buffer, &mut self.stack)?;
@@ -57,26 +54,7 @@ impl Knot {
         Ok(Knot {
             root,
             stack: Vec::new(),
-            prev_choice_set: Vec::new(),
         })
-    }
-
-    fn add_choice_to_buffer(
-        &self,
-        choice_index: usize,
-        buffer: &mut LineDataBuffer,
-    ) -> Result<(), FollowError> {
-        let choice = self
-            .prev_choice_set
-            .get(choice_index)
-            .ok_or(FollowError::InvalidChoice {
-                selection: choice_index,
-                num_choices: self.prev_choice_set.len(),
-            })?;
-
-        buffer.push(choice.line.clone());
-
-        Ok(())
     }
 }
 
@@ -94,7 +72,6 @@ mod tests {
             Ok(Knot {
                 root,
                 stack: Vec::new(),
-                prev_choice_set: Vec::new(),
             })
         }
     }

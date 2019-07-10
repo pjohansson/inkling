@@ -88,12 +88,17 @@ impl DialogueNode {
         stack: &mut Stack,
     ) -> FollowResult {
         let result = if current_level < stack.len() - 1 {
-            let next_level_node = self.follow_stack_to_next_choice(current_level, None, stack)?;
+            // We have not yet advanced to the last point in the stack. Follow the stack
+            // and descend deeper.
+            let (next_level_node, _) = self.follow_stack_to_next_choice(current_level, None, stack)?;
 
             next_level_node.follow_with_choice(choice, current_level + 2, buffer, stack)
         } else {
-            let choice_node =
+            // We are now at the last point in the stack. Pick the given choice and follow it.
+            let (choice_node, choice_item) =
                 self.follow_stack_to_next_choice(current_level, Some(choice), stack)?;
+            
+            self.add_choice_line_to_buffer(choice_item, buffer);
 
             stack.push(choice);
 
@@ -108,6 +113,12 @@ impl DialogueNode {
                 self.follow(current_level, buffer, stack)
             }
             _ => Ok(result),
+        }
+    }
+
+    fn add_choice_line_to_buffer(&self, node_item: &NodeItem, buffer: &mut LineDataBuffer) {
+        if let NodeItem::Node { kind: NodeType::Choice(choice), .. } = node_item {
+            buffer.push(choice.line.clone());
         }
     }
 
@@ -130,7 +141,7 @@ impl DialogueNode {
         current_level: usize,
         with_choice: Option<usize>,
         stack: &Stack,
-    ) -> Result<&DialogueNode, FollowError> {
+    ) -> Result<(&DialogueNode, &NodeItem), FollowError> {
         let choice_set_index = get_stack_index_for_level(current_level, stack, WhichIndex::Parent)?;
         let choice_index = match with_choice {
             Some(index) => index,
@@ -153,7 +164,13 @@ impl DialogueNode {
                 }
             })?;
 
-        get_choice_node(choice_item, choice_index, current_level + 1).map_err(|err| err.into())
+        // let choice_node: &DialogueNode = get_choice_node(choice_item, choice_index, current_level + 1).map_err(|err| err.into())?;
+        match get_choice_node(choice_item, choice_index, current_level + 1).map_err(|err| err.into()) {
+            Ok(choice_node) => Ok((choice_node, choice_item)),
+            Err(err) => Err(err),
+        }
+
+        // Ok((choice_node, choice_item))
     }
 
     // Safely get the `NodeItem` at given index.
@@ -326,7 +343,7 @@ mod tests {
         str::FromStr,
     };
 
-    use crate::line::LineData;
+    use crate::line::{LineData, tests::ChoiceBuilder};
 
     #[test]
     fn follow_a_pure_line_node_adds_lines_to_buffer() {
@@ -596,9 +613,9 @@ mod tests {
         node.follow_with_choice(1, stack.len() - 1, &mut buffer, &mut stack)
             .unwrap();
 
-        assert_eq!(buffer.len(), 3);
-        assert_eq!(buffer[1], line2);
-        assert_eq!(buffer[2], line3);
+        assert_eq!(buffer.len(), 4);
+        assert_eq!(buffer[2], line2);
+        assert_eq!(buffer[3], line3);
     }
 
     #[test]
@@ -720,17 +737,55 @@ mod tests {
 
         assert_eq!(
             buffer.len(),
-            1,
+            2,
             "buffer after nested follow does not contain the right number of lines"
         );
         assert_eq!(
-            buffer[0], line_target,
+            buffer[1], line_target,
             "buffer after nested follow does not contain the target line"
         );
     }
 
     #[test]
+    fn follow_with_choice_adds_choice_line_to_buffer() {
+        let line = LineData::from_str("Hello, World!").unwrap();
+        let choice = ChoiceBuilder::empty().with_line(line.clone()).build();
+
+        let items = vec![
+            NodeItem::Node {
+                kind: NodeType::Choice(choice),
+                node: Box::new(DialogueNode::with_items(vec![])),
+            }
+        ];
+
+        let choice_set = NodeItem::Node {
+            kind: NodeType::ChoiceSet,
+            node: Box::new(DialogueNode::with_items(items))
+        };
+
+        let node = DialogueNode::with_items(
+            vec![
+                choice_set,
+            ],
+        );
+
+        let mut buffer = Vec::new();
+        let mut stack = vec![0];
+
+        match node
+            .follow_with_choice(0, 0, &mut buffer, &mut stack)
+            .unwrap()
+        {
+            Next::Done => (),
+            _ => panic!("after following `Next::Done` was expected, but it wasn't"),
+        }
+
+        assert_eq!(buffer, &[line]);
+    }
+
+    #[test]
     fn after_follow_with_choice_returns_previous_levels_continue_through_their_children() {
+        let empty_choice_line = LineData::from_str("").unwrap();
         let (line1, item1) = get_line_and_node_item_line("Hello, world!");
         let (line2, item2) = get_line_and_node_item_line("Hello, to you too!");
 
@@ -766,7 +821,7 @@ mod tests {
             _ => panic!("after following `Next::Done` was expected, but it wasn't"),
         }
 
-        assert_eq!(buffer, &[line1, line2]);
+        assert_eq!(buffer, &[empty_choice_line, line1, line2]);
     }
 
     #[test]
@@ -786,7 +841,7 @@ mod tests {
             vec![choice_set],
         );
 
-        let node = root.follow_stack_to_next_choice(0, None, &stack).unwrap();
+        let (node, _) = root.follow_stack_to_next_choice(0, None, &stack).unwrap();
 
         assert_eq!(node.items.len(), 1);
         assert_eq!(node.items[0].line(), &line2);
@@ -809,7 +864,7 @@ mod tests {
             vec![choice_set],
         );
 
-        let node = root
+        let (node, _) = root
             .follow_stack_to_next_choice(current_level, None, &stack)
             .unwrap();
 
@@ -836,7 +891,7 @@ mod tests {
             vec![choice_set],
         );
 
-        let node = root
+        let (node, _) = root
             .follow_stack_to_next_choice(0, Some(0), &stack)
             .unwrap();
 
@@ -865,12 +920,7 @@ mod tests {
     #[test]
     fn get_choice_from_node_item_sets_the_number_of_visits() {
         let line = LineData::from_str("").unwrap();
-
-        let choice = Choice {
-            displayed: line.clone(),
-            line,
-            num_visited: 0,
-        };
+        let choice = ChoiceBuilder::empty().with_line(line).with_num_visited(5).build();
 
         let node = DialogueNode::with_items(vec![]);
         node.num_visited.set(5);
@@ -1074,13 +1124,7 @@ mod tests {
     }
 
     pub fn get_choice_set_with_empty_choices(num: usize) -> NodeItem {
-        let line = LineData::from_str("").unwrap();
-
-        let empty_choice = Choice {
-            displayed: line.clone(),
-            line,
-            num_visited: 0,
-        };
+        let empty_choice = Choice::empty();
 
         let items = (0..num)
             .map(|_| NodeItem::Node {

@@ -186,6 +186,7 @@ impl Story {
 
         match result {
             Next::ChoiceSet(choice_set) => {
+                dbg!(&choice_set);
                 let user_choice_lines = prepare_choices_for_user(&choice_set);
                 Ok(StoryAction::Choice(user_choice_lines))
             }
