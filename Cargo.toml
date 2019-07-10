@@ -1,8 +1,11 @@
 [package]
 name = "inkling"
-version = "0.1.0"
+version = "0.9.0"
 authors = ["Petter Johansson <pjohansson@fastmail.com>"]
 description = "Limited implementation of the Ink markup language"
 edition = "2018"
+repository = "https://github.com/pjohansson/windy-city-politics/tree/inkling/inkling"
+categories = ["game-engines"]
+keywords = ["ink", "dialog", "dialogue", "markup"]
 
 [dependencies]
