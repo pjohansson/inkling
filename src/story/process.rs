@@ -30,39 +30,12 @@ pub fn process_buffer(into_buffer: &mut LineBuffer, from_buffer: LineDataBuffer)
 pub fn prepare_choices_for_user(choices: &[Choice]) -> Vec<Line> {
     choices
         .iter()
+        .filter(|choice| choice.num_visited == 0)
         .map(|choice| Line {
             text: choice.displayed.text.clone(),
             tags: choice.displayed.tags.clone(),
         })
         .collect()
-}
-
-/// Read all text from lines in a buffer into a single string and return it.
-///
-/// # Examples
-/// ```
-/// # use inkling::{copy_lines_into_string, read_story_from_string};
-/// let content = "\
-/// Gamle gode Väinämöinen
-/// rustade sig nu att resa
-/// bort till kyligare trakter
-/// till de dunkla Nordanlanden.
-/// ";
-///
-/// let mut story = read_story_from_string(content).unwrap();
-/// let mut line_buffer = Vec::new();
-///
-/// story.start(&mut line_buffer);
-///
-/// let text = copy_lines_into_string(&line_buffer);
-/// assert_eq!(&text, content);
-/// ```
-pub fn copy_lines_into_string(line_buffer: &LineBuffer) -> String {
-    line_buffer
-        .iter()
-        .map(|line| line.text.clone())
-        .collect::<Vec<_>>()
-        .join("")
 }
 
 /// Add a newline character if the line is not glued to the next. Retain only a single
@@ -147,25 +120,6 @@ mod tests {
             self.tags = tags;
             self
         }
-    }
-
-    #[test]
-    fn string_from_line_buffer_joins_without_extra_newlines() {
-        let lines = vec![
-            Line {
-                text: "Start of line, ".to_string(),
-                tags: Vec::new(),
-            },
-            Line {
-                text: "end of line without new lines".to_string(),
-                tags: Vec::new(),
-            },
-        ];
-
-        assert_eq!(
-            &copy_lines_into_string(&lines),
-            "Start of line, end of line without new lines"
-        );
     }
 
     #[test]
@@ -297,10 +251,12 @@ mod tests {
             Choice {
                 displayed: displayed1.clone(),
                 line: LineBuilder::new("Not displayed to user").build(),
+                num_visited: 0,
             },
             Choice {
                 displayed: displayed2.clone(),
                 line: LineBuilder::new("Not displayed to user").build(),
+                num_visited: 0,
             },
         ];
 
@@ -321,10 +277,40 @@ mod tests {
         let choices = vec![Choice {
             displayed: line.clone(),
             line: LineBuilder::new("").build(),
+            num_visited: 0,
         }];
 
         let displayed_choices = prepare_choices_for_user(&choices);
 
         assert_eq!(displayed_choices[0].tags, tags);
+    }
+
+    #[test]
+    fn preparing_choices_filters_choices_which_have_been_visited() {
+        let line = LineBuilder::new("").build();
+
+        let choices = vec![
+            Choice {
+                displayed: LineBuilder::new("Kept").build(),
+                line: line.clone(),
+                num_visited: 0,
+            },
+            Choice {
+                displayed: LineBuilder::new("Removed").build(),
+                line: line.clone(),
+                num_visited: 1,
+            },
+            Choice {
+                displayed: LineBuilder::new("Kept").build(),
+                line: line.clone(),
+                num_visited: 0,
+            },
+        ];
+
+        let displayed_choices = prepare_choices_for_user(&choices);
+
+        assert_eq!(displayed_choices.len(), 2);
+        assert_eq!(&displayed_choices[0].text, "Kept");
+        assert_eq!(&displayed_choices[1].text, "Kept");
     }
 }

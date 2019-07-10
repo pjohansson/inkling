@@ -35,6 +35,8 @@ pub struct Choice {
     /// Can be empty, in which case the presented text is removed before the story flow
     /// continues to the next line.
     pub line: LineData,
+    /// Number of times the choice has been selected so far in the story.
+    pub num_visited: u32,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -85,6 +87,7 @@ fn parse_choice(line: &str) -> Option<Result<ParsedLine, ParseError>> {
             let choice = Choice {
                 displayed: line.clone(),
                 line,
+                num_visited: 0,
             };
 
             Some(Ok(ParsedLine::Choice { level, choice }))
@@ -265,6 +268,16 @@ mod tests {
         let (_, choice) = parse_choice(&choice_text).unwrap().unwrap().choice();
 
         assert_eq!(&choice.displayed, &choice.line);
+    }
+
+    #[test]
+    fn choices_are_initialized_with_zero_visits() {
+        let line_text = "Hello, world!";
+        let choice_text = format!("* {}", line_text);
+
+        let (_, choice) = parse_choice(&choice_text).unwrap().unwrap().choice();
+
+        assert_eq!(choice.num_visited, 0);
     }
 
     #[test]

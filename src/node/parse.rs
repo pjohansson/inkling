@@ -1,5 +1,7 @@
 use crate::line::ParsedLine;
 
+use std::cell::Cell;
+
 use super::node::{DialogueNode, NodeItem, NodeType};
 
 /// Used to parse the input lines from beginning to end, returning the constructed `DialogueNode`.
@@ -39,7 +41,7 @@ pub fn parse_full_node(lines: &[ParsedLine]) -> DialogueNode {
         index += 1;
     }
 
-    DialogueNode { items }
+    DialogueNode::with_items(items)
 }
 
 /// After parsing a group of choices, check whether it ended because of a `Gather`.
@@ -72,7 +74,7 @@ fn parse_choice_set(index: &mut usize, current_level: u8, lines: &[ParsedLine]) 
         choices.push(choice);
     }
 
-    let node = DialogueNode { items: choices };
+    let node = DialogueNode::with_items(choices);
 
     NodeItem::Node {
         kind: NodeType::ChoiceSet,
@@ -149,7 +151,7 @@ fn parse_single_choice(
         *index += 1;
     }
 
-    let node = DialogueNode { items };
+    let node = DialogueNode::with_items(items);
 
     Some(NodeItem::Node {
         kind: NodeType::Choice(choice),
@@ -201,6 +203,7 @@ mod tests {
         let choice = Choice {
             displayed: line.clone(),
             line,
+            num_visited: 0,
         };
 
         let input = ParsedLine::Choice {
@@ -594,6 +597,7 @@ mod tests {
         let choice = Choice {
             displayed: line.clone(),
             line,
+            num_visited: 0,
         };
 
         ParsedLine::Choice { level, choice }

@@ -1,5 +1,7 @@
 use crate::line::{Choice, LineData, ParsedLine};
 
+use std::cell::{Cell, RefCell};
+
 use super::parse::parse_full_node;
 
 #[derive(Debug)]
@@ -7,12 +9,20 @@ use super::parse::parse_full_node;
 pub struct DialogueNode {
     /// Children of current node.
     pub items: Vec<NodeItem>,
+    pub num_visited: Cell<u32>,
 }
 
 impl DialogueNode {
     /// Parse a set of `ParsedLine` items and create a full graph representation of it.
     pub fn from_lines(lines: &[ParsedLine]) -> Self {
         parse_full_node(lines)
+    }
+
+    pub fn with_items(items: Vec<NodeItem>) -> Self {
+        DialogueNode {
+            items,
+            num_visited: Cell::new(0),
+        }
     }
 }
 
