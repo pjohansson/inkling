@@ -26,7 +26,13 @@ pub enum KnotError {
     /// Knot has no content.
     Empty,
     /// Could not parse a name for the knot. The offending string is encapsulated.
-    NoName { string: String },
+    InvalidName { line: String, kind: KnotNameError },
+}
+
+#[derive(Debug)]
+pub enum KnotNameError {
+    ContainsWhitespace,
+    CouldNotRead,
 }
 
 #[derive(Debug)]
@@ -35,4 +41,6 @@ pub enum LineError {
     NoDisplayText,
     /// A choice line contained both choice ('*') and sticky choice ('+') markers.
     MultipleChoiceType { line: String },
+    /// Found unmatched brackets in a line.
+    UnmatchedBrackets { line: String },
 }

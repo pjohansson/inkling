@@ -1,4 +1,5 @@
 use crate::{
+    consts::{DONE_KNOT, END_KNOT},
     error::{FollowError, InternalError, ParseError},
     follow::{FollowResult, LineDataBuffer, Next},
     knot::Knot,
@@ -230,15 +231,19 @@ impl Story {
                 }
                 .into(),
             )
-            .and_then(|knot| f(knot, buffer));
+            .and_then(|knot| f(knot, buffer))?;
 
         match result {
-            Ok(Next::Divert(to_knot)) => {
-                self.stack.last_mut().map(|knot_name| *knot_name = to_knot);
+            Next::Divert(to_knot) => {
+                if &to_knot == DONE_KNOT || &to_knot == END_KNOT {
+                    Ok(Next::Done)
+                } else {
+                    self.stack.last_mut().map(|knot_name| *knot_name = to_knot);
 
-                self.follow_knot(buffer)
+                    self.follow_knot(buffer)
+                }
             }
-            _ => result,
+            _ => Ok(result),
         }
     }
 }
@@ -391,5 +396,42 @@ We arrived into London at 9.45pm exactly.
 
         assert_eq!(&buffer[0].text, knot1_line);
         assert_eq!(&buffer[5].text, knot1_line);
+    }
+
+    #[test]
+    fn divert_to_done_or_end_constant_knots_ends_story() {
+        let knot_done_text = "\
+    -> DONE
+    ";
+
+        let knot_end_text = "\
+    -> END
+    ";
+
+        let knot_done = Knot::from_str(&knot_done_text).unwrap();
+        let knot_end = Knot::from_str(&knot_end_text).unwrap();
+
+        let mut knots = HashMap::new();
+        knots.insert("knot_done".to_string(), knot_done);
+        knots.insert("knot_end".to_string(), knot_end);
+
+        let mut story = Story {
+            knots,
+            stack: vec!["knot_done".to_string()],
+        };
+
+        let mut buffer = Vec::new();
+
+        match story.start(&mut buffer).unwrap() {
+            StoryAction::Done => (),
+            _ => panic!("story should be done when diverting to DONE knot"),
+        }
+
+        story.stack = vec!["knot_end".to_string()];
+
+        match story.start(&mut buffer).unwrap() {
+            StoryAction::Done => (),
+            _ => panic!("story should be done when diverting to END knot"),
+        }
     }
 }

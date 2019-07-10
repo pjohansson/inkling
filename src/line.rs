@@ -81,30 +81,35 @@ fn parse_line(line: &str) -> Result<ParsedLine, ParseError> {
 }
 
 fn parse_choice(line: &str) -> Option<Result<ParsedLine, ParseError>> {
-    let (level, is_sticky, line_text) = match parse_choice_markers_and_text(line)? {
-        Ok(result) => result,
-        Err(err) => {
-            return Some(Err(err));
-        }
+    parse_choice_markers_and_text(line).map(|result| {
+        result.and_then(|(level, is_sticky, line_text)| {
+            prepare_parsed_choice_from_line(level, is_sticky, line_text)
+        })
+    })
+}
+
+fn prepare_parsed_choice_from_line(
+    level: u8,
+    is_sticky: bool,
+    line: &str,
+) -> Result<ParsedLine, ParseError> {
+    if line.is_empty() {
+        return Err(LineError::NoDisplayText.into());
+    }
+
+    let (displayed_text, line_text) = parse_choice_line_variants(line)?;
+
+    let displayed = LineData::from_str(&displayed_text)?;
+    let line = LineData::from_str(&line_text)?;
+
+    let choice = Choice {
+        displayed,
+        line,
+        num_visited: 0,
+        is_sticky,
     };
 
-    if line_text.is_empty() {
-        return Some(Err(LineError::NoDisplayText.into()));
-    }
-
-    match LineData::from_str(line_text) {
-        Ok(line) => {
-            let choice = Choice {
-                displayed: line.clone(),
-                line,
-                num_visited: 0,
-                is_sticky,
-            };
-
-            Some(Ok(ParsedLine::Choice { level, choice }))
-        }
-        Err(err) => Some(Err(err)),
-    }
+    Ok(ParsedLine::Choice { level, choice })
 }
 
 /// Split choice markers (sticky or non-sticky) from a line. If they are present, ensure
@@ -243,9 +248,75 @@ fn parse_tags(line: &mut String) -> Vec<String> {
     }
 }
 
+fn parse_choice_line_variants(line: &str) -> Result<(String, String), ParseError> {
+    match (line.find('['), line.find(']')) {
+        (Some(i), Some(j)) if i < j => {
+            // Ensure that we don't have more brackets
+            if line.rfind('[').unwrap() != i || line.rfind(']').unwrap() != j {
+                return Err(LineError::UnmatchedBrackets {
+                    line: line.to_string(),
+                }
+                .into());
+            }
+
+            let head = line.get(..i).unwrap();
+            let inside = line.get(i + 1..j).unwrap();
+            let tail = line.get(j + 1..).unwrap();
+
+            let displayed = format!("{}{}", head, inside);
+            let line = format!("{}{}", head, tail);
+
+            Ok((displayed, line))
+        }
+        (None, None) => Ok((line.to_string(), line.to_string())),
+        _ => Err(LineError::UnmatchedBrackets {
+            line: line.to_string(),
+        }
+        .into()),
+    }
+}
+
 #[cfg(test)]
 pub(crate) mod tests {
     use super::*;
+
+    #[test]
+    fn parsing_choice_line_variants_return_same_line_if_no_brackets_are_present() {
+        let (displayed, line) = parse_choice_line_variants("Hello, World!").unwrap();
+        assert_eq!(displayed, line);
+    }
+
+    #[test]
+    fn parsing_choice_line_variants_break_the_displayed_line_when_encountering_square_brackets() {
+        let (displayed, line) = parse_choice_line_variants("Hello[], World!").unwrap();
+        assert_eq!(&displayed, "Hello");
+        assert_eq!(&line, "Hello, World!");
+    }
+
+    #[test]
+    fn parsing_choice_line_variants_include_content_inside_square_brackets_in_displayed() {
+        let (displayed, line) = parse_choice_line_variants("Hello[!], World!").unwrap();
+        assert_eq!(&displayed, "Hello!");
+        assert_eq!(&line, "Hello, World!");
+    }
+
+    #[test]
+    fn parsing_choice_line_variants_return_error_if_brackets_are_unmatched() {
+        assert!(parse_choice_line_variants("Hello[!, World!").is_err());
+        assert!(parse_choice_line_variants("Hello]!, World!").is_err());
+    }
+
+    #[test]
+    fn parsing_choice_line_variants_return_error_more_brackets_are_found() {
+        assert!(parse_choice_line_variants("Hello[!], [Worl] d!").is_err());
+        assert!(parse_choice_line_variants("Hello[!], [World!").is_err());
+        assert!(parse_choice_line_variants("Hello[!], ]World!").is_err());
+    }
+
+    #[test]
+    fn parsing_choice_line_variants_return_error_if_brackets_are_reversed() {
+        assert!(parse_choice_line_variants("Hello][, World!").is_err());
+    }
 
     impl ParsedLine {
         fn choice(self) -> (u8, Choice) {

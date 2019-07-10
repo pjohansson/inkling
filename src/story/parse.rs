@@ -2,7 +2,7 @@ use crate::{
     consts::{
         KNOT_MARKER, LINE_COMMENT_MARKER, ROOT_KNOT_NAME, STITCH_MARKER, TODO_COMMENT_MARKER,
     },
-    error::{KnotError, ParseError},
+    error::{KnotError, KnotNameError, ParseError},
     knot::Knot,
 };
 
@@ -87,14 +87,20 @@ fn divide_into_knots(mut content: Vec<&str>) -> Vec<Vec<&str>> {
 
 fn read_knot_name(line: &str) -> Result<String, ParseError> {
     if line.trim_start().starts_with(KNOT_MARKER) {
-        Ok(line
+        let trimmed_name = line
             .trim_start_matches(STITCH_MARKER)
             .trim_end_matches(STITCH_MARKER)
-            .trim()
-            .to_string())
+            .trim();
+
+        if trimmed_name.contains(|c: char| c.is_whitespace()) {
+            Err(KnotError::InvalidName { line: line.to_string(), kind: KnotNameError::ContainsWhitespace }.into())
+        } else {
+            Ok(trimmed_name.to_string())
+        }
     } else {
-        Err(KnotError::NoName {
-            string: line.to_string(),
+        Err(KnotError::InvalidName {
+            line: line.to_string(),
+            kind: KnotNameError::CouldNotRead,
         }
         .into())
     }
@@ -185,10 +191,16 @@ Second line.
 
     #[test]
     fn read_knot_name_from_string_works_with_at_least_two_equal_signs() {
-        assert_eq!(&read_knot_name("== Knot name").unwrap(), "Knot name");
-        assert_eq!(&read_knot_name("=== Knot name").unwrap(), "Knot name");
-        assert_eq!(&read_knot_name("== Knot name ==").unwrap(), "Knot name");
-        assert_eq!(&read_knot_name("==Knot name==").unwrap(), "Knot name");
+        assert_eq!(&read_knot_name("== Knot").unwrap(), "Knot");
+        assert_eq!(&read_knot_name("=== Knot").unwrap(), "Knot");
+        assert_eq!(&read_knot_name("== Knot==").unwrap(), "Knot");
+        assert_eq!(&read_knot_name("==Knot==").unwrap(), "Knot");
+    }
+
+    #[test]
+    fn knot_name_must_be_single_word() {
+        assert!(read_knot_name("== Knot name").is_err());
+        assert!(read_knot_name("== Knot name ==").is_err());
     }
 
     #[test]
@@ -216,25 +228,25 @@ Second line.
 
     #[test]
     fn first_set_of_knot_lines_gets_default_name_if_not_given() {
-        assert_eq!(&read_first_knot_name("== Knot name"), "Knot name");
-        assert_eq!(&read_first_knot_name("Knot name"), ROOT_KNOT_NAME);
+        assert_eq!(&read_first_knot_name("== Knot_name"), "Knot_name");
+        assert_eq!(&read_first_knot_name("Knot_name"), ROOT_KNOT_NAME);
     }
 
     #[test]
     fn parsing_knot_from_line_list_gets_name_and_knot() {
-        let content = vec!["== Knot name ==", "Line 1", "Line 2"];
+        let content = vec!["== Knot_name ==", "Line 1", "Line 2"];
 
         let (name, knot) = get_knot_from_lines(&content).unwrap();
-        assert_eq!(&name, "Knot name");
+        assert_eq!(&name, "Knot_name");
         assert_eq!(knot.root.items.len(), 2);
     }
 
     #[test]
     fn parsing_first_knot_from_line_list_takes_first_line_as_content_if_no_knot_no_is_present() {
-        let content = vec!["== Knot name", "Line 1", "Line 2"];
+        let content = vec!["== Knot_name", "Line 1", "Line 2"];
 
         let (name, knot) = get_first_knot_from_lines(&content).unwrap();
-        assert_eq!(&name, "Knot name");
+        assert_eq!(&name, "Knot_name");
         assert_eq!(knot.root.items.len(), 2);
 
         let content = vec!["Line 1", "Line 2"];

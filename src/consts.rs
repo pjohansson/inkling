@@ -18,3 +18,5 @@ pub const TODO_COMMENT_MARKER: &'static str = "TODO:";
 
 // Default names
 pub const ROOT_KNOT_NAME: &'static str = "_ROOT_";
+pub const DONE_KNOT: &'static str = "DONE";
+pub const END_KNOT: &'static str = "END";

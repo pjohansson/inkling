@@ -7,6 +7,8 @@ fn story_can_be_read_with_unnamed_knots() {
 Mont Blanc was a world-renowned mountain guide.
 He befriended thousands of climbers and children sightseeing in Switzerland.
 
+-> DONE
+
 ";
 
     let mut story = read_story_from_string(content).unwrap();
@@ -236,7 +238,7 @@ fn diverts_are_glue_and_add_single_whitespace_when_following_a_story() {
 
 == view_over_stadium ==
 probably several hundred thousands.
-“All mourning the death of Mont Blanc.”
+“all mourning the death of mont blanc.”
 
 ";
 
@@ -247,4 +249,44 @@ probably several hundred thousands.
 
     assert!(line_buffer[2].text.ends_with(' '));
     assert_eq!(line_buffer[3].text, "probably several hundred thousands.\n");
+}
+
+#[test]
+fn choices_with_bracket_text_gives_different_selection_and_displayed_lines() {
+    let content = "
+
+Gesicht descended into the prison.
+The elevator doors swung open.
+*   [Enter]He entered the storage where Brau 1589 was kept.
+    Further in he encountered the robot.
+    * *    “Brau 1589[...”],” he said.
+    
+";
+    let mut story = read_story_from_string(content).unwrap();
+    let mut line_buffer = Vec::new();
+
+    let choices = story
+        .start(&mut line_buffer)
+        .unwrap()
+        .get_choices()
+        .unwrap();
+    line_buffer.clear();
+
+    assert_eq!(&choices[0].text, "Enter");
+
+    let choices = story
+        .resume_with_choice(0, &mut line_buffer)
+        .unwrap()
+        .get_choices()
+        .unwrap();
+    assert_eq!(
+        line_buffer[0].text,
+        "He entered the storage where Brau 1589 was kept.\n"
+    );
+    line_buffer.clear();
+
+    assert_eq!(&choices[0].text, "“Brau 1589...”");
+
+    story.resume_with_choice(0, &mut line_buffer).unwrap();
+    assert_eq!(line_buffer[0].text, "“Brau 1589,” he said.\n");
 }

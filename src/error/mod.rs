@@ -7,4 +7,4 @@ pub use follow::{FollowError, InternalError};
 pub use parse::ParseError;
 
 pub(crate) use follow::{BadGraphKind, IncorrectStackKind, NodeItemKind, WhichIndex};
-pub(crate) use parse::{KnotError, LineError};
+pub(crate) use parse::{KnotError, KnotNameError, LineError};
