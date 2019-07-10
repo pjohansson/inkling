@@ -314,7 +314,6 @@ pub(crate) mod tests {
         assert_eq!(gather.kind, LineKind::Divert("name".to_string()));
     }
 
-
     #[test]
     fn markers_can_be_whitespace_separated() {
         let line_text = "Hello, world!";

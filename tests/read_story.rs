@@ -307,6 +307,7 @@ The elevator doors swung open.
         .unwrap()
         .get_choices()
         .unwrap();
+
     assert_eq!(
         line_buffer[0].text,
         "He entered the storage where Brau 1589 was kept.\n"
@@ -318,5 +319,58 @@ The elevator doors swung open.
     story
         .resume_with_choice(&choices[0], &mut line_buffer)
         .unwrap();
+
     assert_eq!(line_buffer[0].text, "“Brau 1589,” he said.\n");
+}
+
+#[test]
+fn gathers_collect_nested_choices_in_story() {
+    let content = "
+    
+Gesicht met with Brando. 
+They travelled to his aparment by car.
+*   “That was an impressive match, Brando.”
+    “It's getting tougher and tougher these days,” he replied.
+    * *     “Your opponents all wear the same pancreatic suits.
+            “But in the ring, you're always strongest.”
+            “Any match is determined by who's got the most experience.”
+            He stayed silent for a moment.
+            “The rest is all luck,” he continued with a wry smile.
+    * *     Gesicht thought it best to wait until they were there to have a talk.
+    - -     Brando turned the radio on and <>
+*   Gesicht said nothing and <> 
+- they stayed silent during the rest of the ride.
+- -> END
+
+";
+
+    let mut story = read_story_from_string(content).unwrap();
+    let mut line_buffer = Vec::new();
+
+    let choices = story
+        .start(&mut line_buffer)
+        .unwrap()
+        .get_choices()
+        .unwrap();
+    line_buffer.clear();
+
+    let choices = story
+        .resume_with_choice(&choices[0], &mut line_buffer)
+        .unwrap()
+        .get_choices()
+        .unwrap();
+
+    assert_eq!(
+        &choices[0].text,
+        "“Your opponents all wear the same pancreatic suits."
+    );
+
+    story
+        .resume_with_choice(&choices[0], &mut line_buffer)
+        .unwrap();
+
+    assert_eq!(
+        &line_buffer.last().unwrap().text,
+        "they stayed silent during the rest of the ride.\n"
+    );
 }
