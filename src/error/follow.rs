@@ -5,6 +5,7 @@ use crate::{
     node::{NodeItem, NodeType, Stack},
     story::Choice,
 };
+
 use std::{error::Error, fmt};
 
 #[derive(Clone, Debug)]
@@ -45,8 +46,8 @@ pub enum InklingError {
 
 impl fmt::Display for InklingError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        use InklingError::*;
         use IncorrectStackKind::*;
+        use InklingError::*;
 
         match self {
             BadGraph(BadGraphKind::ExpectedNode {
@@ -60,7 +61,12 @@ impl fmt::Display for InklingError {
                  (node level: {}, index: {})",
                 expected, found, node_level, index
             ),
-            InvalidChoice { index, choice, presented_choices, .. } => {
+            InvalidChoice {
+                index,
+                choice,
+                presented_choices,
+                ..
+            } => {
                 let presented_choices_string = presented_choices
                     .iter()
                     .map(|(shown, choice)| {
@@ -75,23 +81,22 @@ impl fmt::Display for InklingError {
 
                 match choice {
                     Some(choice) => {
-                        write!(f, 
+                        write!(f,
                         "Tried to resume the story with an invalid choice: input choice was {:?}, \
                         while available choices were: \n
                         {}",
                         choice, presented_choices_string
                         )
-                    },
-                    None => {
-                        write!(f, 
-                        "Tried to resume the story with an invalid choice: \
-                        input choice cannot be found but its internal index was {}, \
-                        available choices were: [{}]",
-                        index, presented_choices_string
-                        )
                     }
+                    None => write!(
+                        f,
+                        "Tried to resume the story with an invalid choice: \
+                         input choice cannot be found but its internal index was {}, \
+                         available choices were: [{}]",
+                        index, presented_choices_string
+                    ),
                 }
-            },
+            }
             NoKnotStack => write!(
                 f,
                 "`Story` object was created but no root `Knot` was set to start \
@@ -113,9 +118,7 @@ impl fmt::Display for InklingError {
                      (stack: {:?})",
                     index, node_level, num_items, stack
                 ),
-                EmptyStack => {
-                    write!(f, "Tried to advance through a knot with an empty stack")
-                }
+                EmptyStack => write!(f, "Tried to advance through a knot with an empty stack"),
                 Gap { node_level } => write!(
                     f,
                     "Current stack is too short for the current node level {}: \

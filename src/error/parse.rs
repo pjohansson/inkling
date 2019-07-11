@@ -1,3 +1,7 @@
+use std::{error::Error, fmt};
+
+use crate::consts::*;
+
 #[derive(Debug)]
 /// Error from parsing text to construct a story.
 pub enum ParseError {
@@ -7,6 +11,20 @@ pub enum ParseError {
     KnotError(KnotError),
     /// Error from parsing a single line.
     LineError(LineError),
+}
+
+impl Error for ParseError {}
+
+impl fmt::Display for ParseError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        use ParseError::*;
+
+        match self {
+            Empty => write!(f, "Tried to read from an empty file or string"),
+            KnotError(err) => write!(f, "{}", err),
+            LineError(err) => write!(f, "{}", err),
+        }
+    }
 }
 
 impl From<KnotError> for ParseError {
@@ -29,6 +47,33 @@ pub enum KnotError {
     InvalidName { line: String, kind: KnotNameError },
 }
 
+impl fmt::Display for KnotError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        use KnotError::*;
+        use KnotNameError::*;
+
+        write!(f, "Could not parse a knot: ")?;
+
+        match self {
+            Empty => write!(f, "knot has no name"),
+            InvalidName { line, kind } => {
+                write!(f, "could not read knot name: ")?;
+
+                match kind {
+                    ContainsWhitespace => {
+                        write!(f, "name contains whitespace characters")?;
+                    }
+                    CouldNotRead => {
+                        write!(f, "line does not start with '{}'", KNOT_MARKER)?;
+                    }
+                }
+
+                write!(f, " (line: {})", line)
+            }
+        }
+    }
+}
+
 #[derive(Debug)]
 pub enum KnotNameError {
     ContainsWhitespace,
@@ -48,4 +93,34 @@ pub enum LineError {
     MultipleChoiceType { line: String },
     /// Found unmatched brackets in a line.
     UnmatchedBrackets { line: String },
+}
+
+impl fmt::Display for LineError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        use LineError::*;
+
+        write!(f, "Invalid line: ")?;
+
+        match self {
+            BadCondition {
+                condition,
+                full_line,
+            } => write!(
+                f,
+                "could not parse a condition from '{}' (full line: {})",
+                condition, full_line,
+            ),
+            NoDisplayText => write!(
+                f,
+                "line has choice markers ({}, {}) but is empty",
+                CHOICE_MARKER, STICKY_CHOICE_MARKER
+            ),
+            MultipleChoiceType { line } => write!(
+                f,
+                "line has multiple types of choice markers (line: {})",
+                line
+            ),
+            UnmatchedBrackets { line } => write!(f, "line has unmatched brackets (line: {})", line),
+        }
+    }
 }

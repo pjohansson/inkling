@@ -189,9 +189,7 @@ impl Story {
             line_buffer,
         )
         .map_err(|err| match err {
-            InklingError::InvalidChoice { .. } => {
-                fill_in_invalid_error(err, &choice, &self.knots)
-            }
+            InklingError::InvalidChoice { .. } => fill_in_invalid_error(err, &choice, &self.knots),
             _ => err,
         })
     }
