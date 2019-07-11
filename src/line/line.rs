@@ -42,10 +42,10 @@ pub enum LineKind {
 /// of parsed lines.
 pub enum ParsedLine {
     /// Parsed line is a choice presented to the user, with a set nesting `level`.
-    Choice { level: u8, choice: ChoiceData },
+    Choice { level: u32, choice: ChoiceData },
     /// Parsed line is a gather point for choices at set nesting `level`. All nodes
     /// with equal to or higher nesting `level`s will collapse here.
-    Gather { level: u8, line: LineData },
+    Gather { level: u32, line: LineData },
     /// Regular line, which can still divert to other knots and have formatting.
     Line(LineData),
 }
@@ -83,10 +83,10 @@ fn parse_gather(line: &str) -> Option<Result<ParsedLine, ParseError>> {
     })
 }
 
-pub fn parse_markers_and_text(line: &str, marker: char) -> Option<(u8, &str)> {
+pub fn parse_markers_and_text(line: &str, marker: char) -> Option<(u32, &str)> {
     if line.trim_start().starts_with(marker) {
         let (markers, line_text) = split_markers_from_text(line, marker);
-        let num = markers.matches(|c| c == marker).count() as u8;
+        let num = markers.matches(|c| c == marker).count() as u32;
 
         Some((num, line_text))
     } else {
@@ -194,14 +194,14 @@ pub(crate) mod tests {
     use super::*;
 
     impl ParsedLine {
-        pub fn choice(self) -> (u8, ChoiceData) {
+        pub fn choice(self) -> (u32, ChoiceData) {
             match self {
                 ParsedLine::Choice { level, choice } => (level, choice),
                 _ => panic!("tried to unwrap into a `Choice`, but was `{:?}`", &self),
             }
         }
 
-        pub fn gather(self) -> (u8, LineData) {
+        pub fn gather(self) -> (u32, LineData) {
             match self {
                 ParsedLine::Gather { level, line } => (level, line),
                 _ => panic!("tried to unwrap into a `Gather`, but was `{:?}`", &self),

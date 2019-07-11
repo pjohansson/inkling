@@ -46,7 +46,7 @@ pub fn parse_full_node(lines: &[ParsedLine]) -> DialogueNode {
 /// *after* the node, not inside it.
 fn parse_choice_set_with_gather(
     index: &mut usize,
-    current_level: u8,
+    current_level: u32,
     lines: &[ParsedLine],
 ) -> (NodeItem, Option<NodeItem>) {
     let node = parse_choice_set(index, current_level, lines);
@@ -64,7 +64,7 @@ fn parse_choice_set_with_gather(
 
 /// Parse a set of `Choice`s with the same level, grouping them into a single `ChoiceSet`
 /// node that is returned.
-fn parse_choice_set(index: &mut usize, current_level: u8, lines: &[ParsedLine]) -> NodeItem {
+fn parse_choice_set(index: &mut usize, current_level: u32, lines: &[ParsedLine]) -> NodeItem {
     let mut choices = Vec::new();
 
     while let Some(choice) = parse_single_choice(index, current_level, lines) {
@@ -84,7 +84,7 @@ fn parse_choice_set(index: &mut usize, current_level: u8, lines: &[ParsedLine]) 
 /// is encountered or when all lines are read.
 fn parse_single_choice(
     index: &mut usize,
-    current_level: u8,
+    current_level: u32,
     lines: &[ParsedLine],
 ) -> Option<NodeItem> {
     if *index >= lines.len() {
@@ -633,12 +633,12 @@ mod tests {
         assert_eq!(root.items[0][1][1].len(), 2);
     }
 
-    pub fn get_empty_choice(level: u8) -> ParsedLine {
+    pub fn get_empty_choice(level: u32) -> ParsedLine {
         let choice = ChoiceData::empty();
         ParsedLine::Choice { level, choice }
     }
 
-    pub fn get_empty_gather(level: u8) -> ParsedLine {
+    pub fn get_empty_gather(level: u32) -> ParsedLine {
         let line = LineData::from_str("").unwrap();
 
         ParsedLine::Gather { level, line }

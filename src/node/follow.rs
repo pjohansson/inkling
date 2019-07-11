@@ -6,6 +6,31 @@ use crate::{
     line::{ChoiceData, LineKind},
 };
 
+/// Represents the current stack of choices that have been made from the root
+/// of the current graph (in a practical sense, that have been made inside the
+/// current `Knot`).
+///
+/// For example, for this tree:
+///
+/// Root
+/// ===
+/// Line
+/// Line
+/// ChoiceSet
+///     Choice 1
+///     Choice 2
+///         Line
+///         ChoiceSet      <---- the user is here in the branched story
+///             Choice 1
+///                 ...
+///             Choice 2
+///                 ...
+///     Choice 3
+///         ...
+/// ===
+///
+/// the current stack is [2, 1, 1]. When the user picks a choice the stack is used to
+/// advance to the position of that choice set in the tree, then follow from there on.
 pub type Stack = Vec<usize>;
 
 use super::node::{DialogueNode, NodeItem, NodeType};
@@ -87,15 +112,20 @@ impl DialogueNode {
         buffer: &mut LineDataBuffer,
         stack: &mut Stack,
     ) -> FollowResult {
-        let result = if current_level < stack.len() - 1 {
-            // We have not yet advanced to the last point in the stack. Follow the stack
-            // and descend deeper.
+        let advance_to_level = stack
+            .len()
+            .checked_sub(1)
+            .ok_or(InternalError::IncorrectStack {
+                kind: IncorrectStackKind::EmptyStack,
+                stack: stack.clone(),
+            })?;
+
+        let result = if current_level < advance_to_level {
             let (next_level_node, _) =
                 self.follow_stack_to_next_choice(current_level, None, stack)?;
 
             next_level_node.follow_with_choice(choice, current_level + 2, buffer, stack)
         } else {
-            // We are now at the last point in the stack. Pick the given choice and follow it.
             let (choice_node, _) =
                 self.follow_stack_to_next_choice(current_level, Some(choice), stack)?;
 
@@ -157,7 +187,6 @@ impl DialogueNode {
                 }
             })?;
 
-        // let choice_node: &DialogueNode = get_choice_node(choice_item, choice_index, current_level + 1).map_err(|err| err.into())?;
         match get_choice_node(choice_item, choice_index, current_level + 1)
             .map_err(|err| err.into())
         {

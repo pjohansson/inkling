@@ -99,18 +99,6 @@ mod internal {
                     name
                 ),
                 InternalError::IncorrectStack { kind, stack } => match kind {
-                    IncorrectStackKind::NotTruncated { node_level } => write!(
-                        f,
-                        "Current stack is not truncated to the current node level {} (stack: {:?})",
-                        node_level, stack
-                    ),
-                    IncorrectStackKind::Gap { node_level } => write!(
-                        f,
-                        "Current stack is too short for the current node level {}: \
-                         cannot get or add a stack index because stack indices for one or more \
-                         prior nodes are missing, which means the stack is incorrect (stack: {:?})",
-                        node_level, stack
-                    ),
                     IncorrectStackKind::BadIndices {
                         node_level,
                         index,
@@ -120,6 +108,16 @@ mod internal {
                         "Current stack has invalid index {} at node level {}: size of set is {} \
                          (stack: {:?})",
                         index, node_level, num_items, stack
+                    ),
+                    IncorrectStackKind::EmptyStack => {
+                        write!(f, "Tried to advance through a knot with an empty stack")
+                    }
+                    IncorrectStackKind::Gap { node_level } => write!(
+                        f,
+                        "Current stack is too short for the current node level {}: \
+                         cannot get or add a stack index because stack indices for one or more \
+                         prior nodes are missing, which means the stack is incorrect (stack: {:?})",
+                        node_level, stack
                     ),
                     IncorrectStackKind::MissingIndices { node_level, kind } => {
                         let level = match kind {
@@ -135,6 +133,11 @@ mod internal {
 
                         write!(f, " (stack: {:?}", stack)
                     }
+                    IncorrectStackKind::NotTruncated { node_level } => write!(
+                        f,
+                        "Current stack is not truncated to the current node level {} (stack: {:?})",
+                        node_level, stack
+                    ),
                 },
             }
         }
@@ -193,6 +196,8 @@ mod internal {
             index: usize,
             num_items: usize,
         },
+        /// Tried to follow through nodes with an empty stack.
+        EmptyStack,
         /// Stack has a gap from the last added node level and the current.
         Gap { node_level: usize },
         /// Stack is missing an index when walking through it, either for the current (parent)

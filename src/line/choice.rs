@@ -37,7 +37,7 @@ pub fn parse_choice(line: &str) -> Option<Result<ParsedLine, ParseError>> {
 }
 
 fn prepare_parsed_choice_from_line(
-    level: u8,
+    level: u32,
     is_sticky: bool,
     line: &str,
 ) -> Result<ParsedLine, ParseError> {
@@ -67,7 +67,7 @@ fn prepare_parsed_choice_from_line(
 /// Split choice markers (sticky or non-sticky) from a line. If they are present, ensure
 /// that the line does not have both sticky and non-sticky markers. Return the number
 /// of markers along with whether the choice was sticky and the remaining line.
-fn parse_choice_markers_and_text(line: &str) -> Option<Result<(u8, bool, &str), ParseError>> {
+fn parse_choice_markers_and_text(line: &str) -> Option<Result<(u32, bool, &str), ParseError>> {
     let choice_parse = parse_markers_and_text(line, CHOICE_MARKER);
     let is_sticky = choice_parse.is_none();
 
