@@ -5,7 +5,7 @@ use crate::{
 
 use std::str::FromStr;
 
-use super::choice::*;
+use super::choice::{parse_choice, ChoiceData};
 
 #[derive(Clone, Debug, PartialEq)]
 /// A single line of text used in a story. Can contain diverts to new knots, which should

@@ -1,6 +1,6 @@
 use std::{error::Error, fmt};
 
-use crate::consts::*;
+use crate::consts::{CHOICE_MARKER, KNOT_MARKER, STICKY_CHOICE_MARKER};
 
 #[derive(Debug)]
 /// Error from parsing text to construct a story.
