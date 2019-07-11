@@ -32,7 +32,7 @@ Difficult features for which I doubt my skill level to implement:
 
 ## Usage
 
-See the documentation.
+See the [documentation](https://docs.rs/inkling/).
 
 
 ## Contributions
