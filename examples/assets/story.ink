@@ -11,10 +11,11 @@ Hours go by too quickly sometimes. Before you knew it your writing session had s
 
 
 === next_day ===
+FOLLOWING DAY
+
 You awake, tired as ever.
 
-+   {rauan} A reply from Rauan urges you to nab your coat and head for some coffee.
-    -> coffee
++   {rauan} A reply from Rauan urges you to nab your coat and head for some coffee. -> coffee
 +   {not rauan} No plans for today.[] Is this your life now?
     -> END
 
@@ -27,8 +28,7 @@ You take a quick glance at your phone. Unread mail and twitter notifications are
 
 
 === rauan ===
-"Sorry, didn't see your call["]," you text back, trusting they won't wake from it.
-"Still up for coffee tomorrow?"
+"Sorry, didn't see your call," you text back, trusting they won't wake from it. "Still up for coffee tomorrow?" After that, you head to bed.
 -> next_day
 
 

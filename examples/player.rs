@@ -32,7 +32,8 @@ fn main() -> Result<(), io::Error> {
 fn play_story(mut story: Story) -> Result<(), InklingError> {
     let mut line_buffer = Vec::new();
     let mut result = story.start(&mut line_buffer)?;
-    println!("{}", copy_lines_into_string(&line_buffer));
+
+    print_lines(&line_buffer);
 
     while let Prompt::Choice(choices) = result {
         line_buffer.clear();
@@ -44,7 +45,7 @@ fn play_story(mut story: Story) -> Result<(), InklingError> {
 
         println!("");
         result = story.resume_with_choice(choice, &mut line_buffer)?;
-        println!("{}", copy_lines_into_string(&line_buffer));
+        print_lines(&line_buffer);
     }
 
     Ok(())
@@ -80,6 +81,16 @@ fn get_choice(num_choices: usize) -> Option<usize> {
             _ => {
                 println!("Not a valid option, try again:");
             }
+        }
+    }
+}
+
+fn print_lines(lines: &LineBuffer) {
+    for line in lines {
+        print!("{}", line.text);
+
+        if line.text.ends_with('\n') {
+            print!("\n");
         }
     }
 }
