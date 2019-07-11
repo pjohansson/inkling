@@ -6,7 +6,7 @@ description = "Limited implementation of the Ink markup language."
 edition = "2018"
 license = "CC-BY-SA-4.0"
 readme = "README.md"
-repository = "https://github.com/pjohansson/windy-city-politics/tree/inkling/inkling"
+repository = "https://github.com/pjohansson/windy-city-politics/tree/master/inkling"
 categories = ["game-engines"]
 keywords = ["ink", "dialog", "dialogue", "markup", "game"]
 
