@@ -40,6 +40,7 @@ pub type LineBuffer = Vec<Line>;
 pub struct Story {
     knots: HashMap<String, Knot>,
     stack: Vec<String>,
+    in_progress: bool,
 }
 
 #[derive(Debug)]
@@ -128,6 +129,12 @@ impl Story {
     /// assert_eq!(line_buffer.last().unwrap().text, "on the empty sky.\n");
     /// ```
     pub fn start(&mut self, line_buffer: &mut LineBuffer) -> Result<Prompt, InklingError> {
+        if self.in_progress {
+            return Err(InklingError::StartOnStoryInProgress);
+        }
+
+        self.in_progress = true;
+
         let root_knot_name: String = self
             .stack
             .last()
@@ -181,6 +188,10 @@ impl Story {
         choice: &Choice,
         line_buffer: &mut LineBuffer,
     ) -> Result<Prompt, InklingError> {
+        if !self.in_progress {
+            return Err(InklingError::ResumeBeforeStart);
+        }
+
         let index = choice.index;
 
         Self::follow_story_wrapper(
@@ -306,6 +317,7 @@ pub fn read_story_from_string(string: &str) -> Result<Story, ParseError> {
     Ok(Story {
         knots,
         stack: vec![root],
+        in_progress: false,
     })
 }
 
@@ -342,6 +354,7 @@ We arrived into London at 9.45pm exactly.
         let mut story = Story {
             knots,
             stack: vec![knot1_name],
+            in_progress: false,
         };
 
         let mut buffer = Vec::new();
@@ -384,6 +397,7 @@ We arrived into London at 9.45pm exactly.
         let mut story = Story {
             knots,
             stack: vec![knot1_name],
+            in_progress: false,
         };
 
         let mut buffer = Vec::new();
@@ -427,6 +441,7 @@ We arrived into London at 9.45pm exactly.
         let mut story = Story {
             knots,
             stack: vec![knot1_name],
+            in_progress: false,
         };
 
         let mut buffer = Vec::new();
@@ -458,6 +473,7 @@ We arrived into London at 9.45pm exactly.
         let mut story = Story {
             knots,
             stack: vec!["knot_done".to_string()],
+            in_progress: false,
         };
 
         let mut buffer = Vec::new();
@@ -467,6 +483,7 @@ We arrived into London at 9.45pm exactly.
             _ => panic!("story should be done when diverting to DONE knot"),
         }
 
+        story.in_progress = false;
         story.stack = vec!["knot_end".to_string()];
 
         match story.start(&mut buffer).unwrap() {
@@ -487,6 +504,7 @@ We arrived into London at 9.45pm exactly.
         let mut story = Story {
             knots,
             stack: vec!["knot".to_string()],
+            in_progress: false,
         };
 
         assert_eq!(story.knots.get("knot").unwrap().num_visited, 0);
@@ -494,5 +512,35 @@ We arrived into London at 9.45pm exactly.
         story.divert_to_knot("knot", &mut buffer).unwrap();
 
         assert_eq!(story.knots.get("knot").unwrap().num_visited, 1);
+    }
+
+    #[test]
+    fn starting_a_story_is_only_allowed_once() {
+        let mut story = read_story_from_string("Line 1").unwrap();
+        let mut line_buffer = Vec::new();
+
+        assert!(story.start(&mut line_buffer).is_ok());
+
+        match story.start(&mut line_buffer) {
+            Err(InklingError::StartOnStoryInProgress) => (),
+            _ => panic!("did not raise `StartOnStoryInProgress` error"),
+        }
+    }
+
+    #[test]
+    fn cannot_resume_on_a_story_that_has_not_started() {
+        let mut story = read_story_from_string("* Choice 1").unwrap();
+        let mut line_buffer = Vec::new();
+
+        let choice = Choice {
+            index: 0,
+            text: "Choice 1".to_string(),
+            tags: Vec::new(),
+        };
+
+        match story.resume_with_choice(&choice, &mut line_buffer) {
+            Err(InklingError::ResumeBeforeStart) => (),
+            _ => panic!("did not raise `ResumeBeforeStart` error"),
+        }
     }
 }

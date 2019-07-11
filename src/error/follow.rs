@@ -40,6 +40,10 @@ pub enum InklingError {
     },
     /// No root knot has been set to begin following the story from.
     NoKnotStack,
+    /// Tried to resume a story that has not been started.
+    ResumeBeforeStart,
+    /// Tried to `start` a story that is already in progress.
+    StartOnStoryInProgress,
     /// The story tried to move to a knot that doesn't exist.
     UnknownKnot { knot_name: String },
 }
@@ -102,6 +106,10 @@ impl fmt::Display for InklingError {
                 "`Story` object was created but no root `Knot` was set to start \
                  following the story from"
             ),
+            ResumeBeforeStart => write!(f, "Tried to resume a story that has not yet been started"),
+            StartOnStoryInProgress => {
+                write!(f, "Called `start` on a story that is already in progress")
+            }
             UnknownKnot { knot_name } => write!(
                 f,
                 "Tried to follow a knot with name {} but no such knot exists",
