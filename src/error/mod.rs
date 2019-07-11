@@ -1,10 +1,10 @@
 //! Errors from creating or walking through stories.
 
-mod follow;
+mod error;
 mod parse;
 
-pub use follow::InklingError;
+pub use error::InklingError;
 pub use parse::ParseError;
 
-pub(crate) use follow::{BadGraphKind, IncorrectStackKind, NodeItemKind, WhichIndex};
+pub(crate) use error::{BadGraphKind, IncorrectStackKind, NodeItemKind, WhichIndex};
 pub(crate) use parse::{KnotError, KnotNameError, LineError};
