@@ -1,33 +1,37 @@
-// Story copied from Inkle's writing tutorial: 
-// https://www.inklestudios.com/ink/web-tutorial/
+Hours go by too quickly sometimes. Before you knew it your writing session had stretched into the little hours. 
 
-LONDON, 1872
-Residence of Monsieur Phileas Fogg.
--> london
-
-=== london ===
-Monsieur Phileas Fogg returned home early from the Reform Club, and in a new-fangled steam-carriage, besides!  
-"Passepartout," said he. "We are going around the world!"
-
-+ "Around the world, Monsieur?"
-    I was utterly astonished. 
-    -> astonished
-+ [Nod curtly.] -> nod
++   [Look at your phone]
+    -> phone
++   "Heck[!"]," you say to yourself. You wanted to get up early tomorrow! Or, well, today.
+    + +     [Put on more coffee]
+            No matter, might as well get some more work done.
+            -> next_day
+    + +     You head to your bed[]. Better some sleep than none, after all.
+            -> next_day
 
 
-=== astonished ===
-"You are in jest!" I told him in dignified affront. "You make mock of me, Monsieur."
-"I am quite serious."
+=== next_day ===
+You awake, tired as ever.
 
-+ "But of course"
-    -> ending
-
-
-=== nod ===
-I nodded curtly, not believing a word of it.
--> ending
++   {rauan} A reply from Rauan urges you to nab your coat and head for some coffee.
+    -> coffee
++   {not rauan} No plans for today.[] Is this your life now?
+    -> END
 
 
-=== ending
-"We shall circumnavigate the globe within eighty days." He was quite calm as he proposed this wild scheme. "We leave for Paris on the 8:25. In an hour."
+=== phone ===
+You take a quick glance at your phone. Unread mail and twitter notifications are swiped away with a tired motion. Ah! A missed call and text from Rauan. 
++   You decide to deal with it tomorrow.
+    -> next_day
++   [Text back] -> rauan 
+
+
+=== rauan ===
+"Sorry, didn't see your call["]," you text back, trusting they won't wake from it.
+"Still up for coffee tomorrow?"
+-> next_day
+
+
+=== coffee ===
+You spend your day with them, having a lovely time. 
 -> END
