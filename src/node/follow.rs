@@ -1,7 +1,5 @@
 use crate::{
-    error::{
-        BadGraphKind, FollowError, IncorrectStackKind, InternalError, NodeItemKind, WhichIndex,
-    },
+    error::{BadGraphKind, IncorrectStackKind, InklingError, NodeItemKind, WhichIndex},
     follow::{FollowResult, LineDataBuffer, Next},
     line::{ChoiceData, LineKind},
 };
@@ -115,7 +113,7 @@ impl DialogueNode {
         let advance_to_level = stack
             .len()
             .checked_sub(1)
-            .ok_or(InternalError::IncorrectStack {
+            .ok_or(InklingError::IncorrectStack {
                 kind: IncorrectStackKind::EmptyStack,
                 stack: stack.clone(),
             })?;
@@ -164,7 +162,7 @@ impl DialogueNode {
         current_level: usize,
         with_choice: Option<usize>,
         stack: &Stack,
-    ) -> Result<(&DialogueNode, &NodeItem), FollowError> {
+    ) -> Result<(&DialogueNode, &NodeItem), InklingError> {
         let choice_set_index = get_stack_index_for_level(current_level, stack, WhichIndex::Parent)?;
         let choice_index = match with_choice {
             Some(index) => index,
@@ -178,18 +176,13 @@ impl DialogueNode {
             .get_node_item(choice_index, current_level + 1, stack)
             .map_err(|err| {
                 if with_choice.is_some() {
-                    FollowError::InvalidChoice {
-                        selection: choice_index,
-                        num_choices: choice_set_node.items.len(),
-                    }
+                    get_invalid_choice_error_stub(node_item, choice_index)
                 } else {
-                    err.into()
+                    err
                 }
             })?;
 
-        match get_choice_node(choice_item, choice_index, current_level + 1)
-            .map_err(|err| err.into())
-        {
+        match get_choice_node(choice_item, choice_index, current_level + 1) {
             Ok(choice_node) => Ok((choice_node, choice_item)),
             Err(err) => Err(err),
         }
@@ -201,8 +194,8 @@ impl DialogueNode {
         index: usize,
         current_level: usize,
         stack: &Stack,
-    ) -> Result<&NodeItem, InternalError> {
-        self.items.get(index).ok_or(InternalError::IncorrectStack {
+    ) -> Result<&NodeItem, InklingError> {
+        self.items.get(index).ok_or(InklingError::IncorrectStack {
             kind: IncorrectStackKind::BadIndices {
                 node_level: current_level,
                 index: index,
@@ -219,11 +212,11 @@ fn get_stack_index_for_level(
     level: usize,
     stack: &Stack,
     kind: WhichIndex,
-) -> Result<usize, InternalError> {
+) -> Result<usize, InklingError> {
     stack
         .get(level)
         .cloned()
-        .ok_or(InternalError::IncorrectStack {
+        .ok_or(InklingError::IncorrectStack {
             kind: IncorrectStackKind::MissingIndices {
                 node_level: level,
                 kind,
@@ -239,16 +232,16 @@ fn get_stack_index_for_level(
 fn add_or_get_mut_stack_index_for_level(
     current_level: usize,
     stack: &mut Stack,
-) -> Result<&mut usize, InternalError> {
+) -> Result<&mut usize, InklingError> {
     if stack.len() < current_level {
-        return Err(InternalError::IncorrectStack {
+        return Err(InklingError::IncorrectStack {
             kind: IncorrectStackKind::Gap {
                 node_level: current_level,
             },
             stack: stack.clone(),
         });
     } else if stack.len() > current_level + 1 {
-        return Err(InternalError::IncorrectStack {
+        return Err(InklingError::IncorrectStack {
             kind: IncorrectStackKind::NotTruncated {
                 node_level: current_level,
             },
@@ -264,17 +257,19 @@ fn add_or_get_mut_stack_index_for_level(
 }
 
 /// Get the `DialogueNode` from a `NodeItem` of `NodeType::ChoiceSet`.
+///
+/// Node level and stack index supplied to return an error.
 fn get_choice_set_node(
     item: &NodeItem,
     index: usize,
     node_level: usize,
-) -> Result<&DialogueNode, InternalError> {
+) -> Result<&DialogueNode, InklingError> {
     match &item {
         NodeItem::Node {
             kind: NodeType::ChoiceSet,
             node,
         } => Ok(node),
-        _ => Err(InternalError::BadGraph(BadGraphKind::ExpectedNode {
+        _ => Err(InklingError::BadGraph(BadGraphKind::ExpectedNode {
             index,
             node_level,
             expected: NodeItemKind::ChoiceSet,
@@ -284,17 +279,19 @@ fn get_choice_set_node(
 }
 
 /// Get the `DialogueNode` from a `NodeItem` of `NodeType::Choice`.
+///
+/// Node level and stack index supplied to return an error.
 fn get_choice_node(
     item: &NodeItem,
     index: usize,
     node_level: usize,
-) -> Result<&DialogueNode, InternalError> {
+) -> Result<&DialogueNode, InklingError> {
     match &item {
         NodeItem::Node {
             kind: NodeType::Choice(..),
             node,
         } => Ok(node),
-        _ => Err(InternalError::BadGraph(BadGraphKind::ExpectedNode {
+        _ => Err(InklingError::BadGraph(BadGraphKind::ExpectedNode {
             index,
             node_level,
             expected: NodeItemKind::Choice,
@@ -305,10 +302,12 @@ fn get_choice_node(
 
 // This should only ever be called on a `NodeItem` which is a `ChoiceSet`. Since we
 // are calling this internally this should only ever be the case.
+//
+// Node level is supplied to create the error if something goes wrong.
 fn get_choices_from_set(
     choice_set: &NodeItem,
     node_level: usize,
-) -> Result<Vec<ChoiceData>, InternalError> {
+) -> Result<Vec<ChoiceData>, InklingError> {
     match choice_set {
         NodeItem::Node {
             kind: NodeType::ChoiceSet,
@@ -319,7 +318,7 @@ fn get_choices_from_set(
             .enumerate()
             .map(|(index, item)| get_choice_from_node_item(item, index, node_level))
             .collect(),
-        _ => Err(InternalError::BadGraph(BadGraphKind::ExpectedNode {
+        _ => Err(InklingError::BadGraph(BadGraphKind::ExpectedNode {
             index: 0,
             node_level,
             expected: NodeItemKind::ChoiceSet,
@@ -330,11 +329,13 @@ fn get_choices_from_set(
 
 // This should only ever be called on a `NodeItem` which is a `Choice`. Since we
 // are calling this internally this should only ever be the case.
+//
+// Node level is supplied to create the error if something goes wrong.
 fn get_choice_from_node_item(
     item: &NodeItem,
     index: usize,
     node_level: usize,
-) -> Result<ChoiceData, InternalError> {
+) -> Result<ChoiceData, InklingError> {
     match item {
         NodeItem::Node {
             kind: NodeType::Choice(choice),
@@ -347,12 +348,37 @@ fn get_choice_from_node_item(
                 ..choice.clone()
             })
         }
-        _ => Err(InternalError::BadGraph(BadGraphKind::ExpectedNode {
+        _ => Err(InklingError::BadGraph(BadGraphKind::ExpectedNode {
             index,
             node_level,
             expected: NodeItemKind::Choice,
             found: item.into(),
         })),
+    }
+}
+
+/// If the used index to select a choice with was wrong, construct a stub of the error
+/// with type `InklingError::InvalidChoice`. Here we fill in which index caused
+/// the error and the full list of available choices that it tried to select from.
+///
+/// The other fields should be filled in by later error handling if needed: this is
+/// the information that the current node has direct access to.
+fn get_invalid_choice_error_stub(
+    choice_set_node_item: &NodeItem,
+    choice_index: usize,
+) -> InklingError {
+    let choices = match get_choices_from_set(choice_set_node_item, 0) {
+        Ok(choices) => choices,
+        Err(err) => {
+            return err;
+        }
+    };
+
+    InklingError::InvalidChoice {
+        index: choice_index,
+        choice: None,
+        presented_choices: Vec::new(),
+        internal_choices: choices,
     }
 }
 
@@ -867,8 +893,56 @@ mod tests {
         let mut stack = vec![0];
 
         match node.follow_with_choice(choice, 0, &mut buffer, &mut stack) {
-            Err(FollowError::InvalidChoice { .. }) => (),
-            _ => panic!("`FollowError::InvalidChoice` was not yielded"),
+            Err(InklingError::InvalidChoice { .. }) => (),
+            _ => panic!("`InklingError::InvalidChoice` was not yielded"),
+        }
+    }
+
+    #[test]
+    fn choice_and_index_collection_when_picking_a_choice_with_a_bad_index() {
+        let line1 = LineData::from_str("choice 1").unwrap();
+        let line2 = LineData::from_str("choice 2").unwrap();
+
+        let choice_set_items = vec![
+            NodeItem::Node {
+                kind: NodeType::Choice(ChoiceBuilder::empty().with_line(line1).build()),
+                node: Box::new(DialogueNode::with_items(vec![])),
+            },
+            NodeItem::Node {
+                kind: NodeType::Choice(ChoiceBuilder::empty().with_line(line2).build()),
+                node: Box::new(DialogueNode::with_items(vec![])),
+            },
+        ];
+
+        let node = DialogueNode::with_items(choice_set_items);
+
+        let choice_set = NodeItem::Node {
+            kind: NodeType::ChoiceSet,
+            node: Box::new(node),
+        };
+
+        let error = get_invalid_choice_error_stub(&choice_set, 2);
+
+        match error {
+            InklingError::InvalidChoice {
+                index,
+                choice,
+                presented_choices,
+                internal_choices,
+            } => {
+                assert_eq!(index, 2);
+                assert_eq!(internal_choices.len(), 2);
+                assert_eq!(&internal_choices[0].line.text, "choice 1");
+                assert_eq!(&internal_choices[1].line.text, "choice 2");
+
+                // Not filled in yet
+                assert!(choice.is_none());
+                assert!(presented_choices.is_empty());
+            }
+            _ => panic!(
+                "expected an `InklingError::InvalidChoice` object but got {:?}",
+                error
+            ),
         }
     }
 

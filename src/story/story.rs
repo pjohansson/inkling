@@ -1,6 +1,6 @@
 use crate::{
     consts::{DONE_KNOT, END_KNOT},
-    error::{FollowError, InternalError, ParseError},
+    error::{InklingError, ParseError},
     follow::{FollowResult, LineDataBuffer, Next},
     knot::Knot,
 };
@@ -9,10 +9,10 @@ use std::collections::HashMap;
 
 use super::{
     parse::read_knots_from_string,
-    process::{prepare_choices_for_user, process_buffer},
+    process::{fill_in_invalid_error, prepare_choices_for_user, process_buffer},
 };
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 /// Single line of text in a story, ready to display.
 pub struct Line {
     /// Text content.
@@ -21,7 +21,7 @@ pub struct Line {
     pub tags: Vec<String>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 /// Choice presented to the user.
 pub struct Choice {
     /// Text content.
@@ -127,12 +127,12 @@ impl Story {
     ///
     /// assert_eq!(line_buffer.last().unwrap().text, "on the empty sky.\n");
     /// ```
-    pub fn start(&mut self, line_buffer: &mut LineBuffer) -> Result<Prompt, FollowError> {
+    pub fn start(&mut self, line_buffer: &mut LineBuffer) -> Result<Prompt, InklingError> {
         let root_knot_name: String = self
             .stack
             .last()
             .cloned()
-            .ok_or::<FollowError>(InternalError::NoKnotStack.into())?;
+            .ok_or::<InklingError>(InklingError::NoKnotStack.into())?;
 
         self.increment_knot_visit_counter(&root_knot_name)?;
 
@@ -175,14 +175,12 @@ impl Story {
     /// }
     ///
     /// assert_eq!(line_buffer.last().unwrap().text, "“Miao!”\n");
-    ///
     /// ```
     pub fn resume_with_choice(
         &mut self,
         choice: &Choice,
-        // index: usize,
         line_buffer: &mut LineBuffer,
-    ) -> Result<Prompt, FollowError> {
+    ) -> Result<Prompt, InklingError> {
         let index = choice.index;
 
         Self::follow_story_wrapper(
@@ -190,6 +188,12 @@ impl Story {
             |_self, buffer| Self::follow_knot_with_choice(_self, index, buffer),
             line_buffer,
         )
+        .map_err(|err| match err {
+            InklingError::InvalidChoice { .. } => {
+                fill_in_invalid_error(err, &choice, &self.knots)
+            }
+            _ => err,
+        })
     }
 
     /// Wrapper of common behavior between `start` and `resume_with_choice`. Sets up
@@ -200,9 +204,9 @@ impl Story {
         &mut self,
         func: F,
         line_buffer: &mut LineBuffer,
-    ) -> Result<Prompt, FollowError>
+    ) -> Result<Prompt, InklingError>
     where
-        F: FnOnce(&mut Self, &mut LineDataBuffer) -> Result<Next, FollowError>,
+        F: FnOnce(&mut Self, &mut LineDataBuffer) -> Result<Next, InklingError>,
     {
         let mut internal_buffer = Vec::new();
         let result = func(self, &mut internal_buffer)?;
@@ -250,8 +254,8 @@ impl Story {
             .knots
             .get_mut(knot_name)
             .ok_or(
-                InternalError::UnknownKnot {
-                    name: knot_name.clone(),
+                InklingError::UnknownKnot {
+                    knot_name: knot_name.clone(),
                 }
                 .into(),
             )
@@ -276,12 +280,12 @@ impl Story {
         }
     }
 
-    fn increment_knot_visit_counter(&mut self, knot_name: &str) -> Result<(), InternalError> {
+    fn increment_knot_visit_counter(&mut self, knot_name: &str) -> Result<(), InklingError> {
         self.knots
             .get_mut(knot_name)
             .map(|knot| knot.num_visited += 1)
-            .ok_or(InternalError::UnknownKnot {
-                name: knot_name.to_string(),
+            .ok_or(InklingError::UnknownKnot {
+                knot_name: knot_name.to_string(),
             })
     }
 }

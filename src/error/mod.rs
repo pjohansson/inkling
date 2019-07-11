@@ -3,7 +3,7 @@
 mod follow;
 mod parse;
 
-pub use follow::{FollowError, InternalError};
+pub use follow::InklingError;
 pub use parse::ParseError;
 
 pub(crate) use follow::{BadGraphKind, IncorrectStackKind, NodeItemKind, WhichIndex};

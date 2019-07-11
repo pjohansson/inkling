@@ -63,7 +63,7 @@ impl Knot {
 mod tests {
     use super::*;
 
-    use crate::error::{FollowError, ParseError};
+    use crate::error::{InklingError, ParseError};
 
     impl FromStr for Knot {
         type Err = ParseError;
@@ -303,12 +303,15 @@ Line 6
         knot.follow(&mut buffer).unwrap();
 
         match knot.follow_with_choice(2, &mut buffer) {
-            Err(FollowError::InvalidChoice {
-                selection: 2,
-                num_choices: 2,
-            }) => (),
-            Err(FollowError::InvalidChoice { .. }) => panic!(),
-            _ => panic!("expected a `FollowError::InvalidChoice` but did not get it"),
+            Err(InklingError::InvalidChoice {
+                index,
+                internal_choices,
+                ..
+            }) => {
+                assert_eq!(index, 2);
+                assert_eq!(internal_choices.len(), 2);
+            }
+            _ => panic!("expected a `InklingError::InvalidChoice` but did not get it"),
         }
     }
 }

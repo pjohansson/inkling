@@ -1,9 +1,9 @@
 use crate::{
-    error::FollowError,
+    error::InklingError,
     line::{ChoiceData, LineData},
 };
 
-pub type FollowResult = Result<Next, FollowError>;
+pub type FollowResult = Result<Next, InklingError>;
 pub type LineDataBuffer = Vec<LineData>;
 
 #[derive(Clone, Debug, PartialEq)]

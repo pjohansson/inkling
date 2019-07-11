@@ -374,3 +374,47 @@ They travelled to his aparment by car.
         "they stayed silent during the rest of the ride.\n"
     );
 }
+
+#[test]
+fn follow_with_invalid_choice_returns_error_information() {
+    let content = "
+
+North no. 2 is standing in the bed room as the old man wakes up from his dream.
+
+*   “North no. 2? Is that you?”
+*   “I thought I told you to never enter my bedroom.”
+    * *     “Sir, your breakfast is ready,” North no. 2 replies.
+
+";
+
+    let mut story = read_story_from_string(content).unwrap();
+    let mut line_buffer = Vec::new();
+
+    let choices = story
+        .start(&mut line_buffer)
+        .unwrap()
+        .get_choices()
+        .unwrap();
+
+    let choice = &choices[1];
+    story.resume_with_choice(choice, &mut line_buffer).unwrap();
+
+    // Here the same choice is used again but is not valid, because only one option
+    // is available in the branch.
+    let result = story.resume_with_choice(choice, &mut line_buffer);
+
+    match result {
+        Err(InklingError::InvalidChoice {
+            index,
+            choice: invalid_choice,
+            presented_choices,
+            internal_choices,
+        }) => {
+            assert_eq!(index, 1);
+            assert_eq!(&invalid_choice.unwrap(), choice);
+            assert_eq!(presented_choices.len(), 1);
+            assert_eq!(internal_choices.len(), 1);
+        }
+        _ => unreachable!("the error should be present and filled with information"),
+    }
+}

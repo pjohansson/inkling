@@ -1,7 +1,7 @@
 //! Process lines to their final form, which will be displayed to the user.
 
 use crate::{
-    error::InternalError,
+    error::InklingError,
     follow::LineDataBuffer,
     knot::Knot,
     line::{ChoiceData, Condition, LineData},
@@ -35,7 +35,21 @@ pub fn process_buffer(into_buffer: &mut LineBuffer, from_buffer: LineDataBuffer)
 pub fn prepare_choices_for_user(
     choices: &[ChoiceData],
     knots: &HashMap<String, Knot>,
-) -> Result<Vec<Choice>, InternalError> {
+) -> Result<Vec<Choice>, InklingError> {
+    let choices_with_filter_values = zip_choices_with_filter_values(choices, knots)?;
+
+    let filtered_choices = choices_with_filter_values
+        .into_iter()
+        .filter_map(|(keep, choice)| if keep { Some(choice) } else { None })
+        .collect();
+
+    Ok(filtered_choices)
+}
+
+fn zip_choices_with_filter_values(
+    choices: &[ChoiceData],
+    knots: &HashMap<String, Knot>,
+) -> Result<Vec<(bool, Choice)>, InklingError> {
     let checked_choices = check_choices_for_conditions(choices, knots)?;
 
     let filtered_choices = choices
@@ -47,7 +61,7 @@ pub fn prepare_choices_for_user(
             index: i,
         })
         .zip(checked_choices.into_iter())
-        .filter_map(|(choice, keep)| if keep { Some(choice) } else { None })
+        .map(|(choice, keep)| (keep, choice))
         .collect();
 
     Ok(filtered_choices)
@@ -56,7 +70,7 @@ pub fn prepare_choices_for_user(
 fn check_choices_for_conditions(
     choices: &[ChoiceData],
     knots: &HashMap<String, Knot>,
-) -> Result<Vec<bool>, InternalError> {
+) -> Result<Vec<bool>, InklingError> {
     let mut checked_conditions = Vec::new();
 
     for choice in choices.iter() {
@@ -109,7 +123,7 @@ fn add_line_ending(line: &mut LineData, next_line: Option<&LineData>) {
 fn check_condition(
     condition: &Condition,
     knots: &HashMap<String, Knot>,
-) -> Result<bool, InternalError> {
+) -> Result<bool, InklingError> {
     match condition {
         Condition::NumVisits {
             name,
@@ -119,8 +133,8 @@ fn check_condition(
         } => {
             let num_visits = knots
                 .get(name)
-                .ok_or(InternalError::UnknownKnot {
-                    name: name.to_string(),
+                .ok_or(InklingError::UnknownKnot {
+                    knot_name: name.to_string(),
                 })?
                 .num_visited as i32;
 
@@ -132,6 +146,37 @@ fn check_condition(
                 Ok(value)
             }
         }
+    }
+}
+
+/// If the story was followed with an invalid choice we want to collect as much information
+/// about it as possible. This is done when first encountering the error as the stack
+/// is followed, which fills in which `ChoiceData` values were available and which index
+/// was used to select with.
+///
+/// This function fills in the rest of the stub.
+pub fn fill_in_invalid_error(
+    error_stub: InklingError,
+    made_choice: &Choice,
+    knots: &HashMap<String, Knot>,
+) -> InklingError {
+    match error_stub {
+        InklingError::InvalidChoice {
+            index,
+            internal_choices,
+            ..
+        } => {
+            let presented_choices =
+                zip_choices_with_filter_values(&internal_choices, knots).unwrap_or(Vec::new());
+
+            InklingError::InvalidChoice {
+                index,
+                choice: Some(made_choice.clone()),
+                internal_choices,
+                presented_choices,
+            }
+        }
+        _ => error_stub,
     }
 }
 
@@ -465,5 +510,69 @@ mod tests {
         assert_eq!(displayed_choices.len(), 2);
         assert_eq!(&displayed_choices[0].text, "Kept");
         assert_eq!(&displayed_choices[1].text, "Kept");
+    }
+
+    #[test]
+    fn invalid_choice_error_is_filled_in_with_all_presented_choices() {
+        let line1 = LineBuilder::new("Choice 1").build();
+        let line2 = LineBuilder::new("Choice 2").build();
+
+        let internal_choices = vec![
+            // Will have been presented to the user at the last prompt
+            ChoiceBuilder::empty().with_displayed(line1.clone()).build(),
+            // Will not have been presented to the user at the last prompt
+            ChoiceBuilder::empty()
+                .with_displayed(line2.clone())
+                .with_num_visited(1)
+                .build(),
+        ];
+
+        let made_choice = Choice {
+            text: "Made this choice".to_string(),
+            tags: Vec::new(),
+            index: 5,
+        };
+
+        let error = InklingError::InvalidChoice {
+            index: 2,
+            choice: None,
+            presented_choices: Vec::new(),
+            internal_choices: internal_choices.clone(),
+        };
+
+        let knots = HashMap::new();
+
+        let filled_error = fill_in_invalid_error(error.clone(), &made_choice, &knots);
+
+        match (filled_error, error) {
+            (
+                InklingError::InvalidChoice {
+                    index: filled_index,
+                    choice: filled_choice,
+                    presented_choices: filled_presented_choices,
+                    internal_choices: filled_internal_choices,
+                },
+                InklingError::InvalidChoice {
+                    index,
+                    internal_choices,
+                    ..
+                },
+            ) => {
+                assert_eq!(filled_index, index);
+                assert_eq!(filled_internal_choices, internal_choices);
+
+                assert_eq!(filled_choice, Some(made_choice));
+                assert_eq!(filled_presented_choices.len(), 2);
+
+                let (shown1, choice1) = &filled_presented_choices[0];
+                assert!(shown1);
+                assert_eq!(choice1.text, "Choice 1");
+
+                let (shown2, choice2) = &filled_presented_choices[1];
+                assert!(!shown2);
+                assert_eq!(choice2.text, "Choice 2");
+            }
+            _ => panic!(),
+        }
     }
 }
