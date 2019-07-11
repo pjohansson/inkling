@@ -32,7 +32,7 @@ Difficult features for which I doubt my skill level to implement:
 
 ## Usage
 
-See the [documentation](https://docs.rs/inkling/).
+See the [documentation](https://docs.rs/inkling/) or the provided example for a minimum viable story processor. 
 
 
 ## Contributions
