@@ -1,4 +1,6 @@
 use crate::{
+    consts::{KNOT_MARKER, STITCH_MARKER},
+    error::{KnotError, KnotNameError, ParseError},
     follow::{FollowResult, LineDataBuffer, Next},
     line::ParsedLine,
     node::{DialogueNode, Stack},
@@ -56,6 +58,31 @@ impl Knot {
             stack: Vec::new(),
             num_visited: 0,
         })
+    }
+}
+
+pub fn read_knot_name(line: &str) -> Result<String, ParseError> {
+    if line.trim_start().starts_with(KNOT_MARKER) {
+        let trimmed_name = line
+            .trim_start_matches(STITCH_MARKER)
+            .trim_end_matches(STITCH_MARKER)
+            .trim();
+
+        if trimmed_name.contains(|c: char| !(c.is_alphanumeric() || c == '_')) {
+            Err(KnotError::InvalidName {
+                line: line.to_string(),
+                kind: KnotNameError::ContainsWhitespace,
+            }
+            .into())
+        } else {
+            Ok(trimmed_name.to_string())
+        }
+    } else {
+        Err(KnotError::InvalidName {
+            line: line.to_string(),
+            kind: KnotNameError::CouldNotRead,
+        }
+        .into())
     }
 }
 
@@ -313,5 +340,43 @@ Line 6
             }
             _ => panic!("expected a `InklingError::InvalidChoice` but did not get it"),
         }
+    }
+
+    #[test]
+    fn read_knot_name_from_string_works_with_at_least_two_equal_signs() {
+        assert_eq!(&read_knot_name("== Knot").unwrap(), "Knot");
+        assert_eq!(&read_knot_name("=== Knot").unwrap(), "Knot");
+        assert_eq!(&read_knot_name("== Knot==").unwrap(), "Knot");
+        assert_eq!(&read_knot_name("==Knot==").unwrap(), "Knot");
+    }
+
+    #[test]
+    fn knot_name_must_be_single_word() {
+        assert!(read_knot_name("== Knot name").is_err());
+        assert!(read_knot_name("== Knot name ==").is_err());
+    }
+
+    #[test]
+    fn knot_name_can_only_contain_alphanumeric_characters_and_underlines() {
+        assert!(read_knot_name("== knot").is_ok());
+        assert!(read_knot_name("== knot_name").is_ok());
+        assert!(read_knot_name("== knot_name_with_123").is_ok());
+        assert!(read_knot_name("== knot_name_with_абв").is_ok());
+        assert!(read_knot_name("== knot_name_with_αβγ").is_ok());
+        assert!(read_knot_name("== knot_name_with_åäö").is_ok());
+        assert!(read_knot_name("== knot_name_with_京").is_ok());
+         
+        assert!(read_knot_name("== knot.name").is_err());
+        assert!(read_knot_name("== knot-name").is_err());
+        assert!(read_knot_name("== knot/name").is_err());
+        assert!(read_knot_name("== knot$name").is_err());
+    }
+
+    #[test]
+    fn read_knot_name_from_string_returns_error_if_just_one_or_no_equal_signs() {
+        assert!(read_knot_name("= Knot name ==").is_err());
+        assert!(read_knot_name("=Knot name").is_err());
+        assert!(read_knot_name(" Knot name ==").is_err());
+        assert!(read_knot_name("Knot name==").is_err());
     }
 }

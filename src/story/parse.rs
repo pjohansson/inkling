@@ -1,9 +1,9 @@
 use crate::{
     consts::{
-        KNOT_MARKER, LINE_COMMENT_MARKER, ROOT_KNOT_NAME, STITCH_MARKER, TODO_COMMENT_MARKER,
+        KNOT_MARKER, LINE_COMMENT_MARKER, ROOT_KNOT_NAME, TODO_COMMENT_MARKER,
     },
-    error::{KnotError, KnotNameError, ParseError},
-    knot::Knot,
+    error::{KnotError, ParseError},
+    knot::{Knot, read_knot_name},
 };
 
 use std::collections::HashMap;
@@ -83,31 +83,6 @@ fn divide_into_knots(mut content: Vec<&str>) -> Vec<Vec<&str>> {
     }
 
     buffer.into_iter().rev().collect()
-}
-
-fn read_knot_name(line: &str) -> Result<String, ParseError> {
-    if line.trim_start().starts_with(KNOT_MARKER) {
-        let trimmed_name = line
-            .trim_start_matches(STITCH_MARKER)
-            .trim_end_matches(STITCH_MARKER)
-            .trim();
-
-        if trimmed_name.contains(|c: char| c.is_whitespace()) {
-            Err(KnotError::InvalidName {
-                line: line.to_string(),
-                kind: KnotNameError::ContainsWhitespace,
-            }
-            .into())
-        } else {
-            Ok(trimmed_name.to_string())
-        }
-    } else {
-        Err(KnotError::InvalidName {
-            line: line.to_string(),
-            kind: KnotNameError::CouldNotRead,
-        }
-        .into())
-    }
 }
 
 fn remove_empty_and_comment_lines(content: Vec<&str>) -> Vec<&str> {
@@ -191,28 +166,6 @@ Second line.
 
         assert_eq!(knot_lines[0][..], content[0..2]);
         assert_eq!(knot_lines[1][..], content[2..]);
-    }
-
-    #[test]
-    fn read_knot_name_from_string_works_with_at_least_two_equal_signs() {
-        assert_eq!(&read_knot_name("== Knot").unwrap(), "Knot");
-        assert_eq!(&read_knot_name("=== Knot").unwrap(), "Knot");
-        assert_eq!(&read_knot_name("== Knot==").unwrap(), "Knot");
-        assert_eq!(&read_knot_name("==Knot==").unwrap(), "Knot");
-    }
-
-    #[test]
-    fn knot_name_must_be_single_word() {
-        assert!(read_knot_name("== Knot name").is_err());
-        assert!(read_knot_name("== Knot name ==").is_err());
-    }
-
-    #[test]
-    fn read_knot_name_from_string_returns_error_if_just_one_or_no_equal_signs() {
-        assert!(read_knot_name("= Knot name ==").is_err());
-        assert!(read_knot_name("=Knot name").is_err());
-        assert!(read_knot_name(" Knot name ==").is_err());
-        assert!(read_knot_name("Knot name==").is_err());
     }
 
     #[test]
