@@ -5,6 +5,9 @@ use crate::{
     knot::Knot,
 };
 
+#[cfg(feature = "serde_support")]
+use serde::{Deserialize, Serialize};
+
 use std::collections::HashMap;
 
 use super::{
@@ -36,6 +39,7 @@ pub struct Choice {
 pub type LineBuffer = Vec<Line>;
 
 #[derive(Debug)]
+#[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
 /// Story with knots, diverts, choices and possibly lots of text.
 pub struct Story {
     knots: HashMap<String, Knot>,

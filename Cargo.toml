@@ -1,6 +1,6 @@
 [package]
 name = "inkling"
-version = "0.9.3"
+version = "0.10.0"
 authors = ["Petter Johansson <pjohansson@fastmail.com>"]
 description = "Limited implementation of the Ink markup language."
 edition = "2018"
@@ -10,4 +10,11 @@ repository = "https://github.com/pjohansson/inkling"
 categories = ["game-engines"]
 keywords = ["ink", "dialog", "dialogue", "markup", "game"]
 
+[features]
+serde_support = ["serde/derive"]
+
 [dependencies]
+serde = { version = "1.*", features = ["derive"], optional = true }
+
+[dev-dependencies]
+serde_json = "1.0"

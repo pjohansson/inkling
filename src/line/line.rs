@@ -5,9 +5,13 @@ use crate::{
 
 use std::str::FromStr;
 
+#[cfg(feature = "serde_support")]
+use serde::{Deserialize, Serialize};
+
 use super::choice::{parse_choice, ChoiceData};
 
 #[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
 /// A single line of text used in a story. Can contain diverts to new knots, which should
 /// be followed when walking through the story.
 pub struct LineData {
@@ -29,6 +33,7 @@ pub struct LineData {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
 /// What action that is prompted by following a story.
 pub enum LineKind {
     /// Move on with the story.

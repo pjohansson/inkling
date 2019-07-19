@@ -2,9 +2,13 @@ use crate::line::{ChoiceData, LineData, ParsedLine};
 
 use std::cell::Cell;
 
+#[cfg(feature = "serde_support")]
+use serde::{Deserialize, Serialize};
+
 use super::parse::parse_full_node;
 
 #[derive(Debug)]
+#[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
 /// Node in a graph representation of a dialogue tree.
 pub struct DialogueNode {
     /// Children of current node.
@@ -27,6 +31,7 @@ impl DialogueNode {
 }
 
 #[derive(Debug)]
+#[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
 pub enum NodeItem {
     /// Regular line of marked up text.
     Line(LineData),
@@ -39,6 +44,7 @@ pub enum NodeItem {
 }
 
 #[derive(Debug)]
+#[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
 pub enum NodeType {
     /// Root of a set of choices. All node items will be of type `Choice`.
     ChoiceSet,

@@ -6,9 +6,13 @@ use crate::{
     node::{DialogueNode, Stack},
 };
 
+#[cfg(feature = "serde_support")]
+use serde::{Deserialize, Serialize};
+
 use std::str::FromStr;
 
 #[derive(Debug)]
+#[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
 pub struct Knot {
     pub(crate) root: DialogueNode,
     stack: Stack,

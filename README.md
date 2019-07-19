@@ -10,7 +10,7 @@ Using Ink you can easily write a story or create a dialog tree.
 *   Branching is very simple[]: <>
     just start your line with an asterix or plus marker. 
     Want nested choices? Add more markers!
-    * *     A branching choice contains all information below it[.] <>
+    * *     A branching choice contains all information below it
             of the same level or higher.
             * * *       [I see.]
     * *     Pretty cool, huh?
@@ -43,6 +43,7 @@ Currently and likely for the foreseeable future the feature set is very limited 
 *   Nesting choices
 *   Simple conditionals for which choices are presented, but only for checking against how many times knots have been visited
 *   Tagging of lines and choices
+*   De/serialization of finished stories through `serde` as an optional feature
 
 Likely candidates for further development:
 
@@ -50,7 +51,6 @@ Likely candidates for further development:
 *   Stitches
 *   Line text variations: sequences, cycles, variables, conditionals
 *   Includes of other files
-*   De/serialization of finished stories through `serde`
 
 Difficult features for which I doubt my skill level to implement:
 
@@ -61,7 +61,7 @@ Difficult features for which I doubt my skill level to implement:
 
 ## Usage
 
-See the [documentation](https://docs.rs/inkling/) or the provided example for a minimum viable story processor. 
+See the [documentation](https://docs.rs/inkling/) or the provided example for a minimum viable story processor. Enable `serde` de/serialization by activating the `serialize` feature.
 
 
 ## Contributions

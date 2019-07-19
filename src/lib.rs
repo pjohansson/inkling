@@ -10,6 +10,7 @@ mod knot;
 mod line;
 mod node;
 mod story;
+mod utils;
 
 pub use error::InklingError;
 pub use story::{
