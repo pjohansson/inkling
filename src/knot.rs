@@ -68,10 +68,19 @@ pub fn read_knot_name(line: &str) -> Result<String, ParseError> {
             .trim_end_matches(STITCH_MARKER)
             .trim();
 
-        if trimmed_name.contains(|c: char| !(c.is_alphanumeric() || c == '_')) {
+        if let Some(c) = trimmed_name
+            .chars()
+            .find(|&c| !(c.is_alphanumeric() || c == '_'))
+        {
+            let kind = if c.is_whitespace() {
+                KnotNameError::ContainsWhitespace
+            } else {
+                KnotNameError::ContainsInvalidCharacter(c)
+            };
+
             Err(KnotError::InvalidName {
                 line: line.to_string(),
-                kind: KnotNameError::ContainsWhitespace,
+                kind,
             }
             .into())
         } else {
@@ -354,6 +363,18 @@ Line 6
     fn knot_name_must_be_single_word() {
         assert!(read_knot_name("== Knot name").is_err());
         assert!(read_knot_name("== Knot name ==").is_err());
+
+        match read_knot_name("== knot name") {
+            Err(ParseError::KnotError(KnotError::InvalidName {
+                kind: KnotNameError::ContainsWhitespace,
+                ..
+            })) => (),
+            Err(err) => panic!(
+                "Expected a `KnotNameError::ContainsWhitespace` error, got {:?}",
+                err
+            ),
+            _ => panic!("Invalid knot name did not raise error"),
+        }
     }
 
     #[test]
@@ -363,13 +384,33 @@ Line 6
         assert!(read_knot_name("== knot_name_with_123").is_ok());
         assert!(read_knot_name("== knot_name_with_абв").is_ok());
         assert!(read_knot_name("== knot_name_with_αβγ").is_ok());
-        assert!(read_knot_name("== knot_name_with_åäö").is_ok());
+        assert!(read_knot_name("== knot_name_with_ñßüåäö").is_ok());
         assert!(read_knot_name("== knot_name_with_京").is_ok());
-         
+
         assert!(read_knot_name("== knot.name").is_err());
         assert!(read_knot_name("== knot-name").is_err());
         assert!(read_knot_name("== knot/name").is_err());
         assert!(read_knot_name("== knot$name").is_err());
+
+        match read_knot_name("== 京knot.name") {
+            Err(ParseError::KnotError(KnotError::InvalidName {
+                kind: KnotNameError::ContainsInvalidCharacter('.'),
+                ..
+            })) => (),
+            Err(ParseError::KnotError(KnotError::InvalidName {
+                kind: KnotNameError::ContainsInvalidCharacter(c),
+                ..
+            })) => panic!(
+                "Expected a `KnotNameError::ContainsInvalidCharacter` error \
+                 with '.' as contained character, but got '{}'",
+                c
+            ),
+            Err(err) => panic!(
+                "Expected a `KnotNameError::ContainsInvalidCharacters` error, got {:?}",
+                err
+            ),
+            _ => panic!("Invalid knot name did not raise error"),
+        }
     }
 
     #[test]

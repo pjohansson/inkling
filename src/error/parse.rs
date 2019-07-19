@@ -7,7 +7,7 @@ use crate::consts::{CHOICE_MARKER, KNOT_MARKER, STICKY_CHOICE_MARKER};
 pub enum ParseError {
     /// Attempted to construct a story from an empty file/string.
     Empty,
-    /// Error from constructing a kot.
+    /// Error from constructing a knot.
     KnotError(KnotError),
     /// Error from parsing a single line.
     LineError(LineError),
@@ -61,7 +61,19 @@ impl fmt::Display for KnotError {
 
                 match kind {
                     ContainsWhitespace => {
-                        write!(f, "name contains whitespace characters")?;
+                        write!(
+                            f,
+                            "name contains whitespace characters: only alphanumeric \
+                             and underline characters are allowed"
+                        )?;
+                    }
+                    ContainsInvalidCharacter(c) => {
+                        write!(
+                            f,
+                            "name contains invalid character '{}': only alphanumeric \
+                             and underline characters are allowed",
+                            c
+                        )?;
                     }
                     CouldNotRead => {
                         write!(f, "line does not start with '{}'", KNOT_MARKER)?;
@@ -76,6 +88,7 @@ impl fmt::Display for KnotError {
 
 #[derive(Debug)]
 pub enum KnotNameError {
+    ContainsInvalidCharacter(char),
     ContainsWhitespace,
     CouldNotRead,
 }

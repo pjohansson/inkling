@@ -1,9 +1,7 @@
 use crate::{
-    consts::{
-        KNOT_MARKER, LINE_COMMENT_MARKER, ROOT_KNOT_NAME, TODO_COMMENT_MARKER,
-    },
+    consts::{KNOT_MARKER, LINE_COMMENT_MARKER, ROOT_KNOT_NAME, TODO_COMMENT_MARKER},
     error::{KnotError, ParseError},
-    knot::{Knot, read_knot_name},
+    knot::{read_knot_name, Knot},
 };
 
 use std::collections::HashMap;
