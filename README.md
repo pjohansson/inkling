@@ -43,7 +43,7 @@ Currently and likely for the foreseeable future the feature set is very limited 
 *   Nesting choices
 *   Simple conditionals for which choices are presented, but only for checking against how many times knots have been visited
 *   Tagging of lines and choices
-*   De/serialization of finished stories through `serde` as an optional feature
+*   Optional: De/serialization of finished stories through `serde`
 
 Likely candidates for further development:
 
@@ -61,7 +61,7 @@ Difficult features for which I doubt my skill level to implement:
 
 ## Usage
 
-See the [documentation](https://docs.rs/inkling/) or the provided example for a minimum viable story processor. Enable `serde` de/serialization by activating the `serialize` feature.
+See the [documentation](https://docs.rs/inkling/) or the provided example for a minimum viable story processor. Enable `serde` de/serialization by activating the `serialize` feature. This feature derives `Deserialize` and `Serialize` for all required structs.
 
 
 ## Contributions

@@ -49,13 +49,15 @@ pub enum KnotError {
 
 impl fmt::Display for KnotError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        use KnotError::Empty as EmptyKnot;
         use KnotError::*;
+        use KnotNameError::Empty as EmptyKnotName;
         use KnotNameError::*;
 
         write!(f, "Could not parse a knot: ")?;
 
         match self {
-            Empty => write!(f, "knot has no name"),
+            EmptyKnot => write!(f, "knot has no name"),
             InvalidName { line, kind } => {
                 write!(f, "could not read knot name: ")?;
 
@@ -75,8 +77,11 @@ impl fmt::Display for KnotError {
                             c
                         )?;
                     }
-                    CouldNotRead => {
-                        write!(f, "line does not start with '{}'", KNOT_MARKER)?;
+                    EmptyKnotName => {
+                        write!(f, "knot marker without a knot name was found")?;
+                    }
+                    NoNamePresent => {
+                        write!(f, "knot or stitch has no name where one is expected")?;
                     }
                 }
 
@@ -90,7 +95,8 @@ impl fmt::Display for KnotError {
 pub enum KnotNameError {
     ContainsInvalidCharacter(char),
     ContainsWhitespace,
-    CouldNotRead,
+    Empty,
+    NoNamePresent,
 }
 
 #[derive(Debug)]
