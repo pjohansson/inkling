@@ -131,3 +131,152 @@ You head back.
     assert_eq!(&choices[0].text, "Use your torch to light the way forward.");
     assert_eq!(&choices[1].text, "Head back.");
 }
+
+#[test]
+fn choices_can_be_filtered_by_referencing_stitches_with_internal_shorthand() {
+    let content = "
+
+== exploring_the_tunnel
+
+= passage
+
+A crossing! Which path do you take?
+
++   Left -> torch
++   Right -> dark_room
+    
+= dark_room ==
+You enter a dark room.
+
++   {torch} Use your torch to light the way forward. 
++   Head back.
+-> passage
+
+= torch ==
+In a small chamber further in you find a torch. 
+You head back.
+-> passage
+
+";
+
+    let mut story = read_story_from_string(content).unwrap();
+    let mut line_buffer = Vec::new();
+
+    let choices = story
+        .start(&mut line_buffer)
+        .unwrap()
+        .get_choices()
+        .unwrap();
+
+    assert_eq!(&choices[0].text, "Left");
+    assert_eq!(&choices[1].text, "Right");
+
+    let choices = story
+        .resume_with_choice(&choices[1], &mut line_buffer)
+        .unwrap()
+        .get_choices()
+        .unwrap();
+
+    assert_eq!(&choices[0].text, "Head back.");
+
+    let choices = story
+        .resume_with_choice(&choices[0], &mut line_buffer)
+        .unwrap()
+        .get_choices()
+        .unwrap();
+
+    assert_eq!(&choices[0].text, "Left");
+    assert_eq!(&choices[1].text, "Right");
+
+    let choices = story
+        .resume_with_choice(&choices[0], &mut line_buffer)
+        .unwrap()
+        .get_choices()
+        .unwrap();
+
+    assert_eq!(&choices[0].text, "Left");
+    assert_eq!(&choices[1].text, "Right");
+
+    let choices = story
+        .resume_with_choice(&choices[1], &mut line_buffer)
+        .unwrap()
+        .get_choices()
+        .unwrap();
+
+    assert_eq!(&choices[0].text, "Use your torch to light the way forward.");
+    assert_eq!(&choices[1].text, "Head back.");
+}
+
+#[test]
+fn choices_can_be_filtered_by_referencing_stitches_outside_the_current_knot() {
+    let content = "
+
+== passage
+
+A crossing! Which path do you take?
+
++   Left -> left_tunnel
++   Right -> dark_room
+    
+== dark_room ==
+You enter a dark room.
+
++   {left_tunnel.torch} Use your torch to light the way forward. 
++   Head back.
+-> passage
+
+== left_tunnel ==
+= torch
+In a small chamber further in you find a torch. 
+You head back.
+-> passage
+
+";
+
+    let mut story = read_story_from_string(content).unwrap();
+    let mut line_buffer = Vec::new();
+
+    let choices = story
+        .start(&mut line_buffer)
+        .unwrap()
+        .get_choices()
+        .unwrap();
+
+    assert_eq!(&choices[0].text, "Left");
+    assert_eq!(&choices[1].text, "Right");
+
+    let choices = story
+        .resume_with_choice(&choices[1], &mut line_buffer)
+        .unwrap()
+        .get_choices()
+        .unwrap();
+
+    assert_eq!(&choices[0].text, "Head back.");
+
+    let choices = story
+        .resume_with_choice(&choices[0], &mut line_buffer)
+        .unwrap()
+        .get_choices()
+        .unwrap();
+
+    assert_eq!(&choices[0].text, "Left");
+    assert_eq!(&choices[1].text, "Right");
+
+    let choices = story
+        .resume_with_choice(&choices[0], &mut line_buffer)
+        .unwrap()
+        .get_choices()
+        .unwrap();
+
+    assert_eq!(&choices[0].text, "Left");
+    assert_eq!(&choices[1].text, "Right");
+
+    let choices = story
+        .resume_with_choice(&choices[1], &mut line_buffer)
+        .unwrap()
+        .get_choices()
+        .unwrap();
+
+    assert_eq!(&choices[0].text, "Use your torch to light the way forward.");
+    assert_eq!(&choices[1].text, "Head back.");
+}

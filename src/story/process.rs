@@ -3,13 +3,13 @@
 use crate::{
     error::InklingError,
     follow::LineDataBuffer,
-    knot::Knot,
     line::{ChoiceData, Condition, LineData},
 };
 
-use std::collections::HashMap;
-
-use super::story::{get_stitch, Choice, Line, LineBuffer};
+use super::{
+    address::Address,
+    story::{get_stitch, Choice, Knots, Line, LineBuffer},
+};
 
 /// Process full `LineData` lines to their final state: remove empty lines, add newlines
 /// unless glue is present.
@@ -34,9 +34,11 @@ pub fn process_buffer(into_buffer: &mut LineBuffer, from_buffer: LineDataBuffer)
 /// based on a set condition (currently: visited or not, unless sticky).
 pub fn prepare_choices_for_user(
     choices: &[ChoiceData],
-    knots: &HashMap<String, Knot>,
+    current_address: &Address,
+    knots: &Knots,
 ) -> Result<Vec<Choice>, InklingError> {
-    let choices_with_filter_values = zip_choices_with_filter_values(choices, knots)?;
+    let choices_with_filter_values =
+        zip_choices_with_filter_values(choices, current_address, knots)?;
 
     let filtered_choices = choices_with_filter_values
         .into_iter()
@@ -48,9 +50,10 @@ pub fn prepare_choices_for_user(
 
 fn zip_choices_with_filter_values(
     choices: &[ChoiceData],
-    knots: &HashMap<String, Knot>,
+    current_address: &Address,
+    knots: &Knots,
 ) -> Result<Vec<(bool, Choice)>, InklingError> {
-    let checked_choices = check_choices_for_conditions(choices, knots)?;
+    let checked_choices = check_choices_for_conditions(choices, current_address, knots)?;
 
     let filtered_choices = choices
         .iter()
@@ -69,7 +72,8 @@ fn zip_choices_with_filter_values(
 
 fn check_choices_for_conditions(
     choices: &[ChoiceData],
-    knots: &HashMap<String, Knot>,
+    current_address: &Address,
+    knots: &Knots,
 ) -> Result<Vec<bool>, InklingError> {
     let mut checked_conditions = Vec::new();
 
@@ -77,7 +81,7 @@ fn check_choices_for_conditions(
         let mut keep = true;
 
         for condition in choice.conditions.iter() {
-            keep = check_condition(condition, knots)?;
+            keep = check_condition(condition, current_address, knots)?;
 
             if !keep {
                 break;
@@ -122,7 +126,8 @@ fn add_line_ending(line: &mut LineData, next_line: Option<&LineData>) {
 
 fn check_condition(
     condition: &Condition,
-    knots: &HashMap<String, Knot>,
+    current_address: &Address,
+    knots: &Knots,
 ) -> Result<bool, InklingError> {
     match condition {
         Condition::NumVisits {
@@ -131,7 +136,8 @@ fn check_condition(
             ordering,
             not,
         } => {
-            let num_visits = get_stitch(name, knots)?.num_visited as i32;
+            let address = Address::from_target_address(name, current_address, knots)?;
+            let num_visits = get_stitch(&address, knots)?.num_visited as i32;
 
             let value = num_visits.cmp(rhs_value) == *ordering;
 
@@ -153,7 +159,8 @@ fn check_condition(
 pub fn fill_in_invalid_error(
     error_stub: InklingError,
     made_choice: &Choice,
-    knots: &HashMap<String, Knot>,
+    current_address: &Address,
+    knots: &Knots,
 ) -> InklingError {
     match error_stub {
         InklingError::InvalidChoice {
@@ -162,7 +169,8 @@ pub fn fill_in_invalid_error(
             ..
         } => {
             let presented_choices =
-                zip_choices_with_filter_values(&internal_choices, knots).unwrap_or(Vec::new());
+                zip_choices_with_filter_values(&internal_choices, current_address, knots)
+                    .unwrap_or(Vec::new());
 
             InklingError::InvalidChoice {
                 index,
@@ -181,11 +189,11 @@ mod tests {
 
     use crate::{
         consts::ROOT_KNOT_NAME,
-        knot::Stitch,
+        knot::{Knot, Stitch},
         line::{choice::tests::ChoiceBuilder, line::tests::LineBuilder},
     };
 
-    use std::{cmp::Ordering, str::FromStr};
+    use std::{cmp::Ordering, collections::HashMap, str::FromStr};
 
     #[test]
     fn check_some_conditions_against_number_of_visits_in_a_hash_map() {
@@ -206,6 +214,8 @@ mod tests {
             },
         );
 
+        let current_address = Address::from_root_knot("knot_name", &knots).unwrap();
+
         let greater_than_condition = Condition::NumVisits {
             name: name.clone(),
             rhs_value: 2,
@@ -213,7 +223,7 @@ mod tests {
             not: false,
         };
 
-        assert!(check_condition(&greater_than_condition, &knots).unwrap());
+        assert!(check_condition(&greater_than_condition, &current_address, &knots).unwrap());
 
         let less_than_condition = Condition::NumVisits {
             name: name.clone(),
@@ -222,7 +232,7 @@ mod tests {
             not: false,
         };
 
-        assert!(!check_condition(&less_than_condition, &knots).unwrap());
+        assert!(!check_condition(&less_than_condition, &current_address, &knots).unwrap());
 
         let equal_condition = Condition::NumVisits {
             name: name.clone(),
@@ -231,7 +241,7 @@ mod tests {
             not: false,
         };
 
-        assert!(check_condition(&equal_condition, &knots).unwrap());
+        assert!(check_condition(&equal_condition, &current_address, &knots).unwrap());
 
         let not_equal_condition = Condition::NumVisits {
             name: name.clone(),
@@ -240,7 +250,7 @@ mod tests {
             not: true,
         };
 
-        assert!(!check_condition(&not_equal_condition, &knots).unwrap());
+        assert!(!check_condition(&not_equal_condition, &current_address, &knots).unwrap());
     }
 
     #[test]
@@ -254,7 +264,12 @@ mod tests {
             not: false,
         };
 
-        assert!(check_condition(&gt_condition, &knots).is_err());
+        let current_address = Address {
+            knot: "".to_string(),
+            stitch: "".to_string(),
+        };
+
+        assert!(check_condition(&gt_condition, &current_address, &knots).is_err());
     }
 
     #[test]
@@ -392,8 +407,13 @@ mod tests {
         ];
 
         let empty_hash_map = HashMap::new();
+        let empty_address = Address {
+            knot: "".to_string(),
+            stitch: "".to_string(),
+        };
 
-        let displayed_choices = prepare_choices_for_user(&choices, &empty_hash_map).unwrap();
+        let displayed_choices =
+            prepare_choices_for_user(&choices, &empty_address, &empty_hash_map).unwrap();
 
         assert_eq!(displayed_choices.len(), 2);
         assert_eq!(displayed_choices[0].text, displayed1.text);
@@ -410,8 +430,13 @@ mod tests {
         let choices = vec![ChoiceBuilder::empty().with_displayed(line).build()];
 
         let empty_hash_map = HashMap::new();
+        let empty_address = Address {
+            knot: "".to_string(),
+            stitch: "".to_string(),
+        };
 
-        let displayed_choices = prepare_choices_for_user(&choices, &empty_hash_map).unwrap();
+        let displayed_choices =
+            prepare_choices_for_user(&choices, &empty_address, &empty_hash_map).unwrap();
 
         assert_eq!(displayed_choices[0].tags, tags);
     }
@@ -434,6 +459,8 @@ mod tests {
                 stitches,
             },
         );
+
+        let current_address = Address::from_root_knot("knot_name", &knots).unwrap();
 
         let fulfilled_condition = Condition::NumVisits {
             name: name.clone(),
@@ -467,7 +494,8 @@ mod tests {
                 .build(),
         ];
 
-        let displayed_choices = prepare_choices_for_user(&choices, &knots).unwrap();
+        let displayed_choices =
+            prepare_choices_for_user(&choices, &current_address, &knots).unwrap();
 
         assert_eq!(displayed_choices.len(), 1);
         assert_eq!(&displayed_choices[0].text, "Kept");
@@ -492,8 +520,13 @@ mod tests {
         ];
 
         let empty_hash_map = HashMap::new();
+        let empty_address = Address {
+            knot: "".to_string(),
+            stitch: "".to_string(),
+        };
 
-        let displayed_choices = prepare_choices_for_user(&choices, &empty_hash_map).unwrap();
+        let displayed_choices =
+            prepare_choices_for_user(&choices, &empty_address, &empty_hash_map).unwrap();
 
         assert_eq!(displayed_choices.len(), 2);
         assert_eq!(&displayed_choices[0].text, "Kept");
@@ -521,8 +554,13 @@ mod tests {
         ];
 
         let empty_hash_map = HashMap::new();
+        let empty_address = Address {
+            knot: "".to_string(),
+            stitch: "".to_string(),
+        };
 
-        let displayed_choices = prepare_choices_for_user(&choices, &empty_hash_map).unwrap();
+        let displayed_choices =
+            prepare_choices_for_user(&choices, &empty_address, &empty_hash_map).unwrap();
 
         assert_eq!(displayed_choices.len(), 2);
         assert_eq!(&displayed_choices[0].text, "Kept");
@@ -558,8 +596,13 @@ mod tests {
         };
 
         let knots = HashMap::new();
+        let empty_address = Address {
+            knot: "".to_string(),
+            stitch: "".to_string(),
+        };
 
-        let filled_error = fill_in_invalid_error(error.clone(), &made_choice, &knots);
+        let filled_error =
+            fill_in_invalid_error(error.clone(), &made_choice, &empty_address, &knots);
 
         match (filled_error, error) {
             (

@@ -3,7 +3,7 @@
 use crate::{
     line::ChoiceData,
     node::{NodeItem, NodeType, Stack},
-    story::Choice,
+    story::{Address, Choice},
 };
 
 use std::{error::Error, fmt};
@@ -23,6 +23,8 @@ pub enum InklingError {
         kind: IncorrectStackKind,
         stack: Stack,
     },
+    /// An invalid address was encountered when following the story.
+    InvalidAddress,
     /// A choice was made with an internal index that does not match one existing in the set.
     /// Means that the choice set presented to the user was not created to represent the set
     /// of encountered choices, or that somehow a faulty choice was returned to continue
@@ -65,6 +67,7 @@ impl fmt::Display for InklingError {
                  (node level: {}, index: {})",
                 expected, found, node_level, index
             ),
+            InvalidAddress => unimplemented!(),
             InvalidChoice {
                 index,
                 choice,
