@@ -44,8 +44,8 @@ pub enum InklingError {
     ResumeBeforeStart,
     /// Tried to `start` a story that is already in progress.
     StartOnStoryInProgress,
-    /// The story tried to move to a knot that doesn't exist.
-    UnknownKnot { knot_name: String },
+    /// The story tried to move to a knot or stitch that doesn't exist.
+    UnknownDivert { knot_name: String },
 }
 
 impl fmt::Display for InklingError {
@@ -110,7 +110,7 @@ impl fmt::Display for InklingError {
             StartOnStoryInProgress => {
                 write!(f, "Called `start` on a story that is already in progress")
             }
-            UnknownKnot { knot_name } => write!(
+            UnknownDivert { knot_name } => write!(
                 f,
                 "Tried to follow a knot with name {} but no such knot exists",
                 knot_name

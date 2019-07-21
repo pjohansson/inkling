@@ -9,7 +9,7 @@ use crate::{
 
 use std::collections::HashMap;
 
-use super::story::{Choice, Line, LineBuffer};
+use super::story::{get_stitch, Choice, Line, LineBuffer};
 
 /// Process full `LineData` lines to their final state: remove empty lines, add newlines
 /// unless glue is present.
@@ -131,12 +131,7 @@ fn check_condition(
             ordering,
             not,
         } => {
-            let num_visits = knots
-                .get(name)
-                .ok_or(InklingError::UnknownKnot {
-                    knot_name: name.to_string(),
-                })?
-                .num_visited as i32;
+            let num_visits = get_stitch(name, knots)?.num_visited as i32;
 
             let value = num_visits.cmp(rhs_value) == *ordering;
 
@@ -184,19 +179,32 @@ pub fn fill_in_invalid_error(
 mod tests {
     use super::*;
 
-    use crate::line::{choice::tests::ChoiceBuilder, line::tests::LineBuilder};
+    use crate::{
+        consts::ROOT_KNOT_NAME,
+        knot::Stitch,
+        line::{choice::tests::ChoiceBuilder, line::tests::LineBuilder},
+    };
 
     use std::{cmp::Ordering, str::FromStr};
 
     #[test]
     fn check_some_conditions_against_number_of_visits_in_a_hash_map() {
-        let mut knot = Knot::from_str("").unwrap();
-        knot.num_visited = 3;
-
         let name = "knot_name".to_string();
 
+        let mut stitch = Stitch::from_str("").unwrap();
+        stitch.num_visited = 3;
+
+        let mut stitches = HashMap::new();
+        stitches.insert(ROOT_KNOT_NAME.to_string(), stitch);
+
         let mut knots = HashMap::new();
-        knots.insert(name.clone(), knot);
+        knots.insert(
+            name.clone(),
+            Knot {
+                default_stitch: ROOT_KNOT_NAME.to_string(),
+                stitches,
+            },
+        );
 
         let greater_than_condition = Condition::NumVisits {
             name: name.clone(),
@@ -412,11 +420,20 @@ mod tests {
     fn processing_choices_checks_conditions() {
         let name = "knot_name".to_string();
 
-        let mut knot = Knot::from_str("").unwrap();
-        knot.num_visited = 1;
+        let mut stitch = Stitch::from_str("").unwrap();
+        stitch.num_visited = 1;
+
+        let mut stitches = HashMap::new();
+        stitches.insert(ROOT_KNOT_NAME.to_string(), stitch);
 
         let mut knots = HashMap::new();
-        knots.insert(name.clone(), knot);
+        knots.insert(
+            name.clone(),
+            Knot {
+                default_stitch: ROOT_KNOT_NAME.to_string(),
+                stitches,
+            },
+        );
 
         let fulfilled_condition = Condition::NumVisits {
             name: name.clone(),

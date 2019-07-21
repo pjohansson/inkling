@@ -1,9 +1,9 @@
 use crate::{
     consts::{
-        DIVERT_MARKER, KNOT_MARKER, LINE_COMMENT_MARKER, ROOT_KNOT_NAME, STITCH_MARKER, TODO_COMMENT_MARKER,
+        KNOT_MARKER, LINE_COMMENT_MARKER, ROOT_KNOT_NAME, STITCH_MARKER, TODO_COMMENT_MARKER,
     },
     error::{KnotError, KnotNameError, ParseError},
-    knot::{read_knot_name, read_stitch_name, Knot},
+    knot::{read_knot_name, read_stitch_name, Knot, Stitch},
 };
 
 use std::collections::HashMap;
@@ -19,72 +19,69 @@ pub fn read_knots_from_string(
         return Err(ParseError::Empty);
     }
 
-    let results = knot_line_sets
+    let knots = knot_line_sets
         .into_iter()
         .enumerate()
         .map(|(knot_index, lines)| get_knot_from_lines(lines, knot_index))
-        .collect::<Result<Vec<_>, _>>()?
-        .into_iter()
-        .flatten()
-        .collect::<Vec<_>>();
+        .collect::<Result<Vec<_>, _>>()?;
 
-    let root = results[0].0.clone();
+    let (root_knot_name, _) = knots.first().ok_or(ParseError::Empty)?;
 
-    let mut knots = HashMap::new();
+    Ok((root_knot_name.to_string(), create_hash_map(knots)))
+}
 
-    for (name, knot) in results {
-        knots.insert(name, knot);
+fn create_hash_map<T>(key_item_pairs: Vec<(String, T)>) -> HashMap<String, T> {
+    let mut result = HashMap::new();
+
+    for (key, item) in key_item_pairs {
+        result.insert(key, item);
     }
 
-    Ok((root, knots))
+    result
 }
 
 fn get_knot_from_lines(
     mut lines: Vec<&str>,
     knot_index: usize,
-) -> Result<Vec<(String, Knot)>, KnotError> {
+) -> Result<(String, Knot), KnotError> {
     let knot_name = get_knot_name(&mut lines, knot_index)?;
     let knot_stitch_sets = divide_lines_at_marker(lines, STITCH_MARKER);
 
-    knot_stitch_sets
+    let (default_stitch, stitches) = knot_stitch_sets
         .into_iter()
         .enumerate()
-        .map(|(stitch_index, lines)| {
-            get_stitch_from_lines(lines).map(|(stitch_name, content)| {
-                let identifier = get_stitch_identifier(stitch_name, stitch_index, &knot_name);
-
-                (identifier, content)
-            })
-        })
+        .map(|(stitch_index, lines)| get_stitch_from_lines(lines, stitch_index))
         .collect::<Result<Vec<_>, _>>()
-        .and_then(|stitches| set_root_stitch_if_not_present(stitches, &knot_name))
+        .and_then(get_default_stitch_and_hash_map_tuple)?;
+
+    Ok((
+        knot_name,
+        Knot {
+            default_stitch,
+            stitches,
+        },
+    ))
 }
 
-fn set_root_stitch_if_not_present(
-    mut stitches: Vec<(String, Knot)>,
-    knot_name: &str,
-) -> Result<Vec<(String, Knot)>, KnotError> {
-    match stitches.first() {
-        Some((root_name, _)) if root_name != knot_name => {
-            let divert_line = format!("{} {}", DIVERT_MARKER, root_name);
+fn get_default_stitch_and_hash_map_tuple(
+    stitches: Vec<(String, Stitch)>,
+) -> Result<(String, HashMap<String, Stitch>), KnotError> {
+    let (default_name, _) = stitches.first().ok_or(KnotError::Empty)?;
 
-            let new_root_knot = Knot::from_lines(&[&divert_line]).unwrap();
-
-            let mut extended_stitches = vec![(knot_name.to_string(), new_root_knot)];
-            extended_stitches.append(&mut stitches);
-
-            Ok(extended_stitches)
-        }
-        _ => Ok(stitches)
-    }
+    Ok((default_name.clone(), create_hash_map(stitches)))
 }
 
-/// Read a `Knot` that represents the current stitch from the given lines. If a stitch name
+/// Read a `Stitch` that represents the current stitch from the given lines. If a stitch name
 /// is found, return it too. This should be found for all stitches except possibly the
 /// first in a set, since we split the knot line content where the names are found.
-fn get_stitch_from_lines(mut lines: Vec<&str>) -> Result<(Option<String>, Knot), KnotError> {
-    let stitch_name = get_stitch_name(&mut lines)?;
-    let content = Knot::from_lines(&lines).unwrap();
+fn get_stitch_from_lines(
+    mut lines: Vec<&str>,
+    stitch_index: usize,
+) -> Result<(String, Stitch), KnotError> {
+    let stitch_name =
+        get_stitch_name(&mut lines).map(|name| get_stitch_identifier(name, stitch_index))?;
+
+    let content = Stitch::from_lines(&lines).unwrap();
 
     Ok((stitch_name, content))
 }
@@ -132,10 +129,10 @@ fn get_stitch_name(lines: &mut Vec<&str>) -> Result<Option<String>, KnotError> {
 /// Get the final identifier for the content. Stitches are name spaced under their parent knot.
 /// If the given stitch has no read name but is the first content in the knot, it is the knot
 /// itself. Otherwise the name is fused to the knot name with a '.'.
-fn get_stitch_identifier(name: Option<String>, stitch_index: usize, knot_name: &str) -> String {
+fn get_stitch_identifier(name: Option<String>, stitch_index: usize) -> String {
     match (stitch_index, name) {
-        (0, None) => knot_name.to_string(),
-        (_, Some(name)) => format!("{}.{}", knot_name, name),
+        (0, None) => ROOT_KNOT_NAME.to_string(),
+        (_, Some(name)) => format!("{}", name),
         _ => unreachable!(
             "No stitch name was present after dividing the set of lines into groups where \
              the first line of each group is the stitch name: this is a contradiction which \
@@ -183,11 +180,6 @@ fn remove_empty_and_comment_lines(content: Vec<&str>) -> Vec<&str> {
 pub mod tests {
     use super::*;
 
-    use crate::{
-        line::LineKind,
-        node::NodeItem,
-    };
-
     #[test]
     fn read_knots_from_string_works_for_single_nameless_knot() {
         let content = "\
@@ -199,6 +191,7 @@ Second line.
 
         assert_eq!(head, ROOT_KNOT_NAME);
         assert_eq!(knots.len(), 1);
+        assert!(knots.contains_key(&head));
     }
 
     #[test]
@@ -213,9 +206,7 @@ Second line.
 
         assert_eq!(head, "head");
         assert_eq!(knots.len(), 1);
-
-        let knot = knots.get(&head).unwrap();
-        assert_eq!(knot.root.items.len(), 2);
+        assert!(knots.contains_key(&head));
     }
 
     #[test]
@@ -282,54 +273,73 @@ Second line.
     }
 
     #[test]
-    fn parsing_knot_from_line_list_gets_name_and_knot() {
+    fn parsing_knot_from_lines_gets_name() {
         let content = vec!["== Knot_name ==", "Line 1", "Line 2"];
 
-        let knot_content = get_knot_from_lines(content, 0).unwrap();
-        let (name, knot) = &knot_content[0];
-        assert_eq!(name, "Knot_name");
-        assert_eq!(knot.root.items.len(), 2);
+        let (name, _) = get_knot_from_lines(content, 0).unwrap();
+        assert_eq!(&name, "Knot_name");
     }
 
     #[test]
-    fn parsing_a_stitch_gets_name_if_present_else_none() {
-        let (name, _) = get_stitch_from_lines(vec!["= stitch_name =", "Line 1"]).unwrap();
-        assert_eq!(name, Some("stitch_name".to_string()));
+    fn parsing_knot_from_lines_without_stitches_sets_content_in_default_named_stitch() {
+        let content = vec!["== Knot_name ==", "Line 1", "Line 2"];
 
-        let (name, _) = get_stitch_from_lines(vec!["Line 1"]).unwrap();
-        assert_eq!(name, None);
+        let (_, knot) = get_knot_from_lines(content, 0).unwrap();
+
+        assert_eq!(&knot.default_stitch, ROOT_KNOT_NAME);
+        assert_eq!(
+            knot.stitches.get(ROOT_KNOT_NAME).unwrap().root.items.len(),
+            2
+        );
+    }
+
+    #[test]
+    fn parsing_a_stitch_gets_name_if_present_else_default_root_name_if_index_is_zero() {
+        let (name, _) = get_stitch_from_lines(vec!["= stitch_name =", "Line 1"], 0).unwrap();
+        assert_eq!(name, "stitch_name".to_string());
+
+        let (name, _) = get_stitch_from_lines(vec!["Line 1"], 0).unwrap();
+        assert_eq!(name, ROOT_KNOT_NAME);
     }
 
     #[test]
     fn parsing_a_stitch_gets_all_content_regardless_of_whether_name_is_present() {
-        let (_, content) = get_stitch_from_lines(vec!["= stitch_name =", "Line 1"]).unwrap();
+        let (_, content) = get_stitch_from_lines(vec!["= stitch_name =", "Line 1"], 0).unwrap();
         assert_eq!(content.root.items.len(), 1);
 
-        let (_, content) = get_stitch_from_lines(vec!["Line 1"]).unwrap();
+        let (_, content) = get_stitch_from_lines(vec!["Line 1"], 0).unwrap();
         assert_eq!(content.root.items.len(), 1);
     }
 
     #[test]
-    fn knot_with_no_root_content_gets_root_with_divert_to_first_stitch() {
-        let lines = vec!["== knot_name", "= stitch_one", "Line 1"];
+    fn parsing_a_knot_from_lines_sets_stitches_in_hash_map() {
+        let lines = vec!["== knot_name", "= stitch_one", "= stitch_two"];
+        let (_, knot) = get_knot_from_lines(lines, 0).unwrap();
 
-        let stitches = get_knot_from_lines(lines, 0).unwrap();
+        assert_eq!(knot.stitches.len(), 2);
+        assert!(knot.stitches.get("stitch_one").is_some());
+        assert!(knot.stitches.get("stitch_two").is_some());
+    }
 
-        assert_eq!(stitches.len(), 2);
+    #[test]
+    fn knot_with_root_content_gets_default_knot_as_first_stitch() {
+        let lines = vec![
+            "== knot_name",
+            "Line 1",
+            "= stitch_one",
+            "Line 2",
+            "= stitch_two",
+        ];
 
-        let (root_name, root_knot) = &stitches[0];
-        assert_eq!(root_name, "knot_name");
+        let (_, knot) = get_knot_from_lines(lines, 0).unwrap();
+        assert_eq!(&knot.default_stitch, ROOT_KNOT_NAME);
+    }
 
-        let root_node = &root_knot.root;
+    #[test]
+    fn knot_with_no_root_content_gets_default_knot_as_first_stitch() {
+        let lines = vec!["== knot_name", "= stitch_one", "Line 1", "= stitch_two"];
 
-        match &root_node.items[0] {
-            NodeItem::Line(line) => {
-                assert_eq!(line.kind, LineKind::Divert("knot_name.stitch_one".to_string()));
-            }
-            _ => panic!(),
-        }
-
-        let (next_name, _) = &stitches[1];
-        assert_eq!(next_name, "knot_name.stitch_one");
+        let (_, knot) = get_knot_from_lines(lines, 0).unwrap();
+        assert_eq!(&knot.default_stitch, "stitch_one");
     }
 }

@@ -114,6 +114,81 @@ He identifies himself as being from Europol and passes the barrier.
 }
 
 #[test]
+fn story_can_be_structured_using_stitches() {
+    let content = "
+
+== introduction
+
+Mont Blanc was a world-renowned mountain guide.
+He befriended thousands of climbers and children sightseeing in Switzerland.
+-> dream.wake
+
+== dream
+= interior
+GESICHT'S BEDROOM, MORNING
+
+= wake
+Gesicht is lying in his bed, eyes wide open and staring at the ceiling. 
+He just woke from a nightmare.
+
+";
+
+    let mut story = read_story_from_string(content).unwrap();
+    let mut line_buffer = Vec::new();
+
+    match story.start(&mut line_buffer) {
+        Ok(Prompt::Done) => {
+            eprintln!("{:?}", line_buffer);
+            assert_eq!(line_buffer.len(), 4);
+            assert_eq!(&line_buffer[3].text, "He just woke from a nightmare.\n");
+        }
+        _ => panic!("error while reading a flat story from string"),
+    }
+}
+
+#[test]
+fn stitches_can_be_diverted_to_inside_a_knot_without_the_full_address() {
+    let content = "
+
+== introduction
+
+Mont Blanc was a world-renowned mountain guide.
+He befriended thousands of climbers and children sightseeing in Switzerland.
+-> dream.wake
+
+== dream
+= interior
+GESICHT'S BEDROOM, MORNING
+
+= breakfast
+Before he's had the time to eat breakfast a call about a murder comes in.
+As Helena probes him about leaving he suggests that they take a vacation.
+
+= wake
+Gesicht is lying in his bed, eyes wide open and staring at the ceiling. 
+He just woke from a nightmare.
+-> breakfast
+
+
+";
+
+    let mut story = read_story_from_string(content).unwrap();
+    let mut line_buffer = Vec::new();
+
+    match story.start(&mut line_buffer) {
+        Ok(Prompt::Done) => {
+            assert_eq!(line_buffer.len(), 6);
+            assert_eq!(
+                &line_buffer[5].text,
+                "As Helena probes him about leaving he suggests that they take a vacation.\n"
+            );
+        }
+        Ok(_) => panic!("unexpected choice was encountered"),
+        Err(err) => panic!("error while reading a flat story from string: {:?}", err),
+    }
+}
+
+#[test]
 fn story_follows_choices_by_the_user() {
     let content = "
 

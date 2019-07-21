@@ -3,6 +3,7 @@ use crate::{
     error::{InklingError, ParseError},
     follow::{FollowResult, LineDataBuffer, Next},
     knot::Knot,
+    knot::Stitch,
 };
 
 #[cfg(feature = "serde_support")]
@@ -259,20 +260,12 @@ impl Story {
     /// in the call stack.
     fn follow_on_knot_wrapper<F>(&mut self, f: F, buffer: &mut LineDataBuffer) -> FollowResult
     where
-        F: FnOnce(&mut Knot, &mut LineDataBuffer) -> FollowResult,
+        F: FnOnce(&mut Stitch, &mut LineDataBuffer) -> FollowResult,
     {
         let knot_name = self.stack.last().unwrap();
 
-        let result = self
-            .knots
-            .get_mut(knot_name)
-            .ok_or(
-                InklingError::UnknownKnot {
-                    knot_name: knot_name.clone(),
-                }
-                .into(),
-            )
-            .and_then(|knot| f(knot, buffer))?;
+        let result =
+            get_mut_stitch(knot_name, &mut self.knots).and_then(|stitch| f(stitch, buffer))?;
 
         match result {
             Next::Divert(destination) => self.divert_to_knot(&destination, buffer),
@@ -280,26 +273,32 @@ impl Story {
         }
     }
 
-    fn divert_to_knot(&mut self, destination: &str, buffer: &mut LineDataBuffer) -> FollowResult {
-        if destination == DONE_KNOT || destination == END_KNOT {
+    /// Update the current stack to a given address and increment the destination's visit counter. 
+    /// 
+    /// The address may be internal to the current knot, in which case the full address is set. 
+    /// For example, if the current knot is called `santiago` and the story wants to divert 
+    /// to a stitch with name `cinema` within this knot, the given address `cinema` will set 
+    /// the full address as `santiago.cinema` in the stack.
+    fn divert_to_knot(&mut self, to_address: &str, buffer: &mut LineDataBuffer) -> FollowResult {
+        if to_address == DONE_KNOT || to_address == END_KNOT {
             Ok(Next::Done)
         } else {
-            self.increment_knot_visit_counter(destination)?;
+            let current_knot = self.stack.last().ok_or(InklingError::NoKnotStack)?;
+            let address = get_full_address_of_target(to_address, current_knot, &self.knots)?;
 
-            self.stack
-                .last_mut()
-                .map(|knot_name| *knot_name = destination.to_string());
+            self.increment_knot_visit_counter(&address)?;
+
+            self.stack.last_mut().map(|knot_name| *knot_name = address);
+
             self.follow_knot(buffer)
         }
     }
 
+    /// Increment the number of visits counter for the given address. The address must be full.
     fn increment_knot_visit_counter(&mut self, knot_name: &str) -> Result<(), InklingError> {
-        self.knots
-            .get_mut(knot_name)
-            .map(|knot| knot.num_visited += 1)
-            .ok_or(InklingError::UnknownKnot {
-                knot_name: knot_name.to_string(),
-            })
+        get_mut_stitch(knot_name, &mut self.knots)?.num_visited += 1;
+
+        Ok(())
     }
 }
 
@@ -325,39 +324,132 @@ pub fn read_story_from_string(string: &str) -> Result<Story, ParseError> {
     })
 }
 
+/// Return a reference to the `Stitch` at the target address. 
+/// 
+/// Addresses are formatted like `[knot].[stitch]`. If only the `[knot]` part is supplied,
+/// the default stitch of that `Knot` is returned.
+/// 
+/// # Note
+/// Addresses must be full, not internal within knots. That is, if the story is currently 
+/// inside a knot with name `hamburg` and wants to move to a stitch within that knot with 
+/// name `date`, the address must be `hamburg.date`, not `date`.
+/// 
+/// Use `get_full_address_of_target` to get the full address for a stitch within the current
+/// knot.
+pub fn get_stitch<'a>(
+    target: &str,
+    knots: &'a HashMap<String, Knot>,
+) -> Result<&'a Stitch, InklingError> {
+    let (knot_name, stitch_target) = get_divert_address(target);
+
+    knots
+        .get(knot_name)
+        .and_then(|knot| {
+            let stitch_name = stitch_target.unwrap_or(&knot.default_stitch);
+
+            knot.stitches.get(stitch_name)
+        })
+        .ok_or(InklingError::UnknownDivert {
+            knot_name: target.to_string(),
+        })
+}
+
+/// Return a mutable reference to the `Stitch` at the target address. 
+/// 
+/// Addresses are formatted like `[knot].[stitch]`. If only the `[knot]` part is supplied,
+/// the default stitch of that `Knot` is returned.
+/// 
+/// # Note
+/// Addresses must be full, not internal within knots. That is, if the story is currently 
+/// inside a knot with name `hamburg` and wants to move to a stitch within that knot with 
+/// name `date`, the address must be `hamburg.date`, not `date`.
+/// 
+/// Use `get_full_address_of_target` to get the full address for a stitch within the current
+/// knot.
+pub fn get_mut_stitch<'a>(
+    target: &str,
+    knots: &'a mut HashMap<String, Knot>,
+) -> Result<&'a mut Stitch, InklingError> {
+    let (knot_name, stitch_target) = get_divert_address(target);
+
+    knots
+        .get_mut(knot_name)
+        .and_then(|knot| {
+            let stitch_name = stitch_target.unwrap_or(&knot.default_stitch);
+
+            knot.stitches.get_mut(stitch_name)
+        })
+        .ok_or(InklingError::UnknownDivert {
+            knot_name: target.to_string(),
+        })
+}
+
+/// Split an address on form `[knot].[stitch]` into a tuple. If only the `[knot]` part 
+/// is given, return the `[stitch]` part as None.
+fn get_divert_address(target: &str) -> (&str, Option<&str>) {
+    let items = target.splitn(2, '.').collect::<Vec<_>>();
+
+    if items.len() == 2 {
+        (items[0], Some(items[1]))
+    } else {
+        (items[0], None)
+    }
+}
+
+/// Get the full address of a stitch. The given address may be internal to the current `Knot`
+/// in which case the full address is returned. If the given address is not internal, it is 
+/// simply returned.
+/// 
+/// For example, if we are currently in a knot with name `helsinki` and want to move to 
+/// a stitch within it with the name `date_with_kielo`, this function can be given 
+/// `date_with_kielo` and return the full address `helsinki.date_with_kielo`. 
+/// 
+/// If `date_with_kielo` were not a stitch belonging to that knot, just the address 
+/// `date_with_kielo` would be returned.
+fn get_full_address_of_target(
+    target: &str,
+    current_address: &str,
+    knots: &HashMap<String, Knot>,
+) -> Result<String, InklingError> {
+    let current_knot = get_knot_part_of_address(current_address);
+    let knot = knots.get(current_knot).ok_or(InklingError::NoKnotStack)?;
+
+    if knot.stitches.contains_key(target) {
+        Ok(format!("{}.{}", current_knot, target))
+    } else {
+        Ok(target.to_string())
+    }
+}
+
+fn get_knot_part_of_address(address: &str) -> &str {
+    address
+        .find('.')
+        .map(|i| address.get(..i).unwrap())
+        .unwrap_or(address)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    use std::str::FromStr;
+    use crate::node::NodeItem;
 
     #[test]
     fn story_internally_follows_through_knots_when_diverts_are_found() {
-        let knot1_name = "back_in_london".to_string();
-        let knot2_name = "hurry_home".to_string();
-
-        let knot1_text = format!(
-            "\
+        let content = "
+== back_in_london
 We arrived into London at 9.45pm exactly.
--> {}\
-",
-            knot2_name
-        );
+-> hurry_home
 
-        let knot2_text = format!(
-            "\
-             We hurried home to Savile Row as fast as we could.\
-             "
-        );
+== hurry_home 
+We hurried home to Savile Row as fast as we could.
+";
 
-        let mut knots = HashMap::new();
-
-        knots.insert(knot1_name.clone(), Knot::from_str(&knot1_text).unwrap());
-        knots.insert(knot2_name, Knot::from_str(&knot2_text).unwrap());
+        let (head_knot, knots) = read_knots_from_string(content).unwrap();
 
         let mut story = Story {
             knots,
-            stack: vec![knot1_name],
+            stack: vec![head_knot],
             in_progress: false,
         };
 
@@ -365,42 +457,34 @@ We arrived into London at 9.45pm exactly.
 
         story.follow_knot(&mut buffer).unwrap();
 
-        assert_eq!(&buffer.last().unwrap().text, &knot2_text);
+        assert_eq!(
+            &buffer.last().unwrap().text,
+            "We hurried home to Savile Row as fast as we could."
+        );
     }
 
     #[test]
     fn story_internally_resumes_from_the_new_knot_after_a_choice_is_made() {
-        let knot1_name = "back_in_london".to_string();
-        let knot2_name = "hurry_home".to_string();
-
-        let knot1_text = format!(
-            "\
+        let content = "
+== back_in_london
 We arrived into London at 9.45pm exactly.
--> {}\
-",
-            knot2_name
-        );
+-> hurry_home
 
-        let knot2_text = format!(
-            "\
+== hurry_home
 \"What's that?\" my master asked.
 *	\"I am somewhat tired[.\"],\" I repeated.
-	\"Really,\" he responded. \"How deleterious.\"
+\"Really,\" he responded. \"How deleterious.\"
 *	\"Nothing, Monsieur!\"[] I replied.
-	\"Very good, then.\"
+\"Very good, then.\"
 *   \"I said, this journey is appalling[.\"] and I want no more of it.\"
-	\"Ah,\" he replied, not unkindly. \"I see you are feeling frustrated. Tomorrow, things will improve.\"\
-"
-        );
+\"Ah,\" he replied, not unkindly. \"I see you are feeling frustrated. Tomorrow, things will improve.\"
+";
 
-        let mut knots = HashMap::new();
-
-        knots.insert(knot1_name.clone(), Knot::from_str(&knot1_text).unwrap());
-        knots.insert(knot2_name, Knot::from_str(&knot2_text).unwrap());
+        let (_, knots) = read_knots_from_string(content).unwrap();
 
         let mut story = Story {
             knots,
-            stack: vec![knot1_name],
+            stack: vec!["back_in_london".to_string()],
             in_progress: false,
         };
 
@@ -414,37 +498,23 @@ We arrived into London at 9.45pm exactly.
 
     #[test]
     fn when_a_knot_is_returned_to_the_text_starts_from_the_beginning() {
-        let knot1_name = "back_in_london".to_string();
-        let knot2_name = "hurry_home".to_string();
+        let content = "
+== back_in_london
+We arrived into London at 9.45pm exactly.
+-> hurry_home
 
-        let knot1_line = "We arrived into London at 9.45pm exactly.";
-
-        let knot1_text = format!(
-            "\
-{}
--> {}\
-",
-            knot1_line, knot2_name
-        );
-
-        let knot2_text = format!(
-            "\
-*   We hurried home to Savile Row as fast as we could. 
+== hurry_home 
+*   We hurried home to Savile Row as fast as we could.
 *   But we decided our trip wasn't done and immediately left.
-    After a few days me returned again.
-    -> {}\
-",
-            knot1_name
-        );
+After a few days me returned again.
+-> back_in_london
+";
 
-        let mut knots = HashMap::new();
-
-        knots.insert(knot1_name.clone(), Knot::from_str(&knot1_text).unwrap());
-        knots.insert(knot2_name, Knot::from_str(&knot2_text).unwrap());
+        let (_, knots) = read_knots_from_string(content).unwrap();
 
         let mut story = Story {
             knots,
-            stack: vec![knot1_name],
+            stack: vec!["back_in_london".to_string()],
             in_progress: false,
         };
 
@@ -453,26 +523,21 @@ We arrived into London at 9.45pm exactly.
         story.follow_knot(&mut buffer).unwrap();
         story.follow_knot_with_choice(1, &mut buffer).unwrap();
 
-        assert_eq!(&buffer[0].text, knot1_line);
-        assert_eq!(&buffer[5].text, knot1_line);
+        assert_eq!(&buffer[0].text, "We arrived into London at 9.45pm exactly.");
+        assert_eq!(&buffer[5].text, "We arrived into London at 9.45pm exactly.");
     }
 
     #[test]
     fn divert_to_done_or_end_constant_knots_ends_story() {
-        let knot_done_text = "\
-    -> DONE
-    ";
+        let content = "
+== knot_done
+-> DONE 
 
-        let knot_end_text = "\
-    -> END
-    ";
+== knot_end 
+-> END
+";
 
-        let knot_done = Knot::from_str(&knot_done_text).unwrap();
-        let knot_end = Knot::from_str(&knot_end_text).unwrap();
-
-        let mut knots = HashMap::new();
-        knots.insert("knot_done".to_string(), knot_done);
-        knots.insert("knot_end".to_string(), knot_end);
+        let (_, knots) = read_knots_from_string(content).unwrap();
 
         let mut story = Story {
             knots,
@@ -498,10 +563,12 @@ We arrived into London at 9.45pm exactly.
 
     #[test]
     fn divert_to_knot_increments_visit_count() {
-        let knot = Knot::from_str("").unwrap();
+        let content = "
+== knot
+Line one.
+";
 
-        let mut knots = HashMap::new();
-        knots.insert("knot".to_string(), knot);
+        let (_, knots) = read_knots_from_string(content).unwrap();
 
         let mut buffer = Vec::new();
 
@@ -511,11 +578,57 @@ We arrived into London at 9.45pm exactly.
             in_progress: false,
         };
 
-        assert_eq!(story.knots.get("knot").unwrap().num_visited, 0);
+        assert_eq!(get_stitch("knot", &story.knots).unwrap().num_visited, 0);
 
         story.divert_to_knot("knot", &mut buffer).unwrap();
 
-        assert_eq!(story.knots.get("knot").unwrap().num_visited, 1);
+        assert_eq!(get_stitch("knot", &story.knots).unwrap().num_visited, 1);
+    }
+
+    #[test]
+    fn divert_to_specific_stitch_sets_stack_to_it() {
+        let content = "
+== knot
+Line one.
+= stitch
+Line two.
+";
+
+        let (_, knots) = read_knots_from_string(content).unwrap();
+
+        let mut buffer = Vec::new();
+
+        let mut story = Story {
+            knots,
+            stack: vec!["knot".to_string()],
+            in_progress: false,
+        };
+
+        story.divert_to_knot("knot.stitch", &mut buffer).unwrap();
+        assert_eq!(story.stack.last().unwrap(), "knot.stitch");
+    }
+
+    #[test]
+    fn divert_to_stitch_inside_knot_with_internal_target_sets_full_destination_in_stack() {
+        let content = "
+== knot
+Line one.
+= stitch
+Line two.
+";
+
+        let (_, knots) = read_knots_from_string(content).unwrap();
+
+        let mut buffer = Vec::new();
+
+        let mut story = Story {
+            knots,
+            stack: vec!["knot".to_string()],
+            in_progress: false,
+        };
+
+        story.divert_to_knot("stitch", &mut buffer).unwrap();
+        assert_eq!(story.stack.last().unwrap(), "knot.stitch");
     }
 
     #[test]
@@ -546,5 +659,124 @@ We arrived into London at 9.45pm exactly.
             Err(InklingError::ResumeBeforeStart) => (),
             _ => panic!("did not raise `ResumeBeforeStart` error"),
         }
+    }
+
+    #[test]
+    fn getting_a_divert_destination_to_knot_returns_default_stitch() {
+        let content = "
+== knot_one
+Knot one
+
+== knot_two
+Knot two
+";
+
+        let (_, knots) = read_knots_from_string(content).unwrap();
+
+        let stitch = get_stitch("knot_one", &knots).unwrap();
+        assert_eq!(stitch.root.items.len(), 1);
+
+        match &stitch.root.items[0] {
+            NodeItem::Line(line) => assert_eq!(&line.text, "Knot one"),
+            _ => panic!(),
+        }
+
+        let stitch = get_stitch("knot_two", &knots).unwrap();
+        assert_eq!(stitch.root.items.len(), 1);
+
+        match &stitch.root.items[0] {
+            NodeItem::Line(line) => assert_eq!(&line.text, "Knot two"),
+            _ => panic!(),
+        }
+    }
+
+    #[test]
+    fn divert_destinations_can_be_specific_stitches() {
+        let content = "
+== knot_one
+Knot one
+= stitch_one
+Stitch one
+= stitch_two
+Stitch two
+";
+
+        let (_, knots) = read_knots_from_string(content).unwrap();
+
+        let stitch = get_stitch("knot_one.stitch_two", &knots).unwrap();
+        assert_eq!(stitch.root.items.len(), 1);
+
+        match &stitch.root.items[0] {
+            NodeItem::Line(line) => assert_eq!(&line.text, "Stitch two"),
+            _ => panic!(),
+        }
+    }
+
+    #[test]
+    fn divert_destinations_uses_default_stitch_if_not_specified() {
+        let content = "
+== knot_one
+= stitch_one
+Stitch one
+= stitch_two
+Stitch two
+";
+
+        let (_, knots) = read_knots_from_string(content).unwrap();
+
+        let stitch = get_stitch("knot_one", &knots).unwrap();
+        assert_eq!(stitch.root.items.len(), 1);
+
+        match &stitch.root.items[0] {
+            NodeItem::Line(line) => assert_eq!(&line.text, "Stitch one"),
+            _ => panic!(),
+        }
+    }
+
+    #[test]
+    fn divert_to_destinations_raises_error_if_knot_or_stitch_is_not_found() {
+        let content = "
+== knot_one
+= stitch_one
+Stitch one
+= stitch_two
+Stitch two
+";
+
+        let (_, knots) = read_knots_from_string(content).unwrap();
+
+        assert!(get_stitch("knot_one", &knots).is_ok());
+        assert!(get_stitch("knot_two", &knots).is_err());
+
+        assert!(get_stitch("knot_one.stitch_one", &knots).is_ok());
+        assert!(get_stitch("knot_one.stitch_three", &knots).is_err());
+    }
+
+    #[test]
+    fn get_mutable_access_to_stitches_works_similarly() {
+        let content = "
+== knot_one
+Knot one
+
+== knot_two
+= stitch_one
+Knot two
+";
+
+        let (_, mut knots) = read_knots_from_string(content).unwrap();
+
+        {
+            let stitch = get_mut_stitch("knot_one", &mut knots).unwrap();
+            stitch.num_visited += 1;
+        }
+
+        assert_eq!(get_stitch("knot_one", &knots).unwrap().num_visited, 1);
+
+        assert!(get_mut_stitch("knot_one", &mut knots).is_ok());
+        assert!(get_mut_stitch("knot_two", &mut knots).is_ok());
+        assert!(get_mut_stitch("knot_two.stitch_one", &mut knots).is_ok());
+
+        assert!(get_mut_stitch("knot_three", &mut knots).is_err());
+        assert!(get_mut_stitch("knot_one.stitch_five", &mut knots).is_err());
     }
 }

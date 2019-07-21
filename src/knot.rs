@@ -1,6 +1,6 @@
 use crate::{
     consts::{KNOT_MARKER, STITCH_MARKER},
-    error::{KnotError, KnotNameError, ParseError},
+    error::{KnotError, KnotNameError},
     follow::{FollowResult, LineDataBuffer, Next},
     line::ParsedLine,
     node::{DialogueNode, Stack},
@@ -9,17 +9,37 @@ use crate::{
 #[cfg(feature = "serde_support")]
 use serde::{Deserialize, Serialize};
 
-use std::str::FromStr;
+use std::{collections::HashMap, str::FromStr};
 
 #[derive(Debug)]
 #[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
+/// Knots groups story content into bits. Knots are further subdivided into `Stitch`es,
+/// which contain the content.
+///
+/// Content in `Stitch`es is accessed through the contained hash map which is indexed
+/// by their names. Knot content that belongs to the knot itself and not grouped under
+/// a named stitch is placed in the map with key `ROOT_KNOT_NAME` (see `consts.rs`).
 pub struct Knot {
+    /// Name of `Stitch` that is used when diverting to the `Knot` without specifying
+    /// a `Stitch`.
+    pub default_stitch: String,
+    /// Map of `Stitches` belonging to this `Knot`.
+    pub stitches: HashMap<String, Stitch>,
+}
+
+#[derive(Debug)]
+#[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
+/// Stitches contain the actual story content and are grouped in larger `Knot`s.
+pub struct Stitch {
+    /// Graph of story content, which may or may not branch.
     pub(crate) root: DialogueNode,
+    /// Last recorded position inside the `root` graph of content.
     stack: Stack,
+    /// Number of times this stitch has been diverted to.
     pub num_visited: u32,
 }
 
-impl Knot {
+impl Stitch {
     /// Follow a story while reading every line into a buffer.
     pub fn follow(&mut self, buffer: &mut LineDataBuffer) -> FollowResult {
         let result = self.root.follow(0, buffer, &mut self.stack)?;
@@ -57,7 +77,7 @@ impl Knot {
             .collect::<Vec<_>>();
         let root = DialogueNode::from_lines(&parsed_lines);
 
-        Ok(Knot {
+        Ok(Stitch {
             root,
             stack: Vec::new(),
             num_visited: 0,
@@ -126,14 +146,14 @@ mod tests {
 
     use crate::error::{InklingError, ParseError};
 
-    impl FromStr for Knot {
+    impl FromStr for Stitch {
         type Err = ParseError;
 
         fn from_str(content: &str) -> Result<Self, Self::Err> {
             let lines = parse_lines(content)?;
             let root = DialogueNode::from_lines(&lines);
 
-            Ok(Knot {
+            Ok(Stitch {
                 root,
                 stack: Vec::new(),
                 num_visited: 0,
@@ -149,7 +169,7 @@ mod tests {
     fn knot_restarts_from_their_first_line_when_run_again() {
         let text = "Hello, World!";
 
-        let mut knot = Knot::from_str(text).unwrap();
+        let mut knot = Stitch::from_str(text).unwrap();
 
         let mut buffer = Vec::new();
 
@@ -177,7 +197,7 @@ mod tests {
             pre, name, after
         );
 
-        let mut knot = Knot::from_str(&text).unwrap();
+        let mut knot = Stitch::from_str(&text).unwrap();
 
         let mut buffer = Vec::new();
 
@@ -205,7 +225,7 @@ mod tests {
             text.push('\n');
         }
 
-        let mut knot = Knot::from_str(&text).unwrap();
+        let mut knot = Stitch::from_str(&text).unwrap();
 
         let mut buffer = Vec::new();
 
@@ -224,7 +244,7 @@ mod tests {
         let choice = "Choice 1";
         let text = format!("* {}", choice);
 
-        let mut knot = Knot::from_str(&text).unwrap();
+        let mut knot = Stitch::from_str(&text).unwrap();
 
         let mut buffer = LineDataBuffer::new();
 
@@ -242,7 +262,7 @@ mod tests {
 * Choice 2
 ";
 
-        let mut knot = Knot::from_str(text).unwrap();
+        let mut knot = Stitch::from_str(text).unwrap();
 
         let mut buffer = Vec::new();
 
@@ -273,7 +293,7 @@ mod tests {
             text.push('\n');
         }
 
-        let mut knot = Knot::from_str(&text).unwrap();
+        let mut knot = Stitch::from_str(&text).unwrap();
 
         let mut buffer = LineDataBuffer::new();
 
@@ -306,7 +326,7 @@ mod tests {
             text.push('\n');
         }
 
-        let mut knot = Knot::from_str(&text).unwrap();
+        let mut knot = Stitch::from_str(&text).unwrap();
 
         let mut results_choice1 = LineDataBuffer::new();
 
@@ -339,7 +359,7 @@ Line 1
 -   Line 5
 Line 6
 ";
-        let mut knot = Knot::from_str(&text).unwrap();
+        let mut knot = Stitch::from_str(&text).unwrap();
 
         let mut buffer = LineDataBuffer::new();
 
@@ -357,7 +377,7 @@ Line 6
 *   Choice 1
 *   Choice 2
 ";
-        let mut knot = Knot::from_str(&text).unwrap();
+        let mut knot = Stitch::from_str(&text).unwrap();
 
         let mut buffer = LineDataBuffer::new();
 
