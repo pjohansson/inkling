@@ -144,11 +144,7 @@ impl Story {
 
         self.in_progress = true;
 
-        let root_knot_name = self
-            .stack
-            .last()
-            .cloned()
-            .ok_or(StackError::NoStack)?;
+        let root_knot_name = self.stack.last().cloned().ok_or(StackError::NoStack)?;
 
         self.increment_knot_visit_counter(&root_knot_name)?;
 
@@ -344,7 +340,12 @@ pub fn get_stitch<'a>(target: &Address, knots: &'a Knots) -> Result<&'a Stitch, 
     knots
         .get(&target.knot)
         .and_then(|knot| knot.stitches.get(&target.stitch))
-        .ok_or(StackError::BadAddress { address: target.clone() }.into())
+        .ok_or(
+            StackError::BadAddress {
+                address: target.clone(),
+            }
+            .into(),
+        )
 }
 
 /// Return a mutable reference to the `Stitch` at the target address.
@@ -355,7 +356,12 @@ pub fn get_mut_stitch<'a>(
     knots
         .get_mut(&target.knot)
         .and_then(|knot| knot.stitches.get_mut(&target.stitch))
-        .ok_or(StackError::BadAddress { address: target.clone() }.into())
+        .ok_or(
+            StackError::BadAddress {
+                address: target.clone(),
+            }
+            .into(),
+        )
 }
 
 #[cfg(test)]

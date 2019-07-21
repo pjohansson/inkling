@@ -41,9 +41,9 @@ impl Address {
     }
 
     pub fn from_root_knot(root_knot_name: &str, knots: &Knots) -> Result<Self, InklingError> {
-        let knot = knots
-            .get(root_knot_name)
-            .ok_or(StackError::NoRootKnot { knot_name: root_knot_name.to_string() })?;
+        let knot = knots.get(root_knot_name).ok_or(StackError::NoRootKnot {
+            knot_name: root_knot_name.to_string(),
+        })?;
 
         Ok(Address {
             knot: root_knot_name.to_string(),
@@ -55,7 +55,9 @@ impl Address {
 fn split_address_into_parts(address: &str) -> Result<(&str, Option<&str>), InvalidAddressError> {
     if let Some(i) = address.find('.') {
         let knot = address.get(..i).unwrap();
-        let stitch = address.get(i + 1..).ok_or(InvalidAddressError::BadFormat { line: address.to_string() })?;
+        let stitch = address.get(i + 1..).ok_or(InvalidAddressError::BadFormat {
+            line: address.to_string(),
+        })?;
 
         Ok((knot, Some(stitch)))
     } else {
@@ -68,12 +70,17 @@ fn get_full_address(
     stitch: &str,
     knots: &Knots,
 ) -> Result<(String, String), InvalidAddressError> {
-    let target_knot = knots.get(knot).ok_or(InvalidAddressError::UnknownKnot { knot_name: knot.to_string() })?;
+    let target_knot = knots.get(knot).ok_or(InvalidAddressError::UnknownKnot {
+        knot_name: knot.to_string(),
+    })?;
 
     if target_knot.stitches.contains_key(stitch) {
         Ok((knot.to_string(), stitch.to_string()))
     } else {
-        Err(InvalidAddressError::UnknownStitch { knot_name: knot.to_string(), stitch_name: stitch.to_string() })
+        Err(InvalidAddressError::UnknownStitch {
+            knot_name: knot.to_string(),
+            stitch_name: stitch.to_string(),
+        })
     }
 }
 
@@ -84,12 +91,16 @@ fn get_full_address_from_head(
 ) -> Result<(String, String), InklingError> {
     let current_knot = knots
         .get(&current_address.knot)
-        .ok_or(StackError::BadAddress { address: current_address.clone() })?;
+        .ok_or(StackError::BadAddress {
+            address: current_address.clone(),
+        })?;
 
     if current_knot.stitches.contains_key(head) {
         Ok((current_address.knot.clone(), head.to_string()))
     } else {
-        let target_knot = knots.get(head).ok_or(InvalidAddressError::UnknownKnot { knot_name: head.to_string() })?;
+        let target_knot = knots.get(head).ok_or(InvalidAddressError::UnknownKnot {
+            knot_name: head.to_string(),
+        })?;
         Ok((head.to_string(), target_knot.default_stitch.clone()))
     }
 }
