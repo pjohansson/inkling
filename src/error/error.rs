@@ -15,16 +15,17 @@ use std::{error::Error, fmt};
 /// which will be due to a logical error in the set-up code since the user has no
 /// control over it.
 pub enum InklingError {
+    BadKnotStack(StackError),
     /// The graph of `DialogueNode`s has an incorrect structure. This can be that `Choice`s
     /// are not properly nested under `ChoiceSet` nodes.
     BadGraph(BadGraphKind),
     /// The current stack is not properly representing the graph or has some indexing problems.
-    IncorrectStack {
-        kind: IncorrectStackKind,
+    IncorrectNodeStack {
+        kind: IncorrectNodeStackKind,
         stack: Stack,
     },
     /// An invalid address was encountered when following the story.
-    InvalidAddress,
+    InvalidAddress(InvalidAddressError),
     /// A choice was made with an internal index that does not match one existing in the set.
     /// Means that the choice set presented to the user was not created to represent the set
     /// of encountered choices, or that somehow a faulty choice was returned to continue
@@ -40,19 +41,15 @@ pub enum InklingError {
         /// List of all choices that were available in their internal representation.
         internal_choices: Vec<ChoiceData>,
     },
-    /// No root knot has been set to begin following the story from.
-    NoKnotStack,
     /// Tried to resume a story that has not been started.
     ResumeBeforeStart,
     /// Tried to `start` a story that is already in progress.
     StartOnStoryInProgress,
-    /// The story tried to move to a knot or stitch that doesn't exist.
-    UnknownDivert { knot_name: String },
 }
 
 impl fmt::Display for InklingError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        use IncorrectStackKind::*;
+        use IncorrectNodeStackKind::*;
         use InklingError::*;
 
         match self {
@@ -67,7 +64,8 @@ impl fmt::Display for InklingError {
                  (node level: {}, index: {})",
                 expected, found, node_level, index
             ),
-            InvalidAddress => unimplemented!(),
+            BadKnotStack(..) => unimplemented!(),
+            InvalidAddress(..) => unimplemented!(),
             InvalidChoice {
                 index,
                 choice,
@@ -104,21 +102,11 @@ impl fmt::Display for InklingError {
                     ),
                 }
             }
-            NoKnotStack => write!(
-                f,
-                "`Story` object was created but no root `Knot` was set to start \
-                 following the story from"
-            ),
             ResumeBeforeStart => write!(f, "Tried to resume a story that has not yet been started"),
             StartOnStoryInProgress => {
                 write!(f, "Called `start` on a story that is already in progress")
             }
-            UnknownDivert { knot_name } => write!(
-                f,
-                "Tried to follow a knot with name {} but no such knot exists",
-                knot_name
-            ),
-            IncorrectStack { kind, stack } => match kind {
+            IncorrectNodeStack { kind, stack } => match kind {
                 BadIndices {
                     node_level,
                     index,
@@ -207,7 +195,7 @@ impl From<&NodeItem> for NodeItemKind {
 #[derive(Clone, Debug)]
 /// Error variant associated with the stack created when walking through a `DialogueNode`
 /// tree being poorly constructed.
-pub enum IncorrectStackKind {
+pub enum IncorrectNodeStackKind {
     /// Stack contains an invalid index for the current node level.
     BadIndices {
         node_level: usize,
@@ -231,4 +219,38 @@ pub enum IncorrectStackKind {
 pub enum WhichIndex {
     Parent,
     Child,
+}
+
+// External
+#[derive(Clone, Debug)]
+pub enum InvalidAddressError {
+    BadFormat { line: String },
+    UnknownKnot { knot_name: String },
+    UnknownStitch { knot_name: String, stitch_name: String },
+}
+
+impl From<InvalidAddressError> for InklingError {
+    fn from(err: InvalidAddressError) -> Self {
+        InklingError::InvalidAddress(err)
+    }
+}
+
+impl From<StackError> for InklingError {
+    fn from(err: StackError) -> Self {
+        InklingError::BadKnotStack(err)
+    }
+}
+
+// Internal
+#[derive(Clone, Debug)]
+pub enum StackError {
+    /// No stack has been set in the system, but a follow was requested. This should not happen.
+    NoStack,
+    /// An invalid address was used inside the system, which means that some bad assumptions
+    /// have been made somewhere. Addresses are always supposed to be verified correct before
+    /// use.
+    BadAddress { address: Address },
+    /// When creating the initial stack after constructing the knots, the root knot was not 
+    /// present in the set.
+    NoRootKnot { knot_name: String },
 }

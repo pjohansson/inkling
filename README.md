@@ -38,7 +38,7 @@ Hopefully more in the future!
 
 Currently and likely for the foreseeable future the feature set is very limited compared to Inkle's own implementation. Available features are:
 
-*   Knots, glue and diverts, ie. basic story structure
+*   Knots, stitches, glue and diverts, ie. basic story structure
 *   Choices, of sticky and non-sticky kinds
 *   Nesting choices
 *   Simple conditionals for which choices are presented, but only for checking against how many times knots have been visited
@@ -48,7 +48,6 @@ Currently and likely for the foreseeable future the feature set is very limited 
 Likely candidates for further development:
 
 *   Fallback choices
-*   Stitches
 *   Line text variations: sequences, cycles, variables, conditionals
 *   Includes of other files
 

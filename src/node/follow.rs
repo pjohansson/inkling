@@ -1,5 +1,5 @@
 use crate::{
-    error::{BadGraphKind, IncorrectStackKind, InklingError, NodeItemKind, WhichIndex},
+    error::{BadGraphKind, IncorrectNodeStackKind, InklingError, NodeItemKind, WhichIndex},
     follow::{FollowResult, LineDataBuffer, Next},
     line::{ChoiceData, LineKind},
 };
@@ -113,8 +113,8 @@ impl DialogueNode {
         let advance_to_level = stack
             .len()
             .checked_sub(1)
-            .ok_or(InklingError::IncorrectStack {
-                kind: IncorrectStackKind::EmptyStack,
+            .ok_or(InklingError::IncorrectNodeStack {
+                kind: IncorrectNodeStackKind::EmptyStack,
                 stack: stack.clone(),
             })?;
 
@@ -195,8 +195,8 @@ impl DialogueNode {
         current_level: usize,
         stack: &Stack,
     ) -> Result<&NodeItem, InklingError> {
-        self.items.get(index).ok_or(InklingError::IncorrectStack {
-            kind: IncorrectStackKind::BadIndices {
+        self.items.get(index).ok_or(InklingError::IncorrectNodeStack {
+            kind: IncorrectNodeStackKind::BadIndices {
                 node_level: current_level,
                 index: index,
                 num_items: self.items.len(),
@@ -216,8 +216,8 @@ fn get_stack_index_for_level(
     stack
         .get(level)
         .cloned()
-        .ok_or(InklingError::IncorrectStack {
-            kind: IncorrectStackKind::MissingIndices {
+        .ok_or(InklingError::IncorrectNodeStack {
+            kind: IncorrectNodeStackKind::MissingIndices {
                 node_level: level,
                 kind,
             },
@@ -234,15 +234,15 @@ fn add_or_get_mut_stack_index_for_level(
     stack: &mut Stack,
 ) -> Result<&mut usize, InklingError> {
     if stack.len() < current_level {
-        return Err(InklingError::IncorrectStack {
-            kind: IncorrectStackKind::Gap {
+        return Err(InklingError::IncorrectNodeStack {
+            kind: IncorrectNodeStackKind::Gap {
                 node_level: current_level,
             },
             stack: stack.clone(),
         });
     } else if stack.len() > current_level + 1 {
-        return Err(InklingError::IncorrectStack {
-            kind: IncorrectStackKind::NotTruncated {
+        return Err(InklingError::IncorrectNodeStack {
+            kind: IncorrectNodeStackKind::NotTruncated {
                 node_level: current_level,
             },
             stack: stack.clone(),

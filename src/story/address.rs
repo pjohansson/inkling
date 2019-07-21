@@ -3,7 +3,7 @@ use super::story::Knots;
 #[cfg(feature = "serde_support")]
 use serde::{Deserialize, Serialize};
 
-use crate::error::InklingError;
+use crate::error::{InklingError, InvalidAddressError, StackError};
 
 #[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
@@ -33,9 +33,9 @@ impl Address {
         knots: &Knots,
     ) -> Result<Self, InklingError> {
         let (knot, stitch) = match split_address_into_parts(target.trim())? {
-            (knot, Some(stitch)) => get_full_address(knot, stitch, knots),
-            (head, None) => get_full_address_from_head(head, current_address, knots),
-        }?;
+            (knot, Some(stitch)) => get_full_address(knot, stitch, knots)?,
+            (head, None) => get_full_address_from_head(head, current_address, knots)?,
+        };
 
         Ok(Address { knot, stitch })
     }
@@ -43,7 +43,7 @@ impl Address {
     pub fn from_root_knot(root_knot_name: &str, knots: &Knots) -> Result<Self, InklingError> {
         let knot = knots
             .get(root_knot_name)
-            .ok_or(InklingError::InvalidAddress)?;
+            .ok_or(StackError::NoRootKnot { knot_name: root_knot_name.to_string() })?;
 
         Ok(Address {
             knot: root_knot_name.to_string(),
@@ -52,10 +52,10 @@ impl Address {
     }
 }
 
-fn split_address_into_parts(address: &str) -> Result<(&str, Option<&str>), InklingError> {
+fn split_address_into_parts(address: &str) -> Result<(&str, Option<&str>), InvalidAddressError> {
     if let Some(i) = address.find('.') {
         let knot = address.get(..i).unwrap();
-        let stitch = address.get(i + 1..).ok_or(InklingError::InvalidAddress)?;
+        let stitch = address.get(i + 1..).ok_or(InvalidAddressError::BadFormat { line: address.to_string() })?;
 
         Ok((knot, Some(stitch)))
     } else {
@@ -67,13 +67,13 @@ fn get_full_address(
     knot: &str,
     stitch: &str,
     knots: &Knots,
-) -> Result<(String, String), InklingError> {
-    let target_knot = knots.get(knot).ok_or(InklingError::InvalidAddress)?;
+) -> Result<(String, String), InvalidAddressError> {
+    let target_knot = knots.get(knot).ok_or(InvalidAddressError::UnknownKnot { knot_name: knot.to_string() })?;
 
     if target_knot.stitches.contains_key(stitch) {
         Ok((knot.to_string(), stitch.to_string()))
     } else {
-        Err(InklingError::InvalidAddress)
+        Err(InvalidAddressError::UnknownStitch { knot_name: knot.to_string(), stitch_name: stitch.to_string() })
     }
 }
 
@@ -84,12 +84,12 @@ fn get_full_address_from_head(
 ) -> Result<(String, String), InklingError> {
     let current_knot = knots
         .get(&current_address.knot)
-        .ok_or(InklingError::InvalidAddress)?;
+        .ok_or(StackError::BadAddress { address: current_address.clone() })?;
 
     if current_knot.stitches.contains_key(head) {
         Ok((current_address.knot.clone(), head.to_string()))
     } else {
-        let target_knot = knots.get(head).ok_or(InklingError::InvalidAddress)?;
+        let target_knot = knots.get(head).ok_or(InvalidAddressError::UnknownKnot { knot_name: head.to_string() })?;
         Ok((head.to_string(), target_knot.default_stitch.clone()))
     }
 }

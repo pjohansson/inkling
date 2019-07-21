@@ -1,6 +1,6 @@
 use crate::{
     consts::{DONE_KNOT, END_KNOT},
-    error::{InklingError, ParseError},
+    error::{InklingError, ParseError, StackError},
     follow::{FollowResult, LineDataBuffer, Next},
     knot::Knot,
     knot::Stitch,
@@ -148,7 +148,7 @@ impl Story {
             .stack
             .last()
             .cloned()
-            .ok_or::<InklingError>(InklingError::NoKnotStack.into())?;
+            .ok_or(StackError::NoStack)?;
 
         self.increment_knot_visit_counter(&root_knot_name)?;
 
@@ -202,7 +202,7 @@ impl Story {
         }
 
         let index = choice.index;
-        let current_address = self.stack.last().ok_or(InklingError::NoKnotStack)?.clone();
+        let current_address = self.stack.last().ok_or(StackError::NoStack)?.clone();
 
         Self::follow_story_wrapper(
             self,
@@ -236,7 +236,7 @@ impl Story {
 
         match result {
             Next::ChoiceSet(choice_set) => {
-                let current_address = self.stack.last().ok_or(InklingError::NoKnotStack)?;
+                let current_address = self.stack.last().ok_or(StackError::NoStack)?;
                 let user_choice_lines =
                     prepare_choices_for_user(&choice_set, &current_address, &self.knots)?;
                 Ok(Prompt::Choice(user_choice_lines))
@@ -292,7 +292,7 @@ impl Story {
         if to_address == DONE_KNOT || to_address == END_KNOT {
             Ok(Next::Done)
         } else {
-            let current_address = self.stack.last().ok_or(InklingError::NoKnotStack)?;
+            let current_address = self.stack.last().ok_or(StackError::NoStack)?;
             let address = Address::from_target_address(to_address, current_address, &self.knots)?;
 
             self.increment_knot_visit_counter(&address)?;
@@ -344,7 +344,7 @@ pub fn get_stitch<'a>(target: &Address, knots: &'a Knots) -> Result<&'a Stitch, 
     knots
         .get(&target.knot)
         .and_then(|knot| knot.stitches.get(&target.stitch))
-        .ok_or(InklingError::InvalidAddress)
+        .ok_or(StackError::BadAddress { address: target.clone() }.into())
 }
 
 /// Return a mutable reference to the `Stitch` at the target address.
@@ -355,7 +355,7 @@ pub fn get_mut_stitch<'a>(
     knots
         .get_mut(&target.knot)
         .and_then(|knot| knot.stitches.get_mut(&target.stitch))
-        .ok_or(InklingError::InvalidAddress)
+        .ok_or(StackError::BadAddress { address: target.clone() }.into())
 }
 
 #[cfg(test)]
