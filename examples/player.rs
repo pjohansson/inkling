@@ -15,7 +15,9 @@ fn main() -> Result<(), io::Error> {
     assets_dir.push("examples");
     assets_dir.push("assets");
 
-    let path: PathBuf = [assets_dir.as_path(), Path::new("story.ink")].iter().collect();
+    let path: PathBuf = [assets_dir.as_path(), Path::new("story.ink")]
+        .iter()
+        .collect();
     let story = read_story(&path)?;
 
     match play_story(story) {
@@ -74,10 +76,10 @@ fn get_choice(num_choices: usize) -> Option<usize> {
         match input.trim().parse::<usize>() {
             Ok(0) => {
                 return None;
-            },
+            }
             Ok(i) if i > 0 && i <= num_choices => {
                 return Some(i - 1);
-            },
+            }
             _ => {
                 println!("Not a valid option, try again:");
             }

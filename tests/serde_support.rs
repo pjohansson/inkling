@@ -1,7 +1,7 @@
 #[cfg(not(feature = "serde_support"))]
 #[test]
 fn serde_support_tests() {
-    panic!("Feature `serialize` must be activated to run these integration tests");
+    panic!("Feature `serde_support` must be activated to run these integration tests");
 }
 
 #[cfg(all(feature = "serde_support", test))]
