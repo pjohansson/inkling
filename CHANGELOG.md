@@ -6,4 +6,8 @@
 
 ## 0.10.1
 
-*   Correct naming of `serde_support` feature in README.md 
+*   Correct naming of `serde_support` feature in README.md
+
+## 0.10.2
+
+*   Add support for fallback choices 

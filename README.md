@@ -1,6 +1,6 @@
 # Inkling
 
-Limited Rust implementation of the `Ink` markup/scripting language for game dialog. 
+Limited Rust implementation of the `Ink` markup/scripting language for game dialog.
 
 Ink is a creation of [Inkle](https://www.inklestudios.com/). For more information about the language, [see their website](https://www.inklestudios.com/ink/).
 
@@ -8,7 +8,7 @@ Ink is a creation of [Inkle](https://www.inklestudios.com/). For more informatio
 Using Ink you can easily write a story or create a dialog tree.
 
 *   Branching is very simple[]: <>
-    just start your line with an asterix or plus marker. 
+    just start your line with an asterix or plus marker.
     Want nested choices? Add more markers!
     * *     A branching choice contains all information below it
             of the same level or higher.
@@ -39,15 +39,14 @@ Hopefully more in the future!
 Currently and likely for the foreseeable future the feature set is very limited compared to Inkle's own implementation. Available features are:
 
 *   Knots, stitches, glue and diverts, ie. basic story structure
-*   Choices, of sticky and non-sticky kinds
-*   Nesting choices
+*   Choices, of sticky and non-sticky kinds, plus fallback choices
+*   Nesting choices and gather points
 *   Simple conditionals for which choices are presented, but only for checking against how many times knots have been visited
 *   Tagging of lines and choices
 *   Optional: De/serialization of finished stories through `serde`
 
 Likely candidates for further development:
 
-*   Fallback choices
 *   Line text variations: sequences, cycles, variables, conditionals
 *   Includes of other files
 
