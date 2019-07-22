@@ -172,8 +172,15 @@ fn parse_divert(line: &mut String) -> Option<String> {
 
             part.trim_start_matches(DIVERT_MARKER)
                 .split(DIVERT_MARKER)
-                .map(|knot_name| knot_name.trim().to_string())
+                .map(|address| address.trim().to_string())
                 .next()
+                .and_then(|address| {
+                    if address.is_empty() {
+                        None
+                    } else {
+                        Some(address)
+                    }
+                })
         }
         None => None,
     }
@@ -460,5 +467,15 @@ pub(crate) mod tests {
         assert_eq!(tags[0], tag1);
         assert_eq!(tags[1], tag2);
         assert_eq!(tags[2], tag3);
+    }
+
+    #[test]
+    fn empty_diverts_turn_into_regular_lines() {
+        let line = LineData::from_str("-> ").unwrap();
+
+        match line.kind {
+            LineKind::Regular => (),
+            LineKind::Divert(..) => panic!("expected the empty divert to become a regular line"),
+        }
     }
 }
