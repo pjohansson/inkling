@@ -37,8 +37,27 @@ pub fn prepare_choices_for_user(
     current_address: &Address,
     knots: &Knots,
 ) -> Result<Vec<Choice>, InklingError> {
+    get_available_choices(choices, current_address, knots, false)
+}
+
+/// Prepare a list of fallback choices from the given set. The first choice will be
+/// automatically selected.
+pub fn get_fallback_choices(
+    choices: &[ChoiceData],
+    current_address: &Address,
+    knots: &Knots,
+) -> Result<Vec<Choice>, InklingError> {
+    get_available_choices(choices, current_address, knots, true)
+}
+
+fn get_available_choices(
+    choices: &[ChoiceData],
+    current_address: &Address,
+    knots: &Knots,
+    fallback: bool,
+) -> Result<Vec<Choice>, InklingError> {
     let choices_with_filter_values =
-        zip_choices_with_filter_values(choices, current_address, knots)?;
+        zip_choices_with_filter_values(choices, current_address, knots, fallback)?;
 
     let filtered_choices = choices_with_filter_values
         .into_iter()
@@ -52,8 +71,9 @@ fn zip_choices_with_filter_values(
     choices: &[ChoiceData],
     current_address: &Address,
     knots: &Knots,
+    fallback: bool,
 ) -> Result<Vec<(bool, Choice)>, InklingError> {
-    let checked_choices = check_choices_for_conditions(choices, current_address, knots)?;
+    let checked_choices = check_choices_for_conditions(choices, current_address, knots, fallback)?;
 
     let filtered_choices = choices
         .iter()
@@ -74,6 +94,7 @@ fn check_choices_for_conditions(
     choices: &[ChoiceData],
     current_address: &Address,
     knots: &Knots,
+    keep_only_fallback: bool,
 ) -> Result<Vec<bool>, InklingError> {
     let mut checked_conditions = Vec::new();
 
@@ -88,7 +109,9 @@ fn check_choices_for_conditions(
             }
         }
 
-        keep = keep && (choice.is_sticky || choice.num_visited == 0) && !choice.is_fallback;
+        keep = keep
+            && (choice.is_sticky || choice.num_visited == 0)
+            && (choice.is_fallback == keep_only_fallback);
 
         checked_conditions.push(keep);
     }
@@ -169,7 +192,7 @@ pub fn fill_in_invalid_error(
             ..
         } => {
             let presented_choices =
-                zip_choices_with_filter_values(&internal_choices, current_address, knots)
+                zip_choices_with_filter_values(&internal_choices, current_address, knots, false)
                     .unwrap_or(Vec::new());
 
             InklingError::InvalidChoice {
@@ -666,5 +689,42 @@ mod tests {
             }
             _ => panic!(),
         }
+    }
+
+    #[test]
+    fn fallback_choices_are_filtered_as_usual_choices() {
+        let kept_line = LineBuilder::new("Kept").build();
+        let removed_line = LineBuilder::new("Removed").build();
+
+        let choices = vec![
+            ChoiceBuilder::empty()
+                .with_displayed(kept_line.clone())
+                .is_fallback()
+                .build(),
+            ChoiceBuilder::empty()
+                .with_displayed(removed_line.clone())
+                .with_num_visited(1)
+                .is_fallback()
+                .build(),
+            ChoiceBuilder::empty()
+                .with_displayed(kept_line.clone())
+                .with_num_visited(1)
+                .is_sticky()
+                .is_fallback()
+                .build(),
+        ];
+
+        let empty_hash_map = HashMap::new();
+        let empty_address = Address {
+            knot: "".to_string(),
+            stitch: "".to_string(),
+        };
+
+        let fallback_choices =
+            get_fallback_choices(&choices, &empty_address, &empty_hash_map).unwrap();
+
+        assert_eq!(fallback_choices.len(), 2);
+        assert_eq!(&fallback_choices[0].text, "Kept");
+        assert_eq!(&fallback_choices[1].text, "Kept");
     }
 }

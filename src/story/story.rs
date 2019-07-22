@@ -4,6 +4,7 @@ use crate::{
     follow::{FollowResult, LineDataBuffer, Next},
     knot::Knot,
     knot::Stitch,
+    line::ChoiceData,
 };
 
 #[cfg(feature = "serde_support")]
@@ -14,7 +15,9 @@ use std::collections::HashMap;
 use super::{
     address::Address,
     parse::read_knots_from_string,
-    process::{fill_in_invalid_error, prepare_choices_for_user, process_buffer},
+    process::{
+        fill_in_invalid_error, get_fallback_choices, prepare_choices_for_user, process_buffer,
+    },
 };
 
 #[derive(Clone, Debug, PartialEq)]
@@ -172,7 +175,7 @@ impl Story {
     /// *   She spun around to face the danger head on.
     ///     Her heart was racing as the door slowly swung open and the black
     ///     cat from the garden swept in.
-    ///     “Miao!”   
+    ///     “Miao!”
     /// *   In one smooth motion she hid behind the large curtain.
     ///     A familiar “meow” coming from the room filled her with relief.
     ///     That barely lasted a moment before the dusty curtains made her
@@ -233,9 +236,16 @@ impl Story {
         match result {
             Next::ChoiceSet(choice_set) => {
                 let current_address = self.stack.last().ok_or(StackError::NoStack)?;
+
                 let user_choice_lines =
                     prepare_choices_for_user(&choice_set, &current_address, &self.knots)?;
-                Ok(Prompt::Choice(user_choice_lines))
+
+                if !user_choice_lines.is_empty() {
+                    Ok(Prompt::Choice(user_choice_lines))
+                } else {
+                    let choice = get_fallback_choice(&choice_set, &current_address, &self.knots)?;
+                    self.resume_with_choice(&choice, line_buffer)
+                }
             }
             Next::Done => Ok(Prompt::Done),
             Next::Divert(..) => unreachable!("diverts are treated in the closure"),
@@ -364,9 +374,33 @@ pub fn get_mut_stitch<'a>(
         )
 }
 
+/// Return the first available fallback choice from the given set of choices.
+///
+/// Choices are filtered as usual by conditions and visits.
+fn get_fallback_choice(
+    choice_set: &[ChoiceData],
+    current_address: &Address,
+    knots: &Knots,
+) -> Result<Choice, InklingError> {
+    get_fallback_choices(choice_set, current_address, knots).and_then(|choices| {
+        choices.first().cloned().ok_or(InklingError::OutOfChoices {
+            address: current_address.clone(),
+        })
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Create a mock choice with the given index
+    fn mock_choice(index: usize) -> Choice {
+        Choice {
+            text: String::new(),
+            tags: Vec::new(),
+            index,
+        }
+    }
 
     #[test]
     fn story_internally_follows_through_knots_when_diverts_are_found() {
@@ -375,7 +409,7 @@ mod tests {
 We arrived into London at 9.45pm exactly.
 -> hurry_home
 
-== hurry_home 
+== hurry_home
 We hurried home to Savile Row as fast as we could.
 ";
 
@@ -439,7 +473,7 @@ We arrived into London at 9.45pm exactly.
 We arrived into London at 9.45pm exactly.
 -> hurry_home
 
-== hurry_home 
+== hurry_home
 *   We hurried home to Savile Row as fast as we could.
 *   But we decided our trip wasn't done and immediately left.
 After a few days me returned again.
@@ -468,9 +502,9 @@ After a few days me returned again.
     fn divert_to_done_or_end_constant_knots_ends_story() {
         let content = "
 == knot_done
--> DONE 
+-> DONE
 
-== knot_end 
+== knot_end
 -> END
 ";
 
@@ -575,6 +609,49 @@ Line two.
         story.divert_to_knot("stitch", &mut buffer).unwrap();
 
         assert_eq!(story.stack.last().unwrap(), &address);
+    }
+
+    #[test]
+    fn if_choice_list_returned_to_user_is_empty_follow_fallback_choice() {
+        let content = "
+== knot
+*   Non-sticky choice -> knot
+*   ->
+    Fallback choice
+";
+
+        let mut story = read_story_from_string(content).unwrap();
+
+        let mut buffer = Vec::new();
+
+        let choices = story.start(&mut buffer).unwrap().get_choices().unwrap();
+        assert_eq!(choices.len(), 1);
+
+        story
+            .resume_with_choice(&mock_choice(0), &mut buffer)
+            .unwrap();
+
+        assert_eq!(&buffer[1].text, "Fallback choice\n");
+    }
+
+    #[test]
+    fn if_no_fallback_choices_are_available_raise_error() {
+        let content = "
+== knot
+*   Non-sticky choice -> knot
+";
+
+        let mut story = read_story_from_string(content).unwrap();
+
+        let mut buffer = Vec::new();
+
+        story.start(&mut buffer).unwrap();
+
+        match story.resume_with_choice(&mock_choice(0), &mut buffer) {
+            Err(InklingError::OutOfChoices { .. }) => (),
+            Err(err) => panic!("expected `OutOfChoices` error but got {:?}", err),
+            Ok(_) => panic!("expected an error but got an Ok"),
+        }
     }
 
     #[test]

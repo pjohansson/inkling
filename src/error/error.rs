@@ -34,6 +34,10 @@ pub enum InklingError {
         /// List of all choices that were available in their internal representation.
         internal_choices: Vec<ChoiceData>,
     },
+    /// No choices or fallback choices were available in a story branch at the given address.
+    OutOfChoices { address: Address },
+    /// No content was available for the story to continue from.
+    OutOfContent,
     /// Tried to resume a story that has not been started.
     ResumeBeforeStart,
     /// Tried to `start` a story that is already in progress.
@@ -153,6 +157,15 @@ impl fmt::Display for InklingError {
                     ),
                 }
             }
+            OutOfChoices {
+                address: Address { knot, stitch },
+            } => write!(
+                f,
+                "Story reached a branching choice with no available choices to present \
+                 or default choices to fall back on (knot: {}, stitch: {})",
+                knot, stitch
+            ),
+            OutOfContent => write!(f, "Story ran out of content before an end was reached"),
             ResumeBeforeStart => write!(f, "Tried to resume a story that has not yet been started"),
             StartOnStoryInProgress => {
                 write!(f, "Called `start` on a story that is already in progress")
