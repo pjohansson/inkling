@@ -88,7 +88,7 @@ fn check_choices_for_conditions(
             }
         }
 
-        keep = keep && (choice.is_sticky || choice.num_visited == 0);
+        keep = keep && (choice.is_sticky || choice.num_visited == 0) && !choice.is_fallback;
 
         checked_conditions.push(keep);
     }
@@ -550,6 +550,38 @@ mod tests {
                 .with_displayed(kept_line.clone())
                 .with_num_visited(1)
                 .is_sticky()
+                .build(),
+        ];
+
+        let empty_hash_map = HashMap::new();
+        let empty_address = Address {
+            knot: "".to_string(),
+            stitch: "".to_string(),
+        };
+
+        let displayed_choices =
+            prepare_choices_for_user(&choices, &empty_address, &empty_hash_map).unwrap();
+
+        assert_eq!(displayed_choices.len(), 2);
+        assert_eq!(&displayed_choices[0].text, "Kept");
+        assert_eq!(&displayed_choices[1].text, "Kept");
+    }
+
+    #[test]
+    fn preparing_choices_filters_fallback_choices() {
+        let kept_line = LineBuilder::new("Kept").build();
+        let removed_line = LineBuilder::new("Removed").build();
+
+        let choices = vec![
+            ChoiceBuilder::empty()
+                .with_displayed(kept_line.clone())
+                .build(),
+            ChoiceBuilder::empty()
+                .with_displayed(removed_line.clone())
+                .is_fallback()
+                .build(),
+            ChoiceBuilder::empty()
+                .with_displayed(kept_line.clone())
                 .build(),
         ];
 
