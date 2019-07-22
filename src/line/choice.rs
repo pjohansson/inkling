@@ -28,6 +28,7 @@ pub struct ChoiceData {
     /// By default a choice will be filtered after being visited once. If it is marked
     /// as sticky it will stick around.
     pub is_sticky: bool,
+    pub is_fallback: bool,
     /// Conditions that must be fulfilled for the choice to be displayed.
     pub conditions: Vec<Condition>,
 }
@@ -48,24 +49,39 @@ fn prepare_parsed_choice_from_line(
     let mut remaining_line = line.to_string();
     let conditions = parse_choice_conditions(&mut remaining_line)?;
 
-    if remaining_line.is_empty() {
-        return Err(LineError::NoDisplayText.into());
-    }
-
     let (displayed_text, line_text) = parse_choice_line_variants(&remaining_line)?;
 
     let displayed = LineData::from_str(&displayed_text)?;
     let line = LineData::from_str(&line_text)?;
+
+    let is_fallback = is_choice_fallback(&displayed, &remaining_line)?;
 
     let choice = ChoiceData {
         displayed,
         line,
         num_visited: 0,
         is_sticky,
+        is_fallback,
         conditions,
     };
 
     Ok(ParsedLine::Choice { level, choice })
+}
+
+/// Check whether a choice line is a fallback. The condition for a fallback choice
+/// is that it has no displayed text for the user.
+///
+/// A choice with no displayed text can have no regular text, either. Return an error
+/// if it has a separator between the displayed choice and follow up text.
+fn is_choice_fallback(displayed: &LineData, input_text: &str) -> Result<bool, LineError> {
+    let is_fallback = displayed.text.trim().is_empty();
+    let choice_has_separator = input_text.find('[').is_some();
+
+    if is_fallback && choice_has_separator {
+        Err(LineError::NoDisplayText)
+    } else {
+        Ok(is_fallback)
+    }
 }
 
 /// Split choice markers (sticky or non-sticky) from a line. If they are present, ensure
@@ -130,6 +146,7 @@ pub(crate) mod tests {
         line: LineData,
         displayed: LineData,
         num_visited: u32,
+        is_fallback: bool,
         is_sticky: bool,
         conditions: Vec<Condition>,
     }
@@ -143,6 +160,7 @@ pub(crate) mod tests {
                 line,
                 num_visited: 0,
                 is_sticky: false,
+                is_fallback: false,
                 conditions: Vec::new(),
             }
         }
@@ -153,8 +171,14 @@ pub(crate) mod tests {
                 line: self.line,
                 num_visited: self.num_visited,
                 is_sticky: self.is_sticky,
+                is_fallback: self.is_fallback,
                 conditions: self.conditions,
             }
+        }
+
+        pub fn is_fallback(mut self) -> Self {
+            self.is_fallback = true;
+            self
         }
 
         pub fn is_sticky(mut self) -> Self {
@@ -283,8 +307,24 @@ pub(crate) mod tests {
     }
 
     #[test]
-    fn choice_markers_require_text() {
-        assert!(ParsedLine::from_str("*").is_err());
+    fn choices_without_text_are_fallback_choices() {
+        let (_, choice) = ParsedLine::from_str("*").unwrap().choice();
+        assert!(choice.is_fallback);
+
+        let (_, choice) = ParsedLine::from_str("* -> divert").unwrap().choice();
+        assert!(choice.is_fallback);
+
+        let (_, choice) = ParsedLine::from_str("* -> ").unwrap().choice();
+        assert!(choice.is_fallback);
+
+        let (_, choice) = ParsedLine::from_str("* Choice text").unwrap().choice();
+        assert!(!choice.is_fallback);
+    }
+
+    #[test]
+    fn choices_without_displayed_text_cannot_have_regular_text() {
+        assert!(ParsedLine::from_str("* []").is_err());
+        assert!(ParsedLine::from_str("* []Choice text").is_err());
     }
 
     #[test]
@@ -293,10 +333,5 @@ pub(crate) mod tests {
             .unwrap()
             .choice();
         assert_eq!(choice.conditions.len(), 1);
-    }
-
-    #[test]
-    fn choices_with_conditions_still_require_some_text() {
-        assert!(ParsedLine::from_str("* {knot_name}").is_err());
     }
 }
