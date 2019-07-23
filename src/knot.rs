@@ -3,7 +3,7 @@ use crate::{
     error::{KnotError, KnotNameError},
     follow::{FollowResult, LineDataBuffer, Next},
     line::ParsedLine,
-    node::{DialogueNode, Follow, RootNode, Stack},
+    node::{Follow, RootNode, Stack},
 };
 
 #[cfg(feature = "serde_support")]

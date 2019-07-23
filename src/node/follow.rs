@@ -1,10 +1,12 @@
 use crate::{
     error::{
-        BadGraphKind, IncorrectNodeStackKind, InklingError, InternalError, NodeItemKind, WhichIndex,
+        InklingError, InternalError,
     },
     follow::{FollowResult, LineDataBuffer, Next},
-    line::{ChoiceData, LineKind},
+    line::{ChoiceData, Process},
 };
+
+use super::node::*;
 
 /// Represents the current stack of choices that have been made from the root
 /// of the current graph (in a practical sense, that have been made inside the
@@ -33,332 +35,189 @@ use crate::{
 /// advance to the position of that choice set in the tree, then follow from there on.
 pub type Stack = Vec<usize>;
 
-use super::node::{DialogueNode, NodeItem, NodeType};
+pub trait Follow {
+    fn follow(&mut self, stack: &mut Stack, buffer: &mut LineDataBuffer) -> FollowResult {
+        let at_index = stack.last_mut().ok_or(String::new())?;
 
-impl DialogueNode {
-    /// Walk through a `DialogueNode` graph tree recursively and add all lines to the buffer
-    /// until a `Divert` to a different knot or a set of choices to the user is found.
-    ///
-    /// The index of the current item is set in the `Stack` at the current location index.
-    /// This is to keep track of from where (relative to the root of the tree) a set of
-    /// choices was found, so that we can return to it with `follow_with_choice`.
-    ///
-    /// If an index for the current level is set the items are read starting from that index.
-    /// It is otherwise initialized to 0.
-    ///
-    /// Additionally, the input `Stack` may not be longer than the current level. This is to
-    /// ensure that the call stack is always what we expect it to be when walking through
-    /// a graph.
-    pub fn follow(
-        &self,
-        current_level: usize,
-        buffer: &mut LineDataBuffer,
-        stack: &mut Stack,
-    ) -> FollowResult {
-        let index = add_or_get_mut_stack_index_for_level(current_level, stack)?;
-
-        if *index == 0 {
-            let num_visited = self.num_visited.get();
-            self.num_visited.replace(num_visited + 1);
+        if *at_index == 0 {
+            self.increment_num_visited();
         }
 
-        while *index < self.items.len() {
-            let item = &self.items[*index];
-            *index += 1;
+        for item in self.items().get_mut(*at_index..).unwrap().iter_mut() {
+            *at_index += 1;
 
             match item {
-                NodeItem::Line(line) => {
-                    buffer.push(line.clone());
+                Container::Line(line) => {
+                    let result = line.process(buffer)?;
 
-                    if let LineKind::Divert(destination) = &line.kind {
-                        return Ok(Next::Divert(destination.clone()));
+                    if let Next::Divert(..) = result {
+                        return Ok(result);
                     }
                 }
-                NodeItem::Node {
-                    kind: NodeType::ChoiceSet,
-                    ..
-                } => {
-                    let choices = get_choices_from_set(item, current_level)?;
+                Container::BranchingChoice(branches) => {
+                    *at_index -= 1;
 
-                    // Revert the stack index to the current location, since we will continue
-                    // from here after selecting a choice.
-                    *index -= 1;
+                    let branching_choice_set = get_choices_from_branching_set(branches);
 
-                    return Ok(Next::ChoiceSet(choices));
+                    return Ok(Next::ChoiceSet(branching_choice_set));
                 }
-                _ => eprintln!(
-                    "warning: encountered {:?} when following a node, \
-                     which should not happen (node: {:?}, index: {})",
-                    &item,
-                    &self,
-                    *index - 1
-                ),
             }
         }
 
         Ok(Next::Done)
     }
 
-    /// Follow a `Stack` to the latest `DialogueNode`, which returned a set of choices
-    /// for the user. Continue from that set of choices by selecting the item with
-    /// given index `choice` and calling `follow` on its node to continue through the story.
-    ///
-    /// As the call returns from that `Choice` node, continue `follow`ing through the node
-    /// in which the set of choices was found.
-    pub fn follow_with_choice(
-        &self,
-        choice: usize,
-        current_level: usize,
-        buffer: &mut LineDataBuffer,
+    fn follow_with_choice(
+        &mut self,
+        chosen_branch_index: usize,
+        stack_index: usize,
         stack: &mut Stack,
-    ) -> FollowResult {
-        let advance_to_level =
-            stack
-                .len()
-                .checked_sub(1)
-                .ok_or(InternalError::IncorrectNodeStack {
-                    kind: IncorrectNodeStackKind::EmptyStack,
-                    stack: stack.clone(),
-                })?;
-
-        let result = if current_level < advance_to_level {
-            let (next_level_node, _) =
-                self.follow_stack_to_next_choice(current_level, None, stack)?;
-
-            next_level_node.follow_with_choice(choice, current_level + 2, buffer, stack)
+        buffer: &mut LineDataBuffer,
+    ) -> FollowResult
+    where
+        Self: Sized,
+    {
+        let result = if stack_index < stack.len() - 1 {
+            let next_branch = get_next_level_branch(stack_index, stack, self)?;
+            next_branch.follow_with_choice(chosen_branch_index, stack_index + 2, stack, buffer)
         } else {
-            let (choice_node, _) =
-                self.follow_stack_to_next_choice(current_level, Some(choice), stack)?;
+            let selected_branch = match get_selected_branch(chosen_branch_index, stack_index, stack, self) {
+                Ok(branch) => branch,
+                Err(err) => {
+                    let err = if let Some(user_err) =
+                        check_for_invalid_choice(chosen_branch_index, stack_index, stack, self)
+                    {
+                        user_err
+                    } else {
+                        err.into()
+                    };
 
-            stack.push(choice);
+                    return Err(err);
+                }
+            };
 
-            choice_node.follow(current_level + 2, buffer, stack)
+            stack.extend_from_slice(&[chosen_branch_index, 0]);
+
+            selected_branch.follow(stack, buffer)
         }?;
 
-        match &result {
+        match result {
             Next::Done => {
-                // Continue reading the current node's items
-                stack.truncate(current_level + 1);
-                stack[current_level] += 1;
-                self.follow(current_level, buffer, stack)
+                stack.truncate(stack.len() - 2);
+                *stack.last_mut().expect("stack.last_mut") += 1;
+
+                self.follow(stack, buffer)
             }
-            _ => Ok(result),
+            other => Ok(other),
         }
     }
 
-    /// Follow through the stack and retrieve the next `DialogueNode` which will be a `Choice`.
-    ///
-    /// To get the choice, the index of the `ChoiceSet` child item is read from the stack
-    /// at the current level. Then the `Choice` child item of that set is read by either
-    /// the `with_choice` index if given, or if not by reading the stack.
-    ///
-    /// This makes the following assumptions:
-    ///  * The current node has a `ChoiceSet` at index stack[current_level]
-    ///  * If `with_choice` is none, stack[current_level + 1] is present to get the index
-    ///  * The `ChoiceSet` has `Choice` at that index
-    ///
-    /// If any of those assumptions are not true, the stack does not represent the current
-    /// `DialogueTree` as constructed from the root or `follow_with_choice` was called
-    /// with an incorrect choice. An error will be returned.
-    fn follow_stack_to_next_choice(
-        &self,
-        current_level: usize,
-        with_choice: Option<usize>,
-        stack: &Stack,
-    ) -> Result<(&DialogueNode, &NodeItem), InklingError> {
-        let choice_set_index = get_stack_index_for_level(current_level, stack, WhichIndex::Parent)?;
-        let choice_index = match with_choice {
-            Some(index) => index,
-            None => get_stack_index_for_level(current_level + 1, stack, WhichIndex::Child)?,
-        };
-
-        let node_item = self.get_node_item(choice_set_index, current_level, stack)?;
-        let choice_set_node = get_choice_set_node(node_item, choice_set_index, current_level)?;
-
-        let choice_item = choice_set_node
-            .get_node_item(choice_index, current_level + 1, stack)
-            .map_err(|err| {
-                if with_choice.is_some() {
-                    get_invalid_choice_error_stub(node_item, choice_index)
-                } else {
-                    err.into()
-                }
-            })?;
-
-        match get_choice_node(choice_item, choice_index, current_level + 1) {
-            Ok(choice_node) => Ok((choice_node, choice_item)),
-            Err(err) => Err(err.into()),
-        }
-    }
-
-    // Safely get the `NodeItem` at given index.
-    fn get_node_item(
-        &self,
-        index: usize,
-        current_level: usize,
-        stack: &Stack,
-    ) -> Result<&NodeItem, InternalError> {
-        self.items
-            .get(index)
-            .ok_or(InternalError::IncorrectNodeStack {
-                kind: IncorrectNodeStackKind::BadIndices {
-                    node_level: current_level,
-                    index: index,
-                    num_items: self.items.len(),
-                },
-                stack: stack.clone(),
-            })
-    }
+    fn get_item(&self, index: usize) -> Option<&Container>;
+    fn get_item_mut(&mut self, index: usize) -> Option<&mut Container>;
+    fn get_num_items(&self) -> usize;
+    fn get_num_visited(&self) -> u32;
+    fn increment_num_visited(&mut self);
+    fn items(&mut self) -> Vec<&mut Container>;
 }
 
-/// Safely get the the stack index at the current level, either for a parent or child node (which
-/// indicates level + 1 when tracing the error).
-fn get_stack_index_for_level(
-    level: usize,
+fn check_for_invalid_choice<T: Follow>(
+    chosen_branch_index: usize,
+    stack_index: usize,
     stack: &Stack,
-    kind: WhichIndex,
-) -> Result<usize, InternalError> {
-    stack
-        .get(level)
-        .cloned()
-        .ok_or(InternalError::IncorrectNodeStack {
-            kind: IncorrectNodeStackKind::MissingIndices {
-                node_level: level,
-                kind,
-            },
-            stack: stack.clone(),
-        })
-}
+    node: &T,
+) -> Option<InklingError> {
+    let branch_set_index = stack.get(stack_index)?;
 
-/// Get a mutable stack index for the current level. If the current stack has no entry
-/// for the current level, add and return it starting from 0. Return an error if the
-/// stack is incomplete, either by not containing all previous stack entries for nodes
-/// or if it has not been truncated to the current node level.
-fn add_or_get_mut_stack_index_for_level(
-    current_level: usize,
-    stack: &mut Stack,
-) -> Result<&mut usize, InternalError> {
-    if stack.len() < current_level {
-        return Err(InternalError::IncorrectNodeStack {
-            kind: IncorrectNodeStackKind::Gap {
-                node_level: current_level,
-            },
-            stack: stack.clone(),
-        });
-    } else if stack.len() > current_level + 1 {
-        return Err(InternalError::IncorrectNodeStack {
-            kind: IncorrectNodeStackKind::NotTruncated {
-                node_level: current_level,
-            },
-            stack: stack.clone(),
-        });
-    }
-
-    if stack.len() == current_level {
-        stack.push(0);
-    }
-
-    Ok(stack.last_mut().unwrap())
-}
-
-/// Get the `DialogueNode` from a `NodeItem` of `NodeType::ChoiceSet`.
-///
-/// Node level and stack index supplied to return an error.
-fn get_choice_set_node(
-    item: &NodeItem,
-    index: usize,
-    node_level: usize,
-) -> Result<&DialogueNode, InternalError> {
-    match &item {
-        NodeItem::Node {
-            kind: NodeType::ChoiceSet,
-            node,
-        } => Ok(node),
-        _ => Err(InternalError::BadGraph(BadGraphKind::ExpectedNode {
-            index,
-            node_level,
-            expected: NodeItemKind::ChoiceSet,
-            found: item.into(),
-        })),
-    }
-}
-
-/// Get the `DialogueNode` from a `NodeItem` of `NodeType::Choice`.
-///
-/// Node level and stack index supplied to return an error.
-fn get_choice_node(
-    item: &NodeItem,
-    index: usize,
-    node_level: usize,
-) -> Result<&DialogueNode, InternalError> {
-    match &item {
-        NodeItem::Node {
-            kind: NodeType::Choice(..),
-            node,
-        } => Ok(node),
-        _ => Err(InternalError::BadGraph(BadGraphKind::ExpectedNode {
-            index,
-            node_level,
-            expected: NodeItemKind::Choice,
-            found: item.into(),
-        })),
-    }
-}
-
-// This should only ever be called on a `NodeItem` which is a `ChoiceSet`. Since we
-// are calling this internally this should only ever be the case.
-//
-// Node level is supplied to create the error if something goes wrong.
-fn get_choices_from_set(
-    choice_set: &NodeItem,
-    node_level: usize,
-) -> Result<Vec<ChoiceData>, InternalError> {
-    match choice_set {
-        NodeItem::Node {
-            kind: NodeType::ChoiceSet,
-            node,
-        } => node
-            .items
-            .iter()
-            .enumerate()
-            .map(|(index, item)| get_choice_from_node_item(item, index, node_level))
-            .collect(),
-        _ => Err(InternalError::BadGraph(BadGraphKind::ExpectedNode {
-            index: 0,
-            node_level,
-            expected: NodeItemKind::ChoiceSet,
-            found: choice_set.into(),
-        })),
-    }
-}
-
-// This should only ever be called on a `NodeItem` which is a `Choice`. Since we
-// are calling this internally this should only ever be the case.
-//
-// Node level is supplied to create the error if something goes wrong.
-fn get_choice_from_node_item(
-    item: &NodeItem,
-    index: usize,
-    node_level: usize,
-) -> Result<ChoiceData, InternalError> {
-    match item {
-        NodeItem::Node {
-            kind: NodeType::Choice(choice),
-            node,
-        } => {
-            let num_visited = node.num_visited.get();
-
-            Ok(ChoiceData {
-                num_visited,
-                ..choice.clone()
-            })
+    if let Some(Container::BranchingChoice(branches)) = &node.get_item(*branch_set_index) {
+        if chosen_branch_index >= branches.len() {
+            return Some(get_invalid_choice_error_stub(branches, chosen_branch_index))
         }
-        _ => Err(InternalError::BadGraph(BadGraphKind::ExpectedNode {
-            index,
-            node_level,
-            expected: NodeItemKind::Choice,
-            found: item.into(),
-        })),
+    }
+
+    None
+}
+
+fn get_selected_branch<'a, T: Follow + Sized>(
+    chosen_branch_index: usize,
+    stack_index: usize,
+    stack: &Stack,
+    node: &'a mut T,
+) -> Result<&'a mut Branch, InternalError> {
+    let branch_set_index = stack[stack_index];
+    let num_items = node.get_num_items();
+
+    let item = node
+        .get_item_mut(branch_set_index)
+        .ok_or(InternalError::bad_indices(
+            stack_index,
+            branch_set_index,
+            num_items,
+            stack,
+        ))?;
+
+    match item {
+        Container::BranchingChoice(branches) => {
+            branches
+                .get_mut(chosen_branch_index)
+                .ok_or(InternalError::bad_indices(
+                    stack_index + 1,
+                    chosen_branch_index,
+                    num_items,
+                    &stack,
+                ))
+        }
+        err => {
+            unimplemented!();
+        }
+    }
+}
+
+fn get_choices_from_branching_set(branches: &[Branch]) -> Vec<ChoiceData> {
+    branches
+        .iter()
+        .map(|branch| {
+            let num_visited = branch.num_visited;
+
+            ChoiceData {
+                num_visited,
+                ..branch.choice.clone()
+            }
+        })
+        .collect::<Vec<_>>()
+}
+
+fn get_next_level_branch<'a, T: Follow + Sized>(
+    stack_index: usize,
+    stack: &Stack,
+    node: &'a mut T,
+) -> Result<&'a mut Branch, InternalError> {
+    let branch_set_index = stack[stack_index];
+    let branch_index = stack[stack_index + 1];
+    let num_items = node.get_num_items();
+
+    let item = node
+        .get_item_mut(branch_set_index)
+        .ok_or(InternalError::bad_indices(
+            stack_index,
+            branch_set_index,
+            num_items,
+            stack,
+        ))?;
+
+    match item {
+        Container::BranchingChoice(branches) => {
+            branches
+                .get_mut(branch_index)
+                .ok_or(InternalError::bad_indices(
+                    stack_index + 1,
+                    branch_index,
+                    num_items,
+                    stack,
+                ))
+        }
+        _ => {
+            unimplemented!();
+        }
     }
 }
 
@@ -369,15 +228,10 @@ fn get_choice_from_node_item(
 /// The other fields should be filled in by later error handling if needed: this is
 /// the information that the current node has direct access to.
 fn get_invalid_choice_error_stub(
-    choice_set_node_item: &NodeItem,
+    branching_choice_set: &[Branch],
     choice_index: usize,
 ) -> InklingError {
-    let choices = match get_choices_from_set(choice_set_node_item, 0) {
-        Ok(choices) => choices,
-        Err(err) => {
-            return err.into();
-        }
-    };
+    let choices = get_choices_from_branching_set(branching_choice_set);
 
     InklingError::InvalidChoice {
         index: choice_index,
@@ -387,794 +241,610 @@ fn get_invalid_choice_error_stub(
     }
 }
 
+impl Follow for RootNode {
+    fn get_item(&self, index: usize) -> Option<&Container> {
+        self.items.get(index)
+    }
+
+    fn get_item_mut(&mut self, index: usize) -> Option<&mut Container> {
+        self.items.get_mut(index)
+    }
+
+    fn get_num_items(&self) -> usize {
+        self.items.len()
+    }
+
+    fn get_num_visited(&self) -> u32 {
+        self.num_visited
+    }
+
+    fn increment_num_visited(&mut self) {
+        self.num_visited += 1;
+    }
+
+    fn items(&mut self) -> Vec<&mut Container> {
+        self.items.iter_mut().collect()
+    }
+}
+
+use crate::error::*;
+
+impl Follow for Branch {
+    fn get_item(&self, index: usize) -> Option<&Container> {
+        self.items.get(index)
+    }
+
+    fn get_item_mut(&mut self, index: usize) -> Option<&mut Container> {
+        self.items.get_mut(index)
+    }
+
+    fn get_num_items(&self) -> usize {
+        self.items.len()
+    }
+
+    fn get_num_visited(&self) -> u32 {
+        self.num_visited
+    }
+
+    fn increment_num_visited(&mut self) {
+        self.num_visited += 1;
+    }
+
+    fn items(&mut self) -> Vec<&mut Container> {
+        self.items.iter_mut().collect()
+    }
+}
+
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use super::super::node::tests::BranchingChoiceBuilder;
 
-    use std::{
-        ops::{Index, IndexMut},
-        str::FromStr,
+    use crate::line::{
+        choice::tests::ChoiceBuilder as ChoiceDataBuilder,
+        line::tests::LineBuilder as LineDataBuilder,
     };
 
-    use crate::line::{choice::tests::ChoiceBuilder, LineData};
+    // #[test]
+    // fn follow_with_user_choice_not_in_the_set_returns_invalid_choice_error() {
+    //     let choice = 2;
+    //     let choice_set = get_choice_set_with_empty_choices(choice);
+
+    //     let node = DialogueNode::with_items(vec![choice_set]);
+
+    //     let mut buffer = Vec::new();
+    //     let mut stack = vec![0];
+
+    //     match node.follow_with_choice(choice, 0, &mut buffer, &mut stack) {
+    //         Err(InklingError::InvalidChoice { .. }) => (),
+    //         _ => panic!("`InklingError::InvalidChoice` was not yielded"),
+    //     }
+    // }
+
+    // #[test]
+    // fn choice_and_index_collection_when_picking_a_choice_with_a_bad_index() {
+    //     let line1 = LineData::from_str("choice 1").unwrap();
+    //     let line2 = LineData::from_str("choice 2").unwrap();
+
+    //     let choice_set_items = vec![
+    //         NodeItem::Node {
+    //             kind: NodeType::Choice(ChoiceBuilder::empty().with_line(line1).build()),
+    //             node: Box::new(DialogueNode::with_items(vec![])),
+    //         },
+    //         NodeItem::Node {
+    //             kind: NodeType::Choice(ChoiceBuilder::empty().with_line(line2).build()),
+    //             node: Box::new(DialogueNode::with_items(vec![])),
+    //         },
+    //     ];
+
+    //     let node = DialogueNode::with_items(choice_set_items);
+
+    //     let choice_set = NodeItem::Node {
+    //         kind: NodeType::ChoiceSet,
+    //         node: Box::new(node),
+    //     };
+
+    //     let error = get_invalid_choice_error_stub(&choice_set, 2);
+
+    //     match error {
+    //         InklingError::InvalidChoice {
+    //             index,
+    //             choice,
+    //             presented_choices,
+    //             internal_choices,
+    //         } => {
+    //             assert_eq!(index, 2);
+    //             assert_eq!(internal_choices.len(), 2);
+    //             assert_eq!(&internal_choices[0].line.text, "choice 1");
+    //             assert_eq!(&internal_choices[1].line.text, "choice 2");
+
+    //             // Not filled in yet
+    //             assert!(choice.is_none());
+    //             assert!(presented_choices.is_empty());
+    //         }
+    //         _ => panic!(
+    //             "expected an `InklingError::InvalidChoice` object but got {:?}",
+    //             error
+    //         ),
+    //     }
+    // }
 
     #[test]
-    fn follow_a_pure_line_node_adds_lines_to_buffer() {
-        let (line1, item1) = get_line_and_node_item_line("Hello, World!");
-        let (line2, item2) = get_line_and_node_item_line("Hello?");
-        let (line3, item3) = get_line_and_node_item_line("Hello, is anyone there?");
-
-        let node = DialogueNode::with_items(vec![item1, item2, item3]);
-
-        let mut buffer = Vec::new();
-        let mut stack = Vec::new();
-
-        let result = node.follow(0, &mut buffer, &mut stack).unwrap();
-
-        match result {
-            Next::Done => (),
-            Next::Divert(..) => panic!("node should be `Done` but was `Divert`"),
-            Next::ChoiceSet(..) => panic!("node should be `Done` but was `ChoiceSet`"),
-        }
-
-        assert_eq!(buffer.len(), 3);
-        assert_eq!(buffer[0], line1);
-        assert_eq!(buffer[1], line2);
-        assert_eq!(buffer[2], line3);
-    }
-
-    #[test]
-    fn follow_a_node_pushes_last_index_to_stack() {
-        let item = get_node_item_line("");
-
-        let node = DialogueNode::with_items(vec![item.clone(), item]);
-
-        let mut buffer = Vec::new();
-        let mut stack = Vec::new();
-
-        node.follow(0, &mut buffer, &mut stack).unwrap();
-
-        assert_eq!(&stack, &[2]);
-    }
-
-    #[test]
-    fn follow_begins_at_index_from_stack_if_present_for_level_else_creates_it_from_zero() {
-        let (line1, item1) = get_line_and_node_item_line("Hello, World!");
-        let (_, item2) = get_line_and_node_item_line("Hello?");
-        let (line3, item3) = get_line_and_node_item_line("Hello, is anyone there?");
-
-        let node = DialogueNode::with_items(vec![item1, item2, item3]);
-
-        let level = 5;
-
-        let mut buffer = Vec::new();
-        let mut stack = vec![0; level];
-
-        // Index not present in stack
-        node.follow(level, &mut buffer, &mut stack).unwrap();
-        assert_eq!(stack, &[0, 0, 0, 0, 0, 3]);
-        assert_eq!(buffer.len(), 3);
-        assert_eq!(buffer[0], line1);
-
-        // Index present in stack
-        buffer.clear();
-        let start_index = 2;
-        stack[level] = start_index; // Begin from index 2
-
-        node.follow(level, &mut buffer, &mut stack).unwrap();
-        assert_eq!(stack, &[0, 0, 0, 0, 0, 3]);
-        assert_eq!(buffer.len(), 1);
-        assert_eq!(buffer[0], line3);
-    }
-
-    #[test]
-    fn follow_returns_error_if_input_stack_is_longer_than_for_the_current_level() {
-        let node = DialogueNode::with_items(Vec::new());
-
-        let mut buffer = Vec::new();
-        let mut stack = vec![0, 0, 0];
-
-        // Index not present in stack
-        assert!(node.follow(1, &mut buffer, &mut stack).is_err());
-    }
-
-    #[test]
-    fn follow_returns_error_if_stack_max_index_and_current_level_differs_by_2_or_more() {
-        let node = DialogueNode::with_items(Vec::new());
-
-        let mut buffer = Vec::new();
-
-        let mut stack = vec![0; 5]; // max index: 4
-        assert!(node.follow(4, &mut buffer, &mut stack).is_ok());
-
-        stack = vec![0; 5];
-        assert!(node.follow(5, &mut buffer, &mut stack).is_ok());
-
-        stack = vec![0; 5];
-        assert!(node.follow(6, &mut buffer, &mut stack).is_err());
-    }
-
-    #[test]
-    fn follow_line_returns_early_with_divert() {
-        let item = get_node_item_line("Hello, World!");
-
-        let destination = "to_node";
-        let divert = LineKind::Divert(destination.to_string());
-
-        let mut line_divert = LineData::from_str("").unwrap();
-        line_divert.kind = divert.clone();
-
-        let item_divert = get_node_item_with_line(&line_divert);
-
-        let node =
-            DialogueNode::with_items(vec![item.clone(), item.clone(), item_divert, item.clone()]);
-
-        let mut buffer = Vec::new();
-        let mut stack = Vec::new();
-
-        match node.follow(0, &mut buffer, &mut stack).unwrap() {
-            Next::Divert(result) => assert_eq!(result, destination),
-            _ => panic!("node should return a `Divert` but did not"),
-        }
-    }
-
-    #[test]
-    fn follow_line_with_divert_sets_stack_index_to_line_after_divert() {
-        let item = get_node_item_line("Hello, World!");
-
-        let destination = "to_node";
-        let divert = LineKind::Divert(destination.to_string());
-
-        let mut line_divert = LineData::from_str("").unwrap();
-        line_divert.kind = divert.clone();
-
-        let item_divert = get_node_item_with_line(&line_divert);
-
-        let node =
-            DialogueNode::with_items(vec![item.clone(), item_divert, item.clone(), item.clone()]);
-
-        let mut buffer = Vec::new();
-        let mut stack = Vec::new();
-
-        node.follow(0, &mut buffer, &mut stack).unwrap();
-
-        assert_eq!(stack[0], 2);
-    }
-
-    #[test]
-    fn follow_line_with_divert_adds_divert_line_text_to_buffer_before_returning() {
-        let item = get_node_item_line("Hello, World!");
-
-        let destination = "to_node";
-        let divert = LineKind::Divert(destination.to_string());
-        let divert_text = "They moved on to the next scene";
-
-        let mut line_divert = LineData::from_str(divert_text).unwrap();
-        line_divert.kind = divert.clone();
-
-        let item_divert = get_node_item_with_line(&line_divert);
-
-        let node =
-            DialogueNode::with_items(vec![item.clone(), item_divert, item.clone(), item.clone()]);
-
-        let mut buffer = Vec::new();
-        let mut stack = Vec::new();
-
-        node.follow(0, &mut buffer, &mut stack).unwrap();
-
-        assert_eq!(buffer[1], line_divert);
-    }
-
-    #[test]
-    fn follow_into_a_choice_set_returns_the_set() {
-        let item = get_node_item_line("Hello, World!");
-
-        let num_choices = 3;
-        let choice_set = get_choice_set_with_empty_choices(num_choices);
-        let choice_set_copy = get_choice_set_with_empty_choices(num_choices);
-
-        let node = DialogueNode::with_items(vec![item.clone(), choice_set]);
-
-        let mut buffer = Vec::new();
-        let mut stack = Vec::new();
-
-        match node.follow(0, &mut buffer, &mut stack).unwrap() {
-            Next::ChoiceSet(items) => {
-                assert_eq!(items.len(), num_choices);
-
-                for (choice_result, choice_input) in
-                    items.iter().zip(choice_set_copy.node().items.iter())
-                {
-                    assert_eq!(choice_result, choice_input.choice());
-                }
-            }
-            _ => panic!("expected a returned `ChoiceSet` when encountering one but did not get it"),
-        }
-
-        assert_eq!(
-            stack[0], 1,
-            "stack was not set to after the `ChoiceSet` during follow"
-        );
-    }
-
-    #[test]
-    fn follow_into_a_node_increases_its_num_visited_count_by_one_if_the_stack_is_reset() {
-        let node = DialogueNode::with_items(vec![]);
-
-        let mut buffer = Vec::new();
-        let mut stack = Vec::new();
-
-        node.follow(0, &mut buffer, &mut stack).unwrap();
-
-        let num_visited = node.num_visited.get();
-
-        assert_eq!(num_visited, 1);
-    }
-
-    #[test]
-    fn follow_into_a_node_does_not_increase_its_num_visited_count_if_its_active_on_the_stack() {
-        let node = DialogueNode::with_items(vec![]);
-
-        let mut buffer = Vec::new();
-        let mut stack = vec![1];
-
-        node.follow(0, &mut buffer, &mut stack).unwrap();
-
-        let num_visited = node.num_visited.get();
-
-        assert_eq!(num_visited, 0);
-    }
-
-    #[test]
-    fn follow_with_choice_descends_into_that_node_with_a_follow() {
-        let mut choice_set = get_choice_set_with_empty_choices(2);
-        let item1 = get_node_item_line("Hello, world!");
-
-        let line2 = LineData::from_str("Hello?").unwrap();
-        let item2 = get_node_item_with_line(&line2);
-
-        let line3 = LineData::from_str("Hello, is anyone there?").unwrap();
-        let item3 = get_node_item_with_line(&line3);
-
-        // Add two lines to second choice in the set
-        choice_set[1].node_mut().items.push(item2.clone());
-        choice_set[1].node_mut().items.push(item3.clone());
-
-        let node = DialogueNode::with_items(vec![item1.clone(), choice_set]);
-
-        let mut buffer = Vec::new();
-        let mut stack = Vec::new();
-
-        match node.follow(0, &mut buffer, &mut stack).unwrap() {
-            Next::ChoiceSet(..) => (),
-            _ => panic!("after following a `Next::ChoiceSet` was expected, but it wasn't"),
-        }
-
-        node.follow_with_choice(1, stack.len() - 1, &mut buffer, &mut stack)
-            .unwrap();
-
-        assert_eq!(buffer.len(), 3);
-        assert_eq!(buffer[1], line2);
-        assert_eq!(buffer[2], line3);
-    }
-
-    #[test]
-    fn follow_with_choice_updates_stack_when_descending() {
-        let item1 = get_node_item_line("Hello, world!");
-        let mut choice_set = get_choice_set_with_empty_choices(5);
-
-        let choice = 3;
-
-        // Add another ChoiceSet to the used choice
-        choice_set[choice]
-            .node_mut()
-            .items
-            .push(get_choice_set_with_empty_choices(1));
-
-        let node = DialogueNode::with_items(vec![item1, choice_set]);
-
-        let mut buffer = Vec::new();
-        let mut stack = Vec::new();
-
-        match node.follow(0, &mut buffer, &mut stack).unwrap() {
-            Next::ChoiceSet(..) => (),
-            _ => panic!("after following a `Next::ChoiceSet` was expected, but it wasn't"),
-        }
-
-        assert_eq!(&stack, &[1]);
-
-        node.follow_with_choice(choice, 0, &mut buffer, &mut stack)
-            .unwrap();
-
-        assert_eq!(stack, &[1, choice, 0]);
-    }
-
-    #[test]
-    fn follow_with_choice_pops_stack_when_returning_from_choice_set() {
-        let item = get_node_item_line("Hello, world!");
-
-        let node = DialogueNode::with_items(vec![
-            item,
-            get_choice_set_with_empty_choices(1),
-            get_choice_set_with_empty_choices(1),
-        ]);
-
-        let mut buffer = Vec::new();
-        let mut stack = Vec::new();
-
-        match node.follow(0, &mut buffer, &mut stack).unwrap() {
-            Next::ChoiceSet(..) => (),
-            _ => panic!("after following a `Next::ChoiceSet` was expected, but it wasn't"),
-        }
-
-        assert_eq!(&stack, &[1]);
-
-        node.follow_with_choice(0, 0, &mut buffer, &mut stack)
-            .unwrap();
-
-        assert_eq!(&stack, &[2]);
-    }
-
-    #[test]
-    fn follow_with_choice_goes_through_stack_before_selecting() {
-        let item = get_node_item_line("Hello, world!");
-        let (line_target, item_target) = get_line_and_node_item_line("Hello, to you too!");
-
-        let mut stack = vec![1, 1, 1]; // `ChoiceSet` at 1, `Choice` 1, then `ChoiceSet` at 1
-
-        // Choice will be at stack location (1, 1, 1) + choice 1 with a unique line
-        let mut target_choice_set = get_choice_set_with_empty_choices(3);
-        target_choice_set[1]
-            .node_mut()
-            .items
-            .push(item_target.clone());
-
-        // At neighbouring indices (1, 1, 0), (1, 1, 2) we have choice sets with other
-        // lines to ensure that we nested into the correct one
-        let mut target_siblings_choice_set1 = get_choice_set_with_empty_choices(3);
-        target_siblings_choice_set1[1]
-            .node_mut()
-            .items
-            .push(item.clone());
-        let mut target_siblings_choice_set2 = get_choice_set_with_empty_choices(3);
-        target_siblings_choice_set2[1]
-            .node_mut()
-            .items
-            .push(item.clone());
-
-        // This is the choice set container at stack location (1)
-        let mut container_choice_set = get_choice_set_with_empty_choices(3);
-        container_choice_set[1]
-            .node_mut()
-            .items
-            .push(target_siblings_choice_set1);
-        container_choice_set[1]
-            .node_mut()
-            .items
-            .push(target_choice_set);
-        container_choice_set[1]
-            .node_mut()
-            .items
-            .push(target_siblings_choice_set2);
-
-        let node = DialogueNode::with_items(vec![item.clone(), container_choice_set, item.clone()]);
-
-        let mut buffer = Vec::new();
-
-        match node
-            .follow_with_choice(1, 0, &mut buffer, &mut stack)
-            .unwrap()
-        {
-            Next::ChoiceSet(..) => (),
-            _ => panic!("after following a `Next::ChoiceSet` was expected, but it wasn't"),
-        }
-
-        assert_eq!(
-            buffer.len(),
-            1,
-            "buffer after nested follow does not contain the right number of lines"
-        );
-        assert_eq!(
-            buffer[0], line_target,
-            "buffer after nested follow does not contain the target line"
-        );
-    }
-
-    #[test]
-    fn after_follow_with_choice_returns_previous_levels_continue_through_their_children() {
-        let (line1, item1) = get_line_and_node_item_line("Hello, world!");
-        let (line2, item2) = get_line_and_node_item_line("Hello, to you too!");
-
-        let mut stack = vec![0, 0, 0];
-
-        let target_choice_set = get_choice_set_with_empty_choices(3);
-        let mut container_choice_set = get_choice_set_with_empty_choices(3);
-
-        // Add target choice set to container
-        container_choice_set[0]
-            .node_mut()
-            .items
-            .push(target_choice_set);
-
-        // After choice set there is a line that should be added when the choice returns
-        container_choice_set[0].node_mut().items.push(item1);
-
-        let node = DialogueNode::with_items(vec![
-            container_choice_set,
-            // After the first choice set there is a second line that should be added
-            item2,
-        ]);
-
-        let mut buffer = Vec::new();
-
-        match node
-            .follow_with_choice(0, 0, &mut buffer, &mut stack)
-            .unwrap()
-        {
-            Next::Done => (),
-            _ => panic!("after following `Next::Done` was expected, but it wasn't"),
-        }
-
-        assert_eq!(buffer, &[line1, line2]);
-    }
-
-    #[test]
-    fn follow_stack_to_next_choice_returns_next_choice_node_from_stack() {
-        let stack = vec![0, 1]; // Get second choice in set
-
-        let item1 = get_node_item_line("Hello, World!");
-        let (line2, item2) = get_line_and_node_item_line("Hello?");
-
-        let mut choice_set = get_choice_set_with_empty_choices(2);
-
-        choice_set[0].node_mut().items.push(item1.clone());
-
-        choice_set[1].node_mut().items.push(item2.clone());
-
-        let root = DialogueNode::with_items(vec![choice_set]);
-
-        let (node, _) = root.follow_stack_to_next_choice(0, None, &stack).unwrap();
-
-        assert_eq!(node.items.len(), 1);
-        assert_eq!(node.items[0].line(), &line2);
-    }
-
-    #[test]
-    fn follow_stack_to_next_choice_gets_stack_index_for_given_level() {
-        let current_level = 2;
-
-        // 10 is out of bounds, but the current level will give us in bounds indices
-        let stack = vec![10, 10, 0, 1];
-
-        let (line, item) = get_line_and_node_item_line("Hello, World!");
-
-        let mut choice_set = get_choice_set_with_empty_choices(2);
-
-        choice_set[1].node_mut().items.push(item.clone());
-
-        let root = DialogueNode::with_items(vec![choice_set]);
-
-        let (node, _) = root
-            .follow_stack_to_next_choice(current_level, None, &stack)
-            .unwrap();
-
-        assert_eq!(node.items.len(), 1);
-        assert_eq!(node.items[0].line(), &line);
-    }
-
-    #[test]
-    fn follow_stack_to_next_choice_returns_next_choice_node_from_given_choice() {
-        // Same as last test, but while the stack index says to return choice 1,
-        // the explicit choice says 0.
-        let stack = vec![0, 1];
-
-        let (line1, item1) = get_line_and_node_item_line("Hello, World!");
-        let item2 = get_node_item_line("Hello?");
-
-        let mut choice_set = get_choice_set_with_empty_choices(2);
-
-        choice_set[0].node_mut().items.push(item1.clone());
-
-        choice_set[1].node_mut().items.push(item2.clone());
-
-        let root = DialogueNode::with_items(vec![choice_set]);
-
-        let (node, _) = root
-            .follow_stack_to_next_choice(0, Some(0), &stack)
-            .unwrap();
-
-        assert_eq!(node.items.len(), 1);
-        assert_eq!(node.items[0].line(), &line1);
-    }
-
-    #[test]
-    fn follow_with_user_choice_not_in_the_set_returns_invalid_choice_error() {
-        let choice = 2;
-        let choice_set = get_choice_set_with_empty_choices(choice);
-
-        let node = DialogueNode::with_items(vec![choice_set]);
+    fn following_items_in_a_node_adds_lines_to_buffer() {
+        let mut node = RootNodeBuilder::new()
+            .add_line("Line 1")
+            .add_line("Line 2")
+            .build();
 
         let mut buffer = Vec::new();
         let mut stack = vec![0];
 
-        match node.follow_with_choice(choice, 0, &mut buffer, &mut stack) {
-            Err(InklingError::InvalidChoice { .. }) => (),
-            _ => panic!("`InklingError::InvalidChoice` was not yielded"),
-        }
+        assert_eq!(node.follow(&mut stack, &mut buffer).unwrap(), Next::Done);
+
+        assert_eq!(buffer.len(), 2);
+        assert_eq!(&buffer[0].text, "Line 1");
+        assert_eq!(&buffer[1].text, "Line 2");
     }
 
     #[test]
-    fn choice_and_index_collection_when_picking_a_choice_with_a_bad_index() {
-        let line1 = LineData::from_str("choice 1").unwrap();
-        let line2 = LineData::from_str("choice 2").unwrap();
+    fn following_into_a_node_increments_number_of_visits() {
+        let mut node = RootNodeBuilder::new().add_line("Line 1").build();
 
-        let choice_set_items = vec![
-            NodeItem::Node {
-                kind: NodeType::Choice(ChoiceBuilder::empty().with_line(line1).build()),
-                node: Box::new(DialogueNode::with_items(vec![])),
-            },
-            NodeItem::Node {
-                kind: NodeType::Choice(ChoiceBuilder::empty().with_line(line2).build()),
-                node: Box::new(DialogueNode::with_items(vec![])),
-            },
-        ];
+        let mut buffer = Vec::new();
 
-        let node = DialogueNode::with_items(choice_set_items);
+        assert_eq!(node.num_visited, 0);
 
-        let choice_set = NodeItem::Node {
-            kind: NodeType::ChoiceSet,
-            node: Box::new(node),
-        };
+        node.follow(&mut vec![0], &mut buffer).unwrap();
+        node.follow(&mut vec![0], &mut buffer).unwrap();
 
-        let error = get_invalid_choice_error_stub(&choice_set, 2);
-
-        match error {
-            InklingError::InvalidChoice {
-                index,
-                choice,
-                presented_choices,
-                internal_choices,
-            } => {
-                assert_eq!(index, 2);
-                assert_eq!(internal_choices.len(), 2);
-                assert_eq!(&internal_choices[0].line.text, "choice 1");
-                assert_eq!(&internal_choices[1].line.text, "choice 2");
-
-                // Not filled in yet
-                assert!(choice.is_none());
-                assert!(presented_choices.is_empty());
-            }
-            _ => panic!(
-                "expected an `InklingError::InvalidChoice` object but got {:?}",
-                error
-            ),
-        }
+        assert_eq!(node.num_visited, 2);
     }
 
     #[test]
-    fn get_choice_from_node_item_sets_the_number_of_visits() {
-        let line = LineData::from_str("").unwrap();
-        let choice = ChoiceBuilder::empty()
-            .with_line(line)
-            .with_num_visited(5)
+    fn following_items_updates_stack() {
+        let mut node = RootNodeBuilder::new()
+            .add_line("Line 1")
+            .add_line("Line 2")
             .build();
 
-        let node = DialogueNode::with_items(vec![]);
-        node.num_visited.set(5);
+        let mut buffer = Vec::new();
+        let mut stack = vec![0];
 
-        let item = NodeItem::Node {
-            kind: NodeType::Choice(choice),
-            node: Box::new(node),
-        };
-
-        let result = get_choice_from_node_item(&item, 0, 0).unwrap();
-        assert_eq!(result.num_visited, 5);
+        node.follow(&mut stack, &mut buffer).unwrap();
+        assert_eq!(stack[0], 2);
     }
 
-    /***************************************************
-     * Helper functions to do test assertion and debug *
-     ***************************************************/
+    #[test]
+    fn following_items_starts_from_stack() {
+        let mut node = RootNodeBuilder::new()
+            .add_line("Line 1")
+            .add_line("Line 2")
+            .build();
 
-    impl DialogueNode {
-        // Return a string representation of the entire graph of nodes.
-        pub fn display(&self) -> String {
-            let mut buffer = String::new();
+        let mut buffer = Vec::new();
+        let mut stack = vec![1];
 
-            for item in &self.items {
-                item.display_indent(&mut buffer, 0);
-            }
+        node.follow(&mut stack, &mut buffer).unwrap();
 
-            buffer
-        }
+        assert_eq!(&buffer[0].text, "Line 2");
+        assert_eq!(stack[0], 2);
     }
 
-    impl NodeItem {
-        // If this is another node (`NodeItem::Node`), return a string representation
-        // of the entire graph spawning from it.
-        pub fn display(&self) -> String {
-            let mut buffer = String::new();
+    #[test]
+    fn follow_always_uses_last_position_in_stack() {
+        let mut node = RootNodeBuilder::new()
+            .add_line("Line 1")
+            .add_line("Line 2")
+            .add_line("Line 3")
+            .build();
 
-            self.display_indent(&mut buffer, 0);
+        let mut buffer = Vec::new();
 
-            buffer
-        }
+        let mut stack = vec![0, 2, 1];
 
-        // Recursively descend into children, writing their structure into the buffer
-        // with indents added for every level.
-        pub fn display_indent(&self, buffer: &mut String, level: usize) {
-            let indent = format!("{:width$}", ' ', width = 4 * level);
+        node.follow(&mut stack, &mut buffer).unwrap();
 
-            match self {
-                NodeItem::Line(line) => {
-                    let s = format!("{indent}Line(\"{}\")\n", &line.text, indent = indent);
-                    buffer.push_str(&s);
-                }
+        assert_eq!(buffer.len(), 2);
+        assert_eq!(&buffer[0].text, "Line 2");
+        assert_eq!(&buffer[1].text, "Line 3");
+    }
 
-                NodeItem::Node { kind, node } => {
-                    let variant = match kind {
-                        NodeType::ChoiceSet => "ChoiceSet [\n",
-                        NodeType::Choice(..) => "Choice [\n",
-                    };
+    #[test]
+    fn following_into_a_node_does_not_increment_number_of_visits_if_stack_is_non_zero() {
+        let mut node = RootNodeBuilder::new()
+            .add_line("Line 1")
+            .add_line("Line 2")
+            .build();
 
-                    let s = format!("{indent}{}", variant, indent = indent);
-                    buffer.push_str(&s);
+        let mut buffer = Vec::new();
 
-                    for item in &node.items {
-                        item.display_indent(buffer, level + 1);
-                    }
+        assert_eq!(node.num_visited, 0);
 
-                    let s = format!("{indent}]\n", indent = indent);
-                    buffer.push_str(&s);
-                }
+        node.follow(&mut vec![1], &mut buffer).unwrap();
+
+        assert_eq!(node.num_visited, 0);
+    }
+
+    #[test]
+    fn following_into_line_with_divert_immediately_returns_it() {
+        let mut node = RootNodeBuilder::new()
+            .add_line("Line 1")
+            .add_line("Divert -> divert")
+            .add_line("Line 2")
+            .build();
+
+        let mut buffer = Vec::new();
+        let mut stack = vec![0];
+
+        assert_eq!(
+            node.follow(&mut stack, &mut buffer).unwrap(),
+            Next::Divert("divert".to_string())
+        );
+
+        assert_eq!(buffer.len(), 2);
+        assert_eq!(&buffer[0].text, "Line 1");
+        assert_eq!(buffer[1].text.trim(), "Divert");
+    }
+
+    #[test]
+    fn encountering_a_branching_choice_returns_the_choice_data() {
+        let choice1 = ChoiceDataBuilder::empty()
+            .with_displayed(LineDataBuilder::new("Choice 1").build())
+            .build();
+        let choice2 = ChoiceDataBuilder::empty()
+            .with_displayed(LineDataBuilder::new("Choice 2").build())
+            .build();
+
+        let branching_choice_set = BranchingChoiceBuilder::new()
+            .add_branch(BranchBuilder::with_choice(choice1.clone()).build())
+            .add_branch(BranchBuilder::with_choice(choice2.clone()).build())
+            .build();
+
+        let mut node = RootNodeBuilder::new()
+            .add_branching_choice(branching_choice_set)
+            .build();
+
+        let mut buffer = Vec::new();
+        let mut stack = vec![0];
+
+        match node.follow(&mut stack, &mut buffer).unwrap() {
+            Next::ChoiceSet(choice_set) => {
+                assert_eq!(choice_set.len(), 2);
+                assert_eq!(choice_set[0], choice1);
+                assert_eq!(choice_set[1], choice2);
             }
-        }
-
-        // If `Self` is `NodeItem::Node`, return the length of its direct children.
-        // Panics if `Self` is not `Node`.
-        pub fn len(&self) -> usize {
-            match self {
-                NodeItem::Node { node, .. } => node.items.len(),
-                _ => panic!("expected a `Node` but found {:?}", self),
-            }
-        }
-
-        // If `Self` is `NodeItem::Node` and kind is `NodeType::Choice`, return the choice.
-        // Panics if `Self` is otherwise.
-        pub fn choice(&self) -> &ChoiceData {
-            match self {
-                NodeItem::Node {
-                    kind: NodeType::Choice(choice),
-                    ..
-                } => &choice,
-                _ => panic!(
-                    "expected a `Node` with kind `NodeType::Choice` but found {:?}",
-                    self
-                ),
-            }
-        }
-
-        // If `Self` is `NodeItem::Line`, return the boxed line.
-        // Panics if `Self` is not `Line`.
-        pub fn line(&self) -> &LineData {
-            match self {
-                NodeItem::Line(line) => &line,
-                _ => panic!("expected a `LineData` but found {:?}", self),
-            }
-        }
-
-        // If `Self` is `NodeItem::Node`, return the boxed `Node`.
-        // Panics if `Self` is not `Node`.
-        pub fn node(&self) -> &DialogueNode {
-            match self {
-                NodeItem::Node { node, .. } => &node,
-                _ => panic!("expected a `Node` but found {:?}", self),
-            }
-        }
-
-        // If `Self` is `NodeItem::Node`, return the boxed `Node`.
-        // Panics if `Self` is not `Node`.
-        pub fn node_mut(&mut self) -> &mut DialogueNode {
-            match self {
-                NodeItem::Node { ref mut node, .. } => node,
-                _ => panic!("expected a `Node` but found {:?}", self),
-            }
-        }
-
-        // Return `true` if `Self` is both `NodeItem::Node` and its kind is `NodeType::Choice`.
-        pub fn is_choice(&self) -> bool {
-            match self {
-                NodeItem::Node {
-                    kind: NodeType::Choice(..),
-                    ..
-                } => true,
-                _ => false,
-            }
-        }
-
-        // Return `true` if `Self` is `NodeItem::Line`.
-        pub fn is_line(&self) -> bool {
-            match self {
-                NodeItem::Line(..) => true,
-                _ => false,
-            }
-        }
-
-        // Return `true` if `Self` is both `NodeItem::Node` and its kind is `NodeType::ChoiceSet`.
-        pub fn is_choice_set(&self) -> bool {
-            match self {
-                NodeItem::Node {
-                    kind: NodeType::ChoiceSet,
-                    ..
-                } => true,
-                _ => false,
-            }
+            other => panic!("expected a `Next::ChoiceSet` but got {:?}", other),
         }
     }
 
-    // Implement cloning for `NodeItem::Line` objects.
-    impl Clone for NodeItem {
-        fn clone(&self) -> Self {
-            match self {
-                NodeItem::Line(line) => NodeItem::Line(line.clone()),
-                _ => panic!("tried to clone a `Node` which is not implemented"),
+    #[test]
+    fn encountering_a_branching_choice_keeps_stack_at_that_index() {
+        let choice1 = ChoiceDataBuilder::empty()
+            .with_displayed(LineDataBuilder::new("Choice 1").build())
+            .build();
+        let choice2 = ChoiceDataBuilder::empty()
+            .with_displayed(LineDataBuilder::new("Choice 2").build())
+            .build();
+
+        let branching_choice_set = BranchingChoiceBuilder::new()
+            .add_branch(BranchBuilder::with_choice(choice1.clone()).build())
+            .add_branch(BranchBuilder::with_choice(choice2.clone()).build())
+            .build();
+
+        let mut node = RootNodeBuilder::new()
+            .add_line("Line 1")
+            .add_branching_choice(branching_choice_set)
+            .build();
+
+        let mut buffer = Vec::new();
+        let mut stack = vec![0];
+
+        node.follow(&mut stack, &mut buffer).unwrap();
+
+        assert_eq!(stack[0], 1);
+    }
+
+    #[test]
+    fn following_with_choice_follows_from_last_position_in_stack() {
+        let choice = ChoiceDataBuilder::empty()
+            .with_displayed(LineDataBuilder::new("Choice").build())
+            .build();
+
+        let empty_choice = ChoiceDataBuilder::empty()
+            .with_displayed(LineDataBuilder::new("").build())
+            .build();
+
+        let empty_branch = BranchBuilder::with_choice(empty_choice.clone()).build();
+
+        let nested_branching_choice = BranchingChoiceBuilder::new()
+            .add_branch(empty_branch.clone())
+            .add_branch(
+                BranchBuilder::with_choice(choice.clone()) // Stack: [1, 2, 2], Choice: 1
+                    .add_line("Line 3")
+                    .add_line("Line 4")
+                    .build(),
+            )
+            .add_branch(empty_branch.clone())
+            .build();
+
+        let nested_branch = BranchBuilder::with_choice(choice.clone())
+            .add_line("Line 2")
+            .add_branching_choice(nested_branching_choice) // Stack: [1, 2, 1]
+            .build();
+
+        let root_branching_choice = BranchingChoiceBuilder::new()
+            .add_branch(empty_branch.clone())
+            .add_branch(empty_branch.clone())
+            .add_branch(nested_branch) // Stack: [1, 2]
+            .build();
+
+        let mut node = RootNodeBuilder::new()
+            .add_line("Line 1")
+            .add_branching_choice(root_branching_choice) // Stack: [1]
+            .add_line("Line 5")
+            .build();
+
+        let mut buffer = Vec::new();
+        let mut stack = vec![1, 2, 2];
+
+        node.follow_with_choice(1, 0, &mut stack, &mut buffer)
+            .unwrap();
+
+        assert_eq!(&buffer[1].text, "Line 3");
+        assert_eq!(&buffer[2].text, "Line 4");
+    }
+
+    #[test]
+    fn after_finishing_with_a_branch_lower_nodes_return_to_their_content() {
+        let choice = ChoiceDataBuilder::empty()
+            .with_displayed(LineDataBuilder::new("Choice").build())
+            .build();
+
+        let mut node = RootNodeBuilder::new()
+            .add_branching_choice(
+                BranchingChoiceBuilder::new()
+                    .add_branch(BranchBuilder::with_choice(choice).build())
+                    .build(),
+            )
+            .add_line("Line 1")
+            .build();
+
+        let mut buffer = Vec::new();
+        let mut stack = vec![0];
+
+        node.follow_with_choice(0, 0, &mut stack, &mut buffer)
+            .unwrap();
+
+        assert_eq!(buffer.len(), 2);
+        assert_eq!(&buffer[1].text, "Line 1");
+
+        assert_eq!(&stack, &[2]);
+    }
+
+    #[test]
+    fn selected_branches_have_their_number_of_visits_number_incremented() {
+        let choice = ChoiceDataBuilder::empty()
+            .with_displayed(LineDataBuilder::new("Choice").build())
+            .build();
+
+        let mut node = RootNodeBuilder::new()
+            .add_branching_choice(
+                BranchingChoiceBuilder::new()
+                    .add_branch(BranchBuilder::with_choice(choice.clone()).build())
+                    .add_branch(BranchBuilder::with_choice(choice.clone()).build())
+                    .add_branch(BranchBuilder::with_choice(choice.clone()).build())
+                    .build(),
+            )
+            .build();
+
+        let mut buffer = Vec::new();
+        let mut stack = vec![0];
+
+        node.follow_with_choice(1, 0, &mut stack, &mut buffer)
+            .unwrap();
+
+        match &node.items[0] {
+            Container::BranchingChoice(branches) => {
+                assert_eq!(branches[0].num_visited, 0);
+                assert_eq!(branches[1].num_visited, 1);
+                assert_eq!(branches[2].num_visited, 0);
             }
+            _ => unreachable!(),
         }
     }
 
-    // If `Self` is `NodeItem::Node`, return the child item with given index.
-    // Panics if `Self` is not `Node`.
-    impl Index<usize> for NodeItem {
-        type Output = Self;
+    #[test]
+    fn encountered_choices_return_with_their_number_of_visits_counter() {
+        let choice = ChoiceDataBuilder::empty()
+            .with_displayed(LineDataBuilder::new("Choice").build())
+            .build();
 
-        fn index(&self, index: usize) -> &Self::Output {
-            match self {
-                NodeItem::Node { node, .. } => &node.items[index],
-                _ => panic!("expected a `Node` but found {:?}", self),
+        let mut node = RootNodeBuilder::new()
+            .add_branching_choice(
+                BranchingChoiceBuilder::new()
+                    .add_branch(BranchBuilder::with_choice(choice.clone()).build())
+                    .build(),
+            )
+            .build();
+
+        let mut buffer = Vec::new();
+
+        node.follow_with_choice(0, 0, &mut vec![0], &mut buffer)
+            .unwrap();
+        node.follow_with_choice(0, 0, &mut vec![0], &mut buffer)
+            .unwrap();
+        node.follow_with_choice(0, 0, &mut vec![0], &mut buffer)
+            .unwrap();
+
+        match node.follow(&mut vec![0], &mut buffer).unwrap() {
+            Next::ChoiceSet(branches) => {
+                assert_eq!(branches[0].num_visited, 3);
             }
+            other => panic!("expected a `Next::ChoiceSet` but got {:?}", other),
         }
     }
 
-    // If `Self` is `NodeItem::Node`, return the child item with given index.
-    // Panics if `Self` is not `Node`.
-    impl IndexMut<usize> for NodeItem {
-        fn index_mut(&mut self, index: usize) -> &mut Self::Output {
-            match self {
-                NodeItem::Node { node, .. } => &mut node.items[index],
-                _ => panic!("expected a `Node` but found {:?}", self),
-            }
+    #[test]
+    fn selected_branches_adds_line_text_to_line_buffer() {
+        let choice = ChoiceDataBuilder::empty()
+            .with_line(LineDataBuilder::new("Choice").build())
+            .build();
+
+        let mut node = RootNodeBuilder::new()
+            .add_branching_choice(
+                BranchingChoiceBuilder::new()
+                    .add_branch(BranchBuilder::with_choice(choice.clone()).build())
+                    .build(),
+            )
+            .build();
+
+        let mut buffer = Vec::new();
+        let mut stack = vec![0];
+
+        node.follow_with_choice(0, 0, &mut stack, &mut buffer)
+            .unwrap();
+
+        assert_eq!(&buffer[0].text, "Choice");
+    }
+
+    #[test]
+    fn diverts_found_after_selections_are_returned() {
+        let choice = ChoiceDataBuilder::empty()
+            .with_line(LineDataBuilder::new("Choice").with_divert("divert").build())
+            .build();
+
+        let mut node = RootNodeBuilder::new()
+            .add_branching_choice(
+                BranchingChoiceBuilder::new()
+                    .add_branch(BranchBuilder::with_choice(choice.clone()).build())
+                    .build(),
+            )
+            .build();
+
+        let mut buffer = Vec::new();
+        let mut stack = vec![0];
+
+        assert_eq!(
+            node.follow_with_choice(0, 0, &mut stack, &mut buffer)
+                .unwrap(),
+            Next::Divert("divert".to_string())
+        );
+    }
+
+    #[test]
+    fn following_into_nested_branches_works() {
+        let choice = ChoiceDataBuilder::empty()
+            .with_line(LineDataBuilder::new("Choice").build())
+            .build();
+
+        let nested_branch = BranchingChoiceBuilder::new()
+            .add_branch(BranchBuilder::with_choice(choice.clone()).build())
+            .build();
+
+        let branch_set = BranchingChoiceBuilder::new()
+            .add_branch(
+                BranchBuilder::with_choice(choice.clone())
+                    .add_branching_choice(nested_branch)
+                    .build(),
+            )
+            .build();
+
+        let mut node = RootNodeBuilder::new()
+            .add_branching_choice(branch_set)
+            .build();
+
+        let mut buffer = Vec::new();
+        let mut stack = vec![0];
+
+        match node
+            .follow_with_choice(0, 0, &mut stack, &mut buffer)
+            .unwrap()
+        {
+            Next::ChoiceSet(branches) => assert_eq!(branches.len(), 1),
+            other => panic!("expected a `ChoiceSet` but got {:?}", other),
         }
     }
 
-    pub fn get_node_item_line(s: &str) -> NodeItem {
-        NodeItem::Line(LineData::from_str(s).unwrap())
+    #[test]
+    fn after_a_followed_choice_returns_the_caller_nodes_always_follow_into_their_next_lines() {
+        let choice = ChoiceDataBuilder::empty()
+            .with_line(LineDataBuilder::new("Choice").build())
+            .build();
+
+        let nested_branch = BranchingChoiceBuilder::new()
+            .add_branch(
+                BranchBuilder::with_choice(choice.clone())
+                    .add_line("Line 1")
+                    .build(),
+            )
+            .build();
+
+        let branch_set = BranchingChoiceBuilder::new()
+            .add_branch(
+                BranchBuilder::with_choice(choice.clone())
+                    .add_branching_choice(nested_branch)
+                    .add_line("Line 2")
+                    .build(),
+            )
+            .build();
+
+        let mut node = RootNodeBuilder::new()
+            .add_branching_choice(
+                BranchingChoiceBuilder::new()
+                    .add_branch(
+                        BranchBuilder::with_choice(choice.clone())
+                            .add_branching_choice(
+                                BranchingChoiceBuilder::new()
+                                    .add_branch(
+                                        BranchBuilder::with_choice(choice.clone())
+                                            .add_branching_choice(
+                                                BranchingChoiceBuilder::new()
+                                                    .add_branch(
+                                                        BranchBuilder::with_choice(choice.clone())
+                                                            .add_line("Line 1")
+                                                            .build(),
+                                                    )
+                                                    .build(),
+                                            )
+                                            .add_line("Line 2")
+                                            .build(),
+                                    )
+                                    .build(),
+                            )
+                            .add_line("Line 3")
+                            .build(),
+                    )
+                    .build(),
+            )
+            .add_line("Line 4")
+            .build();
+
+        let mut buffer = Vec::new();
+        let mut stack = vec![0];
+
+        node.follow_with_choice(0, 0, &mut stack, &mut buffer)
+            .unwrap();
+        node.follow_with_choice(0, 0, &mut stack, &mut buffer)
+            .unwrap();
+        node.follow_with_choice(0, 0, &mut stack, &mut buffer)
+            .unwrap();
+
+        dbg!(&buffer);
+
+        assert_eq!(buffer.len(), 7);
+        assert_eq!(&buffer[3].text, "Line 1");
+        assert_eq!(&buffer[4].text, "Line 2");
+        assert_eq!(&buffer[5].text, "Line 3");
+        assert_eq!(&buffer[6].text, "Line 4");
     }
 
-    pub fn get_node_item_with_line(line: &LineData) -> NodeItem {
-        NodeItem::Line(line.clone())
-    }
+    #[test]
+    fn following_with_empty_stack_raises_error() {
+        let mut node = RootNodeBuilder::new().add_line("Line 1").build();
 
-    pub fn get_line_and_node_item_line(s: &str) -> (LineData, NodeItem) {
-        let line = LineData::from_str(s).unwrap();
-        let item = NodeItem::Line(line.clone());
+        let mut buffer = Vec::new();
 
-        (line, item)
-    }
-
-    pub fn get_choice_set_with_empty_choices(num: usize) -> NodeItem {
-        let empty_choice = ChoiceData::empty();
-
-        let items = (0..num)
-            .map(|_| NodeItem::Node {
-                kind: NodeType::Choice(empty_choice.clone()),
-                node: Box::new(DialogueNode::with_items(Vec::new())),
-            })
-            .collect::<Vec<_>>();
-
-        let node = DialogueNode::with_items(items);
-
-        NodeItem::Node {
-            kind: NodeType::ChoiceSet,
-            node: Box::new(node),
-        }
+        assert!(node.follow(&mut vec![], &mut buffer).is_err());
     }
 }

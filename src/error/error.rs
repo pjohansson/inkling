@@ -3,7 +3,7 @@
 use crate::{
     line::ChoiceData,
     line::ProcessError,
-    node::{NodeItem, NodeType, Stack},
+    node::Stack,
     story::{Address, Choice},
 };
 
@@ -66,9 +66,6 @@ pub enum InvalidAddressError {
 pub enum InternalError {
     /// The internal stack of knots is inconsistent or has not been set properly.
     BadKnotStack(StackError),
-    /// The graph of `DialogueNode`s has an incorrect structure. This can be that `Choice`s
-    /// are not properly nested under `ChoiceSet` nodes.
-    BadGraph(BadGraphKind),
     /// The current stack is not properly representing the graph or has some indexing problems.
     IncorrectNodeStack {
         kind: IncorrectNodeStackKind,
@@ -205,17 +202,6 @@ impl fmt::Display for InternalError {
         use StackError::*;
 
         match self {
-            BadGraph(BadGraphKind::ExpectedNode {
-                index,
-                node_level,
-                expected,
-                found,
-            }) => write!(
-                f,
-                "Expected a `DialogueNode` that is a {:?} but got a {:?} \
-                 (node level: {}, index: {})",
-                expected, found, node_level, index
-            ),
             BadKnotStack(err) => match err {
                 BadAddress {
                     address: Address { knot, stitch },
@@ -280,23 +266,6 @@ impl fmt::Display for InternalError {
 }
 
 #[derive(Clone, Debug)]
-/// Error variant associated with the `DialogueNode` graph being poorly constructed.
-pub enum BadGraphKind {
-    /// Tried to access a `NodeItem` assuming that it was of a particular kind,
-    /// but it was not.
-    ExpectedNode {
-        /// Index of item in parent list.
-        index: usize,
-        /// Level of parent `DialogueNode`.
-        node_level: usize,
-        /// Expected kind.
-        expected: NodeItemKind,
-        /// Encountered kind.
-        found: NodeItemKind,
-    },
-}
-
-#[derive(Clone, Debug)]
 pub enum StackError {
     /// No stack has been set in the system, but a follow was requested. This should not happen.
     NoStack,
@@ -307,30 +276,6 @@ pub enum StackError {
     /// When creating the initial stack after constructing the knots, the root knot was not
     /// present in the set.
     NoRootKnot { knot_name: String },
-}
-
-#[derive(Clone, Debug)]
-/// Simple representation of what a `NodeItem` is.
-pub enum NodeItemKind {
-    Line,
-    Choice,
-    ChoiceSet,
-}
-
-impl From<&NodeItem> for NodeItemKind {
-    fn from(item: &NodeItem) -> Self {
-        match item {
-            NodeItem::Line(..) => NodeItemKind::Line,
-            NodeItem::Node {
-                kind: NodeType::Choice(..),
-                ..
-            } => NodeItemKind::Choice,
-            NodeItem::Node {
-                kind: NodeType::ChoiceSet,
-                ..
-            } => NodeItemKind::ChoiceSet,
-        }
-    }
 }
 
 #[derive(Clone, Debug)]
