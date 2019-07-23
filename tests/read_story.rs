@@ -403,7 +403,7 @@ fn gathers_collect_nested_choices_in_story() {
     let content = "
     
 Gesicht met with Brando. 
-They travelled to his aparment by car.
+They travelled to his apartment by car.
 *   “That was an impressive match, Brando.”
     “It's getting tougher and tougher these days,” he replied.
     * *     “Your opponents all wear the same pancreatic suits.

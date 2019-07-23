@@ -3,7 +3,7 @@ use crate::{
     error::{KnotError, KnotNameError},
     follow::{FollowResult, LineDataBuffer, Next},
     line::ParsedLine,
-    node::{DialogueNode, Stack},
+    node::{DialogueNode, Follow, RootNode, Stack},
 };
 
 #[cfg(feature = "serde_support")]
@@ -32,7 +32,8 @@ pub struct Knot {
 /// Stitches contain the actual story content and are grouped in larger `Knot`s.
 pub struct Stitch {
     /// Graph of story content, which may or may not branch.
-    pub(crate) root: DialogueNode,
+    // pub(crate) root: DialogueNode,
+    pub(crate) root: RootNode,
     /// Last recorded position inside the `root` graph of content.
     stack: Stack,
     /// Number of times this stitch has been diverted to.
@@ -42,10 +43,10 @@ pub struct Stitch {
 impl Stitch {
     /// Follow a story while reading every line into a buffer.
     pub fn follow(&mut self, buffer: &mut LineDataBuffer) -> FollowResult {
-        let result = self.root.follow(0, buffer, &mut self.stack)?;
+        let result = self.root.follow(&mut self.stack, buffer)?;
 
         match &result {
-            Next::Done | Next::Divert(..) => self.stack.clear(),
+            Next::Done | Next::Divert(..) => self.reset_stack(),
             Next::ChoiceSet(..) => (),
         }
 
@@ -60,10 +61,10 @@ impl Stitch {
     ) -> FollowResult {
         let result = self
             .root
-            .follow_with_choice(choice_index, 0, buffer, &mut self.stack)?;
+            .follow_with_choice(choice_index, 0, &mut self.stack, buffer)?;
 
         match result {
-            Next::Done | Next::Divert(..) => self.stack.clear(),
+            Next::Done | Next::Divert(..) => self.reset_stack(),
             _ => (),
         }
 
@@ -75,13 +76,19 @@ impl Stitch {
             .into_iter()
             .map(|line| ParsedLine::from_str(line).unwrap())
             .collect::<Vec<_>>();
-        let root = DialogueNode::from_lines(&parsed_lines);
+
+        // let root = DialogueNode::from_lines(&parsed_lines);
+        let root = RootNode::from_lines(&parsed_lines);
 
         Ok(Stitch {
             root,
-            stack: Vec::new(),
+            stack: vec![0],
             num_visited: 0,
         })
+    }
+
+    fn reset_stack(&mut self) {
+        self.stack = vec![0];
     }
 }
 
@@ -151,11 +158,12 @@ mod tests {
 
         fn from_str(content: &str) -> Result<Self, Self::Err> {
             let lines = parse_lines(content)?;
-            let root = DialogueNode::from_lines(&lines);
+            // let root = DialogueNode::from_lines(&lines);
+            let root = RootNode::from_lines(&lines);
 
             Ok(Stitch {
                 root,
-                stack: Vec::new(),
+                stack: vec![0],
                 num_visited: 0,
             })
         }
@@ -256,7 +264,7 @@ mod tests {
     }
 
     #[test]
-    fn when_a_knot_is_finished_after_a_choice_the_stack_is_reset() {
+    fn when_a_knot_is_finished_the_stack_is_reset() {
         let text = "\
 * Choice 1
 * Choice 2
@@ -267,10 +275,10 @@ mod tests {
         let mut buffer = Vec::new();
 
         knot.follow(&mut buffer).unwrap();
-        assert!(!knot.stack.is_empty());
+        assert_eq!(&knot.stack, &[0]);
 
         knot.follow_with_choice(0, &mut buffer).unwrap();
-        assert!(knot.stack.is_empty());
+        assert_eq!(&knot.stack, &[0]);
     }
 
     #[test]
@@ -330,15 +338,15 @@ mod tests {
 
         let mut results_choice1 = LineDataBuffer::new();
 
-        knot.follow(&mut results_choice1).unwrap();
-        knot.follow_with_choice(0, &mut results_choice1).unwrap();
-        knot.stack.clear();
+        knot.follow(&mut results_choice1).expect("one");
+        knot.follow_with_choice(0, &mut results_choice1)
+            .expect("two");
 
         let mut results_choice2 = LineDataBuffer::new();
 
-        knot.follow(&mut results_choice2).unwrap();
-        knot.follow_with_choice(1, &mut results_choice2).unwrap();
-        knot.stack.clear();
+        knot.follow(&mut results_choice2).expect("three");
+        knot.follow_with_choice(1, &mut results_choice2)
+            .expect("four");
 
         assert_eq!(results_choice1[3], results_choice2[2]);
         assert_eq!(results_choice1[4], results_choice2[3]);
@@ -364,11 +372,16 @@ Line 6
         let mut buffer = LineDataBuffer::new();
 
         knot.follow(&mut buffer).unwrap();
+        eprintln!("zero");
         knot.follow_with_choice(0, &mut buffer).unwrap();
+        eprintln!("first");
         knot.follow_with_choice(1, &mut buffer).unwrap();
+        eprintln!("second");
         knot.follow_with_choice(0, &mut buffer).unwrap();
+        eprintln!("third");
 
-        assert_eq!(buffer.len(), 6 + 3);
+        // Four lines in choice, three choice lines and two lines after the gather
+        assert_eq!(buffer.len(), 4 + 3 + 2);
     }
 
     #[test]

@@ -10,14 +10,18 @@ use crate::{
 
 use std::str::FromStr;
 
-type ProcessError = String;
+#[cfg(feature = "serde_support")]
+use serde::{Deserialize, Serialize};
 
-trait Process {
+pub type ProcessError = String;
+
+pub trait Process {
     fn process(&mut self, buffer: &mut LineDataBuffer) -> Result<Next, ProcessError>;
 }
 
-#[derive(Debug)]
-struct Line {
+#[derive(Clone, Debug)]
+#[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
+pub struct Line {
     conditions: Vec<Condition>,
     items: Vec<Container>,
 }
@@ -36,8 +40,9 @@ impl Process for Line {
     }
 }
 
-#[derive(Debug)]
-enum Container {
+#[derive(Clone, Debug)]
+#[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
+pub enum Container {
     Alternative(Alternative),
     Text(LineData),
 }
@@ -58,14 +63,16 @@ impl Process for Container {
     }
 }
 
-#[derive(Debug)]
-struct Alternative {
+#[derive(Clone, Debug)]
+#[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
+pub struct Alternative {
     current_index: Option<usize>,
     kind: AlternativeKind,
     items: Vec<Line>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
+#[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
 enum AlternativeKind {
     Cycle,
     OnceOnly,
@@ -116,26 +123,31 @@ impl Process for Alternative {
     }
 }
 
-struct LineBuilder {
+pub struct LineBuilder {
     items: Vec<Container>,
 }
 
 impl LineBuilder {
-    fn new() -> Self {
+    pub fn new() -> Self {
         LineBuilder { items: Vec::new() }
     }
 
-    fn add_item(mut self, item: Container) -> Self {
+    pub fn add_item(mut self, item: Container) -> Self {
         self.items.push(item);
         self
     }
 
-    fn add_text(mut self, text: &str) -> Result<Self, ParseError> {
+    pub fn add_line(mut self, line: LineData) -> Self {
+        self.items.push(Container::Text(line));
+        self
+    }
+
+    pub fn add_text(mut self, text: &str) -> Result<Self, ParseError> {
         let item = Container::Text(LineData::from_str(text)?);
         Ok(self.add_item(item))
     }
 
-    fn build(self) -> Line {
+    pub fn build(self) -> Line {
         Line {
             conditions: Vec::new(),
             items: self.items,
@@ -143,7 +155,7 @@ impl LineBuilder {
     }
 }
 
-struct AlternativeBuilder {
+pub struct AlternativeBuilder {
     kind: AlternativeKind,
     items: Vec<Line>,
 }
@@ -156,24 +168,24 @@ impl AlternativeBuilder {
         }
     }
 
-    fn cycle() -> Self {
+    pub fn cycle() -> Self {
         AlternativeBuilder::with_kind(AlternativeKind::Cycle)
     }
 
-    fn once_only() -> Self {
+    pub fn once_only() -> Self {
         AlternativeBuilder::with_kind(AlternativeKind::OnceOnly)
     }
 
-    fn sequence() -> Self {
+    pub fn sequence() -> Self {
         AlternativeBuilder::with_kind(AlternativeKind::Sequence)
     }
 
-    fn add_line(mut self, line: Line) -> Self {
+    pub fn add_line(mut self, line: Line) -> Self {
         self.items.push(line);
         self
     }
 
-    fn build(self) -> Alternative {
+    pub fn build(self) -> Alternative {
         Alternative {
             current_index: None,
             kind: self.kind,

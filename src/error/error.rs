@@ -2,6 +2,7 @@
 
 use crate::{
     line::ChoiceData,
+    line::ProcessError,
     node::{NodeItem, NodeType, Stack},
     story::{Address, Choice},
 };
@@ -35,13 +36,16 @@ pub enum InklingError {
         internal_choices: Vec<ChoiceData>,
     },
     /// No choices or fallback choices were available in a story branch at the given address.
-    OutOfChoices { address: Address },
+    OutOfChoices {
+        address: Address,
+    },
     /// No content was available for the story to continue from.
     OutOfContent,
     /// Tried to resume a story that has not been started.
     ResumeBeforeStart,
     /// Tried to `start` a story that is already in progress.
     StartOnStoryInProgress,
+    ProcessError,
 }
 
 #[derive(Clone, Debug)]
@@ -81,6 +85,12 @@ impl From<InvalidAddressError> for InklingError {
     }
 }
 
+impl From<ProcessError> for InklingError {
+    fn from(err: ProcessError) -> Self {
+        InklingError::ProcessError
+    }
+}
+
 impl From<StackError> for InklingError {
     fn from(err: StackError) -> Self {
         InklingError::Internal(InternalError::BadKnotStack(err))
@@ -90,6 +100,19 @@ impl From<StackError> for InklingError {
 impl From<InternalError> for InklingError {
     fn from(err: InternalError) -> Self {
         InklingError::Internal(err)
+    }
+}
+
+impl InternalError {
+    pub fn bad_indices(stack_index: usize, index: usize, num_items: usize, stack: &Stack) -> Self {
+        InternalError::IncorrectNodeStack {
+            kind: IncorrectNodeStackKind::BadIndices {
+                node_level: stack_index,
+                index,
+                num_items,
+            },
+            stack: stack.clone(),
+        }
     }
 }
 
@@ -170,6 +193,7 @@ impl fmt::Display for InklingError {
             StartOnStoryInProgress => {
                 write!(f, "Called `start` on a story that is already in progress")
             }
+            ProcessError => unimplemented!(),
         }
     }
 }

@@ -5,4 +5,5 @@ pub(crate) mod line;
 
 pub use choice::ChoiceData;
 pub use condition::Condition;
+pub use content::*;
 pub use line::{LineData, LineKind, ParsedLine};
