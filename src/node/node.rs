@@ -3,9 +3,7 @@ use crate::line::{ChoiceData, ParsedLine};
 #[cfg(feature = "serde_support")]
 use serde::{Deserialize, Serialize};
 
-use super::{
-    parse::new_parse_full_node,
-};
+use super::parse::new_parse_full_node;
 
 use crate::line::{Line, LineBuilder};
 

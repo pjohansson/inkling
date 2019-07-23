@@ -1,16 +1,13 @@
 use crate::{
-    error::{
-        InklingError, InternalError,
-    },
+    error::{InklingError, InternalError},
     follow::{FollowResult, LineDataBuffer, Next},
     line::{ChoiceData, Process},
+    node::{Branch, Container, RootNode},
 };
-
-use super::node::*;
 
 /// Represents the current stack of choices that have been made from the root
 /// of the current graph (in a practical sense, that have been made inside the
-/// current `Knot`).
+/// current `Stitch`).
 ///
 /// For example, for this tree:
 ///
@@ -18,21 +15,24 @@ use super::node::*;
 /// ===
 /// Line
 /// Line
-/// ChoiceSet
-///     Choice 1
-///     Choice 2
+/// Branching Set
+///     Branch 1
+///     Branch 2
 ///         Line
-///         ChoiceSet      <---- the user is here in the branched story
-///             Choice 1
+///         Branching Set   <---- the user is here in the branched story
+///             Branch 1
 ///                 ...
-///             Choice 2
+///             Branch 2
 ///                 ...
-///     Choice 3
+///     Branch 3
 ///         ...
 /// ===
 ///
 /// the current stack is [2, 1, 1]. When the user picks a choice the stack is used to
 /// advance to the position of that choice set in the tree, then follow from there on.
+///
+/// Do note that every `Branch` adds a line of text to its children. Lines after this
+/// choice start at index 1.
 pub type Stack = Vec<usize>;
 
 pub trait Follow {
@@ -81,20 +81,21 @@ pub trait Follow {
             let next_branch = get_next_level_branch(stack_index, stack, self)?;
             next_branch.follow_with_choice(chosen_branch_index, stack_index + 2, stack, buffer)
         } else {
-            let selected_branch = match get_selected_branch(chosen_branch_index, stack_index, stack, self) {
-                Ok(branch) => branch,
-                Err(err) => {
-                    let err = if let Some(user_err) =
-                        check_for_invalid_choice(chosen_branch_index, stack_index, stack, self)
-                    {
-                        user_err
-                    } else {
-                        err.into()
-                    };
+            let selected_branch =
+                match get_selected_branch(chosen_branch_index, stack_index, stack, self) {
+                    Ok(branch) => branch,
+                    Err(err) => {
+                        let err = if let Some(user_err) =
+                            check_for_invalid_choice(chosen_branch_index, stack_index, stack, self)
+                        {
+                            user_err
+                        } else {
+                            err.into()
+                        };
 
-                    return Err(err);
-                }
-            };
+                        return Err(err);
+                    }
+                };
 
             stack.extend_from_slice(&[chosen_branch_index, 0]);
 
@@ -120,6 +121,58 @@ pub trait Follow {
     fn items(&mut self) -> Vec<&mut Container>;
 }
 
+impl Follow for RootNode {
+    fn get_item(&self, index: usize) -> Option<&Container> {
+        self.items.get(index)
+    }
+
+    fn get_item_mut(&mut self, index: usize) -> Option<&mut Container> {
+        self.items.get_mut(index)
+    }
+
+    fn get_num_items(&self) -> usize {
+        self.items.len()
+    }
+
+    fn get_num_visited(&self) -> u32 {
+        self.num_visited
+    }
+
+    fn increment_num_visited(&mut self) {
+        self.num_visited += 1;
+    }
+
+    fn items(&mut self) -> Vec<&mut Container> {
+        self.items.iter_mut().collect()
+    }
+}
+
+impl Follow for Branch {
+    fn get_item(&self, index: usize) -> Option<&Container> {
+        self.items.get(index)
+    }
+
+    fn get_item_mut(&mut self, index: usize) -> Option<&mut Container> {
+        self.items.get_mut(index)
+    }
+
+    fn get_num_items(&self) -> usize {
+        self.items.len()
+    }
+
+    fn get_num_visited(&self) -> u32 {
+        self.num_visited
+    }
+
+    fn increment_num_visited(&mut self) {
+        self.num_visited += 1;
+    }
+
+    fn items(&mut self) -> Vec<&mut Container> {
+        self.items.iter_mut().collect()
+    }
+}
+
 fn check_for_invalid_choice<T: Follow>(
     chosen_branch_index: usize,
     stack_index: usize,
@@ -130,7 +183,7 @@ fn check_for_invalid_choice<T: Follow>(
 
     if let Some(Container::BranchingChoice(branches)) = &node.get_item(*branch_set_index) {
         if chosen_branch_index >= branches.len() {
-            return Some(get_invalid_choice_error_stub(branches, chosen_branch_index))
+            return Some(get_invalid_choice_error_stub(branches, chosen_branch_index));
         }
     }
 
@@ -241,65 +294,12 @@ fn get_invalid_choice_error_stub(
     }
 }
 
-impl Follow for RootNode {
-    fn get_item(&self, index: usize) -> Option<&Container> {
-        self.items.get(index)
-    }
-
-    fn get_item_mut(&mut self, index: usize) -> Option<&mut Container> {
-        self.items.get_mut(index)
-    }
-
-    fn get_num_items(&self) -> usize {
-        self.items.len()
-    }
-
-    fn get_num_visited(&self) -> u32 {
-        self.num_visited
-    }
-
-    fn increment_num_visited(&mut self) {
-        self.num_visited += 1;
-    }
-
-    fn items(&mut self) -> Vec<&mut Container> {
-        self.items.iter_mut().collect()
-    }
-}
-
-use crate::error::*;
-
-impl Follow for Branch {
-    fn get_item(&self, index: usize) -> Option<&Container> {
-        self.items.get(index)
-    }
-
-    fn get_item_mut(&mut self, index: usize) -> Option<&mut Container> {
-        self.items.get_mut(index)
-    }
-
-    fn get_num_items(&self) -> usize {
-        self.items.len()
-    }
-
-    fn get_num_visited(&self) -> u32 {
-        self.num_visited
-    }
-
-    fn increment_num_visited(&mut self) {
-        self.num_visited += 1;
-    }
-
-    fn items(&mut self) -> Vec<&mut Container> {
-        self.items.iter_mut().collect()
-    }
-}
-
-
 #[cfg(test)]
 mod tests {
     use super::*;
+
     use super::super::node::tests::BranchingChoiceBuilder;
+    use super::super::node::*;
 
     use crate::line::{
         choice::tests::ChoiceBuilder as ChoiceDataBuilder,

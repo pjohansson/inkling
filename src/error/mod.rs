@@ -6,7 +6,5 @@ mod parse;
 pub use error::{InklingError, InvalidAddressError};
 pub use parse::ParseError;
 
-pub(crate) use error::{
-    IncorrectNodeStackKind, InternalError, StackError, WhichIndex,
-};
+pub(crate) use error::{InternalError, StackError};
 pub(crate) use parse::{KnotError, KnotNameError, LineError};

@@ -170,9 +170,7 @@ mod tests {
 
     use std::str::FromStr;
 
-    use crate::line::{
-        choice::tests::ChoiceBuilder, line::tests::LineBuilder, ChoiceData, LineData,
-    };
+    use crate::line::{choice::tests::ChoiceBuilder, ChoiceData, LineData};
 
     #[test]
     fn parsing_a_branch_adds_the_choice_final_line_as_line_in_items() {
