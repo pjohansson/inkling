@@ -67,20 +67,61 @@ pub enum InternalError {
     /// The internal stack of knots is inconsistent or has not been set properly.
     BadKnotStack(StackError),
     /// The current stack is not properly representing the graph or has some indexing problems.
-    IncorrectNodeStack {
-        kind: IncorrectNodeStackKind,
-        stack: Stack,
-    },
+    IncorrectNodeStack(IncorrectNodeStackError),
 }
 
 impl Error for InklingError {}
 impl Error for InternalError {}
 
-impl From<InvalidAddressError> for InklingError {
-    fn from(err: InvalidAddressError) -> Self {
-        InklingError::InvalidAddress(err)
+/// Wrapper to implement From for variants when the variant is simply encapsulated
+/// in the enum.
+///
+/// # Example
+/// Running
+/// ```
+/// impl_from_error[
+///     MyError,
+///     [Variant, ErrorData]
+/// ];
+/// ```
+/// is identical to running
+/// ```
+/// impl From<ErrorData> for MyError {
+///     from(err: ErrorData) -> Self {
+///         Self::Variant(err)
+///     }
+/// }
+/// ```
+/// The macro can also implement several variants at once:
+/// ```
+/// impl_from_error[
+///     MyError,
+///     [Variant1, ErrorData1],
+///     [Variant2, ErrorData2]
+/// ];
+/// ```
+macro_rules! impl_from_error {
+    ($for_type:ident; $([$variant:ident, $from_type:ident]),+) => {
+        $(
+            impl From<$from_type> for $for_type {
+                fn from(err: $from_type) -> Self {
+                    $for_type::$variant(err)
+                }
+            }
+        )*
     }
 }
+
+impl_from_error![
+    InklingError;
+    [Internal, InternalError],
+    [InvalidAddress, InvalidAddressError]
+];
+
+impl_from_error![
+    InternalError;
+    [IncorrectNodeStack, IncorrectNodeStackError]
+];
 
 impl From<ProcessError> for InklingError {
     fn from(err: ProcessError) -> Self {
@@ -91,25 +132,6 @@ impl From<ProcessError> for InklingError {
 impl From<StackError> for InklingError {
     fn from(err: StackError) -> Self {
         InklingError::Internal(InternalError::BadKnotStack(err))
-    }
-}
-
-impl From<InternalError> for InklingError {
-    fn from(err: InternalError) -> Self {
-        InklingError::Internal(err)
-    }
-}
-
-impl InternalError {
-    pub fn bad_indices(stack_index: usize, index: usize, num_items: usize, stack: &Stack) -> Self {
-        InternalError::IncorrectNodeStack {
-            kind: IncorrectNodeStackKind::BadIndices {
-                node_level: stack_index,
-                index,
-                num_items,
-            },
-            stack: stack.clone(),
-        }
     }
 }
 
@@ -197,7 +219,7 @@ impl fmt::Display for InklingError {
 
 impl fmt::Display for InternalError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        use IncorrectNodeStackKind::*;
+        use IncorrectNodeStackError::*;
         use InternalError::*;
         use StackError::*;
 
@@ -222,43 +244,19 @@ impl fmt::Display for InternalError {
                     "There is no currently set knot or address to follow the story from"
                 ),
             },
-            IncorrectNodeStack { kind, stack } => match kind {
-                BadIndices {
-                    node_level,
-                    index,
+            IncorrectNodeStack(err) => match err {
+                EmptyStack => write!(f, "Tried to advance through a knot with an empty stack"),
+                ExpectedBranchingChoice { .. } => unimplemented!(),
+                MissingBranchIndex { .. } => unimplemented!(),
+                OutOfBounds {
+                    stack_index,
+                    stack,
                     num_items,
                 } => write!(
                     f,
                     "Current stack has invalid index {} at node level {}: size of set is {} \
                      (stack: {:?})",
-                    index, node_level, num_items, stack
-                ),
-                EmptyStack => write!(f, "Tried to advance through a knot with an empty stack"),
-                Gap { node_level } => write!(
-                    f,
-                    "Current stack is too short for the current node level {}: \
-                     cannot get or add a stack index because stack indices for one or more \
-                     prior nodes are missing, which means the stack is incorrect (stack: {:?})",
-                    node_level, stack
-                ),
-                MissingIndices { node_level, kind } => {
-                    let level = match kind {
-                        WhichIndex::Parent => *node_level,
-                        WhichIndex::Child => *node_level + 1,
-                    };
-
-                    write!(f, "Current stack has no index for node level {}", level)?;
-
-                    if let WhichIndex::Child = kind {
-                        write!(f, ", which was accessed as a child node during a follow")?;
-                    }
-
-                    write!(f, " (stack: {:?}", stack)
-                }
-                NotTruncated { node_level } => write!(
-                    f,
-                    "Current stack is not truncated to the current node level {} (stack: {:?})",
-                    node_level, stack
+                    stack[*stack_index], stack_index, num_items, stack
                 ),
             },
         }
@@ -281,28 +279,18 @@ pub enum StackError {
 #[derive(Clone, Debug)]
 /// Error variant associated with the stack created when walking through a `DialogueNode`
 /// tree being poorly constructed.
-pub enum IncorrectNodeStackKind {
-    /// Stack contains an invalid index for the current node level.
-    BadIndices {
-        node_level: usize,
-        index: usize,
-        num_items: usize,
-    },
+pub enum IncorrectNodeStackError {
     /// Tried to follow through nodes with an empty stack.
     EmptyStack,
-    /// Stack has a gap from the last added node level and the current.
-    Gap { node_level: usize },
-    /// Stack is missing an index when walking through it, either for the current (parent)
-    /// node or for a child node. The parent here *should* be a node which contains lines
-    /// and possible choice sets, while the child will be a node in a choice set .
-    MissingIndices { node_level: usize, kind: WhichIndex },
-    /// Stack was not truncated before following into a new node.
-    NotTruncated { node_level: usize },
-}
-
-#[derive(Clone, Debug)]
-/// Whether the parent or child index caused an error when walking through a `DialogueNode` tree.
-pub enum WhichIndex {
-    Parent,
-    Child,
+    /// Found a `Line` object where a set of branching choices should be.
+    ExpectedBranchingChoice { stack_index: usize, stack: Stack },
+    /// Stack contains an invalid index for the current node level.
+    OutOfBounds {
+        stack_index: usize,
+        stack: Stack,
+        num_items: usize,
+    },
+    /// Tried to follow a branch but stack does not have an index for the follow,
+    /// it is too short.
+    MissingBranchIndex { stack_index: usize, stack: Stack },
 }

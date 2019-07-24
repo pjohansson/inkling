@@ -1,10 +1,11 @@
-use crate::line::ProcessError;
 use crate::{
-    error::{InklingError, InternalError},
+    error::{IncorrectNodeStackError, InklingError, InternalError},
     follow::{FollowResult, LineDataBuffer, Next},
     line::{ChoiceData, Process},
     node::{Branch, NodeItem, RootNode},
 };
+
+use std::slice::IterMut;
 
 /// Represents the current stack of choices that have been made from the root
 /// of the current graph (in a practical sense, that have been made inside the
@@ -13,7 +14,7 @@ use crate::{
 /// For example, for this tree:
 ///
 /// Root
-/// ```
+/// ```test
 /// Line
 /// Line
 /// Branching Set
@@ -58,13 +59,22 @@ pub trait Follow: FollowInternal {
     ///
     ///     Ensure that the stack is maintained before calling this method.
     fn follow(&mut self, stack: &mut Stack, buffer: &mut LineDataBuffer) -> FollowResult {
-        let at_index = stack.last_mut().ok_or(String::new())?;
+        let at_index = stack
+            .last_mut()
+            .ok_or(InternalError::from(IncorrectNodeStackError::EmptyStack))?;
 
-        if *at_index == 0 {
+        if *at_index > self.get_num_items() {
+            return Err(InternalError::from(IncorrectNodeStackError::OutOfBounds {
+                stack_index: stack.len() - 1,
+                stack: stack.clone(),
+                num_items: self.get_num_items(),
+            })
+            .into());
+        } else if *at_index == 0 {
             self.increment_num_visited();
         }
 
-        for item in self.items().get_mut(*at_index..).unwrap().iter_mut() {
+        for item in self.iter_mut_items().skip(*at_index) {
             *at_index += 1;
 
             match item {
@@ -129,7 +139,7 @@ pub trait Follow: FollowInternal {
         match result {
             Next::Done => {
                 stack.truncate(stack_index + 1);
-                *stack.last_mut().expect("stack.last_mut") += 1;
+                stack.last_mut().map(|i| *i += 1);
 
                 self.follow(stack, buffer)
             }
@@ -142,7 +152,7 @@ impl Follow for RootNode {}
 impl Follow for Branch {}
 
 /// Internal utilities required to implement `Follow`.
-/// 
+///
 /// Separated from that trait to simplify the scope of functions that are made available
 /// when importing `Follow`.
 pub trait FollowInternal {
@@ -150,13 +160,33 @@ pub trait FollowInternal {
         &mut self,
         stack_index: usize,
         stack: &Stack,
-    ) -> Result<Option<&mut Branch>, InklingError> {
+    ) -> Result<Option<&mut Branch>, InternalError> {
         if stack_index < stack.len() - 1 {
             self.get_branches_at_stack_index(stack_index, stack)
-                .map(|branches| {
-                    let branch_index = stack[stack_index + 1];
+                .and_then(|branches| {
+                    let branch_index = stack.get(stack_index + 1).ok_or(
+                        IncorrectNodeStackError::MissingBranchIndex {
+                            stack_index,
+                            stack: stack.clone(),
+                        }
+                    )?;
 
-                    Some(branches.get_mut(branch_index).unwrap())
+                    Ok((branch_index, branches))
+                })
+                .and_then(|(branch_index, branches)| {
+                    let num_items = branches.len();
+
+                    Some(
+                        branches.get_mut(*branch_index).ok_or(
+                            IncorrectNodeStackError::OutOfBounds {
+                                stack_index: stack_index + 1,
+                                stack: stack.clone(),
+                                num_items,
+                            }
+                            .into(),
+                        ),
+                    )
+                    .transpose()
                 })
         } else {
             Ok(None)
@@ -170,6 +200,7 @@ pub trait FollowInternal {
         stack: &Stack,
     ) -> Result<&mut Branch, InklingError> {
         self.get_branches_at_stack_index(stack_index, stack)
+            .map_err(|err| err.into())
             .and_then(|branches| {
                 let branch_choices = get_choices_from_branching_set(branches);
 
@@ -183,14 +214,27 @@ pub trait FollowInternal {
         &mut self,
         stack_index: usize,
         stack: &Stack,
-    ) -> Result<&mut Vec<Branch>, InklingError> {
+    ) -> Result<&mut Vec<Branch>, InternalError> {
+        let num_items = self.get_num_items();
+
         stack
             .get(stack_index)
             .and_then(move |i| self.get_item_mut(*i))
-            .ok_or(ProcessError::default().into())
+            .ok_or(
+                IncorrectNodeStackError::OutOfBounds {
+                    stack_index,
+                    stack: stack.clone(),
+                    num_items,
+                }
+                .into(),
+            )
             .and_then(|item| match item {
                 NodeItem::BranchingChoice(branches) => Ok(branches),
-                _ => unimplemented!(),
+                NodeItem::Line(..) => Err(IncorrectNodeStackError::ExpectedBranchingChoice {
+                    stack_index,
+                    stack: stack.clone(),
+                }
+                .into()),
             })
     }
 
@@ -199,7 +243,7 @@ pub trait FollowInternal {
     fn get_num_items(&self) -> usize;
     fn get_num_visited(&self) -> u32;
     fn increment_num_visited(&mut self);
-    fn items(&mut self) -> Vec<&mut NodeItem>;
+    fn iter_mut_items(&mut self) -> IterMut<NodeItem>;
 }
 
 impl FollowInternal for RootNode {
@@ -223,8 +267,8 @@ impl FollowInternal for RootNode {
         self.num_visited += 1;
     }
 
-    fn items(&mut self) -> Vec<&mut NodeItem> {
-        self.items.iter_mut().collect()
+    fn iter_mut_items(&mut self) -> IterMut<NodeItem> {
+        self.items.iter_mut()
     }
 }
 
@@ -249,8 +293,8 @@ impl FollowInternal for Branch {
         self.num_visited += 1;
     }
 
-    fn items(&mut self) -> Vec<&mut NodeItem> {
-        self.items.iter_mut().collect()
+    fn iter_mut_items(&mut self) -> IterMut<NodeItem> {
+        self.items.iter_mut()
     }
 }
 
@@ -300,69 +344,90 @@ mod tests {
         node::builders::{BranchBuilder, BranchingChoiceBuilder, RootNodeBuilder},
     };
 
-    // #[test]
-    // fn follow_with_user_choice_not_in_the_set_returns_invalid_choice_error() {
-    //     let choice = 2;
-    //     let choice_set = get_choice_set_with_empty_choices(choice);
+    #[test]
+    fn stack_that_points_to_line_instead_of_branching_choice_returns_error() {
+        let mut node = RootNodeBuilder::new().with_line_text("Line 1").build();
 
-    //     let node = DialogueNode::with_items(vec![choice_set]);
+        let mut buffer = Vec::new();
+        let mut stack = vec![0];
 
-    //     let mut buffer = Vec::new();
-    //     let mut stack = vec![0];
+        match node.follow_with_choice(0, 0, &mut stack, &mut buffer) {
+            Err(InklingError::Internal(InternalError::IncorrectNodeStack(err))) => match err {
+                IncorrectNodeStackError::ExpectedBranchingChoice { .. } => (),
+                _ => unreachable!(),
+            },
+            _ => unreachable!(),
+        }
+    }
 
-    //     match node.follow_with_choice(choice, 0, &mut buffer, &mut stack) {
-    //         Err(InklingError::InvalidChoice { .. }) => (),
-    //         _ => panic!("`InklingError::InvalidChoice` was not yielded"),
-    //     }
-    // }
+    #[test]
+    fn out_of_bounds_stack_indices_return_stack_error() {
+        let mut node = RootNodeBuilder::new().build();
 
-    // #[test]
-    // fn choice_and_index_collection_when_picking_a_choice_with_a_bad_index() {
-    //     let line1 = LineData::from_str("choice 1").unwrap();
-    //     let line2 = LineData::from_str("choice 2").unwrap();
+        let mut buffer = Vec::new();
+        let mut stack = vec![0];
 
-    //     let choice_set_items = vec![
-    //         NodeItem::Node {
-    //             kind: NodeType::Choice(ChoiceBuilder::empty().with_line(line1).build()),
-    //             node: Box::new(DialogueNode::with_items(vec![])),
-    //         },
-    //         NodeItem::Node {
-    //             kind: NodeType::Choice(ChoiceBuilder::empty().with_line(line2).build()),
-    //             node: Box::new(DialogueNode::with_items(vec![])),
-    //         },
-    //     ];
+        match node.follow_with_choice(0, 0, &mut stack, &mut buffer) {
+            Err(InklingError::Internal(InternalError::IncorrectNodeStack(err))) => match err {
+                IncorrectNodeStackError::OutOfBounds { .. } => (),
+                _ => unreachable!(),
+            },
+            _ => unreachable!(),
+        }
+    }
 
-    //     let node = DialogueNode::with_items(choice_set_items);
+    #[test]
+    fn out_of_bounds_stack_indices_return_stack_error_when_checking_branches() {
+        let mut node = RootNodeBuilder::new()
+            .with_branching_choice(BranchingChoiceBuilder::new().build())
+            .build();
 
-    //     let choice_set = NodeItem::Node {
-    //         kind: NodeType::ChoiceSet,
-    //         node: Box::new(node),
-    //     };
+        let mut buffer = Vec::new();
+        let mut stack = vec![0, 0, 0];
 
-    //     let error = get_invalid_choice_error_stub(&choice_set, 2);
+        match node.follow_with_choice(0, 0, &mut stack, &mut buffer) {
+            Err(InklingError::Internal(InternalError::IncorrectNodeStack(err))) => match err {
+                IncorrectNodeStackError::OutOfBounds { .. } => (),
+                _ => unreachable!(),
+            },
+            _ => unreachable!(),
+        }
+    }
 
-    //     match error {
-    //         InklingError::InvalidChoice {
-    //             index,
-    //             choice,
-    //             presented_choices,
-    //             internal_choices,
-    //         } => {
-    //             assert_eq!(index, 2);
-    //             assert_eq!(internal_choices.len(), 2);
-    //             assert_eq!(&internal_choices[0].line.text, "choice 1");
-    //             assert_eq!(&internal_choices[1].line.text, "choice 2");
+    #[test]
+    fn branch_choices_are_collected_when_supplying_an_incorrect_index_for_a_choice() {
+        let internal_choice = ChoiceDataBuilder::empty()
+            .with_displayed(LineDataBuilder::new("Choice").build())
+            .build();
 
-    //             // Not filled in yet
-    //             assert!(choice.is_none());
-    //             assert!(presented_choices.is_empty());
-    //         }
-    //         _ => panic!(
-    //             "expected an `InklingError::InvalidChoice` object but got {:?}",
-    //             error
-    //         ),
-    //     }
-    // }
+        let mut node = RootNodeBuilder::new()
+            .with_branching_choice(
+                BranchingChoiceBuilder::new()
+                    .with_branch(BranchBuilder::from_choice(internal_choice.clone()).build())
+                    .build(),
+            )
+            .build();
+
+        let mut buffer = Vec::new();
+        let mut stack = vec![0];
+
+        match node.follow_with_choice(1, 0, &mut stack, &mut buffer) {
+            Err(InklingError::InvalidChoice {
+                index,
+                choice,
+                presented_choices,
+                internal_choices,
+            }) => {
+                assert_eq!(index, 1);
+                assert_eq!(internal_choices.len(), 1);
+                assert_eq!(internal_choices[0], internal_choice);
+
+                assert!(choice.is_none());
+                assert!(presented_choices.is_empty());
+            }
+            other => panic!("expected `InklingError::InvalidChoice` but got {:?}", other),
+        }
+    }
 
     #[test]
     fn following_items_in_a_node_adds_lines_to_buffer() {
@@ -491,8 +556,8 @@ mod tests {
             .build();
 
         let branching_choice_set = BranchingChoiceBuilder::new()
-            .add_branch(BranchBuilder::from_choice(choice1.clone()).build())
-            .add_branch(BranchBuilder::from_choice(choice2.clone()).build())
+            .with_branch(BranchBuilder::from_choice(choice1.clone()).build())
+            .with_branch(BranchBuilder::from_choice(choice2.clone()).build())
             .build();
 
         let mut node = RootNodeBuilder::new()
@@ -522,8 +587,8 @@ mod tests {
             .build();
 
         let branching_choice_set = BranchingChoiceBuilder::new()
-            .add_branch(BranchBuilder::from_choice(choice1.clone()).build())
-            .add_branch(BranchBuilder::from_choice(choice2.clone()).build())
+            .with_branch(BranchBuilder::from_choice(choice1.clone()).build())
+            .with_branch(BranchBuilder::from_choice(choice2.clone()).build())
             .build();
 
         let mut node = RootNodeBuilder::new()
@@ -552,14 +617,14 @@ mod tests {
         let empty_branch = BranchBuilder::from_choice(empty_choice.clone()).build();
 
         let nested_branching_choice = BranchingChoiceBuilder::new()
-            .add_branch(empty_branch.clone())
-            .add_branch(
+            .with_branch(empty_branch.clone())
+            .with_branch(
                 BranchBuilder::from_choice(choice.clone()) // Stack: [1, 2, 2], Choice: 1
                     .with_line_text("Line 3")
                     .with_line_text("Line 4")
                     .build(),
             )
-            .add_branch(empty_branch.clone())
+            .with_branch(empty_branch.clone())
             .build();
 
         let nested_branch = BranchBuilder::from_choice(choice.clone())
@@ -568,9 +633,9 @@ mod tests {
             .build();
 
         let root_branching_choice = BranchingChoiceBuilder::new()
-            .add_branch(empty_branch.clone())
-            .add_branch(empty_branch.clone())
-            .add_branch(nested_branch) // Stack: [1, 2]
+            .with_branch(empty_branch.clone())
+            .with_branch(empty_branch.clone())
+            .with_branch(nested_branch) // Stack: [1, 2]
             .build();
 
         let mut node = RootNodeBuilder::new()
@@ -598,7 +663,7 @@ mod tests {
         let mut node = RootNodeBuilder::new()
             .with_branching_choice(
                 BranchingChoiceBuilder::new()
-                    .add_branch(BranchBuilder::from_choice(choice).build())
+                    .with_branch(BranchBuilder::from_choice(choice).build())
                     .build(),
             )
             .with_line_text("Line 1")
@@ -625,9 +690,9 @@ mod tests {
         let mut node = RootNodeBuilder::new()
             .with_branching_choice(
                 BranchingChoiceBuilder::new()
-                    .add_branch(BranchBuilder::from_choice(choice.clone()).build())
-                    .add_branch(BranchBuilder::from_choice(choice.clone()).build())
-                    .add_branch(BranchBuilder::from_choice(choice.clone()).build())
+                    .with_branch(BranchBuilder::from_choice(choice.clone()).build())
+                    .with_branch(BranchBuilder::from_choice(choice.clone()).build())
+                    .with_branch(BranchBuilder::from_choice(choice.clone()).build())
                     .build(),
             )
             .build();
@@ -657,7 +722,7 @@ mod tests {
         let mut node = RootNodeBuilder::new()
             .with_branching_choice(
                 BranchingChoiceBuilder::new()
-                    .add_branch(BranchBuilder::from_choice(choice.clone()).build())
+                    .with_branch(BranchBuilder::from_choice(choice.clone()).build())
                     .build(),
             )
             .build();
@@ -688,7 +753,7 @@ mod tests {
         let mut node = RootNodeBuilder::new()
             .with_branching_choice(
                 BranchingChoiceBuilder::new()
-                    .add_branch(BranchBuilder::from_choice(choice.clone()).build())
+                    .with_branch(BranchBuilder::from_choice(choice.clone()).build())
                     .build(),
             )
             .build();
@@ -711,7 +776,7 @@ mod tests {
         let mut node = RootNodeBuilder::new()
             .with_branching_choice(
                 BranchingChoiceBuilder::new()
-                    .add_branch(BranchBuilder::from_choice(choice.clone()).build())
+                    .with_branch(BranchBuilder::from_choice(choice.clone()).build())
                     .build(),
             )
             .build();
@@ -733,11 +798,11 @@ mod tests {
             .build();
 
         let nested_branch = BranchingChoiceBuilder::new()
-            .add_branch(BranchBuilder::from_choice(choice.clone()).build())
+            .with_branch(BranchBuilder::from_choice(choice.clone()).build())
             .build();
 
         let branch_set = BranchingChoiceBuilder::new()
-            .add_branch(
+            .with_branch(
                 BranchBuilder::from_choice(choice.clone())
                     .with_branching_choice(nested_branch)
                     .build(),
@@ -769,15 +834,15 @@ mod tests {
         let mut node = RootNodeBuilder::new()
             .with_branching_choice(
                 BranchingChoiceBuilder::new()
-                    .add_branch(
+                    .with_branch(
                         BranchBuilder::from_choice(choice.clone())
                             .with_branching_choice(
                                 BranchingChoiceBuilder::new()
-                                    .add_branch(
+                                    .with_branch(
                                         BranchBuilder::from_choice(choice.clone())
                                             .with_branching_choice(
                                                 BranchingChoiceBuilder::new()
-                                                    .add_branch(
+                                                    .with_branch(
                                                         BranchBuilder::from_choice(choice.clone())
                                                             .with_line_text("Line 1")
                                                             .build(),
@@ -817,11 +882,44 @@ mod tests {
     }
 
     #[test]
+    fn following_with_stack_that_has_too_large_index_raises_error() {
+        let mut node = RootNodeBuilder::new().with_line_text("Line 1").build();
+
+        let mut buffer = Vec::new();
+
+        match node.follow(&mut vec![2], &mut buffer) {
+            Err(InklingError::Internal(InternalError::IncorrectNodeStack(err))) => match err {
+                IncorrectNodeStackError::OutOfBounds { .. } => (),
+                err => panic!(
+                    "expected `IncorrectNodeStackError::OutOfBounds` but got {:?}",
+                    err
+                ),
+            },
+            err => panic!(
+                "expected `IncorrectNodeStackError::OutOfBounds` but got {:?}",
+                err
+            ),
+        }
+    }
+
+    #[test]
     fn following_with_empty_stack_raises_error() {
         let mut node = RootNodeBuilder::new().with_line_text("Line 1").build();
 
         let mut buffer = Vec::new();
 
-        assert!(node.follow(&mut vec![], &mut buffer).is_err());
+        match node.follow(&mut vec![], &mut buffer) {
+            Err(InklingError::Internal(InternalError::IncorrectNodeStack(err))) => match err {
+                IncorrectNodeStackError::EmptyStack => (),
+                err => panic!(
+                    "expected `IncorrectNodeStackError::EmptyStack` but got {:?}",
+                    err
+                ),
+            },
+            err => panic!(
+                "expected `IncorrectNodeStackError::EmptyStack` but got {:?}",
+                err
+            ),
+        }
     }
 }

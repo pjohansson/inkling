@@ -176,7 +176,7 @@ pub mod builders {
             BranchingChoiceBuilder { items: Vec::new() }
         }
 
-        pub fn add_branch(mut self, choice: Branch) -> Self {
+        pub fn with_branch(mut self, choice: Branch) -> Self {
             self.items.push(choice);
             self
         }

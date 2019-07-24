@@ -3,7 +3,7 @@
 mod error;
 mod parse;
 
-pub use error::{InklingError, InvalidAddressError};
+pub use error::{IncorrectNodeStackError, InklingError, InvalidAddressError};
 pub use parse::ParseError;
 
 pub(crate) use error::{InternalError, StackError};
