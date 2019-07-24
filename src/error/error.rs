@@ -2,7 +2,6 @@
 
 use crate::{
     follow::*,
-    line::ChoiceData,
     line::ProcessError,
     line::*,
     node::Stack,

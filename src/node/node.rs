@@ -1,5 +1,5 @@
 use crate::{
-    line::{ChoiceData, FullLine, LineBuilder, LineChunk, ParsedLine, *},
+    line::{FullLine, LineBuilder, LineChunk, *},
     node::parse_root_node,
 };
 
@@ -60,7 +60,7 @@ impl NodeItem {
 
 pub mod builders {
     use super::{
-        Branch, ChoiceData, FullChoice, FullLine, LineBuilder, LineChunk, NodeItem, RootNode,
+        Branch, FullChoice, FullLine, LineBuilder, LineChunk, NodeItem, RootNode,
     };
 
     /// Builder for a `RootNote`.

@@ -1,7 +1,7 @@
 use crate::{
     error::{IncorrectNodeStackError, InklingError, InternalError},
     follow::{FollowResult, LineDataBuffer, Next, *},
-    line::{ChoiceData, FullLine, Process, *},
+    line::{FullLine, Process, *},
     node::{Branch, NodeItem, RootNode},
 };
 
@@ -337,10 +337,6 @@ mod tests {
     use super::*;
 
     use crate::{
-        line::{
-            choice::tests::ChoiceBuilder as ChoiceDataBuilder,
-            line::tests::LineBuilder as LineDataBuilder, *,
-        },
         node::builders::{BranchBuilder, BranchingPointBuilder, RootNodeBuilder},
     };
 

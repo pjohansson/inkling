@@ -1,5 +1,5 @@
 use crate::{
-    line::{Content, FullLine, LineBuilder, ParsedLine, *},
+    line::{Content, FullLine, LineBuilder, *},
     node::{
         builders::{BranchBuilder, RootNodeBuilder},
         Branch, NodeItem, RootNode,
@@ -190,8 +190,6 @@ mod tests {
     use super::*;
 
     use std::str::FromStr;
-
-    use crate::line::{choice::tests::ChoiceBuilder, ChoiceData, LineData};
 
     #[test]
     fn parsing_a_branch_adds_the_choice_final_line_as_line_in_items() {

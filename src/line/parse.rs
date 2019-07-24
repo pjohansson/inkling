@@ -42,7 +42,7 @@ pub fn parse_line(content: &str) -> Result<FullLine, LineParsingError> {
     Ok(builder.build())
 }
 
-fn parse_chunk(content: &str) -> Result<LineChunk, LineParsingError> {
+pub fn parse_chunk(content: &str) -> Result<LineChunk, LineParsingError> {
     let mut builder = LineBuilder::new();
 
     let mut buffer = content.to_string();

@@ -1,6 +1,5 @@
 use super::{
     condition::Condition,
-    line::{LineData, LineKind, *},
     parse::*,
 };
 
@@ -50,9 +49,6 @@ impl FullLine {
 
         for item in &self.chunk.items {
             match item {
-                Content::Text(line) => {
-                    buffer.push_str(&line.text);
-                }
                 Content::PureText(string) => {
                     buffer.push_str(&string);
                 }
@@ -143,7 +139,6 @@ pub enum Content {
     Alternative(Alternative),
     Divert(String),
     Empty,
-    Text(LineData),
     PureText(String),
 }
 
@@ -156,14 +151,6 @@ impl Process for Content {
             Content::PureText(string) => {
                 buffer.push_str(string);
                 Ok(Next::Done)
-            }
-            Content::Text(line_data) => {
-                buffer.push_str(&line_data.text);
-
-                match &line_data.kind {
-                    LineKind::Divert(address) => Ok(Next::Divert(address.to_string())),
-                    LineKind::Regular => Ok(Next::Done),
-                }
             }
         }
     }
@@ -266,19 +253,19 @@ impl LineBuilder {
         self
     }
 
-    pub fn with_line(mut self, line: LineData) -> Self {
-        self.with_item(Content::Text(line))
-    }
-
     pub fn with_pure_text(mut self, text: &str) -> Self {
         self.with_item(Content::PureText(text.to_string()))
     }
 
     // #[cfg(test)]
-    pub fn with_text(mut self, text: &str) -> Result<Self, ParseError> {
-        LineData::from_str(text)
-            .map(|line_data| Content::Text(line_data))
-            .map(|item| self.with_item(item))
+    pub fn with_text(mut self, text: &str) -> Result<Self, LineParsingError> {
+        let chunk = parse_chunk(text)?;
+
+        for item in chunk.items {
+            self.add_item(item);
+        }
+
+        Ok(self)
     }
 }
 

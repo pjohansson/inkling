@@ -4,7 +4,7 @@ use crate::{
     error::InklingError,
     follow::LineDataBuffer,
     follow::*,
-    line::{ChoiceData, Condition, LineData, *},
+    line::{Condition, *},
 };
 
 use super::{
@@ -221,7 +221,6 @@ mod tests {
     use crate::{
         consts::ROOT_KNOT_NAME,
         knot::{Knot, Stitch},
-        line::{choice::tests::ChoiceBuilder, line::tests::LineBuilder},
     };
 
     use std::{cmp::Ordering, collections::HashMap, str::FromStr};
@@ -400,7 +399,6 @@ mod tests {
     #[test]
     fn processing_line_buffer_sets_newline_on_last_line_regardless_of_glue() {
         let text = "Mr. and Mrs. Doubtfire";
-        let buffer = vec![LineBuilder::new(text).with_glue_end().build()];
 
         let mut line = parse_line(text).unwrap();
         line.glue_end = true;
@@ -415,15 +413,6 @@ mod tests {
 
     #[test]
     fn processing_line_buffer_keeps_single_whitespace_between_lines_with_glue() {
-        let buffer = vec![
-            LineBuilder::new("Ends with whitespace before glue, ")
-                .with_glue_end()
-                .build(),
-            LineBuilder::new(" starts with whitespace after glue")
-                .with_glue_start()
-                .build(),
-        ];
-
         let mut line1 = parse_line("Ends with whitespace before glue, ").unwrap();
         line1.glue_end = true;
 
@@ -443,8 +432,6 @@ mod tests {
     fn processing_line_buffer_preserves_tags() {
         let text = "Mr. and Mrs. Doubtfire";
         let tags = vec!["tag 1".to_string(), "tag 2".to_string()];
-
-        let buffer = vec![LineBuilder::new(text).with_tags(tags.clone()).build()];
 
         let mut line = parse_line(text).unwrap();
         line.tags = tags.clone();
@@ -553,24 +540,6 @@ mod tests {
             not: false,
         };
 
-        let kept_line = LineBuilder::new("Kept").build();
-        let removed_line = LineBuilder::new("Removed").build();
-
-        let choices = vec![
-            ChoiceBuilder::empty()
-                .with_displayed(removed_line.clone())
-                .with_conditions(&[unfulfilled_condition.clone()])
-                .build(),
-            ChoiceBuilder::empty()
-                .with_displayed(kept_line.clone())
-                .with_conditions(&[fulfilled_condition.clone()])
-                .build(),
-            ChoiceBuilder::empty()
-                .with_displayed(removed_line.clone())
-                .with_conditions(&[fulfilled_condition.clone(), unfulfilled_condition.clone()])
-                .build(),
-        ];
-
         let kept_line = parse_line("Kept").unwrap();
         let removed_line = parse_line("Removed").unwrap();
 
@@ -608,22 +577,6 @@ mod tests {
 
     #[test]
     fn preparing_choices_filters_choices_which_have_been_visited_for_non_sticky_lines() {
-        let kept_line = LineBuilder::new("Kept").build();
-        let removed_line = LineBuilder::new("Removed").build();
-
-        let choices = vec![
-            ChoiceBuilder::empty()
-                .with_displayed(kept_line.clone())
-                .build(),
-            ChoiceBuilder::empty()
-                .with_displayed(removed_line.clone())
-                .with_num_visited(1)
-                .build(),
-            ChoiceBuilder::empty()
-                .with_displayed(kept_line.clone())
-                .build(),
-        ];
-
         let empty_hash_map = HashMap::new();
         let empty_address = Address {
             knot: "".to_string(),
@@ -662,24 +615,6 @@ mod tests {
 
     #[test]
     fn preparing_choices_does_not_filter_visited_sticky_lines() {
-        let kept_line = LineBuilder::new("Kept").build();
-        let removed_line = LineBuilder::new("Removed").build();
-
-        let choices = vec![
-            ChoiceBuilder::empty()
-                .with_displayed(kept_line.clone())
-                .build(),
-            ChoiceBuilder::empty()
-                .with_displayed(removed_line.clone())
-                .with_num_visited(1)
-                .build(),
-            ChoiceBuilder::empty()
-                .with_displayed(kept_line.clone())
-                .with_num_visited(1)
-                .is_sticky()
-                .build(),
-        ];
-
         let empty_hash_map = HashMap::new();
         let empty_address = Address {
             knot: "".to_string(),
@@ -720,22 +655,6 @@ mod tests {
 
     #[test]
     fn preparing_choices_filters_fallback_choices() {
-        let kept_line = LineBuilder::new("Kept").build();
-        let removed_line = LineBuilder::new("Removed").build();
-
-        let choices = vec![
-            ChoiceBuilder::empty()
-                .with_displayed(kept_line.clone())
-                .build(),
-            ChoiceBuilder::empty()
-                .with_displayed(removed_line.clone())
-                .is_fallback()
-                .build(),
-            ChoiceBuilder::empty()
-                .with_displayed(kept_line.clone())
-                .build(),
-        ];
-
         let empty_hash_map = HashMap::new();
         let empty_address = Address {
             knot: "".to_string(),
@@ -778,18 +697,6 @@ mod tests {
 
     #[test]
     fn invalid_choice_error_is_filled_in_with_all_presented_choices() {
-        let line1 = LineBuilder::new("Choice 1").build();
-        let line2 = LineBuilder::new("Choice 2").build();
-
-        let internal_choices = vec![
-            // Will have been presented to the user at the last prompt
-            ChoiceBuilder::empty().with_displayed(line1.clone()).build(),
-            // Will not have been presented to the user at the last prompt
-            ChoiceBuilder::empty()
-                .with_displayed(line2.clone())
-                .with_num_visited(1)
-                .build(),
-        ];
 
         let line1 = parse_line("Choice 1").unwrap();
         let line2 = parse_line("Choice 2").unwrap();
@@ -864,27 +771,6 @@ mod tests {
 
     #[test]
     fn fallback_choices_are_filtered_as_usual_choices() {
-        let kept_line = LineBuilder::new("Kept").build();
-        let removed_line = LineBuilder::new("Removed").build();
-
-        let choices = vec![
-            ChoiceBuilder::empty()
-                .with_displayed(kept_line.clone())
-                .is_fallback()
-                .build(),
-            ChoiceBuilder::empty()
-                .with_displayed(removed_line.clone())
-                .with_num_visited(1)
-                .is_fallback()
-                .build(),
-            ChoiceBuilder::empty()
-                .with_displayed(kept_line.clone())
-                .with_num_visited(1)
-                .is_sticky()
-                .is_fallback()
-                .build(),
-        ];
-
         let empty_hash_map = HashMap::new();
         let empty_address = Address {
             knot: "".to_string(),

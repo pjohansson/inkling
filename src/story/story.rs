@@ -3,7 +3,6 @@ use crate::{
     error::{InklingError, ParseError, StackError},
     follow::{FollowResult, LineDataBuffer, Next, *},
     knot::{Knot, Stitch},
-    line::ChoiceData,
 };
 
 #[cfg(feature = "serde_support")]

@@ -6,7 +6,6 @@ use crate::{
 
 use super::{
     condition::{parse_choice_conditions, Condition},
-    line::{parse_markers_and_text, LineData, ParsedLine},
 };
 
 #[derive(Clone, Debug, PartialEq)]
