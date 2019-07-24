@@ -1,8 +1,8 @@
 use crate::{
-    line::{Content, FullLine, LineBuilder, *},
+    line::{FullLine, *},
     node::{
         builders::{BranchBuilder, RootNodeBuilder},
-        Branch, NodeItem, RootNode,
+        Branch, RootNode,
     },
 };
 
@@ -189,7 +189,7 @@ fn parse_branch_at_given_level(
 mod tests {
     use super::*;
 
-    use std::str::FromStr;
+    use crate::node::NodeItem;
 
     #[test]
     fn parsing_a_branch_adds_the_choice_final_line_as_line_in_items() {

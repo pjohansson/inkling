@@ -1,7 +1,7 @@
 use crate::{
     error::{IncorrectNodeStackError, InklingError, InternalError},
     follow::{FollowResult, LineDataBuffer, Next, *},
-    line::{FullLine, Process, *},
+    line::*,
     node::{Branch, NodeItem, RootNode},
 };
 

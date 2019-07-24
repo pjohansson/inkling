@@ -1,42 +1,9 @@
 use crate::{
     consts::*,
-    // error::*,
     line::*,
 };
 
-#[derive(Clone, Debug, PartialEq)]
-pub enum ParsedLineKind {
-    Choice { level: u32, choice_data: FullChoice },
-    Gather { level: u32, line: FullLine },
-    Line(FullLine),
-}
-
-pub fn parse_line_kind(content: &str) -> Result<ParsedLineKind, LineParsingError> {
-    if let Some(choice) = parse_choice(content)? {
-        Ok(choice)
-    } else if let Some(gather) = parse_gather(content)? {
-        Ok(gather)
-    } else {
-        let line = parse_line(content)?;
-
-        Ok(ParsedLineKind::Line(line))
-    }
-}
-
-fn parse_choice(content: &str) -> Result<Option<ParsedLineKind>, LineParsingError> {
-    parse_choice_markers_and_text(content)?
-        .map(|(level, is_sticky, line)| {
-            parse_choice_data(line)
-                .map(|mut choice_data| {
-                    choice_data.is_sticky = is_sticky;
-                    (level, choice_data)
-                })
-                .map(|(level, choice_data)| ParsedLineKind::Choice { level, choice_data })
-        })
-        .transpose()
-}
-
-fn parse_gather(content: &str) -> Result<Option<ParsedLineKind>, LineParsingError> {
+pub fn parse_gather(content: &str) -> Result<Option<ParsedLineKind>, LineParsingError> {
     let (line_without_divert, line_from_divert) = split_at_divert_marker(content);
 
     parse_markers_and_text(line_without_divert, GATHER_MARKER)

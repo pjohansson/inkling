@@ -9,7 +9,7 @@ use crate::{
 #[cfg(feature = "serde_support")]
 use serde::{Deserialize, Serialize};
 
-use std::{collections::HashMap, str::FromStr};
+use std::collections::HashMap;
 
 #[derive(Debug)]
 #[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
@@ -152,6 +152,8 @@ mod tests {
 
     use crate::error::{InklingError, ParseError};
     use crate::line::*;
+
+    use std::str::FromStr;
 
     impl FromStr for Stitch {
         type Err = ParseError;
