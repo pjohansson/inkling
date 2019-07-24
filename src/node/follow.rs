@@ -1,3 +1,4 @@
+use crate::line::ProcessError;
 use crate::{
     error::{InklingError, InternalError},
     follow::{FollowResult, LineDataBuffer, Next},
@@ -12,7 +13,7 @@ use crate::{
 /// For example, for this tree:
 ///
 /// Root
-/// ===
+/// ```
 /// Line
 /// Line
 /// Branching Set
@@ -26,7 +27,7 @@ use crate::{
 ///                 ...
 ///     Branch 3
 ///         ...
-/// ===
+/// ```
 ///
 /// the current stack is [2, 1, 1]. When the user picks a choice the stack is used to
 /// advance to the position of that choice set in the tree, then follow from there on.
@@ -35,7 +36,27 @@ use crate::{
 /// choice start at index 1.
 pub type Stack = Vec<usize>;
 
-pub trait Follow {
+/// Trait which enables us to walk through a tree which contains the content of a `Stitch`.
+///
+/// This trait is implemented on all constituent parts (nodes) of the tree. For every line
+/// of content in the current node the text is processed and added to a supplied buffer.
+///
+/// When a branching choice is encountered it is returned and the story will halt until
+/// the user supplies a branch to keep following the story from.
+pub trait Follow: FollowInternal {
+    /// Follow the content of the current node until it runs out or a branching choice
+    /// is encountered. This node should be the currently active node, representing
+    /// the last stack position in a tree.
+    ///
+    /// The follow will resume from and update the current `Stack` as it walks through
+    /// the node.
+    ///
+    /// # Notes
+    ///  *  The method assumes that the last index of the stack belongs to this node,
+    ///     since a `follow` will always be called on the deepest level that has been
+    ///     reached in the tree.
+    ///
+    ///     Ensure that the stack is maintained before calling this method.
     fn follow(&mut self, stack: &mut Stack, buffer: &mut LineDataBuffer) -> FollowResult {
         let at_index = stack.last_mut().ok_or(String::new())?;
 
@@ -67,35 +88,38 @@ pub trait Follow {
         Ok(Next::Done)
     }
 
+    /// Resume the follow of content in the tree with a supplied choice from the currently
+    /// encountered set of branches.
+    ///
+    /// Will fast forward through the tree to reach the node where the choice was encountered.
+    /// The `Stack` is used to accomplish this. The last index in the stack represents
+    /// the `NodeItem` of the nested node where the choice was encountered. We advance to
+    /// that node from a lower level by checking whether the current `stack_index` represents
+    /// this level.
+    ///
+    /// If the `stack_index` is lower than the stack length - 1 we are not yet at the level
+    /// in the tree where the choice was encountered. We recursively move to the next node
+    /// by following the stack to it, updating the `stack_index` value when calling it
+    /// until we reach the deepest level.
+    ///
+    /// When reaching the deepest level, `follow` is called on the selected branch of
+    /// the choices. Diverts and new branching choices are returned through the stack
+    /// if encountered.
+    ///
+    /// Finally, when we return from a deeper level due to running out of content in that node,
+    /// we keep `follow`ing the content in the current node until its end.
     fn follow_with_choice(
         &mut self,
         chosen_branch_index: usize,
         stack_index: usize,
         stack: &mut Stack,
         buffer: &mut LineDataBuffer,
-    ) -> FollowResult
-    where
-        Self: Sized,
-    {
-        let result = if stack_index < stack.len() - 1 {
-            let next_branch = get_next_level_branch(stack_index, stack, self)?;
+    ) -> FollowResult {
+        let result = if let Some(next_branch) = self.get_next_level_branch(stack_index, stack)? {
             next_branch.follow_with_choice(chosen_branch_index, stack_index + 2, stack, buffer)
         } else {
             let selected_branch =
-                match get_selected_branch(chosen_branch_index, stack_index, stack, self) {
-                    Ok(branch) => branch,
-                    Err(err) => {
-                        let err = if let Some(user_err) =
-                            check_for_invalid_choice(chosen_branch_index, stack_index, stack, self)
-                        {
-                            user_err
-                        } else {
-                            err.into()
-                        };
-
-                        return Err(err);
-                    }
-                };
+                self.get_selected_branch(chosen_branch_index, stack_index, stack)?;
 
             stack.extend_from_slice(&[chosen_branch_index, 0]);
 
@@ -104,13 +128,70 @@ pub trait Follow {
 
         match result {
             Next::Done => {
-                stack.truncate(stack.len() - 2);
+                stack.truncate(stack_index + 1);
                 *stack.last_mut().expect("stack.last_mut") += 1;
 
                 self.follow(stack, buffer)
             }
             other => Ok(other),
         }
+    }
+}
+
+impl Follow for RootNode {}
+impl Follow for Branch {}
+
+/// Internal utilities required to implement `Follow`.
+/// 
+/// Separated from that trait to simplify the scope of functions that are made available
+/// when importing `Follow`.
+pub trait FollowInternal {
+    fn get_next_level_branch(
+        &mut self,
+        stack_index: usize,
+        stack: &Stack,
+    ) -> Result<Option<&mut Branch>, InklingError> {
+        if stack_index < stack.len() - 1 {
+            self.get_branches_at_stack_index(stack_index, stack)
+                .map(|branches| {
+                    let branch_index = stack[stack_index + 1];
+
+                    Some(branches.get_mut(branch_index).unwrap())
+                })
+        } else {
+            Ok(None)
+        }
+    }
+
+    fn get_selected_branch(
+        &mut self,
+        branch_index: usize,
+        stack_index: usize,
+        stack: &Stack,
+    ) -> Result<&mut Branch, InklingError> {
+        self.get_branches_at_stack_index(stack_index, stack)
+            .and_then(|branches| {
+                let branch_choices = get_choices_from_branching_set(branches);
+
+                branches
+                    .get_mut(branch_index)
+                    .ok_or(get_invalid_choice_error_stub(branch_index, branch_choices))
+            })
+    }
+
+    fn get_branches_at_stack_index(
+        &mut self,
+        stack_index: usize,
+        stack: &Stack,
+    ) -> Result<&mut Vec<Branch>, InklingError> {
+        stack
+            .get(stack_index)
+            .and_then(move |i| self.get_item_mut(*i))
+            .ok_or(ProcessError::default().into())
+            .and_then(|item| match item {
+                NodeItem::BranchingChoice(branches) => Ok(branches),
+                _ => unimplemented!(),
+            })
     }
 
     fn get_item(&self, index: usize) -> Option<&NodeItem>;
@@ -121,7 +202,7 @@ pub trait Follow {
     fn items(&mut self) -> Vec<&mut NodeItem>;
 }
 
-impl Follow for RootNode {
+impl FollowInternal for RootNode {
     fn get_item(&self, index: usize) -> Option<&NodeItem> {
         self.items.get(index)
     }
@@ -147,7 +228,7 @@ impl Follow for RootNode {
     }
 }
 
-impl Follow for Branch {
+impl FollowInternal for Branch {
     fn get_item(&self, index: usize) -> Option<&NodeItem> {
         self.items.get(index)
     }
@@ -173,58 +254,8 @@ impl Follow for Branch {
     }
 }
 
-fn check_for_invalid_choice<T: Follow>(
-    chosen_branch_index: usize,
-    stack_index: usize,
-    stack: &Stack,
-    node: &T,
-) -> Option<InklingError> {
-    let branch_set_index = stack.get(stack_index)?;
-
-    if let Some(NodeItem::BranchingChoice(branches)) = &node.get_item(*branch_set_index) {
-        if chosen_branch_index >= branches.len() {
-            return Some(get_invalid_choice_error_stub(branches, chosen_branch_index));
-        }
-    }
-
-    None
-}
-
-fn get_selected_branch<'a, T: Follow + Sized>(
-    chosen_branch_index: usize,
-    stack_index: usize,
-    stack: &Stack,
-    node: &'a mut T,
-) -> Result<&'a mut Branch, InternalError> {
-    let branch_set_index = stack[stack_index];
-    let num_items = node.get_num_items();
-
-    let item = node
-        .get_item_mut(branch_set_index)
-        .ok_or(InternalError::bad_indices(
-            stack_index,
-            branch_set_index,
-            num_items,
-            stack,
-        ))?;
-
-    match item {
-        NodeItem::BranchingChoice(branches) => {
-            branches
-                .get_mut(chosen_branch_index)
-                .ok_or(InternalError::bad_indices(
-                    stack_index + 1,
-                    chosen_branch_index,
-                    num_items,
-                    &stack,
-                ))
-        }
-        err => {
-            unimplemented!();
-        }
-    }
-}
-
+/// Collect the `ChoiceData` from the given set of branches. Set the `num_visited` count
+/// to that of the branch.
 fn get_choices_from_branching_set(branches: &[Branch]) -> Vec<ChoiceData> {
     branches
         .iter()
@@ -239,41 +270,6 @@ fn get_choices_from_branching_set(branches: &[Branch]) -> Vec<ChoiceData> {
         .collect::<Vec<_>>()
 }
 
-fn get_next_level_branch<'a, T: Follow + Sized>(
-    stack_index: usize,
-    stack: &Stack,
-    node: &'a mut T,
-) -> Result<&'a mut Branch, InternalError> {
-    let branch_set_index = stack[stack_index];
-    let branch_index = stack[stack_index + 1];
-    let num_items = node.get_num_items();
-
-    let item = node
-        .get_item_mut(branch_set_index)
-        .ok_or(InternalError::bad_indices(
-            stack_index,
-            branch_set_index,
-            num_items,
-            stack,
-        ))?;
-
-    match item {
-        NodeItem::BranchingChoice(branches) => {
-            branches
-                .get_mut(branch_index)
-                .ok_or(InternalError::bad_indices(
-                    stack_index + 1,
-                    branch_index,
-                    num_items,
-                    stack,
-                ))
-        }
-        _ => {
-            unimplemented!();
-        }
-    }
-}
-
 /// If the used index to select a choice with was wrong, construct a stub of the error
 /// with type `InklingError::InvalidChoice`. Here we fill in which index caused
 /// the error and the full list of available choices that it tried to select from.
@@ -281,16 +277,14 @@ fn get_next_level_branch<'a, T: Follow + Sized>(
 /// The other fields should be filled in by later error handling if needed: this is
 /// the information that the current node has direct access to.
 fn get_invalid_choice_error_stub(
-    branching_choice_set: &[Branch],
     choice_index: usize,
+    branch_choices: Vec<ChoiceData>,
 ) -> InklingError {
-    let choices = get_choices_from_branching_set(branching_choice_set);
-
     InklingError::InvalidChoice {
         index: choice_index,
         choice: None,
         presented_choices: Vec::new(),
-        internal_choices: choices,
+        internal_choices: branch_choices,
     }
 }
 
@@ -770,23 +764,6 @@ mod tests {
     fn after_a_followed_choice_returns_the_caller_nodes_always_follow_into_their_next_lines() {
         let choice = ChoiceDataBuilder::empty()
             .with_line(LineDataBuilder::new("Choice").build())
-            .build();
-
-        let nested_branch = BranchingChoiceBuilder::new()
-            .add_branch(
-                BranchBuilder::from_choice(choice.clone())
-                    .with_line_text("Line 1")
-                    .build(),
-            )
-            .build();
-
-        let branch_set = BranchingChoiceBuilder::new()
-            .add_branch(
-                BranchBuilder::from_choice(choice.clone())
-                    .with_branching_choice(nested_branch)
-                    .with_line_text("Line 2")
-                    .build(),
-            )
             .build();
 
         let mut node = RootNodeBuilder::new()
