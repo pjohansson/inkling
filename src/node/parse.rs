@@ -1,12 +1,14 @@
-use crate::line::ParsedLine;
+use crate::{
+    line::{Container, LineBuilder, ParsedLine},
+    node::{
+        builders::{BranchBuilder, RootNodeBuilder},
+        Branch, NodeItem, RootNode,
+    },
+};
 
-use super::node::Container as NodeContainer;
-use super::node::*;
-use crate::line::Container as LineContainer;
-use crate::line::*;
-
-/// Used to parse the input lines from beginning to end, returning the constructed `DialogueNode`.
-pub fn new_parse_full_node(lines: &[ParsedLine]) -> RootNode {
+/// Parse the input lines from beginning to end and construct a branching tree
+/// of line content from it. Return the tree from its root node.
+pub fn parse_root_node(lines: &[ParsedLine]) -> RootNode {
     let mut builder = RootNodeBuilder::new();
 
     let mut index = 0;
@@ -17,12 +19,13 @@ pub fn new_parse_full_node(lines: &[ParsedLine]) -> RootNode {
         match line {
             ParsedLine::Line(line) => {
                 let line = LineBuilder::new()
-                    .with_item(LineContainer::Text(line.clone()))
+                    .with_item(Container::Text(line.clone()))
                     .build();
                 builder.add_line(line);
             }
             ParsedLine::Choice { level, .. } => {
-                let (branches, gather) = new_parse_choice_set_with_gather(&mut index, *level, lines);
+                let (branches, gather) =
+                    parse_branching_choice_set_and_gather(&mut index, *level, lines);
                 builder.add_branching_choice(branches);
 
                 if let Some(line) = gather {
@@ -37,9 +40,9 @@ pub fn new_parse_full_node(lines: &[ParsedLine]) -> RootNode {
             }
             ParsedLine::Gather { line, .. } => {
                 let line = LineBuilder::new()
-                    .with_item(LineContainer::Text(line.clone()))
+                    .with_item(Container::Text(line.clone()))
                     .build();
-                builder.add_item(NodeContainer::Line(line));
+                builder.add_item(NodeItem::Line(line));
             }
         };
 
@@ -52,17 +55,21 @@ pub fn new_parse_full_node(lines: &[ParsedLine]) -> RootNode {
 /// After parsing a group of choices, check whether it ended because of a `Gather`.
 /// If so, return the `NodeItem::Line` object from that gather so that it can be appended
 /// *after* the node, not inside it.
-fn new_parse_choice_set_with_gather(
+///
+/// When the function returns the `index` will point to the line directly after
+/// the last line of content belonging to this branch, or if a `gather` point was found,
+/// directly below that (since we parse and return it).
+fn parse_branching_choice_set_and_gather(
     index: &mut usize,
     current_level: u32,
     lines: &[ParsedLine],
-) -> (Vec<Branch>, Option<LineContainer>) {
-    let node = new_parse_choice_set(index, current_level, lines);
+) -> (Vec<Branch>, Option<Container>) {
+    let node = parse_branching_choice_set(index, current_level, lines);
     let mut gather = None;
 
     if let Some(ParsedLine::Gather { level, line }) = lines.get(*index) {
         if *level == current_level {
-            gather.replace(LineContainer::Text(line.clone()));
+            gather.replace(Container::Text(line.clone()));
             *index += 1;
         }
     }
@@ -70,24 +77,30 @@ fn new_parse_choice_set_with_gather(
     (node, gather)
 }
 
-/// Parse a set of `Choice`s with the same level, grouping them into a single `ChoiceSet`
-/// node that is returned.
-fn new_parse_choice_set(
+/// Parse a set of `Branch`es with the same level, grouping them into a list which is returned.
+/// Will return when a `Gather` of same level or below is encountered.
+///
+/// When the function returns the `index` will point to the line directly after
+/// the last line of content belonging to this branch.
+fn parse_branching_choice_set(
     index: &mut usize,
     current_level: u32,
     lines: &[ParsedLine],
 ) -> Vec<Branch> {
     (0..)
-        .map(|_| new_parse_single_choice(index, current_level, lines))
+        .map(|_| parse_branch_at_given_level(index, current_level, lines))
         .take_while(|result| result.is_some())
         .map(|result| result.unwrap())
         .collect::<Vec<_>>()
 }
 
-/// Parse a single `Choice` node. The node ends either when another `Choice` node with
+/// Parse a single `Branch` node. The node ends either when another `Branch` node with
 /// the same level or below is encountered, when a `Gather` with the same level or below
-/// is encountered or when all lines are read.
-fn new_parse_single_choice(
+/// is encountered, or when all lines are read.
+///
+/// When the function returns the `index` will point to the line directly after
+/// the last line of content belonging to this branch.
+fn parse_branch_at_given_level(
     index: &mut usize,
     current_level: u32,
     lines: &[ParsedLine],
@@ -115,7 +128,7 @@ fn new_parse_single_choice(
 
     let mut builder = BranchBuilder::from_choice(choice);
 
-    // This skips to the next index, where the choice's content or a new choice will appear
+    // This skips to the next index, where the branch's content or a new branch point will appear
     *index += 1;
 
     while *index < lines.len() {
@@ -124,7 +137,7 @@ fn new_parse_single_choice(
         match line {
             ParsedLine::Line(line) => {
                 let line = LineBuilder::new()
-                    .with_item(LineContainer::Text(line.clone()))
+                    .with_item(Container::Text(line.clone()))
                     .build();
 
                 builder.add_line(line);
@@ -132,7 +145,7 @@ fn new_parse_single_choice(
             ParsedLine::Choice { level, .. } if *level == current_level => break,
             ParsedLine::Choice { level, .. } if *level > current_level => {
                 let (branching_set, gather) =
-                    new_parse_choice_set_with_gather(index, *level, lines);
+                    parse_branching_choice_set_and_gather(index, *level, lines);
 
                 builder.add_branching_choice(branching_set);
 
@@ -141,9 +154,9 @@ fn new_parse_single_choice(
                     builder.add_line(line);
                 }
 
-                // `parse_choice_set` advances the index to the next line after the group,
-                // but this loop also does that at every iteration. Retract the index once
-                // to compensate.
+                // `parse_branching_choice_set_and_gather` advances the index to the next line
+                // after the group, but this loop also does that at every iteration.
+                // Retract the index once to compensate.
                 *index -= 1;
             }
             ParsedLine::Choice { .. } => {
@@ -179,7 +192,7 @@ mod tests {
 
         let mut index = 0;
 
-        let first = new_parse_single_choice(&mut index, level, &lines).unwrap();
+        let first = parse_branch_at_given_level(&mut index, level, &lines).unwrap();
         assert_eq!(first.items.len(), 1);
     }
 
@@ -192,16 +205,16 @@ mod tests {
 
         let mut index = 0;
 
-        let first = new_parse_single_choice(&mut index, level, &lines).unwrap();
+        let first = parse_branch_at_given_level(&mut index, level, &lines).unwrap();
         assert_eq!(first.items.len(), 1);
 
-        let second = new_parse_single_choice(&mut index, level, &lines).unwrap();
+        let second = parse_branch_at_given_level(&mut index, level, &lines).unwrap();
         assert_eq!(second.items.len(), 1);
 
-        let third = new_parse_single_choice(&mut index, level, &lines).unwrap();
+        let third = parse_branch_at_given_level(&mut index, level, &lines).unwrap();
         assert_eq!(third.items.len(), 1);
 
-        assert!(new_parse_single_choice(&mut index, level, &lines).is_none());
+        assert!(parse_branch_at_given_level(&mut index, level, &lines).is_none());
     }
 
     #[test]
@@ -220,7 +233,7 @@ mod tests {
         };
 
         let mut index = 0;
-        let branch = new_parse_single_choice(&mut index, 1, &[input]).unwrap();
+        let branch = parse_branch_at_given_level(&mut index, 1, &[input]).unwrap();
 
         assert_eq!(branch.choice, choice);
     }
@@ -240,8 +253,8 @@ mod tests {
         ];
 
         let mut index = 0;
-        let first = new_parse_single_choice(&mut index, level, &lines).unwrap();
-        let second = new_parse_single_choice(&mut index, level, &lines).unwrap();
+        let first = parse_branch_at_given_level(&mut index, level, &lines).unwrap();
+        let second = parse_branch_at_given_level(&mut index, level, &lines).unwrap();
 
         assert_eq!(first.items.len(), 3);
         assert!(first.items[1].is_line());
@@ -261,11 +274,11 @@ mod tests {
         let current_level = 2;
 
         let mut index = 0;
-        assert!(new_parse_single_choice(&mut index, current_level, &lines).is_some());
-        assert!(new_parse_single_choice(&mut index, current_level, &lines).is_some());
+        assert!(parse_branch_at_given_level(&mut index, current_level, &lines).is_some());
+        assert!(parse_branch_at_given_level(&mut index, current_level, &lines).is_some());
 
         // Here we encounter the level one choice and immediately return
-        assert!(new_parse_single_choice(&mut index, current_level, &lines).is_none());
+        assert!(parse_branch_at_given_level(&mut index, current_level, &lines).is_none());
 
         assert_eq!(index, 2);
     }
@@ -288,7 +301,7 @@ mod tests {
 
         let mut index = 0;
 
-        let branching_set = new_parse_choice_set(&mut index, 1, &lines);
+        let branching_set = parse_branching_choice_set(&mut index, 1, &lines);
 
         assert_eq!(index, 6);
 
@@ -307,7 +320,7 @@ mod tests {
 
         let mut index = 0;
 
-        let branch = new_parse_single_choice(&mut index, 1, &lines).unwrap();
+        let branch = parse_branch_at_given_level(&mut index, 1, &lines).unwrap();
 
         assert_eq!(branch.items.len(), 2);
         assert!(branch.items[1].is_branching_choice());
@@ -327,7 +340,7 @@ mod tests {
         ];
 
         let mut index = 0;
-        let branching_set = new_parse_choice_set(&mut index, 2, &lines);
+        let branching_set = parse_branching_choice_set(&mut index, 2, &lines);
 
         assert_eq!(branching_set.len(), 2);
     }
@@ -358,16 +371,14 @@ mod tests {
 
         let mut index = 0;
 
-        let branching_set = new_parse_choice_set(&mut index, 1, &lines);
+        let branching_set = parse_branching_choice_set(&mut index, 1, &lines);
 
         // Assert that the level 3 choice has two lines and one final choice_set
         let branch = {
             match &branching_set[1].items[1] {
-                NodeContainer::BranchingChoice(level_two_branches) => {
+                NodeItem::BranchingChoice(level_two_branches) => {
                     match &level_two_branches[0].items[1] {
-                        NodeContainer::BranchingChoice(level_three_branches) => {
-                            &level_three_branches[0]
-                        }
+                        NodeItem::BranchingChoice(level_three_branches) => &level_three_branches[0],
                         _ => unreachable!(),
                     }
                 }
@@ -390,7 +401,7 @@ mod tests {
 
         let mut index = 0;
 
-        let (_, line) = new_parse_choice_set_with_gather(&mut index, 1, &lines_without_gather);
+        let (_, line) = parse_branching_choice_set_and_gather(&mut index, 1, &lines_without_gather);
         assert!(line.is_none());
 
         let lines_with_gather = vec![
@@ -402,7 +413,7 @@ mod tests {
 
         index = 0;
 
-        let (_, line) = new_parse_choice_set_with_gather(&mut index, 1, &lines_with_gather);
+        let (_, line) = parse_branching_choice_set_and_gather(&mut index, 1, &lines_with_gather);
         assert!(line.is_some());
     }
 
@@ -415,14 +426,14 @@ mod tests {
 
         let mut index = 0;
 
-        new_parse_choice_set_with_gather(&mut index, 1, &lines_without_gather);
+        parse_branching_choice_set_and_gather(&mut index, 1, &lines_without_gather);
         assert_eq!(index, 1);
 
         let lines_with_gather = vec![choice1.clone(), gather1.clone()];
 
         index = 0;
 
-        new_parse_choice_set_with_gather(&mut index, 1, &lines_with_gather);
+        parse_branching_choice_set_and_gather(&mut index, 1, &lines_with_gather);
         assert_eq!(index, 2);
     }
 
@@ -440,7 +451,7 @@ mod tests {
 
         let mut index = 0;
 
-        let branching_set = new_parse_choice_set(&mut index, 1, &lines);
+        let branching_set = parse_branching_choice_set(&mut index, 1, &lines);
 
         assert_eq!(index, 2);
         assert_eq!(branching_set.len(), 2);
@@ -468,7 +479,7 @@ mod tests {
 
         let mut index = 0;
 
-        let (branching_set, _) = new_parse_choice_set_with_gather(&mut index, 1, &lines);
+        let (branching_set, _) = parse_branching_choice_set_and_gather(&mut index, 1, &lines);
 
         assert_eq!(index, 9);
         assert_eq!(branching_set.len(), 3);
@@ -481,7 +492,7 @@ mod tests {
 
         let lines = vec![line.clone(), line.clone(), choice1.clone(), choice1.clone()];
 
-        let root = new_parse_full_node(&lines);
+        let root = parse_root_node(&lines);
 
         assert_eq!(root.items.len(), 3);
         assert!(root.items[0].is_line());
@@ -509,7 +520,7 @@ mod tests {
             gather1.clone(), // Breaks ChoiceSet; becomes third level-1 element
         ];
 
-        let root_node = new_parse_full_node(&lines);
+        let root_node = parse_root_node(&lines);
 
         assert_eq!(root_node.items.len(), 3);
         assert!(root_node.items[1].is_branching_choice());
@@ -518,18 +529,18 @@ mod tests {
 
     #[test]
     fn parse_empty_list_return_empty_node() {
-        let root_node = new_parse_full_node(&[]);
+        let root_node = parse_root_node(&[]);
         assert_eq!(root_node.items.len(), 0);
     }
 
     #[test]
     fn parse_list_with_only_branches_works() {
         let choice = get_empty_choice(1);
-        let root = new_parse_full_node(&[choice.clone(), choice.clone(), choice.clone()]);
+        let root = parse_root_node(&[choice.clone(), choice.clone(), choice.clone()]);
 
         assert_eq!(root.items.len(), 1);
         match &root.items[0] {
-            NodeContainer::BranchingChoice(branches) => {
+            NodeItem::BranchingChoice(branches) => {
                 assert_eq!(branches.len(), 3);
             }
             _ => unreachable!(),
@@ -539,7 +550,7 @@ mod tests {
     #[test]
     fn parse_list_with_non_matched_gathers_turns_them_into_lines() {
         let gather = get_empty_gather(1);
-        let root = new_parse_full_node(&[gather.clone(), gather.clone(), gather.clone()]);
+        let root = parse_root_node(&[gather.clone(), gather.clone(), gather.clone()]);
 
         assert_eq!(root.items.len(), 3);
 
@@ -553,7 +564,7 @@ mod tests {
         let choice1 = get_empty_choice(64);
         let choice2 = get_empty_choice(128);
 
-        let root_node = new_parse_full_node(&[
+        let root_node = parse_root_node(&[
             choice1.clone(),
             choice1.clone(),
             choice2.clone(),
@@ -564,11 +575,11 @@ mod tests {
         assert_eq!(root_node.items.len(), 1);
 
         match &root_node.items[0] {
-            NodeContainer::BranchingChoice(branches) => {
+            NodeItem::BranchingChoice(branches) => {
                 assert_eq!(branches.len(), 3);
 
                 match &branches[1].items[1] {
-                    NodeContainer::BranchingChoice(nested_branches) => {
+                    NodeItem::BranchingChoice(nested_branches) => {
                         assert_eq!(nested_branches.len(), 2);
                     }
                     _ => unreachable!(),

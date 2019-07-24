@@ -3,4 +3,6 @@ mod node;
 mod parse;
 
 pub use follow::{Follow, Stack};
-pub use node::{Branch, Container, RootNode};
+pub(self) use node::builders;
+pub use node::{Branch, NodeItem, RootNode};
+pub(self) use parse::parse_root_node;

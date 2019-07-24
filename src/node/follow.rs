@@ -2,7 +2,7 @@ use crate::{
     error::{InklingError, InternalError},
     follow::{FollowResult, LineDataBuffer, Next},
     line::{ChoiceData, Process},
-    node::{Branch, Container, RootNode},
+    node::{Branch, NodeItem, RootNode},
 };
 
 /// Represents the current stack of choices that have been made from the root
@@ -47,14 +47,14 @@ pub trait Follow {
             *at_index += 1;
 
             match item {
-                Container::Line(line) => {
+                NodeItem::Line(line) => {
                     let result = line.process(buffer)?;
 
                     if let Next::Divert(..) = result {
                         return Ok(result);
                     }
                 }
-                Container::BranchingChoice(branches) => {
+                NodeItem::BranchingChoice(branches) => {
                     *at_index -= 1;
 
                     let branching_choice_set = get_choices_from_branching_set(branches);
@@ -113,20 +113,20 @@ pub trait Follow {
         }
     }
 
-    fn get_item(&self, index: usize) -> Option<&Container>;
-    fn get_item_mut(&mut self, index: usize) -> Option<&mut Container>;
+    fn get_item(&self, index: usize) -> Option<&NodeItem>;
+    fn get_item_mut(&mut self, index: usize) -> Option<&mut NodeItem>;
     fn get_num_items(&self) -> usize;
     fn get_num_visited(&self) -> u32;
     fn increment_num_visited(&mut self);
-    fn items(&mut self) -> Vec<&mut Container>;
+    fn items(&mut self) -> Vec<&mut NodeItem>;
 }
 
 impl Follow for RootNode {
-    fn get_item(&self, index: usize) -> Option<&Container> {
+    fn get_item(&self, index: usize) -> Option<&NodeItem> {
         self.items.get(index)
     }
 
-    fn get_item_mut(&mut self, index: usize) -> Option<&mut Container> {
+    fn get_item_mut(&mut self, index: usize) -> Option<&mut NodeItem> {
         self.items.get_mut(index)
     }
 
@@ -142,17 +142,17 @@ impl Follow for RootNode {
         self.num_visited += 1;
     }
 
-    fn items(&mut self) -> Vec<&mut Container> {
+    fn items(&mut self) -> Vec<&mut NodeItem> {
         self.items.iter_mut().collect()
     }
 }
 
 impl Follow for Branch {
-    fn get_item(&self, index: usize) -> Option<&Container> {
+    fn get_item(&self, index: usize) -> Option<&NodeItem> {
         self.items.get(index)
     }
 
-    fn get_item_mut(&mut self, index: usize) -> Option<&mut Container> {
+    fn get_item_mut(&mut self, index: usize) -> Option<&mut NodeItem> {
         self.items.get_mut(index)
     }
 
@@ -168,7 +168,7 @@ impl Follow for Branch {
         self.num_visited += 1;
     }
 
-    fn items(&mut self) -> Vec<&mut Container> {
+    fn items(&mut self) -> Vec<&mut NodeItem> {
         self.items.iter_mut().collect()
     }
 }
@@ -181,7 +181,7 @@ fn check_for_invalid_choice<T: Follow>(
 ) -> Option<InklingError> {
     let branch_set_index = stack.get(stack_index)?;
 
-    if let Some(Container::BranchingChoice(branches)) = &node.get_item(*branch_set_index) {
+    if let Some(NodeItem::BranchingChoice(branches)) = &node.get_item(*branch_set_index) {
         if chosen_branch_index >= branches.len() {
             return Some(get_invalid_choice_error_stub(branches, chosen_branch_index));
         }
@@ -209,7 +209,7 @@ fn get_selected_branch<'a, T: Follow + Sized>(
         ))?;
 
     match item {
-        Container::BranchingChoice(branches) => {
+        NodeItem::BranchingChoice(branches) => {
             branches
                 .get_mut(chosen_branch_index)
                 .ok_or(InternalError::bad_indices(
@@ -258,7 +258,7 @@ fn get_next_level_branch<'a, T: Follow + Sized>(
         ))?;
 
     match item {
-        Container::BranchingChoice(branches) => {
+        NodeItem::BranchingChoice(branches) => {
             branches
                 .get_mut(branch_index)
                 .ok_or(InternalError::bad_indices(
@@ -298,12 +298,12 @@ fn get_invalid_choice_error_stub(
 mod tests {
     use super::*;
 
-    use super::super::node::tests::BranchingChoiceBuilder;
-    use super::super::node::*;
-
-    use crate::line::{
-        choice::tests::ChoiceBuilder as ChoiceDataBuilder,
-        line::tests::LineBuilder as LineDataBuilder,
+    use crate::{
+        line::{
+            choice::tests::ChoiceBuilder as ChoiceDataBuilder,
+            line::tests::LineBuilder as LineDataBuilder,
+        },
+        node::builders::{BranchBuilder, BranchingChoiceBuilder, RootNodeBuilder},
     };
 
     // #[test]
@@ -645,7 +645,7 @@ mod tests {
             .unwrap();
 
         match &node.items[0] {
-            Container::BranchingChoice(branches) => {
+            NodeItem::BranchingChoice(branches) => {
                 assert_eq!(branches[0].num_visited, 0);
                 assert_eq!(branches[1].num_visited, 1);
                 assert_eq!(branches[2].num_visited, 0);
