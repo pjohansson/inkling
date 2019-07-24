@@ -1,7 +1,4 @@
-use crate::{
-    consts::*,
-    line::*,
-};
+use crate::{consts::*, line::*};
 
 pub fn parse_gather(content: &str) -> Result<Option<ParsedLineKind>, LineParsingError> {
     let (line_without_divert, line_from_divert) = split_at_divert_marker(content);

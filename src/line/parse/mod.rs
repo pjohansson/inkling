@@ -7,5 +7,5 @@ mod line;
 pub use choice::*;
 pub use condition::*;
 pub use gather::*;
-pub use line::*;
 pub use kind::*;
+pub use line::*;

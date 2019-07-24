@@ -59,9 +59,7 @@ impl NodeItem {
 }
 
 pub mod builders {
-    use super::{
-        Branch, FullChoice, FullLine, LineBuilder, LineChunk, NodeItem, RootNode,
-    };
+    use super::{Branch, FullChoice, FullLine, LineBuilder, LineChunk, NodeItem, RootNode};
 
     /// Builder for a `RootNote`.
     ///

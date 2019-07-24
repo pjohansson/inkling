@@ -697,7 +697,6 @@ mod tests {
 
     #[test]
     fn invalid_choice_error_is_filled_in_with_all_presented_choices() {
-
         let line1 = parse_line("Choice 1").unwrap();
         let line2 = parse_line("Choice 2").unwrap();
 
