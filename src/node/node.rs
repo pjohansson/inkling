@@ -1,5 +1,5 @@
 use crate::{
-    line::{ChoiceData, Line, LineBuilder, ParsedLine},
+    line::{ChoiceData, LineChunk, LineBuilder, ParsedLine},
     node::parse_root_node,
 };
 
@@ -33,9 +33,11 @@ pub struct Branch {
 
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
+/// Every item that a `Stitch` contains can be either some text producing asset 
+/// or a branching point which the user must select an option from to continue.
 pub enum NodeItem {
-    Line(Line),
-    BranchingChoice(Vec<Branch>),
+    Line(LineChunk),
+    BranchingPoint(Vec<Branch>),
 }
 
 #[cfg(test)]
@@ -43,7 +45,7 @@ pub enum NodeItem {
 impl NodeItem {
     pub fn is_branching_choice(&self) -> bool {
         match self {
-            NodeItem::BranchingChoice(..) => true,
+            NodeItem::BranchingPoint(..) => true,
             _ => false,
         }
     }
@@ -57,7 +59,7 @@ impl NodeItem {
 }
 
 pub mod builders {
-    use super::{Branch, ChoiceData, Line, LineBuilder, NodeItem, RootNode};
+    use super::{Branch, ChoiceData, LineChunk, LineBuilder, NodeItem, RootNode};
 
     /// Builder for a `RootNote`.
     ///
@@ -84,14 +86,14 @@ pub mod builders {
         }
 
         pub fn add_branching_choice(&mut self, branching_set: Vec<Branch>) {
-            self.add_item(NodeItem::BranchingChoice(branching_set));
+            self.add_item(NodeItem::BranchingPoint(branching_set));
         }
 
         pub fn add_item(&mut self, item: NodeItem) {
             self.items.push(item);
         }
 
-        pub fn add_line(&mut self, line: Line) {
+        pub fn add_line(&mut self, line: LineChunk) {
             self.add_item(NodeItem::Line(line));
         }
 
@@ -132,14 +134,14 @@ pub mod builders {
         }
 
         pub fn add_branching_choice(&mut self, branching_set: Vec<Branch>) {
-            self.add_item(NodeItem::BranchingChoice(branching_set));
+            self.add_item(NodeItem::BranchingPoint(branching_set));
         }
 
         pub fn add_item(&mut self, item: NodeItem) {
             self.items.push(item);
         }
 
-        pub fn add_line(&mut self, line: Line) {
+        pub fn add_line(&mut self, line: LineChunk) {
             self.add_item(NodeItem::Line(line));
         }
 
@@ -166,14 +168,14 @@ pub mod builders {
     }
 
     #[cfg(test)]
-    pub struct BranchingChoiceBuilder {
+    pub struct BranchingPointBuilder {
         items: Vec<Branch>,
     }
 
     #[cfg(test)]
-    impl BranchingChoiceBuilder {
+    impl BranchingPointBuilder {
         pub fn new() -> Self {
-            BranchingChoiceBuilder { items: Vec::new() }
+            BranchingPointBuilder { items: Vec::new() }
         }
 
         pub fn with_branch(mut self, choice: Branch) -> Self {
@@ -182,7 +184,7 @@ pub mod builders {
         }
 
         pub fn build(self) -> NodeItem {
-            NodeItem::BranchingChoice(self.items)
+            NodeItem::BranchingPoint(self.items)
         }
     }
 }

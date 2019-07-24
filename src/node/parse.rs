@@ -1,5 +1,5 @@
 use crate::{
-    line::{Container, LineBuilder, ParsedLine},
+    line::{Content, LineBuilder, ParsedLine},
     node::{
         builders::{BranchBuilder, RootNodeBuilder},
         Branch, NodeItem, RootNode,
@@ -19,7 +19,7 @@ pub fn parse_root_node(lines: &[ParsedLine]) -> RootNode {
         match line {
             ParsedLine::Line(line) => {
                 let line = LineBuilder::new()
-                    .with_item(Container::Text(line.clone()))
+                    .with_item(Content::Text(line.clone()))
                     .build();
                 builder.add_line(line);
             }
@@ -40,7 +40,7 @@ pub fn parse_root_node(lines: &[ParsedLine]) -> RootNode {
             }
             ParsedLine::Gather { line, .. } => {
                 let line = LineBuilder::new()
-                    .with_item(Container::Text(line.clone()))
+                    .with_item(Content::Text(line.clone()))
                     .build();
                 builder.add_item(NodeItem::Line(line));
             }
@@ -63,13 +63,13 @@ fn parse_branching_choice_set_and_gather(
     index: &mut usize,
     current_level: u32,
     lines: &[ParsedLine],
-) -> (Vec<Branch>, Option<Container>) {
+) -> (Vec<Branch>, Option<Content>) {
     let node = parse_branching_choice_set(index, current_level, lines);
     let mut gather = None;
 
     if let Some(ParsedLine::Gather { level, line }) = lines.get(*index) {
         if *level == current_level {
-            gather.replace(Container::Text(line.clone()));
+            gather.replace(Content::Text(line.clone()));
             *index += 1;
         }
     }
@@ -137,7 +137,7 @@ fn parse_branch_at_given_level(
         match line {
             ParsedLine::Line(line) => {
                 let line = LineBuilder::new()
-                    .with_item(Container::Text(line.clone()))
+                    .with_item(Content::Text(line.clone()))
                     .build();
 
                 builder.add_line(line);
@@ -376,9 +376,9 @@ mod tests {
         // Assert that the level 3 choice has two lines and one final choice_set
         let branch = {
             match &branching_set[1].items[1] {
-                NodeItem::BranchingChoice(level_two_branches) => {
+                NodeItem::BranchingPoint(level_two_branches) => {
                     match &level_two_branches[0].items[1] {
-                        NodeItem::BranchingChoice(level_three_branches) => &level_three_branches[0],
+                        NodeItem::BranchingPoint(level_three_branches) => &level_three_branches[0],
                         _ => unreachable!(),
                     }
                 }
@@ -540,7 +540,7 @@ mod tests {
 
         assert_eq!(root.items.len(), 1);
         match &root.items[0] {
-            NodeItem::BranchingChoice(branches) => {
+            NodeItem::BranchingPoint(branches) => {
                 assert_eq!(branches.len(), 3);
             }
             _ => unreachable!(),
@@ -575,11 +575,11 @@ mod tests {
         assert_eq!(root_node.items.len(), 1);
 
         match &root_node.items[0] {
-            NodeItem::BranchingChoice(branches) => {
+            NodeItem::BranchingPoint(branches) => {
                 assert_eq!(branches.len(), 3);
 
                 match &branches[1].items[1] {
-                    NodeItem::BranchingChoice(nested_branches) => {
+                    NodeItem::BranchingPoint(nested_branches) => {
                         assert_eq!(nested_branches.len(), 2);
                     }
                     _ => unreachable!(),

@@ -85,7 +85,7 @@ pub trait Follow: FollowInternal {
                         return Ok(result);
                     }
                 }
-                NodeItem::BranchingChoice(branches) => {
+                NodeItem::BranchingPoint(branches) => {
                     *at_index -= 1;
 
                     let branching_choice_set = get_choices_from_branching_set(branches);
@@ -168,7 +168,7 @@ pub trait FollowInternal {
                         IncorrectNodeStackError::MissingBranchIndex {
                             stack_index,
                             stack: stack.clone(),
-                        }
+                        },
                     )?;
 
                     Ok((branch_index, branches))
@@ -229,8 +229,8 @@ pub trait FollowInternal {
                 .into(),
             )
             .and_then(|item| match item {
-                NodeItem::BranchingChoice(branches) => Ok(branches),
-                NodeItem::Line(..) => Err(IncorrectNodeStackError::ExpectedBranchingChoice {
+                NodeItem::BranchingPoint(branches) => Ok(branches),
+                NodeItem::Line(..) => Err(IncorrectNodeStackError::ExpectedBranchingPoint {
                     stack_index,
                     stack: stack.clone(),
                 }
@@ -341,7 +341,7 @@ mod tests {
             choice::tests::ChoiceBuilder as ChoiceDataBuilder,
             line::tests::LineBuilder as LineDataBuilder,
         },
-        node::builders::{BranchBuilder, BranchingChoiceBuilder, RootNodeBuilder},
+        node::builders::{BranchBuilder, BranchingPointBuilder, RootNodeBuilder},
     };
 
     #[test]
@@ -353,7 +353,7 @@ mod tests {
 
         match node.follow_with_choice(0, 0, &mut stack, &mut buffer) {
             Err(InklingError::Internal(InternalError::IncorrectNodeStack(err))) => match err {
-                IncorrectNodeStackError::ExpectedBranchingChoice { .. } => (),
+                IncorrectNodeStackError::ExpectedBranchingPoint { .. } => (),
                 _ => unreachable!(),
             },
             _ => unreachable!(),
@@ -379,7 +379,7 @@ mod tests {
     #[test]
     fn out_of_bounds_stack_indices_return_stack_error_when_checking_branches() {
         let mut node = RootNodeBuilder::new()
-            .with_branching_choice(BranchingChoiceBuilder::new().build())
+            .with_branching_choice(BranchingPointBuilder::new().build())
             .build();
 
         let mut buffer = Vec::new();
@@ -402,7 +402,7 @@ mod tests {
 
         let mut node = RootNodeBuilder::new()
             .with_branching_choice(
-                BranchingChoiceBuilder::new()
+                BranchingPointBuilder::new()
                     .with_branch(BranchBuilder::from_choice(internal_choice.clone()).build())
                     .build(),
             )
@@ -555,7 +555,7 @@ mod tests {
             .with_displayed(LineDataBuilder::new("Choice 2").build())
             .build();
 
-        let branching_choice_set = BranchingChoiceBuilder::new()
+        let branching_choice_set = BranchingPointBuilder::new()
             .with_branch(BranchBuilder::from_choice(choice1.clone()).build())
             .with_branch(BranchBuilder::from_choice(choice2.clone()).build())
             .build();
@@ -586,7 +586,7 @@ mod tests {
             .with_displayed(LineDataBuilder::new("Choice 2").build())
             .build();
 
-        let branching_choice_set = BranchingChoiceBuilder::new()
+        let branching_choice_set = BranchingPointBuilder::new()
             .with_branch(BranchBuilder::from_choice(choice1.clone()).build())
             .with_branch(BranchBuilder::from_choice(choice2.clone()).build())
             .build();
@@ -616,7 +616,7 @@ mod tests {
 
         let empty_branch = BranchBuilder::from_choice(empty_choice.clone()).build();
 
-        let nested_branching_choice = BranchingChoiceBuilder::new()
+        let nested_branching_choice = BranchingPointBuilder::new()
             .with_branch(empty_branch.clone())
             .with_branch(
                 BranchBuilder::from_choice(choice.clone()) // Stack: [1, 2, 2], Choice: 1
@@ -632,7 +632,7 @@ mod tests {
             .with_branching_choice(nested_branching_choice) // Stack: [1, 2, 1]
             .build();
 
-        let root_branching_choice = BranchingChoiceBuilder::new()
+        let root_branching_choice = BranchingPointBuilder::new()
             .with_branch(empty_branch.clone())
             .with_branch(empty_branch.clone())
             .with_branch(nested_branch) // Stack: [1, 2]
@@ -662,7 +662,7 @@ mod tests {
 
         let mut node = RootNodeBuilder::new()
             .with_branching_choice(
-                BranchingChoiceBuilder::new()
+                BranchingPointBuilder::new()
                     .with_branch(BranchBuilder::from_choice(choice).build())
                     .build(),
             )
@@ -689,7 +689,7 @@ mod tests {
 
         let mut node = RootNodeBuilder::new()
             .with_branching_choice(
-                BranchingChoiceBuilder::new()
+                BranchingPointBuilder::new()
                     .with_branch(BranchBuilder::from_choice(choice.clone()).build())
                     .with_branch(BranchBuilder::from_choice(choice.clone()).build())
                     .with_branch(BranchBuilder::from_choice(choice.clone()).build())
@@ -704,7 +704,7 @@ mod tests {
             .unwrap();
 
         match &node.items[0] {
-            NodeItem::BranchingChoice(branches) => {
+            NodeItem::BranchingPoint(branches) => {
                 assert_eq!(branches[0].num_visited, 0);
                 assert_eq!(branches[1].num_visited, 1);
                 assert_eq!(branches[2].num_visited, 0);
@@ -721,7 +721,7 @@ mod tests {
 
         let mut node = RootNodeBuilder::new()
             .with_branching_choice(
-                BranchingChoiceBuilder::new()
+                BranchingPointBuilder::new()
                     .with_branch(BranchBuilder::from_choice(choice.clone()).build())
                     .build(),
             )
@@ -752,7 +752,7 @@ mod tests {
 
         let mut node = RootNodeBuilder::new()
             .with_branching_choice(
-                BranchingChoiceBuilder::new()
+                BranchingPointBuilder::new()
                     .with_branch(BranchBuilder::from_choice(choice.clone()).build())
                     .build(),
             )
@@ -775,7 +775,7 @@ mod tests {
 
         let mut node = RootNodeBuilder::new()
             .with_branching_choice(
-                BranchingChoiceBuilder::new()
+                BranchingPointBuilder::new()
                     .with_branch(BranchBuilder::from_choice(choice.clone()).build())
                     .build(),
             )
@@ -797,11 +797,11 @@ mod tests {
             .with_line(LineDataBuilder::new("Choice").build())
             .build();
 
-        let nested_branch = BranchingChoiceBuilder::new()
+        let nested_branch = BranchingPointBuilder::new()
             .with_branch(BranchBuilder::from_choice(choice.clone()).build())
             .build();
 
-        let branch_set = BranchingChoiceBuilder::new()
+        let branch_set = BranchingPointBuilder::new()
             .with_branch(
                 BranchBuilder::from_choice(choice.clone())
                     .with_branching_choice(nested_branch)
@@ -833,15 +833,15 @@ mod tests {
 
         let mut node = RootNodeBuilder::new()
             .with_branching_choice(
-                BranchingChoiceBuilder::new()
+                BranchingPointBuilder::new()
                     .with_branch(
                         BranchBuilder::from_choice(choice.clone())
                             .with_branching_choice(
-                                BranchingChoiceBuilder::new()
+                                BranchingPointBuilder::new()
                                     .with_branch(
                                         BranchBuilder::from_choice(choice.clone())
                                             .with_branching_choice(
-                                                BranchingChoiceBuilder::new()
+                                                BranchingPointBuilder::new()
                                                     .with_branch(
                                                         BranchBuilder::from_choice(choice.clone())
                                                             .with_line_text("Line 1")

@@ -246,28 +246,28 @@ impl fmt::Display for InternalError {
             },
             IncorrectNodeStack(err) => match err {
                 EmptyStack => write!(f, "Tried to advance through a knot with an empty stack"),
-                ExpectedBranchingChoice { stack_index, stack } => {
+                ExpectedBranchingPoint { stack_index, stack } => {
                     let item_number = stack[*stack_index];
 
                     write!(
-                        f, 
+                        f,
                         "While resuming a follow the stack found a regular line where \
                          it expected a branch point to nest deeper into. \
                          The stack has been corrupted. \
                          (stack level: {}, item number: {}, stack: {:?}",
-                         stack_index, item_number, stack
+                        stack_index, item_number, stack
                     )
-                },
-                MissingBranchIndex { stack_index, stack } => {
-                    write!(
-                        f, 
-                        "While resuming a follow the stack did not contain an index to \
+                }
+                MissingBranchIndex { stack_index, stack } => write!(
+                    f,
+                    "While resuming a follow the stack did not contain an index to \
                          select a branch with from a set of choices. The stack has been \
                          corrupted.
                          (stack level: {}, attempted index: {}, stack: {:?}",
-                         stack_index, stack_index + 1, stack
-                    )
-                },
+                    stack_index,
+                    stack_index + 1,
+                    stack
+                ),
                 OutOfBounds {
                     stack_index,
                     stack,
@@ -303,7 +303,7 @@ pub enum IncorrectNodeStackError {
     /// Tried to follow through nodes with an empty stack.
     EmptyStack,
     /// Found a `Line` object where a set of branching choices should be.
-    ExpectedBranchingChoice { stack_index: usize, stack: Stack },
+    ExpectedBranchingPoint { stack_index: usize, stack: Stack },
     /// Stack contains an invalid index for the current node level.
     OutOfBounds {
         stack_index: usize,
