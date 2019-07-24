@@ -16,20 +16,18 @@ pub fn new_parse_full_node(lines: &[ParsedLine]) -> RootNode {
 
         match line {
             ParsedLine::Line(line) => {
-                // let item = NodeItem::Line(line.clone());
-                // items.push(item);
                 let line = LineBuilder::new()
-                    .add_item(LineContainer::Text(line.clone()))
+                    .with_item(LineContainer::Text(line.clone()))
                     .build();
-                builder.add_item(NodeContainer::Line(line));
+                builder.add_line(line);
             }
             ParsedLine::Choice { level, .. } => {
-                let (item, gather) = new_parse_choice_set_with_gather(&mut index, *level, lines);
-                builder.add_item(NodeContainer::BranchingChoice(item));
+                let (branches, gather) = new_parse_choice_set_with_gather(&mut index, *level, lines);
+                builder.add_branching_choice(branches);
 
                 if let Some(line) = gather {
-                    let line = LineBuilder::new().add_item(line).build();
-                    builder.add_item(NodeContainer::Line(line));
+                    let line = LineBuilder::new().with_item(line).build();
+                    builder.add_line(line);
 
                     // `parse_choice_set_with_gather` advances the index to the next line
                     // after this group if a gather was found, but this loop also does that
@@ -39,7 +37,7 @@ pub fn new_parse_full_node(lines: &[ParsedLine]) -> RootNode {
             }
             ParsedLine::Gather { line, .. } => {
                 let line = LineBuilder::new()
-                    .add_item(LineContainer::Text(line.clone()))
+                    .with_item(LineContainer::Text(line.clone()))
                     .build();
                 builder.add_item(NodeContainer::Line(line));
             }
@@ -115,7 +113,7 @@ fn new_parse_single_choice(
         ),
     };
 
-    let mut builder = BranchBuilder::with_choice(choice);
+    let mut builder = BranchBuilder::from_choice(choice);
 
     // This skips to the next index, where the choice's content or a new choice will appear
     *index += 1;
@@ -126,21 +124,21 @@ fn new_parse_single_choice(
         match line {
             ParsedLine::Line(line) => {
                 let line = LineBuilder::new()
-                    .add_item(LineContainer::Text(line.clone()))
+                    .with_item(LineContainer::Text(line.clone()))
                     .build();
 
-                builder.add_item(NodeContainer::Line(line));
+                builder.add_line(line);
             }
             ParsedLine::Choice { level, .. } if *level == current_level => break,
             ParsedLine::Choice { level, .. } if *level > current_level => {
                 let (branching_set, gather) =
                     new_parse_choice_set_with_gather(index, *level, lines);
 
-                builder.add_item(NodeContainer::BranchingChoice(branching_set));
+                builder.add_branching_choice(branching_set);
 
                 if let Some(line) = gather {
-                    let line = LineBuilder::new().add_item(line).build();
-                    builder.add_item(NodeContainer::Line(line));
+                    let line = LineBuilder::new().with_item(line).build();
+                    builder.add_line(line);
                 }
 
                 // `parse_choice_set` advances the index to the next line after the group,

@@ -373,8 +373,8 @@ mod tests {
     #[test]
     fn following_items_in_a_node_adds_lines_to_buffer() {
         let mut node = RootNodeBuilder::new()
-            .add_line("Line 1")
-            .add_line("Line 2")
+            .with_line_text("Line 1")
+            .with_line_text("Line 2")
             .build();
 
         let mut buffer = Vec::new();
@@ -389,7 +389,7 @@ mod tests {
 
     #[test]
     fn following_into_a_node_increments_number_of_visits() {
-        let mut node = RootNodeBuilder::new().add_line("Line 1").build();
+        let mut node = RootNodeBuilder::new().with_line_text("Line 1").build();
 
         let mut buffer = Vec::new();
 
@@ -404,8 +404,8 @@ mod tests {
     #[test]
     fn following_items_updates_stack() {
         let mut node = RootNodeBuilder::new()
-            .add_line("Line 1")
-            .add_line("Line 2")
+            .with_line_text("Line 1")
+            .with_line_text("Line 2")
             .build();
 
         let mut buffer = Vec::new();
@@ -418,8 +418,8 @@ mod tests {
     #[test]
     fn following_items_starts_from_stack() {
         let mut node = RootNodeBuilder::new()
-            .add_line("Line 1")
-            .add_line("Line 2")
+            .with_line_text("Line 1")
+            .with_line_text("Line 2")
             .build();
 
         let mut buffer = Vec::new();
@@ -434,9 +434,9 @@ mod tests {
     #[test]
     fn follow_always_uses_last_position_in_stack() {
         let mut node = RootNodeBuilder::new()
-            .add_line("Line 1")
-            .add_line("Line 2")
-            .add_line("Line 3")
+            .with_line_text("Line 1")
+            .with_line_text("Line 2")
+            .with_line_text("Line 3")
             .build();
 
         let mut buffer = Vec::new();
@@ -453,8 +453,8 @@ mod tests {
     #[test]
     fn following_into_a_node_does_not_increment_number_of_visits_if_stack_is_non_zero() {
         let mut node = RootNodeBuilder::new()
-            .add_line("Line 1")
-            .add_line("Line 2")
+            .with_line_text("Line 1")
+            .with_line_text("Line 2")
             .build();
 
         let mut buffer = Vec::new();
@@ -469,9 +469,9 @@ mod tests {
     #[test]
     fn following_into_line_with_divert_immediately_returns_it() {
         let mut node = RootNodeBuilder::new()
-            .add_line("Line 1")
-            .add_line("Divert -> divert")
-            .add_line("Line 2")
+            .with_line_text("Line 1")
+            .with_line_text("Divert -> divert")
+            .with_line_text("Line 2")
             .build();
 
         let mut buffer = Vec::new();
@@ -497,12 +497,12 @@ mod tests {
             .build();
 
         let branching_choice_set = BranchingChoiceBuilder::new()
-            .add_branch(BranchBuilder::with_choice(choice1.clone()).build())
-            .add_branch(BranchBuilder::with_choice(choice2.clone()).build())
+            .add_branch(BranchBuilder::from_choice(choice1.clone()).build())
+            .add_branch(BranchBuilder::from_choice(choice2.clone()).build())
             .build();
 
         let mut node = RootNodeBuilder::new()
-            .add_branching_choice(branching_choice_set)
+            .with_branching_choice(branching_choice_set)
             .build();
 
         let mut buffer = Vec::new();
@@ -528,13 +528,13 @@ mod tests {
             .build();
 
         let branching_choice_set = BranchingChoiceBuilder::new()
-            .add_branch(BranchBuilder::with_choice(choice1.clone()).build())
-            .add_branch(BranchBuilder::with_choice(choice2.clone()).build())
+            .add_branch(BranchBuilder::from_choice(choice1.clone()).build())
+            .add_branch(BranchBuilder::from_choice(choice2.clone()).build())
             .build();
 
         let mut node = RootNodeBuilder::new()
-            .add_line("Line 1")
-            .add_branching_choice(branching_choice_set)
+            .with_line_text("Line 1")
+            .with_branching_choice(branching_choice_set)
             .build();
 
         let mut buffer = Vec::new();
@@ -555,22 +555,22 @@ mod tests {
             .with_displayed(LineDataBuilder::new("").build())
             .build();
 
-        let empty_branch = BranchBuilder::with_choice(empty_choice.clone()).build();
+        let empty_branch = BranchBuilder::from_choice(empty_choice.clone()).build();
 
         let nested_branching_choice = BranchingChoiceBuilder::new()
             .add_branch(empty_branch.clone())
             .add_branch(
-                BranchBuilder::with_choice(choice.clone()) // Stack: [1, 2, 2], Choice: 1
-                    .add_line("Line 3")
-                    .add_line("Line 4")
+                BranchBuilder::from_choice(choice.clone()) // Stack: [1, 2, 2], Choice: 1
+                    .with_line_text("Line 3")
+                    .with_line_text("Line 4")
                     .build(),
             )
             .add_branch(empty_branch.clone())
             .build();
 
-        let nested_branch = BranchBuilder::with_choice(choice.clone())
-            .add_line("Line 2")
-            .add_branching_choice(nested_branching_choice) // Stack: [1, 2, 1]
+        let nested_branch = BranchBuilder::from_choice(choice.clone())
+            .with_line_text("Line 2")
+            .with_branching_choice(nested_branching_choice) // Stack: [1, 2, 1]
             .build();
 
         let root_branching_choice = BranchingChoiceBuilder::new()
@@ -580,9 +580,9 @@ mod tests {
             .build();
 
         let mut node = RootNodeBuilder::new()
-            .add_line("Line 1")
-            .add_branching_choice(root_branching_choice) // Stack: [1]
-            .add_line("Line 5")
+            .with_line_text("Line 1")
+            .with_branching_choice(root_branching_choice) // Stack: [1]
+            .with_line_text("Line 5")
             .build();
 
         let mut buffer = Vec::new();
@@ -602,12 +602,12 @@ mod tests {
             .build();
 
         let mut node = RootNodeBuilder::new()
-            .add_branching_choice(
+            .with_branching_choice(
                 BranchingChoiceBuilder::new()
-                    .add_branch(BranchBuilder::with_choice(choice).build())
+                    .add_branch(BranchBuilder::from_choice(choice).build())
                     .build(),
             )
-            .add_line("Line 1")
+            .with_line_text("Line 1")
             .build();
 
         let mut buffer = Vec::new();
@@ -629,11 +629,11 @@ mod tests {
             .build();
 
         let mut node = RootNodeBuilder::new()
-            .add_branching_choice(
+            .with_branching_choice(
                 BranchingChoiceBuilder::new()
-                    .add_branch(BranchBuilder::with_choice(choice.clone()).build())
-                    .add_branch(BranchBuilder::with_choice(choice.clone()).build())
-                    .add_branch(BranchBuilder::with_choice(choice.clone()).build())
+                    .add_branch(BranchBuilder::from_choice(choice.clone()).build())
+                    .add_branch(BranchBuilder::from_choice(choice.clone()).build())
+                    .add_branch(BranchBuilder::from_choice(choice.clone()).build())
                     .build(),
             )
             .build();
@@ -661,9 +661,9 @@ mod tests {
             .build();
 
         let mut node = RootNodeBuilder::new()
-            .add_branching_choice(
+            .with_branching_choice(
                 BranchingChoiceBuilder::new()
-                    .add_branch(BranchBuilder::with_choice(choice.clone()).build())
+                    .add_branch(BranchBuilder::from_choice(choice.clone()).build())
                     .build(),
             )
             .build();
@@ -692,9 +692,9 @@ mod tests {
             .build();
 
         let mut node = RootNodeBuilder::new()
-            .add_branching_choice(
+            .with_branching_choice(
                 BranchingChoiceBuilder::new()
-                    .add_branch(BranchBuilder::with_choice(choice.clone()).build())
+                    .add_branch(BranchBuilder::from_choice(choice.clone()).build())
                     .build(),
             )
             .build();
@@ -715,9 +715,9 @@ mod tests {
             .build();
 
         let mut node = RootNodeBuilder::new()
-            .add_branching_choice(
+            .with_branching_choice(
                 BranchingChoiceBuilder::new()
-                    .add_branch(BranchBuilder::with_choice(choice.clone()).build())
+                    .add_branch(BranchBuilder::from_choice(choice.clone()).build())
                     .build(),
             )
             .build();
@@ -739,19 +739,19 @@ mod tests {
             .build();
 
         let nested_branch = BranchingChoiceBuilder::new()
-            .add_branch(BranchBuilder::with_choice(choice.clone()).build())
+            .add_branch(BranchBuilder::from_choice(choice.clone()).build())
             .build();
 
         let branch_set = BranchingChoiceBuilder::new()
             .add_branch(
-                BranchBuilder::with_choice(choice.clone())
-                    .add_branching_choice(nested_branch)
+                BranchBuilder::from_choice(choice.clone())
+                    .with_branching_choice(nested_branch)
                     .build(),
             )
             .build();
 
         let mut node = RootNodeBuilder::new()
-            .add_branching_choice(branch_set)
+            .with_branching_choice(branch_set)
             .build();
 
         let mut buffer = Vec::new();
@@ -774,50 +774,50 @@ mod tests {
 
         let nested_branch = BranchingChoiceBuilder::new()
             .add_branch(
-                BranchBuilder::with_choice(choice.clone())
-                    .add_line("Line 1")
+                BranchBuilder::from_choice(choice.clone())
+                    .with_line_text("Line 1")
                     .build(),
             )
             .build();
 
         let branch_set = BranchingChoiceBuilder::new()
             .add_branch(
-                BranchBuilder::with_choice(choice.clone())
-                    .add_branching_choice(nested_branch)
-                    .add_line("Line 2")
+                BranchBuilder::from_choice(choice.clone())
+                    .with_branching_choice(nested_branch)
+                    .with_line_text("Line 2")
                     .build(),
             )
             .build();
 
         let mut node = RootNodeBuilder::new()
-            .add_branching_choice(
+            .with_branching_choice(
                 BranchingChoiceBuilder::new()
                     .add_branch(
-                        BranchBuilder::with_choice(choice.clone())
-                            .add_branching_choice(
+                        BranchBuilder::from_choice(choice.clone())
+                            .with_branching_choice(
                                 BranchingChoiceBuilder::new()
                                     .add_branch(
-                                        BranchBuilder::with_choice(choice.clone())
-                                            .add_branching_choice(
+                                        BranchBuilder::from_choice(choice.clone())
+                                            .with_branching_choice(
                                                 BranchingChoiceBuilder::new()
                                                     .add_branch(
-                                                        BranchBuilder::with_choice(choice.clone())
-                                                            .add_line("Line 1")
+                                                        BranchBuilder::from_choice(choice.clone())
+                                                            .with_line_text("Line 1")
                                                             .build(),
                                                     )
                                                     .build(),
                                             )
-                                            .add_line("Line 2")
+                                            .with_line_text("Line 2")
                                             .build(),
                                     )
                                     .build(),
                             )
-                            .add_line("Line 3")
+                            .with_line_text("Line 3")
                             .build(),
                     )
                     .build(),
             )
-            .add_line("Line 4")
+            .with_line_text("Line 4")
             .build();
 
         let mut buffer = Vec::new();
@@ -841,7 +841,7 @@ mod tests {
 
     #[test]
     fn following_with_empty_stack_raises_error() {
-        let mut node = RootNodeBuilder::new().add_line("Line 1").build();
+        let mut node = RootNodeBuilder::new().with_line_text("Line 1").build();
 
         let mut buffer = Vec::new();
 

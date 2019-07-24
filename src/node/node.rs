@@ -49,26 +49,36 @@ impl RootNodeBuilder {
         }
     }
 
-    pub fn add_branching_choice(mut self, branching_choice_set: Container) -> Self {
-        self.items.push(branching_choice_set);
-        self
-    }
-
-    pub fn add_line(mut self, content: &str) -> Self {
-        let line = Container::Line(LineBuilder::new().add_text(content).unwrap().build());
-        self.items.push(line);
-        self
-    }
-
-    pub fn add_item(&mut self, item: Container) {
-        self.items.push(item);
-    }
-
     pub fn build(self) -> RootNode {
         RootNode {
             items: self.items,
             num_visited: self.num_visited,
         }
+    }
+
+    pub fn add_branching_choice(&mut self, branching_set: Vec<Branch>) {
+        self.add_item(Container::BranchingChoice(branching_set));
+    }
+
+    pub fn add_item(&mut self, item: Container) {
+        self.items.push(item);
+    }
+    
+    pub fn add_line(&mut self, line: Line) {
+        self.add_item(Container::Line(line));
+    }
+
+    #[cfg(test)]
+    pub fn with_branching_choice(mut self, branching_choice_set: Container) -> Self {
+        self.items.push(branching_choice_set);
+        self
+    }
+
+    #[cfg(test)]
+    pub fn with_line_text(mut self, content: &str) -> Self {
+        let line = Container::Line(LineBuilder::new().with_text(content).unwrap().build());
+        self.items.push(line);
+        self
     }
 }
 
@@ -79,7 +89,7 @@ pub struct BranchBuilder {
 }
 
 impl BranchBuilder {
-    pub fn with_choice(choice: ChoiceData) -> Self {
+    pub fn from_choice(choice: ChoiceData) -> Self {
         BranchBuilder {
             choice,
             items: Vec::new(),
@@ -87,26 +97,37 @@ impl BranchBuilder {
         }
     }
 
-    pub fn add_branching_choice(mut self, branching_choice_set: Container) -> Self {
-        self.items.push(branching_choice_set);
-        self
+    pub fn add_branching_choice(&mut self, branching_set: Vec<Branch>) {
+        self.add_item(Container::BranchingChoice(branching_set));
     }
 
     pub fn add_item(&mut self, item: Container) {
         self.items.push(item);
     }
 
-    pub fn add_line(mut self, content: &str) -> Self {
-        let line = Container::Line(LineBuilder::new().add_text(content).unwrap().build());
+    pub fn add_line(&mut self, line: Line) {
+        self.add_item(Container::Line(line));
+    }
+
+    #[cfg(test)]
+    pub fn with_branching_choice(mut self, branching_choice_set: Container) -> Self {
+        self.items.push(branching_choice_set);
+        self
+    }
+
+    #[cfg(test)]
+    pub fn with_line_text(mut self, content: &str) -> Self {
+        let line = Container::Line(LineBuilder::new().with_text(content).unwrap().build());
         self.items.push(line);
         self
     }
 
     pub fn build(mut self) -> Branch {
         let line = LineBuilder::new()
-            .add_line(self.choice.line.clone())
+            .with_line(self.choice.line.clone())
             .build();
-        let mut items = vec![Container::Line(line.clone())];
+
+        let mut items = vec![Container::Line(line)];
         items.append(&mut self.items);
 
         Branch {

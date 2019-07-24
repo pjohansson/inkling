@@ -132,26 +132,26 @@ impl LineBuilder {
         LineBuilder { items: Vec::new() }
     }
 
-    pub fn add_item(mut self, item: Container) -> Self {
-        self.items.push(item);
-        self
-    }
-
-    pub fn add_line(mut self, line: LineData) -> Self {
-        self.items.push(Container::Text(line));
-        self
-    }
-
-    pub fn add_text(mut self, text: &str) -> Result<Self, ParseError> {
-        let item = Container::Text(LineData::from_str(text)?);
-        Ok(self.add_item(item))
-    }
-
     pub fn build(self) -> Line {
         Line {
             conditions: Vec::new(),
             items: self.items,
         }
+    }
+
+    pub fn with_item(mut self, item: Container) -> Self {
+        self.items.push(item);
+        self
+    }
+
+    pub fn with_line(mut self, line: LineData) -> Self {
+        self.items.push(Container::Text(line));
+        self
+    }
+
+    pub fn with_text(mut self, text: &str) -> Result<Self, ParseError> {
+        let item = Container::Text(LineData::from_str(text)?);
+        Ok(self.with_item(item))
     }
 }
 
@@ -161,28 +161,11 @@ pub struct AlternativeBuilder {
 }
 
 impl AlternativeBuilder {
-    fn with_kind(kind: AlternativeKind) -> Self {
+    fn from_kind(kind: AlternativeKind) -> Self {
         AlternativeBuilder {
             kind,
             items: Vec::new(),
         }
-    }
-
-    pub fn cycle() -> Self {
-        AlternativeBuilder::with_kind(AlternativeKind::Cycle)
-    }
-
-    pub fn once_only() -> Self {
-        AlternativeBuilder::with_kind(AlternativeKind::OnceOnly)
-    }
-
-    pub fn sequence() -> Self {
-        AlternativeBuilder::with_kind(AlternativeKind::Sequence)
-    }
-
-    pub fn add_line(mut self, line: Line) -> Self {
-        self.items.push(line);
-        self
     }
 
     pub fn build(self) -> Alternative {
@@ -191,6 +174,23 @@ impl AlternativeBuilder {
             kind: self.kind,
             items: self.items,
         }
+    }
+
+    pub fn cycle() -> Self {
+        AlternativeBuilder::from_kind(AlternativeKind::Cycle)
+    }
+
+    pub fn once_only() -> Self {
+        AlternativeBuilder::from_kind(AlternativeKind::OnceOnly)
+    }
+
+    pub fn sequence() -> Self {
+        AlternativeBuilder::from_kind(AlternativeKind::Sequence)
+    }
+
+    pub fn with_line(mut self, line: Line) -> Self {
+        self.items.push(line);
+        self
     }
 }
 
@@ -202,7 +202,7 @@ mod tests {
     fn line_with_text_processes_into_that_text() {
         let content = "Text string.";
 
-        let mut line = LineBuilder::new().add_text(content).unwrap().build();
+        let mut line = LineBuilder::new().with_text(content).unwrap().build();
 
         let mut buffer = Vec::new();
 
@@ -214,8 +214,8 @@ mod tests {
     #[test]
     fn sequence_alternative_walks_through_content_when_processed_repeatably() {
         let mut sequence = AlternativeBuilder::sequence()
-            .add_line(LineBuilder::new().add_text("Line 1").unwrap().build())
-            .add_line(LineBuilder::new().add_text("Line 2").unwrap().build())
+            .with_line(LineBuilder::new().with_text("Line 1").unwrap().build())
+            .with_line(LineBuilder::new().with_text("Line 2").unwrap().build())
             .build();
 
         let mut buffer = Vec::new();
@@ -237,8 +237,8 @@ mod tests {
     #[test]
     fn once_only_alternative_walks_through_content_and_stops_after_final_item_when_processed() {
         let mut once_only = AlternativeBuilder::once_only()
-            .add_line(LineBuilder::new().add_text("Line 1").unwrap().build())
-            .add_line(LineBuilder::new().add_text("Line 2").unwrap().build())
+            .with_line(LineBuilder::new().with_text("Line 1").unwrap().build())
+            .with_line(LineBuilder::new().with_text("Line 2").unwrap().build())
             .build();
 
         let mut buffer = Vec::new();
@@ -255,8 +255,8 @@ mod tests {
     #[test]
     fn cycle_alternative_repeats_from_first_index_after_reaching_end() {
         let mut cycle = AlternativeBuilder::cycle()
-            .add_line(LineBuilder::new().add_text("Line 1").unwrap().build())
-            .add_line(LineBuilder::new().add_text("Line 2").unwrap().build())
+            .with_line(LineBuilder::new().with_text("Line 1").unwrap().build())
+            .with_line(LineBuilder::new().with_text("Line 2").unwrap().build())
             .build();
 
         let mut buffer = Vec::new();
@@ -278,11 +278,11 @@ mod tests {
     #[test]
     fn lines_shortcut_if_a_divert_is_encountered() {
         let mut line = LineBuilder::new()
-            .add_text("Line 1")
+            .with_text("Line 1")
             .unwrap()
-            .add_text("Divert -> divert")
+            .with_text("Divert -> divert")
             .unwrap()
-            .add_text("Line 2")
+            .with_text("Line 2")
             .unwrap()
             .build();
 
@@ -301,14 +301,14 @@ mod tests {
     #[test]
     fn diverts_in_alternates_shortcut_when_finally_processed() {
         let mut alternative = AlternativeBuilder::sequence()
-            .add_line(LineBuilder::new().add_text("Line 1").unwrap().build())
-            .add_line(
+            .with_line(LineBuilder::new().with_text("Line 1").unwrap().build())
+            .with_line(
                 LineBuilder::new()
-                    .add_text("Divert -> divert")
+                    .with_text("Divert -> divert")
                     .unwrap()
                     .build(),
             )
-            .add_line(LineBuilder::new().add_text("Line 2").unwrap().build())
+            .with_line(LineBuilder::new().with_text("Line 2").unwrap().build())
             .build();
 
         let mut buffer = Vec::new();
@@ -332,31 +332,31 @@ mod tests {
     #[test]
     fn diverts_are_raised_through_the_nested_stack_when_encountered() {
         let alternative = AlternativeBuilder::sequence()
-            .add_line(
+            .with_line(
                 LineBuilder::new()
-                    .add_text("Alternative line 1")
+                    .with_text("Alternative line 1")
                     .unwrap()
                     .build(),
             )
-            .add_line(
+            .with_line(
                 LineBuilder::new()
-                    .add_text("Divert -> divert")
+                    .with_text("Divert -> divert")
                     .unwrap()
                     .build(),
             )
-            .add_line(
+            .with_line(
                 LineBuilder::new()
-                    .add_text("Alternative line 2")
+                    .with_text("Alternative line 2")
                     .unwrap()
                     .build(),
             )
             .build();
 
         let mut line = LineBuilder::new()
-            .add_text("Line 1")
+            .with_text("Line 1")
             .unwrap()
-            .add_item(Container::Alternative(alternative))
-            .add_text("Line 2")
+            .with_item(Container::Alternative(alternative))
+            .with_text("Line 2")
             .unwrap()
             .build();
 
