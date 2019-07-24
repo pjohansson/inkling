@@ -1,8 +1,10 @@
 //! Internal errors from `inkling` itself.
 
 use crate::{
+    follow::*,
     line::ChoiceData,
     line::ProcessError,
+    line::*,
     node::Stack,
     story::{Address, Choice},
 };
@@ -33,7 +35,7 @@ pub enum InklingError {
         /// to the user in the `Prompt::Choice` set.
         presented_choices: Vec<(bool, Choice)>,
         /// List of all choices that were available in their internal representation.
-        internal_choices: Vec<ChoiceData>,
+        internal_choices: Vec<ChoiceExtra>,
     },
     /// No choices or fallback choices were available in a story branch at the given address.
     OutOfChoices {

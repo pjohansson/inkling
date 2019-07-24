@@ -1,10 +1,17 @@
 use crate::{
     error::InklingError,
-    line::{ChoiceData, LineData},
+    line::{ChoiceData, FullLine, LineData, *},
 };
 
 pub type FollowResult = Result<Next, InklingError>;
-pub type LineDataBuffer = Vec<LineData>;
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct ChoiceExtra {
+    pub num_visited: u32,
+    pub choice_data: FullChoice,
+}
+
+pub type LineDataBuffer = Vec<FullLine>;
 
 #[derive(Clone, Debug, PartialEq)]
 /// What action that is prompted by following a story.
@@ -14,5 +21,5 @@ pub enum Next {
     /// Divert to a new knot with the given name.
     Divert(String),
     /// Choice for the user.
-    ChoiceSet(Vec<ChoiceData>),
+    ChoiceSet(Vec<ChoiceExtra>),
 }

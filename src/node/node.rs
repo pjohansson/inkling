@@ -1,5 +1,5 @@
 use crate::{
-    line::{ChoiceData, LineChunk, LineBuilder, ParsedLine},
+    line::{ChoiceData, FullLine, LineBuilder, LineChunk, ParsedLine, *},
     node::parse_root_node,
 };
 
@@ -16,7 +16,7 @@ pub struct RootNode {
 
 impl RootNode {
     /// Parse a set of `ParsedLine` items and create a full graph representation of it.
-    pub fn from_lines(lines: &[ParsedLine]) -> Self {
+    pub fn from_lines(lines: &[ParsedLineKind]) -> Self {
         parse_root_node(lines)
     }
 }
@@ -26,17 +26,17 @@ impl RootNode {
 /// Branch from a set of choices in a `Stitch`. Largely identical to `RootNode`
 /// but also contains the data associated with the choice leading to it.
 pub struct Branch {
-    pub choice: ChoiceData,
+    pub choice: FullChoice,
     pub items: Vec<NodeItem>,
     pub num_visited: u32,
 }
 
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
-/// Every item that a `Stitch` contains can be either some text producing asset 
+/// Every item that a `Stitch` contains can be either some text producing asset
 /// or a branching point which the user must select an option from to continue.
 pub enum NodeItem {
-    Line(LineChunk),
+    Line(FullLine),
     BranchingPoint(Vec<Branch>),
 }
 
@@ -59,7 +59,9 @@ impl NodeItem {
 }
 
 pub mod builders {
-    use super::{Branch, ChoiceData, LineChunk, LineBuilder, NodeItem, RootNode};
+    use super::{
+        Branch, ChoiceData, FullChoice, FullLine, LineBuilder, LineChunk, NodeItem, RootNode,
+    };
 
     /// Builder for a `RootNote`.
     ///
@@ -93,8 +95,13 @@ pub mod builders {
             self.items.push(item);
         }
 
-        pub fn add_line(&mut self, line: LineChunk) {
+        pub fn add_full_line(&mut self, line: FullLine) {
             self.add_item(NodeItem::Line(line));
+        }
+
+        pub fn add_line(&mut self, line: LineChunk) {
+            let full_line = FullLine::from_chunk(line);
+            self.add_item(NodeItem::Line(full_line));
         }
 
         #[cfg(test)]
@@ -105,8 +112,9 @@ pub mod builders {
 
         #[cfg(test)]
         pub fn with_line_text(mut self, content: &str) -> Self {
-            let line = NodeItem::Line(LineBuilder::new().with_text(content).unwrap().build());
-            self.items.push(line);
+            let chunk = LineBuilder::new().with_text(content).unwrap().build();
+            let full_line = FullLine::from_chunk(chunk);
+            self.items.push(NodeItem::Line(full_line));
             self
         }
     }
@@ -117,14 +125,17 @@ pub mod builders {
     /// # Notes
     ///  *  Adds the line from its choice as the first in its item list.
     pub struct BranchBuilder {
-        choice: ChoiceData,
+        choice: FullChoice,
         items: Vec<NodeItem>,
         num_visited: u32,
     }
 
     impl BranchBuilder {
-        pub fn from_choice(choice: ChoiceData) -> Self {
-            let line = LineBuilder::new().with_line(choice.line.clone()).build();
+        pub fn from_choice(choice: FullChoice) -> Self {
+            // let chunk = LineBuilder::new().with_line(choice.line.clone()).build();
+            // let full_line = FullLine::from_chunk(chunk);
+
+            let line = choice.display_text.clone();
 
             BranchBuilder {
                 choice,
@@ -141,8 +152,13 @@ pub mod builders {
             self.items.push(item);
         }
 
-        pub fn add_line(&mut self, line: LineChunk) {
+        pub fn add_full_line(&mut self, line: FullLine) {
             self.add_item(NodeItem::Line(line));
+        }
+
+        pub fn add_line(&mut self, chunk: LineChunk) {
+            let full_line = FullLine::from_chunk(chunk);
+            self.add_item(NodeItem::Line(full_line));
         }
 
         #[cfg(test)]
@@ -153,8 +169,9 @@ pub mod builders {
 
         #[cfg(test)]
         pub fn with_line_text(mut self, content: &str) -> Self {
-            let line = NodeItem::Line(LineBuilder::new().with_text(content).unwrap().build());
-            self.items.push(line);
+            let chunk = LineBuilder::new().with_text(content).unwrap().build();
+            let full_line = FullLine::from_chunk(chunk);
+            self.items.push(NodeItem::Line(full_line));
             self
         }
 

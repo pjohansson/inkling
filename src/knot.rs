@@ -2,7 +2,7 @@ use crate::{
     consts::{KNOT_MARKER, STITCH_MARKER},
     error::{KnotError, KnotNameError},
     follow::{FollowResult, LineDataBuffer, Next},
-    line::ParsedLine,
+    line::*,
     node::{Follow, RootNode, Stack},
 };
 
@@ -74,10 +74,9 @@ impl Stitch {
     pub fn from_lines(lines: &[&str]) -> Result<Self, String> {
         let parsed_lines = lines
             .into_iter()
-            .map(|line| ParsedLine::from_str(line).unwrap())
+            .map(|line| parse_line_kind(line).unwrap())
             .collect::<Vec<_>>();
 
-        // let root = DialogueNode::from_lines(&parsed_lines);
         let root = RootNode::from_lines(&parsed_lines);
 
         Ok(Stitch {
@@ -152,13 +151,13 @@ mod tests {
     use super::*;
 
     use crate::error::{InklingError, ParseError};
+    use crate::line::*;
 
     impl FromStr for Stitch {
         type Err = ParseError;
 
         fn from_str(content: &str) -> Result<Self, Self::Err> {
-            let lines = parse_lines(content)?;
-            // let root = DialogueNode::from_lines(&lines);
+            let lines = parse_lines(content).unwrap();
             let root = RootNode::from_lines(&lines);
 
             Ok(Stitch {
@@ -169,8 +168,8 @@ mod tests {
         }
     }
 
-    fn parse_lines(s: &str) -> Result<Vec<ParsedLine>, ParseError> {
-        s.lines().map(|line| ParsedLine::from_str(line)).collect()
+    fn parse_lines(s: &str) -> Result<Vec<ParsedLineKind>, LineParsingError> {
+        s.lines().map(|line| parse_line_kind(line)).collect()
     }
 
     #[test]
@@ -185,8 +184,8 @@ mod tests {
         knot.follow(&mut buffer).unwrap();
 
         assert_eq!(buffer.len(), 2);
-        assert_eq!(&buffer[0].text, text);
-        assert_eq!(&buffer[1].text, text);
+        assert_eq!(&buffer[0].text(), text);
+        assert_eq!(&buffer[1].text(), text);
     }
 
     #[test]
@@ -212,8 +211,8 @@ mod tests {
         assert_eq!(knot.follow(&mut buffer).unwrap(), Next::Divert(name));
 
         assert_eq!(buffer.len(), 2);
-        assert_eq!(&buffer[0].text, pre);
-        assert_eq!(buffer[1].text.trim(), "");
+        assert_eq!(&buffer[0].text(), pre);
+        assert_eq!(buffer[1].text().trim(), "");
     }
 
     #[test]
@@ -243,8 +242,17 @@ mod tests {
         };
 
         assert_eq!(choices.len(), 2);
-        assert_eq!(&choices[0].line.text, &choice1);
-        assert_eq!(&choices[1].line.text, &choice2);
+        // assert_eq!(&choices[0].line.text, &choice1);
+        // assert_eq!(&choices[1].line.text, &choice2);
+
+        assert_eq!(
+            choices[0].choice_data.display_text,
+            parse_line("Choice 1").unwrap()
+        );
+        assert_eq!(
+            choices[1].choice_data.display_text,
+            parse_line("Choice 2").unwrap()
+        );
     }
 
     #[test]
@@ -260,7 +268,7 @@ mod tests {
         knot.follow_with_choice(0, &mut buffer).unwrap();
 
         assert_eq!(buffer.len(), 1);
-        assert_eq!(&buffer[0].text, choice);
+        assert_eq!(&buffer[0].text(), choice);
     }
 
     #[test]
@@ -288,11 +296,11 @@ mod tests {
         let line_unused = "Moby Dick; Or, the Whale";
 
         let lines = vec![
-            format!("*  Choice 1"),
-            format!("   {}", line_unused),
-            format!("*  Choice 2"),
-            format!("   {}", line1),
-            format!("   {}", line2),
+            format!("* Choice 1"),
+            format!("{}", line_unused),
+            format!("* Choice 2"),
+            format!("{}", line1),
+            format!("{}", line2),
         ];
 
         let mut text = String::new();
@@ -309,8 +317,8 @@ mod tests {
         knot.follow_with_choice(1, &mut buffer).unwrap();
 
         assert_eq!(buffer.len(), 3);
-        assert_eq!(&buffer[1].text, line1);
-        assert_eq!(&buffer[2].text, line2);
+        assert_eq!(&buffer[1].text(), line1);
+        assert_eq!(&buffer[2].text(), line2);
     }
 
     #[test]
@@ -372,13 +380,9 @@ Line 6
         let mut buffer = LineDataBuffer::new();
 
         knot.follow(&mut buffer).unwrap();
-        eprintln!("zero");
         knot.follow_with_choice(0, &mut buffer).unwrap();
-        eprintln!("first");
         knot.follow_with_choice(1, &mut buffer).unwrap();
-        eprintln!("second");
         knot.follow_with_choice(0, &mut buffer).unwrap();
-        eprintln!("third");
 
         // Four lines in choice, three choice lines and two lines after the gather
         assert_eq!(buffer.len(), 4 + 3 + 2);

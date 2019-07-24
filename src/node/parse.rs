@@ -1,5 +1,5 @@
 use crate::{
-    line::{Content, LineBuilder, ParsedLine},
+    line::{Content, FullLine, LineBuilder, ParsedLine, *},
     node::{
         builders::{BranchBuilder, RootNodeBuilder},
         Branch, NodeItem, RootNode,
@@ -8,7 +8,7 @@ use crate::{
 
 /// Parse the input lines from beginning to end and construct a branching tree
 /// of line content from it. Return the tree from its root node.
-pub fn parse_root_node(lines: &[ParsedLine]) -> RootNode {
+pub fn parse_root_node(lines: &[ParsedLineKind]) -> RootNode {
     let mut builder = RootNodeBuilder::new();
 
     let mut index = 0;
@@ -17,20 +17,23 @@ pub fn parse_root_node(lines: &[ParsedLine]) -> RootNode {
         let line = &lines[index];
 
         match line {
-            ParsedLine::Line(line) => {
-                let line = LineBuilder::new()
-                    .with_item(Content::Text(line.clone()))
-                    .build();
-                builder.add_line(line);
+            ParsedLineKind::Line(line) => {
+                // let line = LineBuilder::new()
+                //     .with_item(Content::Text(line.clone()))
+                //     .build();
+                // builder.add_line(line);
+                builder.add_full_line(line.clone());
             }
-            ParsedLine::Choice { level, .. } => {
+            ParsedLineKind::Choice { level, .. } => {
                 let (branches, gather) =
                     parse_branching_choice_set_and_gather(&mut index, *level, lines);
+
                 builder.add_branching_choice(branches);
 
                 if let Some(line) = gather {
-                    let line = LineBuilder::new().with_item(line).build();
-                    builder.add_line(line);
+                    builder.add_full_line(line);
+                    // let line = LineBuilder::new().with_item(line).build();
+                    // builder.add_line(line);
 
                     // `parse_choice_set_with_gather` advances the index to the next line
                     // after this group if a gather was found, but this loop also does that
@@ -38,11 +41,15 @@ pub fn parse_root_node(lines: &[ParsedLine]) -> RootNode {
                     index -= 1;
                 }
             }
-            ParsedLine::Gather { line, .. } => {
-                let line = LineBuilder::new()
-                    .with_item(Content::Text(line.clone()))
-                    .build();
-                builder.add_item(NodeItem::Line(line));
+            ParsedLineKind::Gather { line, .. } => {
+                // let chunk = LineBuilder::new()
+                //     .with_item(Content::Text(line.clone()))
+                //     .build();
+
+                // let full_line = FullLine::from_chunk(chunk);
+
+                // builder.add_item(NodeItem::Line(full_line));
+                builder.add_full_line(line.clone());
             }
         };
 
@@ -62,14 +69,15 @@ pub fn parse_root_node(lines: &[ParsedLine]) -> RootNode {
 fn parse_branching_choice_set_and_gather(
     index: &mut usize,
     current_level: u32,
-    lines: &[ParsedLine],
-) -> (Vec<Branch>, Option<Content>) {
+    lines: &[ParsedLineKind],
+) -> (Vec<Branch>, Option<FullLine>) {
     let node = parse_branching_choice_set(index, current_level, lines);
     let mut gather = None;
 
-    if let Some(ParsedLine::Gather { level, line }) = lines.get(*index) {
+    if let Some(ParsedLineKind::Gather { level, line }) = lines.get(*index) {
         if *level == current_level {
-            gather.replace(Content::Text(line.clone()));
+            // gather.replace(Content::Text(line.clone()));
+            gather.replace(line.clone());
             *index += 1;
         }
     }
@@ -85,7 +93,7 @@ fn parse_branching_choice_set_and_gather(
 fn parse_branching_choice_set(
     index: &mut usize,
     current_level: u32,
-    lines: &[ParsedLine],
+    lines: &[ParsedLineKind],
 ) -> Vec<Branch> {
     (0..)
         .map(|_| parse_branch_at_given_level(index, current_level, lines))
@@ -103,7 +111,7 @@ fn parse_branching_choice_set(
 fn parse_branch_at_given_level(
     index: &mut usize,
     current_level: u32,
-    lines: &[ParsedLine],
+    lines: &[ParsedLineKind],
 ) -> Option<Branch> {
     if *index >= lines.len() {
         return None;
@@ -112,13 +120,13 @@ fn parse_branch_at_given_level(
     let head = &lines[*index];
 
     let choice = match head {
-        ParsedLine::Choice { level, .. } if *level < current_level => {
+        ParsedLineKind::Choice { level, .. } if *level < current_level => {
             return None;
         }
-        ParsedLine::Gather { level, .. } if *level <= current_level => {
+        ParsedLineKind::Gather { level, .. } if *level <= current_level => {
             return None;
         }
-        ParsedLine::Choice { choice, .. } => choice.clone(),
+        ParsedLineKind::Choice { choice_data, .. } => choice_data.clone(),
         _ => panic!(
             "could not correctly parse a `Branch` item: \
              expected first line to be a `ParsedLine::Choice` object, but was {:?}",
@@ -135,23 +143,25 @@ fn parse_branch_at_given_level(
         let line = &lines[*index];
 
         match line {
-            ParsedLine::Line(line) => {
-                let line = LineBuilder::new()
-                    .with_item(Content::Text(line.clone()))
-                    .build();
+            ParsedLineKind::Line(line) => {
+                // let line = LineBuilder::new()
+                //     .with_item(Content::Text(line.clone()))
+                //     .build();
 
-                builder.add_line(line);
+                // builder.add_line(line);
+                builder.add_full_line(line.clone());
             }
-            ParsedLine::Choice { level, .. } if *level == current_level => break,
-            ParsedLine::Choice { level, .. } if *level > current_level => {
+            ParsedLineKind::Choice { level, .. } if *level == current_level => break,
+            ParsedLineKind::Choice { level, .. } if *level > current_level => {
                 let (branching_set, gather) =
                     parse_branching_choice_set_and_gather(index, *level, lines);
 
                 builder.add_branching_choice(branching_set);
 
                 if let Some(line) = gather {
-                    let line = LineBuilder::new().with_item(line).build();
-                    builder.add_line(line);
+                    builder.add_full_line(line);
+                    // let line = LineBuilder::new().with_item(line).build();
+                    // builder.add_line(line);
                 }
 
                 // `parse_branching_choice_set_and_gather` advances the index to the next line
@@ -159,10 +169,10 @@ fn parse_branch_at_given_level(
                 // Retract the index once to compensate.
                 *index -= 1;
             }
-            ParsedLine::Choice { .. } => {
+            ParsedLineKind::Choice { .. } => {
                 break;
             }
-            ParsedLine::Gather { level, .. } => {
+            ParsedLineKind::Gather { level, .. } => {
                 if *level <= current_level {
                     break;
                 }
@@ -221,15 +231,11 @@ mod tests {
     fn parsing_a_branch_sets_the_choice_data_in_the_branch_item() {
         let text = "\"To Netherfield Park, then\", I exclaimed.";
 
-        let line = LineData::from_str(text).unwrap();
-        let choice = ChoiceBuilder::empty()
-            .with_displayed(line.clone())
-            .with_line(line.clone())
-            .build();
+        let choice = FullChoice::from_string(text);
 
-        let input = ParsedLine::Choice {
+        let input = ParsedLineKind::Choice {
             level: 1,
-            choice: choice.clone(),
+            choice_data: choice.clone(),
         };
 
         let mut index = 0;
@@ -286,9 +292,9 @@ mod tests {
     #[test]
     fn parsing_a_branching_choice_returns_all_branches_with_their_nested_content() {
         let choice = get_empty_choice(1);
-        let line1 = ParsedLine::Line(LineData::from_str("one").unwrap());
-        let line2 = ParsedLine::Line(LineData::from_str("two").unwrap());
-        let line3 = ParsedLine::Line(LineData::from_str("three").unwrap());
+        let line1 = get_parsed_line("one");
+        let line2 = get_parsed_line("two");
+        let line3 = get_parsed_line("three");
 
         let lines = vec![
             choice.clone(),
@@ -589,18 +595,18 @@ mod tests {
         }
     }
 
-    pub fn get_empty_choice(level: u32) -> ParsedLine {
-        let choice = ChoiceData::empty();
-        ParsedLine::Choice { level, choice }
+    pub fn get_empty_choice(level: u32) -> ParsedLineKind {
+        let choice_data = FullChoice::from_string("");
+        ParsedLineKind::Choice { level, choice_data }
     }
 
-    pub fn get_empty_gather(level: u32) -> ParsedLine {
-        let line = LineData::from_str("").unwrap();
-
-        ParsedLine::Gather { level, line }
+    pub fn get_empty_gather(level: u32) -> ParsedLineKind {
+        let line = parse_line("").unwrap();
+        ParsedLineKind::Gather { level, line }
     }
 
-    pub fn get_parsed_line(s: &str) -> ParsedLine {
-        ParsedLine::Line(LineData::from_str(s).unwrap())
+    pub fn get_parsed_line(s: &str) -> ParsedLineKind {
+        let line = parse_line(s).unwrap();
+        ParsedLineKind::Line(line)
     }
 }

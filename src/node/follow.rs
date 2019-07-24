@@ -1,7 +1,7 @@
 use crate::{
     error::{IncorrectNodeStackError, InklingError, InternalError},
-    follow::{FollowResult, LineDataBuffer, Next},
-    line::{ChoiceData, Process},
+    follow::{FollowResult, LineDataBuffer, Next, *},
+    line::{ChoiceData, FullLine, Process, *},
     node::{Branch, NodeItem, RootNode},
 };
 
@@ -300,15 +300,15 @@ impl FollowInternal for Branch {
 
 /// Collect the `ChoiceData` from the given set of branches. Set the `num_visited` count
 /// to that of the branch.
-fn get_choices_from_branching_set(branches: &[Branch]) -> Vec<ChoiceData> {
+fn get_choices_from_branching_set(branches: &[Branch]) -> Vec<ChoiceExtra> {
     branches
         .iter()
         .map(|branch| {
             let num_visited = branch.num_visited;
 
-            ChoiceData {
+            ChoiceExtra {
                 num_visited,
-                ..branch.choice.clone()
+                choice_data: branch.choice.clone(),
             }
         })
         .collect::<Vec<_>>()
@@ -322,7 +322,7 @@ fn get_choices_from_branching_set(branches: &[Branch]) -> Vec<ChoiceData> {
 /// the information that the current node has direct access to.
 fn get_invalid_choice_error_stub(
     choice_index: usize,
-    branch_choices: Vec<ChoiceData>,
+    branch_choices: Vec<ChoiceExtra>,
 ) -> InklingError {
     InklingError::InvalidChoice {
         index: choice_index,
@@ -339,7 +339,7 @@ mod tests {
     use crate::{
         line::{
             choice::tests::ChoiceBuilder as ChoiceDataBuilder,
-            line::tests::LineBuilder as LineDataBuilder,
+            line::tests::LineBuilder as LineDataBuilder, *,
         },
         node::builders::{BranchBuilder, BranchingPointBuilder, RootNodeBuilder},
     };
@@ -396,9 +396,7 @@ mod tests {
 
     #[test]
     fn branch_choices_are_collected_when_supplying_an_incorrect_index_for_a_choice() {
-        let internal_choice = ChoiceDataBuilder::empty()
-            .with_displayed(LineDataBuilder::new("Choice").build())
-            .build();
+        let internal_choice = FullChoice::from_string("Choice");
 
         let mut node = RootNodeBuilder::new()
             .with_branching_choice(
@@ -420,7 +418,7 @@ mod tests {
             }) => {
                 assert_eq!(index, 1);
                 assert_eq!(internal_choices.len(), 1);
-                assert_eq!(internal_choices[0], internal_choice);
+                assert_eq!(internal_choices[0].choice_data, internal_choice);
 
                 assert!(choice.is_none());
                 assert!(presented_choices.is_empty());
@@ -442,8 +440,8 @@ mod tests {
         assert_eq!(node.follow(&mut stack, &mut buffer).unwrap(), Next::Done);
 
         assert_eq!(buffer.len(), 2);
-        assert_eq!(&buffer[0].text, "Line 1");
-        assert_eq!(&buffer[1].text, "Line 2");
+        assert_eq!(&buffer[0].text(), "Line 1");
+        assert_eq!(&buffer[1].text(), "Line 2");
     }
 
     #[test]
@@ -486,7 +484,7 @@ mod tests {
 
         node.follow(&mut stack, &mut buffer).unwrap();
 
-        assert_eq!(&buffer[0].text, "Line 2");
+        assert_eq!(&buffer[0].text(), "Line 2");
         assert_eq!(stack[0], 2);
     }
 
@@ -505,8 +503,8 @@ mod tests {
         node.follow(&mut stack, &mut buffer).unwrap();
 
         assert_eq!(buffer.len(), 2);
-        assert_eq!(&buffer[0].text, "Line 2");
-        assert_eq!(&buffer[1].text, "Line 3");
+        assert_eq!(&buffer[0].text(), "Line 2");
+        assert_eq!(&buffer[1].text(), "Line 3");
     }
 
     #[test]
@@ -542,18 +540,14 @@ mod tests {
         );
 
         assert_eq!(buffer.len(), 2);
-        assert_eq!(&buffer[0].text, "Line 1");
-        assert_eq!(buffer[1].text.trim(), "Divert");
+        assert_eq!(&buffer[0].text(), "Line 1");
+        assert_eq!(buffer[1].text().trim(), "Divert");
     }
 
     #[test]
     fn encountering_a_branching_choice_returns_the_choice_data() {
-        let choice1 = ChoiceDataBuilder::empty()
-            .with_displayed(LineDataBuilder::new("Choice 1").build())
-            .build();
-        let choice2 = ChoiceDataBuilder::empty()
-            .with_displayed(LineDataBuilder::new("Choice 2").build())
-            .build();
+        let choice1 = FullChoice::from_string("Choice 1");
+        let choice2 = FullChoice::from_string("Choice 2");
 
         let branching_choice_set = BranchingPointBuilder::new()
             .with_branch(BranchBuilder::from_choice(choice1.clone()).build())
@@ -570,8 +564,8 @@ mod tests {
         match node.follow(&mut stack, &mut buffer).unwrap() {
             Next::ChoiceSet(choice_set) => {
                 assert_eq!(choice_set.len(), 2);
-                assert_eq!(choice_set[0], choice1);
-                assert_eq!(choice_set[1], choice2);
+                assert_eq!(choice_set[0].choice_data, choice1);
+                assert_eq!(choice_set[1].choice_data, choice2);
             }
             other => panic!("expected a `Next::ChoiceSet` but got {:?}", other),
         }
@@ -579,12 +573,8 @@ mod tests {
 
     #[test]
     fn encountering_a_branching_choice_keeps_stack_at_that_index() {
-        let choice1 = ChoiceDataBuilder::empty()
-            .with_displayed(LineDataBuilder::new("Choice 1").build())
-            .build();
-        let choice2 = ChoiceDataBuilder::empty()
-            .with_displayed(LineDataBuilder::new("Choice 2").build())
-            .build();
+        let choice1 = FullChoice::from_string("Choice 1");
+        let choice2 = FullChoice::from_string("Choice 2");
 
         let branching_choice_set = BranchingPointBuilder::new()
             .with_branch(BranchBuilder::from_choice(choice1.clone()).build())
@@ -606,13 +596,8 @@ mod tests {
 
     #[test]
     fn following_with_choice_follows_from_last_position_in_stack() {
-        let choice = ChoiceDataBuilder::empty()
-            .with_displayed(LineDataBuilder::new("Choice").build())
-            .build();
-
-        let empty_choice = ChoiceDataBuilder::empty()
-            .with_displayed(LineDataBuilder::new("").build())
-            .build();
+        let choice = FullChoice::from_string("Choice");
+        let empty_choice = FullChoice::from_string("");
 
         let empty_branch = BranchBuilder::from_choice(empty_choice.clone()).build();
 
@@ -650,15 +635,13 @@ mod tests {
         node.follow_with_choice(1, 0, &mut stack, &mut buffer)
             .unwrap();
 
-        assert_eq!(&buffer[1].text, "Line 3");
-        assert_eq!(&buffer[2].text, "Line 4");
+        assert_eq!(&buffer[1].text(), "Line 3");
+        assert_eq!(&buffer[2].text(), "Line 4");
     }
 
     #[test]
     fn after_finishing_with_a_branch_lower_nodes_return_to_their_content() {
-        let choice = ChoiceDataBuilder::empty()
-            .with_displayed(LineDataBuilder::new("Choice").build())
-            .build();
+        let choice = FullChoice::from_string("Choice");
 
         let mut node = RootNodeBuilder::new()
             .with_branching_choice(
@@ -676,16 +659,14 @@ mod tests {
             .unwrap();
 
         assert_eq!(buffer.len(), 2);
-        assert_eq!(&buffer[1].text, "Line 1");
+        assert_eq!(&buffer[1].text(), "Line 1");
 
         assert_eq!(&stack, &[2]);
     }
 
     #[test]
     fn selected_branches_have_their_number_of_visits_number_incremented() {
-        let choice = ChoiceDataBuilder::empty()
-            .with_displayed(LineDataBuilder::new("Choice").build())
-            .build();
+        let choice = FullChoice::from_string("Choice");
 
         let mut node = RootNodeBuilder::new()
             .with_branching_choice(
@@ -715,9 +696,7 @@ mod tests {
 
     #[test]
     fn encountered_choices_return_with_their_number_of_visits_counter() {
-        let choice = ChoiceDataBuilder::empty()
-            .with_displayed(LineDataBuilder::new("Choice").build())
-            .build();
+        let choice = FullChoice::from_string("Choice");
 
         let mut node = RootNodeBuilder::new()
             .with_branching_choice(
@@ -746,9 +725,7 @@ mod tests {
 
     #[test]
     fn selected_branches_adds_line_text_to_line_buffer() {
-        let choice = ChoiceDataBuilder::empty()
-            .with_line(LineDataBuilder::new("Choice").build())
-            .build();
+        let choice = FullChoice::from_string("Choice");
 
         let mut node = RootNodeBuilder::new()
             .with_branching_choice(
@@ -764,14 +741,12 @@ mod tests {
         node.follow_with_choice(0, 0, &mut stack, &mut buffer)
             .unwrap();
 
-        assert_eq!(&buffer[0].text, "Choice");
+        assert_eq!(&buffer[0].text(), "Choice");
     }
 
     #[test]
     fn diverts_found_after_selections_are_returned() {
-        let choice = ChoiceDataBuilder::empty()
-            .with_line(LineDataBuilder::new("Choice").with_divert("divert").build())
-            .build();
+        let choice = FullChoice::from_string("Choice -> divert");
 
         let mut node = RootNodeBuilder::new()
             .with_branching_choice(
@@ -793,9 +768,7 @@ mod tests {
 
     #[test]
     fn following_into_nested_branches_works() {
-        let choice = ChoiceDataBuilder::empty()
-            .with_line(LineDataBuilder::new("Choice").build())
-            .build();
+        let choice = FullChoice::from_string("Choice");
 
         let nested_branch = BranchingPointBuilder::new()
             .with_branch(BranchBuilder::from_choice(choice.clone()).build())
@@ -827,9 +800,7 @@ mod tests {
 
     #[test]
     fn after_a_followed_choice_returns_the_caller_nodes_always_follow_into_their_next_lines() {
-        let choice = ChoiceDataBuilder::empty()
-            .with_line(LineDataBuilder::new("Choice").build())
-            .build();
+        let choice = FullChoice::from_string("Choice");
 
         let mut node = RootNodeBuilder::new()
             .with_branching_choice(
@@ -872,13 +843,11 @@ mod tests {
         node.follow_with_choice(0, 0, &mut stack, &mut buffer)
             .unwrap();
 
-        dbg!(&buffer);
-
         assert_eq!(buffer.len(), 7);
-        assert_eq!(&buffer[3].text, "Line 1");
-        assert_eq!(&buffer[4].text, "Line 2");
-        assert_eq!(&buffer[5].text, "Line 3");
-        assert_eq!(&buffer[6].text, "Line 4");
+        assert_eq!(&buffer[3].text(), "Line 1");
+        assert_eq!(&buffer[4].text(), "Line 2");
+        assert_eq!(&buffer[5].text(), "Line 3");
+        assert_eq!(&buffer[6].text(), "Line 4");
     }
 
     #[test]

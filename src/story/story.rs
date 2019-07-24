@@ -1,7 +1,7 @@
 use crate::{
     consts::{DONE_KNOT, END_KNOT},
     error::{InklingError, ParseError, StackError},
-    follow::{FollowResult, LineDataBuffer, Next},
+    follow::{FollowResult, LineDataBuffer, Next, *},
     knot::{Knot, Stitch},
     line::ChoiceData,
 };
@@ -377,7 +377,7 @@ pub fn get_mut_stitch<'a>(
 ///
 /// Choices are filtered as usual by conditions and visits.
 fn get_fallback_choice(
-    choice_set: &[ChoiceData],
+    choice_set: &[ChoiceExtra],
     current_address: &Address,
     knots: &Knots,
 ) -> Result<Choice, InklingError> {
@@ -426,7 +426,7 @@ We hurried home to Savile Row as fast as we could.
         story.follow_knot(&mut buffer).unwrap();
 
         assert_eq!(
-            &buffer.last().unwrap().text,
+            &buffer.last().unwrap().text(),
             "We hurried home to Savile Row as fast as we could."
         );
     }
@@ -462,7 +462,7 @@ We arrived into London at 9.45pm exactly.
         story.follow_knot(&mut buffer).unwrap();
         story.follow_knot_with_choice(1, &mut buffer).unwrap();
 
-        assert_eq!(&buffer.last().unwrap().text, "\"Very good, then.\"");
+        assert_eq!(&buffer.last().unwrap().text(), "\"Very good, then.\"");
     }
 
     #[test]
@@ -493,8 +493,14 @@ After a few days me returned again.
         story.follow_knot(&mut buffer).unwrap();
         story.follow_knot_with_choice(1, &mut buffer).unwrap();
 
-        assert_eq!(&buffer[0].text, "We arrived into London at 9.45pm exactly.");
-        assert_eq!(&buffer[5].text, "We arrived into London at 9.45pm exactly.");
+        assert_eq!(
+            &buffer[0].text(),
+            "We arrived into London at 9.45pm exactly."
+        );
+        assert_eq!(
+            &buffer[5].text(),
+            "We arrived into London at 9.45pm exactly."
+        );
     }
 
     #[test]

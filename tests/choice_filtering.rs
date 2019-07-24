@@ -20,7 +20,6 @@ You enter a dark room.
     let mut line_buffer = Vec::new();
 
     let result = story.start(&mut line_buffer).unwrap();
-    eprintln!("{:?}", line_buffer);
 
     let choices = result.get_choices().unwrap();
 

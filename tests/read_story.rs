@@ -138,7 +138,6 @@ He just woke from a nightmare.
 
     match story.start(&mut line_buffer) {
         Ok(Prompt::Done) => {
-            eprintln!("{:?}", line_buffer);
             assert_eq!(line_buffer.len(), 4);
             assert_eq!(&line_buffer[3].text, "He just woke from a nightmare.\n");
         }
