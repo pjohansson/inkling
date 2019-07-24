@@ -16,6 +16,7 @@ pub trait Process {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
 pub struct FullLine {
     pub chunk: LineChunk,
     pub tags: Vec<String>,

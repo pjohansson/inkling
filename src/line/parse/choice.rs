@@ -20,7 +20,8 @@ fn parse_choice_data(content: &str) -> Result<FullChoice, LineParsingError> {
 
     let (selection_text_line, display_text_line) = parse_choice_line_variants(&buffer)?;
 
-    let selection_text = parse_line(strip_divert_from_line(&selection_text_line))?;
+    let (without_divert, _) = split_at_divert_marker(&selection_text_line);
+    let selection_text = parse_line(without_divert)?;
 
     let is_fallback = is_choice_fallback(&selection_text, content)?;
 
@@ -28,7 +29,10 @@ fn parse_choice_data(content: &str) -> Result<FullChoice, LineParsingError> {
         Err(LineParsingError {
             kind: LineErrorKind::EmptyDivert,
             ..
-        }) if is_fallback => parse_line(strip_divert_from_line(&display_text_line)),
+        }) if is_fallback => {
+            let (without_divert, _) = split_at_divert_marker(&display_text_line);
+            parse_line(without_divert)
+        }
         result => result,
     }?;
 
@@ -39,12 +43,6 @@ fn parse_choice_data(content: &str) -> Result<FullChoice, LineParsingError> {
     builder.set_selection_text(selection_text);
 
     Ok(builder.build())
-}
-
-fn strip_divert_from_line(line: &str) -> &str {
-    line.find(DIVERT_MARKER)
-        .map(|i| line.get(..i).unwrap())
-        .unwrap_or(line)
 }
 
 /// Check whether a choice line is a fallback. The condition for a fallback choice

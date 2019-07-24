@@ -151,7 +151,6 @@ mod tests {
     use super::*;
 
     use crate::error::{InklingError, ParseError};
-    use crate::line::*;
 
     use std::str::FromStr;
 

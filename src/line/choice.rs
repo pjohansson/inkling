@@ -4,7 +4,11 @@ use crate::{
     line::*,
 };
 
+#[cfg(feature = "serde_support")]
+use serde::{Deserialize, Serialize};
+
 #[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
 /// A single choice in a (usually) set of choices presented to the user.
 pub struct FullChoice {
     /// Text presented to the user to represent the choice.

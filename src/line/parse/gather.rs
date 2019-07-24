@@ -9,45 +9,9 @@ pub fn parse_gather(content: &str) -> Result<Option<ParsedLineKind>, LineParsing
         .transpose()
 }
 
-fn split_at_divert_marker(content: &str) -> (&str, &str) {
-    if let Some(i) = content.find(DIVERT_MARKER) {
-        content.split_at(i)
-    } else {
-        (content, "")
-    }
-}
-
-pub fn parse_markers_and_text(line: &str, marker: char) -> Option<(u32, &str)> {
-    if line.trim_start().starts_with(marker) {
-        let (markers, line_text) = split_markers_from_text(line, marker);
-        let num = markers.matches(|c| c == marker).count() as u32;
-
-        Some((num, line_text))
-    } else {
-        None
-    }
-}
-
-fn split_markers_from_text(line: &str, marker: char) -> (&str, &str) {
-    let split_at = line.find(|c: char| !(c == marker || c.is_whitespace()));
-
-    match split_at {
-        Some(i) => line.split_at(i),
-        None => (line, ""),
-    }
-}
-
 #[cfg(test)]
 pub mod tests {
     use super::*;
-
-    #[test]
-    fn simple_line_parses_to_line() {
-        let line = parse_line_kind("Hello, World!").unwrap();
-        let comparison = parse_line("Hello, World!").unwrap();
-
-        assert_eq!(line, ParsedLineKind::Line(comparison));
-    }
 
     #[test]
     fn line_with_gather_marks_parses_to_gather() {
