@@ -1,3 +1,5 @@
+//! Parse `InternalLine` and `LineChunk` objects.
+
 use crate::{
     consts::{DIVERT_MARKER, GLUE_MARKER, TAG_MARKER},
     line::{Content, InternalLine, InternalLineBuilder, LineChunk, LineChunkBuilder},
@@ -19,6 +21,7 @@ pub enum LineErrorKind {
     UnmatchedBrackets,
 }
 
+/// Parse an `InternalLine` from a string.
 pub fn parse_line(content: &str) -> Result<InternalLine, LineParsingError> {
     let mut buffer = content.to_string();
 
@@ -41,6 +44,7 @@ pub fn parse_line(content: &str) -> Result<InternalLine, LineParsingError> {
     Ok(builder.build())
 }
 
+/// Parse a `LineChunk` object from a string.
 pub fn parse_chunk(content: &str) -> Result<LineChunk, LineParsingError> {
     let mut builder = LineChunkBuilder::new();
 
@@ -60,7 +64,10 @@ pub fn parse_chunk(content: &str) -> Result<LineChunk, LineParsingError> {
     Ok(builder.build())
 }
 
-/// Parse and remove glue markers from either side, retaining enclosed whitespace.
+/// Parse and remove glue markers from either side.
+/// 
+/// Enclosed whitespace within these markers is retained. Markers that are placed further 
+/// in are not (currently) removed.
 fn parse_line_glue(line: &mut String, has_divert: bool) -> (bool, bool) {
     let glue_left = line.starts_with(GLUE_MARKER);
     let glue_right = line.ends_with(GLUE_MARKER);
@@ -107,6 +114,7 @@ fn parse_divert(line: &mut String) -> Result<Option<String>, LineParsingError> {
         .transpose()
 }
 
+/// Validate that a divert address can be parsed.
 fn verify_divert_address(line: &str, backup_line: String) -> Result<String, LineParsingError> {
     if line.contains(DIVERT_MARKER) {
         Err(LineParsingError {

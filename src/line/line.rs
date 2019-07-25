@@ -1,3 +1,5 @@
+//! Structures for representing a single, whole line of `Ink` content.
+
 use crate::line::{Alternative, Condition};
 
 #[cfg(feature = "serde_support")]
@@ -5,8 +7,10 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
-/// Representation of a single line of Ink content. All of its raw data will be processed
-/// into a final form and presented to the user as the story is followed.
+/// Representation of a single line of Ink content. 
+/// 
+/// All of its raw data will be processed into a final form and presented to the user 
+/// as the story is followed.
 pub struct InternalLine {
     /// Root chunk of line content, which may possibly be nested into even finer parts.
     pub chunk: LineChunk,
@@ -23,16 +27,26 @@ pub struct InternalLine {
 
 #[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
-/// Line content is nested into these smaller chunks. When the chunk is processed
-/// it will, in order, process all child items. The simplest example is a line
-/// of text with a divert. This can be represented as two items in this chunk.
+/// Line content is nested into these smaller chunks. 
+/// 
+/// When the chunk is processed it will, in order, process all child items. The simplest 
+/// example is a line of text with a divert. This can be represented as two items in this chunk.
 /// When the chunk is processed the line content will be visited first, then
 /// the divert will be encountered and returned through the call stack.
+/// 
+/// A more complicated example is a line which contains a set of variational content, which 
+/// in turn contain their own text, diverts and further nested variations. This necessitates
+/// that the content in line is split into chunks like this.
 ///
 /// Chunks possibly come with conditions for when the content will be visited
 /// and displayed to the user.
 pub struct LineChunk {
+    /// Conditions that must be fulfilled for the content to be processed.
+    /// 
+    /// The conditions represent the entire chunk of items. If they are fulfilled, all items 
+    /// will be processed. If not, the chunk will be skipped during processing.
     pub conditions: Vec<Condition>,
+    /// Set of line content which will be processed in order.
     pub items: Vec<Content>,
 }
 
@@ -51,6 +65,9 @@ pub enum Content {
 }
 
 impl InternalLine {
+    /// Create the line from a finished chunk of line content.
+    /// 
+    /// Will not set any tags or glue to the object.
     pub fn from_chunk(chunk: LineChunk) -> Self {
         InternalLine {
             chunk,
@@ -60,6 +77,9 @@ impl InternalLine {
         }
     }
 
+    /// Get the text content from the lines direct children.
+    /// 
+    /// TODO: Replace with a proper function once we finalize how `InternalLine` is processed.
     pub fn text(&self) -> String {
         let mut buffer = String::new();
 
@@ -85,8 +105,15 @@ impl InternalLine {
 }
 
 pub mod builders {
+    //! Builders for line structures.
+    //! 
+    //! For testing purposes most of these structs implement additional functions when 
+    //! the `test` profile is activated. These functions are not meant to be used internally
+    //! except by tests, since they do not perform any validation of the content. 
+
     use super::*;
 
+    /// Builder for constructing an `InternalLine`.
     pub struct InternalLineBuilder {
         chunk: LineChunk,
         tags: Vec<String>,
@@ -95,6 +122,7 @@ pub mod builders {
     }
 
     impl InternalLineBuilder {
+        /// Construct the builder with an initial chunk of line content.
         pub fn from_chunk(chunk: LineChunk) -> Self {
             InternalLineBuilder {
                 chunk,
@@ -104,6 +132,7 @@ pub mod builders {
             }
         }
 
+        /// Finalize the `InternalLine` object and return it.
         pub fn build(self) -> InternalLine {
             InternalLine {
                 chunk: self.chunk,
@@ -113,18 +142,24 @@ pub mod builders {
             }
         }
 
+        /// Add a divert item at the end of the internal `LineChunk`.
         pub fn set_divert(&mut self, address: &str) {
             self.chunk.items.push(Content::Divert(address.to_string()));
         }
 
+        /// Set whether the line glues to the previous line.
         pub fn set_glue_begin(&mut self, glue: bool) {
             self.glue_begin = glue;
         }
 
+        /// Set whether the line glues to the next line.
         pub fn set_glue_end(&mut self, glue: bool) {
             self.glue_end = glue;
         }
 
+        /// Set the input tags to the object.
+        /// 
+        /// Note that this replaces the current tags, it does not extend it.
         pub fn set_tags(&mut self, tags: &[String]) {
             self.tags = tags.to_vec();
         }
@@ -153,15 +188,18 @@ pub mod builders {
         }
     }
 
+    /// Builder for constructing a `LineChunk`.
     pub struct LineChunkBuilder {
         items: Vec<Content>,
     }
 
     impl LineChunkBuilder {
+        /// Create an empty builder.
         pub fn new() -> Self {
             LineChunkBuilder { items: Vec::new() }
         }
 
+        /// Finalize the `LineChunk` object and return it.
         pub fn build(self) -> LineChunk {
             LineChunk {
                 conditions: Vec::new(),
@@ -169,14 +207,17 @@ pub mod builders {
             }
         }
 
+        /// Add a `Content::Text` item with the given string to the object.
         pub fn add_text(&mut self, text: &str) {
             self.add_item(Content::Text(text.to_string()));
         }
 
+        /// Add a `Content::Divert` item with the given address to the object.
         pub fn add_divert(&mut self, address: &str) {
             self.add_item(Content::Divert(address.to_string()));
         }
 
+        /// Add an item to the object.
         pub fn add_item(&mut self, item: Content) {
             self.items.push(item);
         }

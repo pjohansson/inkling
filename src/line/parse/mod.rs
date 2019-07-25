@@ -1,3 +1,16 @@
+//! Parsing lines of `Ink` content.
+//! 
+//! While [`InternalLine`][crate::line::InternalLine] and 
+//! [`InternalChoice`][crate::line::InternalChoice] are the basic data of all lines in a story, 
+//! the main focus of this module is the [`ParsedLineKind`][crate::line::ParsedLineKind] object. 
+//! 
+//! This is because to construct the branching tree of story content we require information 
+//! about which nested level every choice and gather point is found at. `ParsedLineKind` is 
+//! marked up with this information along with the regular internal choice and line data. 
+//! 
+//! After constructing the node tree the information about levels is discarded. 
+//! Thus `ParsedLineKind` is a temporary object, used only while parsing an `Ink` story.
+
 mod choice;
 mod condition;
 mod gather;

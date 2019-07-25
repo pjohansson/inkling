@@ -1,3 +1,5 @@
+//! Processing of nested line chunks into text content.
+
 use crate::{
     follow::{EncounteredEvent, LineDataBuffer},
     line::{parse::parse_line, Content, InternalLine, LineChunk},

@@ -1,3 +1,5 @@
+//! Parse `Condition` objects.
+
 use std::cmp::Ordering;
 
 use crate::{
@@ -5,6 +7,11 @@ use crate::{
     line::Condition,
 };
 
+/// Parse conditions for a choice and trim them from the line.
+/// 
+/// Choices can lead with multiple conditions. Every condition is contained inside 
+/// `{}` bracket pairs and may be whitespace separated. This function reads all conditions
+/// until no bracket pairs are left in the leading part of the line.
 pub fn parse_choice_conditions(line: &mut String) -> Result<Vec<Condition>, ParseError> {
     let mut conditions = Vec::new();
     let full_line = line.clone();
@@ -21,6 +28,7 @@ pub fn parse_choice_conditions(line: &mut String) -> Result<Vec<Condition>, Pars
     Ok(conditions)
 }
 
+/// Parse a condition from a line.
 fn parse_condition(line: &str) -> Result<Condition, String> {
     let ordering_search = line
         .find("==")
@@ -58,6 +66,11 @@ fn parse_condition(line: &str) -> Result<Condition, String> {
     }
 }
 
+/// Parse the condition `name` and whether the condition is negated.
+/// 
+/// Conditions are of the form {(not) name (op value)} and this function treats 
+/// the line that is left after trimming the (op value) part from it. Thus, we want 
+/// to get the name and whether a `not` statement preceedes it.
 fn get_name_and_if_not_condition(line: &str) -> Result<(String, bool), String> {
     let words = line.trim().split_whitespace().collect::<Vec<_>>();
 
@@ -70,6 +83,7 @@ fn get_name_and_if_not_condition(line: &str) -> Result<(String, bool), String> {
     }
 }
 
+/// Return a string possibly contained between a `{}` bracket pair.
 fn get_string_inside_brackets(line: &mut String) -> Result<Option<String>, ParseError> {
     match (line.find('{'), line.find('}')) {
         (None, None) => Ok(None),

@@ -1,3 +1,5 @@
+//! Content that alternates from a fixed set when processed.
+
 use crate::{
     follow::EncounteredEvent,
     line::{LineChunk, Process, ProcessError},
@@ -8,17 +10,44 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
+/// Set of line content which can vary when it is processed.
+/// 
+/// The variational content comes from a fixed set of chunks. When the `Alternative` 
+/// is processed it will pick one item from this set and process it. Which item is 
+/// selected depends on which kind of alternative it is.
+/// 
+/// Any selected `LineChunk`s can of course contain nested alternatives, and so on.
 pub struct Alternative {
+    /// Current index in the set of content.
     current_index: Option<usize>,
+    /// Which kind of alternative this represents.
     kind: AlternativeKind,
+    /// Set of content which the object will select and process from.
     items: Vec<LineChunk>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 #[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
+/// Variants of alternating content.
 enum AlternativeKind {
+    /// Cycles through the set, starting from the beginning after reaching the end.
+    /// 
+    /// # Example 
+    /// A set of the week days `[Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday]`
+    /// will in turn print every day, then start over again from Monday after Sunday has been
+    /// visited.
     Cycle,
+    /// Goes through the set of content once, then produces nothing.
+    /// 
+    /// # Example 
+    /// A countdown from `[Three, Two, One]` will print the numbers, then nothing after 
+    /// the last item has been shown.
     OnceOnly,
+    /// Goes through the set of content once, then repeats the final item.
+    /// 
+    /// # Example 
+    /// A train traveling to its destination `[Frankfurt, Mannheim, Heidelberg]` will print 
+    /// each destination, then `Heidelberg` forever after reaching the city.
     Sequence,
 }
 
@@ -66,12 +95,14 @@ impl Process for Alternative {
     }
 }
 
+/// Builder struct for `Alternative`.
 pub struct AlternativeBuilder {
     kind: AlternativeKind,
     items: Vec<LineChunk>,
 }
 
 impl AlternativeBuilder {
+    /// Construct the builder with the given `AlternativeKind`.
     fn from_kind(kind: AlternativeKind) -> Self {
         AlternativeBuilder {
             kind,
@@ -79,6 +110,7 @@ impl AlternativeBuilder {
         }
     }
 
+    /// Finalize the `Alternative` and return it.
     pub fn build(self) -> Alternative {
         Alternative {
             current_index: None,
@@ -87,20 +119,29 @@ impl AlternativeBuilder {
         }
     }
 
+    /// Construct a builder with `AlternativeKind::Cycle`.
     pub fn cycle() -> Self {
         AlternativeBuilder::from_kind(AlternativeKind::Cycle)
     }
 
+    /// Construct a builder with `AlternativeKind::OnceOnly`.
     pub fn once_only() -> Self {
         AlternativeBuilder::from_kind(AlternativeKind::OnceOnly)
     }
 
+    /// Construct a builder with `AlternativeKind::Sequence`.
     pub fn sequence() -> Self {
         AlternativeBuilder::from_kind(AlternativeKind::Sequence)
     }
 
-    pub fn with_line(mut self, line: LineChunk) -> Self {
+    /// Add a chunk of line content to the set of alternatives.
+    pub fn add_line(&mut self, line: LineChunk) {
         self.items.push(line);
+    }
+
+    /// Add a chunk of line content to the set of alternatives.
+    pub fn with_line(mut self, line: LineChunk) -> Self {
+        self.add_line(line);
         self
     }
 }

@@ -1,3 +1,5 @@
+//! Parse choices as marked up `ParsedLineKind::Choice` objects.
+
 use crate::{
     consts::{CHOICE_MARKER, STICKY_CHOICE_MARKER},
     line::{
@@ -9,6 +11,7 @@ use crate::{
     },
 };
 
+/// Parse a `ParsedLineKind::Choice` from a line if the line represents a choice.
 pub fn parse_choice(content: &str) -> Result<Option<ParsedLineKind>, LineParsingError> {
     parse_choice_markers_and_text(content)?
         .map(|(level, is_sticky, line)| {
@@ -22,6 +25,11 @@ pub fn parse_choice(content: &str) -> Result<Option<ParsedLineKind>, LineParsing
         .transpose()
 }
 
+/// Parse the content of an `InternalChoice` from a line.
+/// 
+/// The line should not contain the markers used to determine whether a line of content 
+/// represents a choice. It should only contain the part of the line which represents 
+/// the choice text.
 fn parse_choice_data(content: &str) -> Result<InternalChoice, LineParsingError> {
     let mut buffer = content.to_string();
     let choice_conditions = parse_choice_conditions(&mut buffer).unwrap();
@@ -53,11 +61,13 @@ fn parse_choice_data(content: &str) -> Result<InternalChoice, LineParsingError> 
     Ok(builder.build())
 }
 
-/// Check whether a choice line is a fallback. The condition for a fallback choice
-/// is that it has no displayed text for the user.
-///
-/// A choice with no displayed text can have no regular text, either. Return an error
-/// if it has a separator between the displayed choice and follow up text.
+/// Check whether a choice line is a fallback. 
+/// 
+/// The condition for a fallback choice is that it has no displayed text for the user.
+/// 
+/// Furthermore, a choice with no displayed text can have no regular text, either. 
+/// We can determine this by checking if a separator bracket is present in the string.
+/// If so, return an error.
 fn is_choice_fallback(
     selection_text: &InternalLine,
     original_line: &str,
@@ -80,9 +90,10 @@ fn is_choice_fallback(
     }
 }
 
-/// Split choice markers (sticky or non-sticky) from a line. If they are present, ensure
-/// that the line does not have both sticky and non-sticky markers. Return the number
-/// of markers along with whether the choice was sticky and the remaining line.
+/// Split choice markers from a line and determine whether it is sticky. 
+/// 
+/// If markers are present, ensure that the line does not have both sticky and non-sticky markers. 
+/// Return the number of markers along with whether the choice was sticky and the remaining line.
 pub fn parse_choice_markers_and_text(
     content: &str,
 ) -> Result<Option<(u32, bool, &str)>, LineParsingError> {
@@ -107,6 +118,7 @@ pub fn parse_choice_markers_and_text(
         .transpose()
 }
 
+/// Check whether the input marker appears before the line text content.
 fn marker_exists_before_text(line: &str, marker: char) -> bool {
     line.find(|c: char| !(c.is_whitespace() || c == CHOICE_MARKER || c == STICKY_CHOICE_MARKER))
         .map(|i| line.get(..i).unwrap())
@@ -114,6 +126,11 @@ fn marker_exists_before_text(line: &str, marker: char) -> bool {
         .contains(marker)
 }
 
+/// Return `selection_text` and `display_text` strings from a line.
+/// 
+/// These are demarcated by `[]` brackets. Content before the bracket is both selection 
+/// and display text. Content inside the bracket is only for the selection and content 
+/// after the bracket only for display.  
 fn parse_choice_line_variants(line: &str) -> Result<(String, String), LineParsingError> {
     match (line.find('['), line.find(']')) {
         (Some(i), Some(j)) if i < j => {
@@ -129,10 +146,10 @@ fn parse_choice_line_variants(line: &str) -> Result<(String, String), LineParsin
             let inside = line.get(i + 1..j).unwrap();
             let tail = line.get(j + 1..).unwrap();
 
-            let displayed = format!("{}{}", head, inside);
-            let line = format!("{}{}", head, tail);
+            let selection_text = format!("{}{}", head, inside);
+            let display_text = format!("{}{}", head, tail);
 
-            Ok((displayed, line))
+            Ok((selection_text, display_text))
         }
         (None, None) => Ok((line.to_string(), line.to_string())),
         _ => Err(LineParsingError {

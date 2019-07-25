@@ -1,3 +1,5 @@
+//! Conditions for displaying choices, lines or other content.
+
 use std::cmp::Ordering;
 
 #[cfg(feature = "serde_support")]

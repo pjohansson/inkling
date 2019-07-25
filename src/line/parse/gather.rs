@@ -1,3 +1,5 @@
+//! Parse gathers as marked up `ParsedLineKind::Gather` objects.
+
 use crate::{
     consts::GATHER_MARKER,
     line::{
@@ -6,6 +8,7 @@ use crate::{
     },
 };
 
+/// Parse a `ParsedLineKind::Gather` from a line if the line represents a gather point.
 pub fn parse_gather(content: &str) -> Result<Option<ParsedLineKind>, LineParsingError> {
     let (line_without_divert, line_from_divert) = split_at_divert_marker(content);
 
