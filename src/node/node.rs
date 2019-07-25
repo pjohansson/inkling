@@ -1,3 +1,5 @@
+//! Node tree structure for branching content.
+
 use crate::{
     line::{InternalChoice, InternalLine, ParsedLineKind},
     node::parse_root_node,
@@ -10,7 +12,9 @@ use serde::{Deserialize, Serialize};
 #[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
 /// Root of a single `Stitch`, containing all text and branching content belonging to it.
 pub struct RootNode {
+    /// Content grouped under this stitch.
     pub items: Vec<NodeItem>,
+    /// Number of times the node has been visited in the story.
     pub num_visited: u32,
 }
 
@@ -23,11 +27,16 @@ impl RootNode {
 
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
-/// Branch from a set of choices in a `Stitch`. Largely identical to `RootNode`
-/// but also contains the data associated with the choice leading to it.
+/// Branch from a set of choices in a `Stitch`.
+///
+/// Largely identical to `RootNode` but also contains the data associated with
+/// the choice leading to it.
 pub struct Branch {
+    /// Choice which represents selecting this branch from a set.
     pub choice: InternalChoice,
+    /// Content grouped under this branch.
     pub items: Vec<NodeItem>,
+    /// Number of times the node has been visited in the story.
     pub num_visited: u32,
 }
 
@@ -59,6 +68,8 @@ impl NodeItem {
 }
 
 pub mod builders {
+    //! Builders for constructing nodes.
+
     use super::{Branch, NodeItem, RootNode};
 
     use crate::line::{InternalChoice, InternalLine};
@@ -69,24 +80,20 @@ pub mod builders {
     /// Builder for a `RootNote`.
     ///
     /// # Notes
-    ///  *  By default sets `num_visited` to 0.
+    ///  *  Sets the number of visits to 0
     pub struct RootNodeBuilder {
         items: Vec<NodeItem>,
-        num_visited: u32,
     }
 
     impl RootNodeBuilder {
         pub fn new() -> Self {
-            RootNodeBuilder {
-                items: Vec::new(),
-                num_visited: 0,
-            }
+            RootNodeBuilder { items: Vec::new() }
         }
 
         pub fn build(self) -> RootNode {
             RootNode {
                 items: self.items,
-                num_visited: self.num_visited,
+                num_visited: 0,
             }
         }
 
@@ -124,15 +131,17 @@ pub mod builders {
         }
     }
 
-    /// Builder for a `Branch`, created from a `ChoiceData` that spawns the branch in
-    /// the parsed lines of text content.
+    /// Builder for a `Branch`.
+    ///
+    /// Is created from the `InternalChoice` that spawns the branch in the parsed lines
+    /// of text content.
     ///
     /// # Notes
     ///  *  Adds the line from its choice as the first in its item list.
+    ///  *  Sets the number of visits to 0.
     pub struct BranchBuilder {
         choice: InternalChoice,
         items: Vec<NodeItem>,
-        num_visited: u32,
     }
 
     impl BranchBuilder {
@@ -142,7 +151,6 @@ pub mod builders {
             BranchBuilder {
                 choice,
                 items: vec![NodeItem::Line(line)],
-                num_visited: 0,
             }
         }
 
@@ -150,7 +158,7 @@ pub mod builders {
             Branch {
                 choice: self.choice,
                 items: self.items,
-                num_visited: self.num_visited,
+                num_visited: 0,
             }
         }
 

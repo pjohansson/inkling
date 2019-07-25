@@ -1,3 +1,5 @@
+//! Processing nested story content by following, or walking through, it.
+
 use crate::{
     error::{IncorrectNodeStackError, InklingError, InternalError},
     follow::{ChoiceInfo, EncounteredEvent, FollowResult, LineDataBuffer},
@@ -6,14 +8,14 @@ use crate::{
 
 use std::slice::IterMut;
 
-/// Represents the current stack of choices that have been made from the root
-/// of the current graph (in a practical sense, that have been made inside the
-/// current `Stitch`).
+/// Represents the current stack of choices made from the tree root.
+///
+/// # Example
 ///
 /// For example, for this tree:
 ///
 /// Root
-/// ```test
+/// ```text
 /// Line
 /// Line
 /// Branching Set
@@ -36,7 +38,7 @@ use std::slice::IterMut;
 /// choice start at index 1.
 pub type Stack = Vec<usize>;
 
-/// Trait which enables us to walk through a tree which contains the content of a `Stitch`.
+/// Trait which enables us to walk through the tree of content in a `Stitch`.
 ///
 /// This trait is implemented on all constituent parts (nodes) of the tree. For every line
 /// of content in the current node the text is processed and added to a supplied buffer.
@@ -44,7 +46,9 @@ pub type Stack = Vec<usize>;
 /// When a branching choice is encountered it is returned and the story will halt until
 /// the user supplies a branch to keep following the story from.
 pub trait Follow: FollowInternal {
-    /// Follow the content of the current node until it runs out or a branching choice
+    /// Follow the content of the current node.
+    ///
+    /// The follow continues until the node runs out of content or a branching choice
     /// is encountered. This node should be the currently active node, representing
     /// the last stack position in a tree.
     ///
@@ -97,8 +101,7 @@ pub trait Follow: FollowInternal {
         Ok(EncounteredEvent::Done)
     }
 
-    /// Resume the follow of content in the tree with a supplied choice from the currently
-    /// encountered set of branches.
+    /// Resume the follow of content in the tree with a supplied choice.
     ///
     /// Will fast forward through the tree to reach the node where the choice was encountered.
     /// The `Stack` is used to accomplish this. The last index in the stack represents
@@ -297,8 +300,7 @@ impl FollowInternal for Branch {
     }
 }
 
-/// Collect the `ChoiceData` from the given set of branches. Set the `num_visited` count
-/// to that of the branch.
+/// Collect the `ChoiceInfo` from a given set of branches.
 fn get_choices_from_branching_set(branches: &[Branch]) -> Vec<ChoiceInfo> {
     branches
         .iter()
@@ -313,6 +315,8 @@ fn get_choices_from_branching_set(branches: &[Branch]) -> Vec<ChoiceInfo> {
         .collect::<Vec<_>>()
 }
 
+/// Construct a stub for an `InvalidChoice` error.
+///
 /// If the used index to select a choice with was wrong, construct a stub of the error
 /// with type `InklingError::InvalidChoice`. Here we fill in which index caused
 /// the error and the full list of available choices that it tried to select from.

@@ -1,3 +1,10 @@
+//! Nested node structure for branching story content.
+//!
+//! Of main interest in this module is the [`RootNode`][crate::node::RootNode]
+//! and [`Branch`][crate::node::Branch] items which contain the nested story structure,
+//! and the [`Follow`][crate::node::Follow] trait which allows us to walk through
+//! their content.
+
 mod follow;
 mod node;
 mod parse;

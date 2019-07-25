@@ -1,3 +1,11 @@
+//! Parsing lines of content into nested trees.
+//!
+//! While individual lines are parsed [elsewhere][crate::line::parse] this module
+//! takes these individual lines and groups them into node trees.
+//!
+//! This hinges on the [`ParsedLineKind`][crate::line::ParsedLineKind] object, which
+//! contains the nesting level of branching and gather points.
+
 use crate::{
     line::{InternalLine, ParsedLineKind},
     node::{
@@ -6,8 +14,10 @@ use crate::{
     },
 };
 
-/// Parse the input lines from beginning to end and construct a branching tree
-/// of line content from it. Return the tree from its root node.
+/// Construct a root node from a set of lines.
+///
+/// Parses the input lines from beginning to end and construct a branching tree
+/// of line content from it.
 pub fn parse_root_node(lines: &[ParsedLineKind]) -> RootNode {
     let mut builder = RootNodeBuilder::new();
 
@@ -46,6 +56,8 @@ pub fn parse_root_node(lines: &[ParsedLineKind]) -> RootNode {
     builder.build()
 }
 
+/// Parse a set of branching points and the gather it ended with.
+///
 /// After parsing a group of choices, check whether it ended because of a `Gather`.
 /// If so, return the `NodeItem::Line` object from that gather so that it can be appended
 /// *after* the node, not inside it.
@@ -71,7 +83,8 @@ fn parse_branching_choice_set_and_gather(
     (node, gather)
 }
 
-/// Parse a set of `Branch`es with the same level, grouping them into a list which is returned.
+/// Parse a set of branching points at the current level.
+///
 /// Will return when a `Gather` of same level or below is encountered.
 ///
 /// When the function returns the `index` will point to the line directly after
@@ -88,9 +101,11 @@ fn parse_branching_choice_set(
         .collect::<Vec<_>>()
 }
 
-/// Parse a single `Branch` node. The node ends either when another `Branch` node with
-/// the same level or below is encountered, when a `Gather` with the same level or below
-/// is encountered, or when all lines are read.
+/// Parse a single `Branch` node.
+///
+/// The node ends either when another `Branch` node with the same level or below is
+/// encountered, when a `Gather` with the same level or below is encountered, or when
+/// all lines are read.
 ///
 /// When the function returns the `index` will point to the line directly after
 /// the last line of content belonging to this branch.
