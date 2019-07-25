@@ -1,10 +1,14 @@
+//! Results and data that is used or encountered when following, or walking through, a story.
+
 use crate::{
     error::InklingError,
     line::{InternalChoice, InternalLine},
 };
 
+/// Convenience type for a result of the encountered event and main error type.
 pub type FollowResult = Result<EncounteredEvent, InklingError>;
 
+/// Buffer that the story will read data into when following a story.
 pub type LineDataBuffer = Vec<InternalLine>;
 
 #[derive(Clone, Debug, PartialEq)]
