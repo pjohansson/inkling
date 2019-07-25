@@ -3,7 +3,7 @@
 use std::{error::Error, fmt};
 
 use crate::{
-    follow::ChoiceExtra,
+    follow::ChoiceInfo,
     line::ProcessError,
     node::Stack,
     story::{Address, Choice},
@@ -33,7 +33,7 @@ pub enum InklingError {
         /// to the user in the `Prompt::Choice` set.
         presented_choices: Vec<(bool, Choice)>,
         /// List of all choices that were available in their internal representation.
-        internal_choices: Vec<ChoiceExtra>,
+        internal_choices: Vec<ChoiceInfo>,
     },
     /// No choices or fallback choices were available in a story branch at the given address.
     OutOfChoices {

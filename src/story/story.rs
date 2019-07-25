@@ -1,7 +1,7 @@
 use crate::{
     consts::{DONE_KNOT, END_KNOT},
     error::{InklingError, ParseError, StackError},
-    follow::{ChoiceExtra, FollowResult, LineDataBuffer, Next},
+    follow::{ChoiceInfo, FollowResult, LineDataBuffer, Next},
     knot::{Knot, Stitch},
 };
 
@@ -376,7 +376,7 @@ pub fn get_mut_stitch<'a>(
 ///
 /// Choices are filtered as usual by conditions and visits.
 fn get_fallback_choice(
-    choice_set: &[ChoiceExtra],
+    choice_set: &[ChoiceInfo],
     current_address: &Address,
     knots: &Knots,
 ) -> Result<Choice, InklingError> {

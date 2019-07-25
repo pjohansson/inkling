@@ -2,7 +2,7 @@
 
 use crate::{
     error::InklingError,
-    follow::{ChoiceExtra, LineDataBuffer},
+    follow::{ChoiceInfo, LineDataBuffer},
     line::{Condition, Content, InternalLine},
 };
 
@@ -33,7 +33,7 @@ pub fn process_buffer(into_buffer: &mut LineBuffer, from_buffer: LineDataBuffer)
 /// Preserve line tags in case processing is desired. Choices are filtered
 /// based on a set condition (currently: visited or not, unless sticky).
 pub fn prepare_choices_for_user(
-    choices: &[ChoiceExtra],
+    choices: &[ChoiceInfo],
     current_address: &Address,
     knots: &Knots,
 ) -> Result<Vec<Choice>, InklingError> {
@@ -43,7 +43,7 @@ pub fn prepare_choices_for_user(
 /// Prepare a list of fallback choices from the given set. The first choice will be
 /// automatically selected.
 pub fn get_fallback_choices(
-    choices: &[ChoiceExtra],
+    choices: &[ChoiceInfo],
     current_address: &Address,
     knots: &Knots,
 ) -> Result<Vec<Choice>, InklingError> {
@@ -51,7 +51,7 @@ pub fn get_fallback_choices(
 }
 
 fn get_available_choices(
-    choices: &[ChoiceExtra],
+    choices: &[ChoiceInfo],
     current_address: &Address,
     knots: &Knots,
     fallback: bool,
@@ -68,7 +68,7 @@ fn get_available_choices(
 }
 
 fn zip_choices_with_filter_values(
-    choices: &[ChoiceExtra],
+    choices: &[ChoiceInfo],
     current_address: &Address,
     knots: &Knots,
     fallback: bool,
@@ -78,7 +78,7 @@ fn zip_choices_with_filter_values(
     let filtered_choices = choices
         .iter()
         .enumerate()
-        .map(|(i, ChoiceExtra { choice_data, .. })| Choice {
+        .map(|(i, ChoiceInfo { choice_data, .. })| Choice {
             text: choice_data.selection_text.text().trim().to_string(),
             tags: choice_data.selection_text.tags.clone(),
             index: i,
@@ -91,14 +91,14 @@ fn zip_choices_with_filter_values(
 }
 
 fn check_choices_for_conditions(
-    choices: &[ChoiceExtra],
+    choices: &[ChoiceInfo],
     current_address: &Address,
     knots: &Knots,
     keep_only_fallback: bool,
 ) -> Result<Vec<bool>, InklingError> {
     let mut checked_conditions = Vec::new();
 
-    for ChoiceExtra {
+    for ChoiceInfo {
         num_visited,
         choice_data,
     } in choices.iter()
@@ -235,8 +235,8 @@ mod tests {
         (empty_address, empty_hash_map)
     }
 
-    fn create_choice_extra(num_visited: u32, choice_data: InternalChoice) -> ChoiceExtra {
-        ChoiceExtra {
+    fn create_choice_extra(num_visited: u32, choice_data: InternalChoice) -> ChoiceInfo {
+        ChoiceInfo {
             num_visited,
             choice_data,
         }

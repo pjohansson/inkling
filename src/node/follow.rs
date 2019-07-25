@@ -1,6 +1,6 @@
 use crate::{
     error::{IncorrectNodeStackError, InklingError, InternalError},
-    follow::{ChoiceExtra, FollowResult, LineDataBuffer, Next},
+    follow::{ChoiceInfo, FollowResult, LineDataBuffer, Next},
     node::{Branch, NodeItem, RootNode},
 };
 
@@ -299,13 +299,13 @@ impl FollowInternal for Branch {
 
 /// Collect the `ChoiceData` from the given set of branches. Set the `num_visited` count
 /// to that of the branch.
-fn get_choices_from_branching_set(branches: &[Branch]) -> Vec<ChoiceExtra> {
+fn get_choices_from_branching_set(branches: &[Branch]) -> Vec<ChoiceInfo> {
     branches
         .iter()
         .map(|branch| {
             let num_visited = branch.num_visited;
 
-            ChoiceExtra {
+            ChoiceInfo {
                 num_visited,
                 choice_data: branch.choice.clone(),
             }
@@ -321,7 +321,7 @@ fn get_choices_from_branching_set(branches: &[Branch]) -> Vec<ChoiceExtra> {
 /// the information that the current node has direct access to.
 fn get_invalid_choice_error_stub(
     choice_index: usize,
-    branch_choices: Vec<ChoiceExtra>,
+    branch_choices: Vec<ChoiceInfo>,
 ) -> InklingError {
     InklingError::InvalidChoice {
         index: choice_index,

@@ -6,7 +6,7 @@ use crate::{
 pub type FollowResult = Result<Next, InklingError>;
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct ChoiceExtra {
+pub struct ChoiceInfo {
     pub num_visited: u32,
     pub choice_data: InternalChoice,
 }
@@ -21,5 +21,5 @@ pub enum Next {
     /// Divert to a new knot with the given name.
     Divert(String),
     /// Choice for the user.
-    ChoiceSet(Vec<ChoiceExtra>),
+    ChoiceSet(Vec<ChoiceInfo>),
 }
