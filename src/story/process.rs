@@ -29,7 +29,7 @@ pub fn process_buffer(into_buffer: &mut LineBuffer, from_buffer: LineDataBuffer)
 }
 
 /// Prepare a list of choices to display to the user.
-/// 
+///
 /// Preserve line tags in case processing is desired. Choices are filtered
 /// based on a set condition (currently: visited or not, unless sticky).
 pub fn prepare_choices_for_user(
@@ -40,8 +40,8 @@ pub fn prepare_choices_for_user(
     get_available_choices(choices, current_address, knots, false)
 }
 
-/// Prepare a list of fallback choices from the given set. 
-/// 
+/// Prepare a list of fallback choices from the given set.
+///
 /// From this set the first item should be automatically followed by the story. This,
 /// however, is the caller's responsibility.
 pub fn get_fallback_choices(
@@ -53,11 +53,11 @@ pub fn get_fallback_choices(
 }
 
 /// Return the currently available choices in the set.
-/// 
-/// Filters choices which do not fulfil the conditions to be active. These can for example 
+///
+/// Filters choices which do not fulfil the conditions to be active. These can for example
 /// be due to a non-sticky choice having been previously selected or due to some other
 /// condition not being met.
-/// 
+///
 /// If the `fallback` variable is true, return only the fallback choices which meet
 /// the criteria. Otherwise return only non-fallback choices.
 fn get_available_choices(
@@ -135,8 +135,8 @@ fn check_choices_for_conditions(
     Ok(checked_conditions)
 }
 
-/// Add a newline character to the current line if it is not glued to the next. 
-/// 
+/// Add a newline character to the current line if it is not glued to the next.
+///
 /// Ensure that only a single whitespace remains between the lines if they are glued.
 fn add_line_ending(line: &mut InternalLine, next_line: Option<&InternalLine>) {
     let glue = next_line
@@ -195,7 +195,7 @@ fn check_condition(
 }
 
 /// Fill in missing data for an `InvalidChoice` error stub.
-/// 
+///
 /// If the story was followed with an invalid choice we want to collect as much information
 /// about it as possible. This is done when first encountering the error as the stack
 /// is followed, which fills in which `ChoiceData` values were available and which index

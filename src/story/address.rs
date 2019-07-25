@@ -55,7 +55,7 @@ impl Address {
 }
 
 /// Split an address into constituent parts if possible.
-/// 
+///
 /// The split is done at a dot ('.') marker. If one exists, split at it and return the parts.
 /// Otherwise return the entire string.
 fn split_address_into_parts(address: &str) -> Result<(&str, Option<&str>), InvalidAddressError> {
@@ -92,9 +92,9 @@ fn get_full_address(
 }
 
 /// Return the full address from either an internal address or knot name.
-/// 
-/// Internal addresses are relative to the current knot. If one is found in the current knot, 
-/// the knot name and the address is returned. Otherwise the default stitch from a knot 
+///
+/// Internal addresses are relative to the current knot. If one is found in the current knot,
+/// the knot name and the address is returned. Otherwise the default stitch from a knot
 /// with the name is returned.
 fn get_full_address_from_head(
     head: &str,

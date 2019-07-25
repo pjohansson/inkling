@@ -24,10 +24,10 @@ use super::{
 /// Single line of text in a story, ready to display.
 pub struct Line {
     /// Text to display.
-    /// 
+    ///
     /// The text is ready to be printed as-is, without the addition of more characters.
-    /// It been processed to remove extraneous whitespaces and contains a newline character 
-    /// at the end of the line unless the line was glued to the next. 
+    /// It been processed to remove extraneous whitespaces and contains a newline character
+    /// at the end of the line unless the line was glued to the next.
     pub text: String,
     /// Tags set to the line.
     pub tags: Vec<String>,
@@ -36,8 +36,8 @@ pub struct Line {
 #[derive(Clone, Debug, PartialEq)]
 /// Choice presented to the user.
 pub struct Choice {
-    /// Line of text to represent the choice with. 
-    /// 
+    /// Line of text to represent the choice with.
+    ///
     /// The text is ready to be printed as-is. It contains no newline character at the end.
     pub text: String,
     /// Tags associated with the choice.
@@ -50,7 +50,7 @@ pub struct Choice {
 pub type LineBuffer = Vec<Line>;
 
 /// Convenience type for a set of `Knot`s.
-/// 
+///
 /// The knot names are used as keys in the collection.
 pub type Knots = HashMap<String, Knot>;
 

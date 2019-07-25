@@ -1,12 +1,10 @@
 //! Parsing of story content.
-//! 
-//! While individual lines are parsed [elsewhere][crate::line::parse] this module 
-//! takes these individual lines and groups them into knots, stitches and node trees
-//! for branching content.
-//! 
-//! This hinges on the [`ParsedLineKind`][crate::line::ParsedLineKind] object, which 
-//! contains the nesting level of branching and gather points. 
- 
+//!
+//! While [individual lines][crate::line::parse] and the [nested tree node][crate::node::parse]
+//! structure of stitches are parsed elsewhere this module takes individual lines and groups
+//! them into knots and stitches. The content is then parsed using the aforementioned modules
+//! to create the final story structure.
+
 use crate::{
     consts::{
         KNOT_MARKER, LINE_COMMENT_MARKER, ROOT_KNOT_NAME, STITCH_MARKER, TODO_COMMENT_MARKER,
@@ -19,12 +17,10 @@ use crate::{
 use std::collections::HashMap;
 
 /// Parse an input string into a set of knots.
-/// 
-/// Creates `Stitch`es and their node tree of branching content. Returns the knot collection 
+///
+/// Creates `Stitch`es and their node tree of branching content. Returns the knot collection
 /// and the name of the first knot (the story root) in the set.
-pub fn read_knots_from_string(
-    content: &str,
-) -> Result<(String, Knots), ParseError> {
+pub fn read_knots_from_string(content: &str) -> Result<(String, Knots), ParseError> {
     let all_lines = content.lines().collect::<Vec<_>>();
     let content_lines = remove_empty_and_comment_lines(all_lines);
     let knot_line_sets = divide_lines_at_marker(content_lines, KNOT_MARKER);
@@ -45,7 +41,7 @@ pub fn read_knots_from_string(
 }
 
 /// Parse a single `Knot` from a set of lines.
-/// 
+///
 /// Creates `Stitch`es and their node tree of branching content. Returns the knot and its name.
 fn get_knot_from_lines(
     mut lines: Vec<&str>,
@@ -70,18 +66,9 @@ fn get_knot_from_lines(
     ))
 }
 
-/// Collect stitches in a map and return along with the root stitch name.
-fn get_default_stitch_and_hash_map_tuple(
-    stitches: Vec<(String, Stitch)>,
-) -> Result<(String, HashMap<String, Stitch>), KnotError> {
-    let (default_name, _) = stitches.first().ok_or(KnotError::Empty)?;
-
-    Ok((default_name.clone(), stitches.into_iter().collect()))
-}
-
-/// Parse a single `Stitch` from a set of lines. 
-/// 
-/// If a stitch name is found, return it too. This should be found for all stitches except 
+/// Parse a single `Stitch` from a set of lines.
+///
+/// If a stitch name is found, return it too. This should be found for all stitches except
 /// possibly the first in a set, since we split the knot line content where the names are found.
 fn get_stitch_from_lines(
     mut lines: Vec<&str>,
@@ -95,10 +82,19 @@ fn get_stitch_from_lines(
     Ok((stitch_name, content))
 }
 
-/// Read knot name from the first line in a set. 
-/// 
-/// If the name was present, remove that line from the vector and return the name. 
-/// If it was not present and the knot index is 0, return the 
+/// Collect stitches in a map and return along with the root stitch name.
+fn get_default_stitch_and_hash_map_tuple(
+    stitches: Vec<(String, Stitch)>,
+) -> Result<(String, HashMap<String, Stitch>), KnotError> {
+    let (default_name, _) = stitches.first().ok_or(KnotError::Empty)?;
+
+    Ok((default_name.clone(), stitches.into_iter().collect()))
+}
+
+/// Read knot name from the first line in a set.
+///
+/// If the name was present, remove that line from the vector and return the name.
+/// If it was not present and the knot index is 0, return the
 /// [default knot name][crate::consts::ROOT_KNOT_NAME].
 fn get_knot_name(lines: &mut Vec<&str>, knot_index: usize) -> Result<String, KnotError> {
     let name_line = lines.first().ok_or(KnotError::Empty)?;
@@ -119,9 +115,9 @@ fn get_knot_name(lines: &mut Vec<&str>, knot_index: usize) -> Result<String, Kno
     }
 }
 
-/// Read stitch name from the first line in a set. 
-/// 
-/// If the name was present, remove that line from the vector and return the name. 
+/// Read stitch name from the first line in a set.
+///
+/// If the name was present, remove that line from the vector and return the name.
 /// Otherwise return `None`.
 fn get_stitch_name(lines: &mut Vec<&str>) -> Result<Option<String>, KnotError> {
     let name_line = lines.first().ok_or(KnotError::Empty)?;
@@ -139,10 +135,10 @@ fn get_stitch_name(lines: &mut Vec<&str>) -> Result<Option<String>, KnotError> {
     }
 }
 
-/// Get a verified name for a stitch. 
-/// 
-/// Stitches are name spaced under their parent knot. If the given stitch has no read name 
-/// but is the first content in the knot, it gets the [default name][crate::consts::ROOT_KNOT_NAME]. 
+/// Get a verified name for a stitch.
+///
+/// Stitches are name spaced under their parent knot. If the given stitch has no read name
+/// but is the first content in the knot, it gets the [default name][crate::consts::ROOT_KNOT_NAME].
 fn get_stitch_identifier(name: Option<String>, stitch_index: usize) -> String {
     match (stitch_index, name) {
         (0, None) => ROOT_KNOT_NAME.to_string(),
@@ -173,11 +169,11 @@ fn divide_lines_at_marker<'a>(mut content: Vec<&'a str>, marker: &str) -> Vec<Ve
     buffer.into_iter().rev().collect()
 }
 
-/// Filter empty and comment lines from a set. 
-/// 
+/// Filter empty and comment lines from a set.
+///
 /// Should at some point be removed since we ultimately want to return errors from parsing
-/// lines along with their original line numbers, which are thrown away by filtering some 
-/// of them. 
+/// lines along with their original line numbers, which are thrown away by filtering some
+/// of them.
 fn remove_empty_and_comment_lines(content: Vec<&str>) -> Vec<&str> {
     content
         .into_iter()
