@@ -1,3 +1,5 @@
+//! Structures which contain parsed `Ink` stories and content presented to the user.
+
 use crate::{
     consts::{DONE_KNOT, END_KNOT},
     error::{InklingError, ParseError, StackError},
@@ -21,7 +23,11 @@ use super::{
 #[derive(Clone, Debug, PartialEq)]
 /// Single line of text in a story, ready to display.
 pub struct Line {
-    /// Text content.
+    /// Text to display.
+    /// 
+    /// The text is ready to be printed as-is, without the addition of more characters.
+    /// It been processed to remove extraneous whitespaces and contains a newline character 
+    /// at the end of the line unless the line was glued to the next. 
     pub text: String,
     /// Tags set to the line.
     pub tags: Vec<String>,
@@ -30,7 +36,9 @@ pub struct Line {
 #[derive(Clone, Debug, PartialEq)]
 /// Choice presented to the user.
 pub struct Choice {
-    /// Text content.
+    /// Line of text to represent the choice with. 
+    /// 
+    /// The text is ready to be printed as-is. It contains no newline character at the end.
     pub text: String,
     /// Tags associated with the choice.
     pub tags: Vec<String>,
@@ -41,15 +49,20 @@ pub struct Choice {
 /// Convenience type to indicate when a buffer of `Line` objects is being manipulated.
 pub type LineBuffer = Vec<Line>;
 
-/// Convenience type.
+/// Convenience type for a set of `Knot`s.
+/// 
+/// The knot names are used as keys in the collection.
 pub type Knots = HashMap<String, Knot>;
 
 #[derive(Debug)]
 #[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
 /// Story with knots, diverts, choices and possibly lots of text.
 pub struct Story {
+    /// Collection of `Knot`s which make up the story.
     knots: Knots,
+    /// Internal stack for which `Knot` is actively being followed.
     stack: Vec<Address>,
+    /// Whether or not the story has been started.
     in_progress: bool,
 }
 

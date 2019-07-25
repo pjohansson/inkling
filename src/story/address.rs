@@ -1,3 +1,5 @@
+//! Validated addresses to nodes or content in a story.
+
 use super::story::Knots;
 
 #[cfg(feature = "serde_support")]
@@ -52,6 +54,10 @@ impl Address {
     }
 }
 
+/// Split an address into constituent parts if possible.
+/// 
+/// The split is done at a dot ('.') marker. If one exists, split at it and return the parts.
+/// Otherwise return the entire string.
 fn split_address_into_parts(address: &str) -> Result<(&str, Option<&str>), InvalidAddressError> {
     if let Some(i) = address.find('.') {
         let knot = address.get(..i).unwrap();
@@ -65,6 +71,7 @@ fn split_address_into_parts(address: &str) -> Result<(&str, Option<&str>), Inval
     }
 }
 
+/// Verify and return the full address to a node.
 fn get_full_address(
     knot: &str,
     stitch: &str,
@@ -84,6 +91,11 @@ fn get_full_address(
     }
 }
 
+/// Return the full address from either an internal address or knot name.
+/// 
+/// Internal addresses are relative to the current knot. If one is found in the current knot, 
+/// the knot name and the address is returned. Otherwise the default stitch from a knot 
+/// with the name is returned.
 fn get_full_address_from_head(
     head: &str,
     current_address: &Address,

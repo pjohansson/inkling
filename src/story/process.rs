@@ -1,4 +1,4 @@
-//! Process lines to their final form, which will be displayed to the user.
+//! Process content to display to the user.
 
 use crate::{
     error::InklingError,
@@ -11,8 +11,7 @@ use super::{
     story::{get_stitch, Choice, Knots, Line, LineBuffer},
 };
 
-/// Process full `LineData` lines to their final state: remove empty lines, add newlines
-/// unless glue is present.
+/// Process internal lines to a user-ready state.
 pub fn process_buffer(into_buffer: &mut LineBuffer, from_buffer: LineDataBuffer) {
     let mut iter = from_buffer
         .into_iter()
@@ -29,7 +28,8 @@ pub fn process_buffer(into_buffer: &mut LineBuffer, from_buffer: LineDataBuffer)
     }
 }
 
-/// Prepared the choices with the text that will be displayed to the user.
+/// Prepare a list of choices to display to the user.
+/// 
 /// Preserve line tags in case processing is desired. Choices are filtered
 /// based on a set condition (currently: visited or not, unless sticky).
 pub fn prepare_choices_for_user(
@@ -40,8 +40,10 @@ pub fn prepare_choices_for_user(
     get_available_choices(choices, current_address, knots, false)
 }
 
-/// Prepare a list of fallback choices from the given set. The first choice will be
-/// automatically selected.
+/// Prepare a list of fallback choices from the given set. 
+/// 
+/// From this set the first item should be automatically followed by the story. This,
+/// however, is the caller's responsibility.
 pub fn get_fallback_choices(
     choices: &[ChoiceInfo],
     current_address: &Address,
@@ -50,6 +52,14 @@ pub fn get_fallback_choices(
     get_available_choices(choices, current_address, knots, true)
 }
 
+/// Return the currently available choices in the set.
+/// 
+/// Filters choices which do not fulfil the conditions to be active. These can for example 
+/// be due to a non-sticky choice having been previously selected or due to some other
+/// condition not being met.
+/// 
+/// If the `fallback` variable is true, return only the fallback choices which meet
+/// the criteria. Otherwise return only non-fallback choices.
 fn get_available_choices(
     choices: &[ChoiceInfo],
     current_address: &Address,
@@ -67,6 +77,7 @@ fn get_available_choices(
     Ok(filtered_choices)
 }
 
+/// Pair every choice with whether it fulfils its conditions.
 fn zip_choices_with_filter_values(
     choices: &[ChoiceInfo],
     current_address: &Address,
@@ -90,6 +101,7 @@ fn zip_choices_with_filter_values(
     Ok(filtered_choices)
 }
 
+/// Return a list of whether choices fulfil their conditions.
 fn check_choices_for_conditions(
     choices: &[ChoiceInfo],
     current_address: &Address,
@@ -123,8 +135,9 @@ fn check_choices_for_conditions(
     Ok(checked_conditions)
 }
 
-/// Add a newline character if the line is not glued to the next. Retain only a single
-/// whitespace between the lines if they are glued.
+/// Add a newline character to the current line if it is not glued to the next. 
+/// 
+/// Ensure that only a single whitespace remains between the lines if they are glued.
 fn add_line_ending(line: &mut InternalLine, next_line: Option<&InternalLine>) {
     let glue = next_line
         .map(|next_line| line.glue_end || next_line.glue_begin)
@@ -154,6 +167,7 @@ fn add_line_ending(line: &mut InternalLine, next_line: Option<&InternalLine>) {
     }
 }
 
+/// Check whether a single choice fulfils its conditions.
 fn check_condition(
     condition: &Condition,
     current_address: &Address,
@@ -180,6 +194,8 @@ fn check_condition(
     }
 }
 
+/// Fill in missing data for an `InvalidChoice` error stub.
+/// 
 /// If the story was followed with an invalid choice we want to collect as much information
 /// about it as possible. This is done when first encountering the error as the stack
 /// is followed, which fills in which `ChoiceData` values were available and which index
