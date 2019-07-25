@@ -59,7 +59,7 @@ Difficult features for which I doubt my skill level to implement:
 
 ## Usage
 
-See the [documentation](https://docs.rs/inkling/) or the provided example for a minimum viable story processor. Enable `serde` de/serialization by activating the `serde_support` feature. This feature derives `Deserialize` and `Serialize` for all required structs.
+See the [documentation](https://docs.rs/inkling/) or provided example for a minimum viable story processor. Enable `serde` de/serialization by activating the `serde_support` feature. This feature derives `Deserialize` and `Serialize` for all required structs.
 
 
 ## Contributions
