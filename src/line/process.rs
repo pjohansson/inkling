@@ -1,6 +1,6 @@
 use crate::{
     follow::{LineDataBuffer, Next},
-    line::{parse::parse_line, Content, FullLine, LineChunk},
+    line::{parse::parse_line, Content, InternalLine, LineChunk},
 };
 
 pub type ProcessError = String;
@@ -9,7 +9,7 @@ pub trait Process {
     fn process(&mut self, buffer: &mut String) -> Result<Next, ProcessError>;
 }
 
-impl FullLine {
+impl InternalLine {
     pub fn process(&mut self, buffer: &mut LineDataBuffer) -> Result<Next, ProcessError> {
         let mut string = String::new();
 

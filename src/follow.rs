@@ -1,6 +1,6 @@
 use crate::{
     error::InklingError,
-    line::{InternalChoice, FullLine},
+    line::{InternalChoice, InternalLine},
 };
 
 pub type FollowResult = Result<Next, InklingError>;
@@ -11,7 +11,7 @@ pub struct ChoiceExtra {
     pub choice_data: InternalChoice,
 }
 
-pub type LineDataBuffer = Vec<FullLine>;
+pub type LineDataBuffer = Vec<InternalLine>;
 
 #[derive(Clone, Debug, PartialEq)]
 /// What action that is prompted by following a story.

@@ -1,6 +1,6 @@
 use crate::{
     consts::{DIVERT_MARKER, GLUE_MARKER, TAG_MARKER},
-    line::{Content, FullLine, FullLineBuilder, LineChunk, LineChunkBuilder},
+    line::{Content, InternalLine, InternalLineBuilder, LineChunk, LineChunkBuilder},
 };
 
 #[derive(Clone, Debug)]
@@ -19,7 +19,7 @@ pub enum LineErrorKind {
     UnmatchedBrackets,
 }
 
-pub fn parse_line(content: &str) -> Result<FullLine, LineParsingError> {
+pub fn parse_line(content: &str) -> Result<InternalLine, LineParsingError> {
     let mut buffer = content.to_string();
 
     let tags = parse_tags(&mut buffer);
@@ -28,7 +28,7 @@ pub fn parse_line(content: &str) -> Result<FullLine, LineParsingError> {
 
     let chunk = parse_chunk(&buffer)?;
 
-    let mut builder = FullLineBuilder::from_chunk(chunk);
+    let mut builder = InternalLineBuilder::from_chunk(chunk);
 
     if let Some(address) = divert {
         builder.set_divert(&address);

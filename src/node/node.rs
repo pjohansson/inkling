@@ -1,5 +1,5 @@
 use crate::{
-    line::{InternalChoice, FullLine, ParsedLineKind},
+    line::{InternalChoice, InternalLine, ParsedLineKind},
     node::parse_root_node,
 };
 
@@ -36,7 +36,7 @@ pub struct Branch {
 /// Every item that a `Stitch` contains can be either some text producing asset
 /// or a branching point which the user must select an option from to continue.
 pub enum NodeItem {
-    Line(FullLine),
+    Line(InternalLine),
     BranchingPoint(Vec<Branch>),
 }
 
@@ -61,7 +61,7 @@ impl NodeItem {
 pub mod builders {
     use super::{Branch, NodeItem, RootNode};
 
-    use crate::line::{InternalChoice, FullLine};
+    use crate::line::{InternalChoice, InternalLine};
 
     #[cfg(test)]
     use crate::line::LineChunk;
@@ -98,7 +98,7 @@ pub mod builders {
             self.items.push(item);
         }
 
-        pub fn add_line(&mut self, line: FullLine) {
+        pub fn add_line(&mut self, line: InternalLine) {
             self.add_item(NodeItem::Line(line));
         }
 
@@ -115,12 +115,12 @@ pub mod builders {
 
         #[cfg(test)]
         pub fn with_line_chunk(self, chunk: LineChunk) -> Self {
-            self.with_item(NodeItem::Line(FullLine::from_chunk(chunk)))
+            self.with_item(NodeItem::Line(InternalLine::from_chunk(chunk)))
         }
 
         #[cfg(test)]
         pub fn with_text_line_chunk(self, content: &str) -> Self {
-            self.with_item(NodeItem::Line(FullLine::from_string(content)))
+            self.with_item(NodeItem::Line(InternalLine::from_string(content)))
         }
     }
 
@@ -162,7 +162,7 @@ pub mod builders {
             self.items.push(item);
         }
 
-        pub fn add_line(&mut self, line: FullLine) {
+        pub fn add_line(&mut self, line: InternalLine) {
             self.add_item(NodeItem::Line(line));
         }
 
@@ -179,7 +179,7 @@ pub mod builders {
 
         #[cfg(test)]
         pub fn with_text_line_chunk(self, content: &str) -> Self {
-            self.with_item(NodeItem::Line(FullLine::from_string(content)))
+            self.with_item(NodeItem::Line(InternalLine::from_string(content)))
         }
     }
 

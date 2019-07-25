@@ -1,5 +1,5 @@
 use crate::{
-    line::{FullLine, ParsedLineKind},
+    line::{InternalLine, ParsedLineKind},
     node::{
         builders::{BranchBuilder, RootNodeBuilder},
         Branch, RootNode,
@@ -57,7 +57,7 @@ fn parse_branching_choice_set_and_gather(
     index: &mut usize,
     current_level: u32,
     lines: &[ParsedLineKind],
-) -> (Vec<Branch>, Option<FullLine>) {
+) -> (Vec<Branch>, Option<InternalLine>) {
     let node = parse_branching_choice_set(index, current_level, lines);
     let mut gather = None;
 
@@ -175,11 +175,11 @@ mod tests {
     }
 
     pub fn get_empty_gather(level: u32) -> ParsedLineKind {
-        ParsedLineKind::gather(level, FullLine::from_string(""))
+        ParsedLineKind::gather(level, InternalLine::from_string(""))
     }
 
     pub fn get_parsed_line(line: &str) -> ParsedLineKind {
-        ParsedLineKind::line(FullLine::from_string(line))
+        ParsedLineKind::line(InternalLine::from_string(line))
     }
 
     #[test]

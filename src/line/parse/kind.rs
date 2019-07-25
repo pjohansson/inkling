@@ -2,15 +2,21 @@ use crate::{
     consts::DIVERT_MARKER,
     line::{
         parse::{parse_choice, parse_gather, parse_line},
-        InternalChoice, FullLine, LineParsingError,
+        InternalChoice, InternalLine, LineParsingError,
     },
 };
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum ParsedLineKind {
-    Choice { level: u32, choice_data: InternalChoice },
-    Gather { level: u32, line: FullLine },
-    Line(FullLine),
+    Choice {
+        level: u32,
+        choice_data: InternalChoice,
+    },
+    Gather {
+        level: u32,
+        line: InternalLine,
+    },
+    Line(InternalLine),
 }
 
 #[cfg(test)]
@@ -19,11 +25,11 @@ impl ParsedLineKind {
         ParsedLineKind::Choice { level, choice_data }
     }
 
-    pub fn gather(level: u32, line: FullLine) -> Self {
+    pub fn gather(level: u32, line: InternalLine) -> Self {
         ParsedLineKind::Gather { level, line }
     }
 
-    pub fn line(line: FullLine) -> Self {
+    pub fn line(line: InternalLine) -> Self {
         ParsedLineKind::Line(line)
     }
 }

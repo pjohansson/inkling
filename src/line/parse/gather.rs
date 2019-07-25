@@ -19,13 +19,13 @@ pub fn parse_gather(content: &str) -> Result<Option<ParsedLineKind>, LineParsing
 pub mod tests {
     use super::*;
 
-    use crate::line::{parse_line_kind, Content, FullLine};
+    use crate::line::{parse_line_kind, Content, InternalLine};
 
     #[test]
     fn line_with_gather_markers_sets_line_text() {
         match parse_line_kind("- Hello, World!").unwrap() {
             ParsedLineKind::Gather { line, .. } => {
-                assert_eq!(line, FullLine::from_string("Hello, World!"))
+                assert_eq!(line, InternalLine::from_string("Hello, World!"))
             }
             other => panic!("expected `ParsedLineKind::Gather` but got {:?}", other),
         }

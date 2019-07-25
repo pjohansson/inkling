@@ -152,7 +152,7 @@ mod tests {
 
     use crate::{
         error::{InklingError, ParseError},
-        line::{FullLine, LineParsingError, ParsedLineKind},
+        line::{InternalLine, LineParsingError, ParsedLineKind},
     };
 
     use std::str::FromStr;
@@ -251,11 +251,11 @@ mod tests {
 
         assert_eq!(
             choices[0].choice_data.display_text,
-            FullLine::from_string("Choice 1")
+            InternalLine::from_string("Choice 1")
         );
         assert_eq!(
             choices[1].choice_data.display_text,
-            FullLine::from_string("Choice 2")
+            InternalLine::from_string("Choice 2")
         );
     }
 

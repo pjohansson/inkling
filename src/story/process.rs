@@ -3,7 +3,7 @@
 use crate::{
     error::InklingError,
     follow::{ChoiceExtra, LineDataBuffer},
-    line::{Condition, Content, FullLine},
+    line::{Condition, Content, InternalLine},
 };
 
 use super::{
@@ -125,7 +125,7 @@ fn check_choices_for_conditions(
 
 /// Add a newline character if the line is not glued to the next. Retain only a single
 /// whitespace between the lines if they are glued.
-fn add_line_ending(line: &mut FullLine, next_line: Option<&FullLine>) {
+fn add_line_ending(line: &mut InternalLine, next_line: Option<&InternalLine>) {
     let glue = next_line
         .map(|next_line| line.glue_end || next_line.glue_begin)
         .unwrap_or(false);
@@ -220,7 +220,7 @@ mod tests {
     use crate::{
         consts::ROOT_KNOT_NAME,
         knot::{Knot, Stitch},
-        line::{InternalChoice, InternalChoiceBuilder, FullLineBuilder},
+        line::{InternalChoice, InternalChoiceBuilder, InternalLineBuilder},
     };
 
     use std::{cmp::Ordering, collections::HashMap, str::FromStr};
@@ -324,9 +324,9 @@ mod tests {
         let text = "Mr. and Mrs. Doubtfire";
 
         let buffer = vec![
-            FullLineBuilder::from_string(text).build(),
-            FullLineBuilder::from_string("").build(),
-            FullLineBuilder::from_string(text).build(),
+            InternalLineBuilder::from_string(text).build(),
+            InternalLineBuilder::from_string("").build(),
+            InternalLineBuilder::from_string(text).build(),
         ];
 
         let mut processed = Vec::new();
@@ -340,8 +340,8 @@ mod tests {
     #[test]
     fn processing_line_buffer_trims_extra_whitespace() {
         let buffer = vec![
-            FullLineBuilder::from_string("    Hello, World!    ").build(),
-            FullLineBuilder::from_string("    Hello right back at you!  ").build(),
+            InternalLineBuilder::from_string("    Hello, World!    ").build(),
+            InternalLineBuilder::from_string("    Hello right back at you!  ").build(),
         ];
 
         let mut processed = Vec::new();
@@ -357,8 +357,8 @@ mod tests {
         let text = "Mr. and Mrs. Doubtfire";
 
         let buffer = vec![
-            FullLineBuilder::from_string(text).build(),
-            FullLineBuilder::from_string(text).build(),
+            InternalLineBuilder::from_string(text).build(),
+            InternalLineBuilder::from_string(text).build(),
         ];
 
         let mut processed = Vec::new();
@@ -373,8 +373,10 @@ mod tests {
         let text = "Mr. and Mrs. Doubtfire";
 
         let buffer = vec![
-            FullLineBuilder::from_string(text).with_glue_end().build(),
-            FullLineBuilder::from_string(text).build(),
+            InternalLineBuilder::from_string(text)
+                .with_glue_end()
+                .build(),
+            InternalLineBuilder::from_string(text).build(),
         ];
 
         let mut processed = Vec::new();
@@ -389,8 +391,10 @@ mod tests {
         let text = "Mr. and Mrs. Doubtfire";
 
         let buffer = vec![
-            FullLineBuilder::from_string(text).build(),
-            FullLineBuilder::from_string(text).with_glue_begin().build(),
+            InternalLineBuilder::from_string(text).build(),
+            InternalLineBuilder::from_string(text)
+                .with_glue_begin()
+                .build(),
         ];
 
         let mut processed = Vec::new();
@@ -405,9 +409,11 @@ mod tests {
         let text = "Mr. and Mrs. Doubtfire";
 
         let buffer = vec![
-            FullLineBuilder::from_string(text).build(),
-            FullLineBuilder::from_string("").build(),
-            FullLineBuilder::from_string(text).with_glue_begin().build(),
+            InternalLineBuilder::from_string(text).build(),
+            InternalLineBuilder::from_string("").build(),
+            InternalLineBuilder::from_string(text)
+                .with_glue_begin()
+                .build(),
         ];
 
         let mut processed = Vec::new();
@@ -419,7 +425,7 @@ mod tests {
 
     #[test]
     fn processing_line_buffer_sets_newline_on_last_line_regardless_of_glue() {
-        let line = FullLineBuilder::from_string("Mr. and Mrs. Doubtfire")
+        let line = InternalLineBuilder::from_string("Mr. and Mrs. Doubtfire")
             .with_glue_end()
             .build();
 
@@ -433,10 +439,10 @@ mod tests {
 
     #[test]
     fn processing_line_buffer_keeps_single_whitespace_between_lines_with_glue() {
-        let line1 = FullLineBuilder::from_string("Ends with whitespace before glue, ")
+        let line1 = InternalLineBuilder::from_string("Ends with whitespace before glue, ")
             .with_glue_end()
             .build();
-        let line2 = FullLineBuilder::from_string(" starts with whitespace after glue")
+        let line2 = InternalLineBuilder::from_string(" starts with whitespace after glue")
             .with_glue_begin()
             .build();
 
@@ -454,7 +460,9 @@ mod tests {
         let text = "Mr. and Mrs. Doubtfire";
         let tags = vec!["tag 1".to_string(), "tag 2".to_string()];
 
-        let line = FullLineBuilder::from_string(text).with_tags(&tags).build();
+        let line = InternalLineBuilder::from_string(text)
+            .with_tags(&tags)
+            .build();
 
         let buffer = vec![line];
 
@@ -583,7 +591,9 @@ mod tests {
     fn preparing_choices_does_not_filter_visited_sticky_lines() {
         let choice1 = InternalChoiceBuilder::from_string("Kept").build();
         let choice2 = InternalChoiceBuilder::from_string("Removed").build();
-        let choice3 = InternalChoiceBuilder::from_string("Kept").is_sticky().build();
+        let choice3 = InternalChoiceBuilder::from_string("Kept")
+            .is_sticky()
+            .build();
 
         let choices = vec![
             create_choice_extra(0, choice1),
@@ -606,7 +616,9 @@ mod tests {
         let choice2 = InternalChoiceBuilder::from_string("Removed")
             .is_fallback()
             .build();
-        let choice3 = InternalChoiceBuilder::from_string("Kept").is_sticky().build();
+        let choice3 = InternalChoiceBuilder::from_string("Kept")
+            .is_sticky()
+            .build();
 
         let choices = vec![
             create_choice_extra(0, choice1),
@@ -684,7 +696,9 @@ mod tests {
 
     #[test]
     fn fallback_choices_are_filtered_as_usual_choices() {
-        let choice1 = InternalChoiceBuilder::from_string("Kept").is_fallback().build();
+        let choice1 = InternalChoiceBuilder::from_string("Kept")
+            .is_fallback()
+            .build();
         let choice2 = InternalChoiceBuilder::from_string("Removed")
             .is_fallback()
             .build();

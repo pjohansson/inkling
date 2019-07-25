@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 #[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
 /// Representation of a single line of Ink content. All of its raw data will be processed
 /// into a final form and presented to the user as the story is followed.
-pub struct FullLine {
+pub struct InternalLine {
     /// Root chunk of line content, which may possibly be nested into even finer parts.
     pub chunk: LineChunk,
     /// Tags associated with the line. Will be given to the user along with the processed
@@ -50,9 +50,9 @@ pub enum Content {
     Text(String),
 }
 
-impl FullLine {
+impl InternalLine {
     pub fn from_chunk(chunk: LineChunk) -> Self {
-        FullLine {
+        InternalLine {
             chunk,
             tags: Vec::new(),
             glue_begin: false,
@@ -87,16 +87,16 @@ impl FullLine {
 pub mod builders {
     use super::*;
 
-    pub struct FullLineBuilder {
+    pub struct InternalLineBuilder {
         chunk: LineChunk,
         tags: Vec<String>,
         glue_begin: bool,
         glue_end: bool,
     }
 
-    impl FullLineBuilder {
+    impl InternalLineBuilder {
         pub fn from_chunk(chunk: LineChunk) -> Self {
-            FullLineBuilder {
+            InternalLineBuilder {
                 chunk,
                 tags: Vec::new(),
                 glue_begin: false,
@@ -104,8 +104,8 @@ pub mod builders {
             }
         }
 
-        pub fn build(self) -> FullLine {
-            FullLine {
+        pub fn build(self) -> InternalLine {
+            InternalLine {
                 chunk: self.chunk,
                 tags: self.tags,
                 glue_begin: self.glue_begin,

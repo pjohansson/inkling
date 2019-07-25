@@ -4,8 +4,8 @@ use crate::{
         parse::{
             parse_choice_conditions, parse_line, parse_markers_and_text, split_at_divert_marker,
         },
-        Content, InternalChoice, InternalChoiceBuilder, FullLine, LineErrorKind, LineParsingError,
-        ParsedLineKind,
+        Content, InternalChoice, InternalChoiceBuilder, InternalLine, LineErrorKind,
+        LineParsingError, ParsedLineKind,
     },
 };
 
@@ -59,7 +59,7 @@ fn parse_choice_data(content: &str) -> Result<InternalChoice, LineParsingError> 
 /// A choice with no displayed text can have no regular text, either. Return an error
 /// if it has a separator between the displayed choice and follow up text.
 fn is_choice_fallback(
-    selection_text: &FullLine,
+    selection_text: &InternalLine,
     original_line: &str,
 ) -> Result<bool, LineParsingError> {
     let is_fallback = selection_text

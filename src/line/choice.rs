@@ -1,4 +1,4 @@
-use crate::line::{Condition, FullLine};
+use crate::line::{Condition, InternalLine};
 
 #[cfg(feature = "serde_support")]
 use serde::{Deserialize, Serialize};
@@ -8,11 +8,11 @@ use serde::{Deserialize, Serialize};
 /// A single choice in a (usually) set of choices presented to the user.
 pub struct InternalChoice {
     /// Text presented to the user to represent the choice.
-    pub selection_text: FullLine,
+    pub selection_text: InternalLine,
     /// Text that the choice produces when selected, replacing the `selection_text` line.
     /// Can be empty, in which case the presented text is removed before the story flow
     /// continues to the next line.
-    pub display_text: FullLine,
+    pub display_text: InternalLine,
     /// Conditions that must be fulfilled for the choice to be displayed.
     pub conditions: Vec<Condition>,
     /// By default a choice will be filtered after being visited once. If it is marked
@@ -23,8 +23,8 @@ pub struct InternalChoice {
 }
 
 pub struct InternalChoiceBuilder {
-    selection_text: FullLine,
-    display_text: FullLine,
+    selection_text: InternalLine,
+    display_text: InternalLine,
     conditions: Vec<Condition>,
     is_fallback: bool,
     is_sticky: bool,
@@ -32,7 +32,7 @@ pub struct InternalChoiceBuilder {
 }
 
 impl InternalChoiceBuilder {
-    pub fn from_line(line: FullLine) -> Self {
+    pub fn from_line(line: InternalLine) -> Self {
         InternalChoiceBuilder {
             selection_text: line.clone(),
             display_text: line,
@@ -63,7 +63,7 @@ impl InternalChoiceBuilder {
     }
 
     #[cfg(test)]
-    pub fn set_display_text(&mut self, line: FullLine) {
+    pub fn set_display_text(&mut self, line: InternalLine) {
         self.display_text = line;
     }
 
@@ -71,18 +71,18 @@ impl InternalChoiceBuilder {
         self.is_fallback = fallback;
     }
 
-    pub fn set_selection_text(&mut self, line: FullLine) {
+    pub fn set_selection_text(&mut self, line: InternalLine) {
         self.selection_text = line;
     }
 
     #[cfg(test)]
     pub fn from_string(line: &str) -> Self {
-        Self::from_line(FullLine::from_string(line))
+        Self::from_line(InternalLine::from_string(line))
     }
 
     #[cfg(test)]
     pub fn from_selection_string(line: &str) -> Self {
-        let empty = FullLine::from_string("");
+        let empty = InternalLine::from_string("");
         Self::from_string(line).with_display_text(empty)
     }
 
@@ -105,7 +105,7 @@ impl InternalChoiceBuilder {
     }
 
     #[cfg(test)]
-    pub fn with_display_text(mut self, line: FullLine) -> Self {
+    pub fn with_display_text(mut self, line: InternalLine) -> Self {
         self.set_display_text(line);
         self
     }
