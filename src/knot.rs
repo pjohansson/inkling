@@ -1,15 +1,15 @@
 //! Structures representing knots and stitches in a story.
-//! 
-//! Knots are the main divisions of content in a story, with stitches belonging 
-//! to knots as a secondary structuring. These are the two levels of story content: 
+//!
+//! Knots are the main divisions of content in a story, with stitches belonging
+//! to knots as a secondary structuring. These are the two levels of story content:
 //! further subdivision is not implemented in the `Ink` language.
-//! 
+//!
 //! Lines of text content is organized in these knots and stitches. In `inkling`
-//! we keep all this text content in `Stitch`es, which belong to parent `Knot`s. 
+//! we keep all this text content in `Stitch`es, which belong to parent `Knot`s.
 //! When a knot is encountered it will point the story flow into a default stitch
-//! from which the text content will be parsed. 
-//! 
-//! Content in unnamed stitches or pure knots (any lines before a stitch marker 
+//! from which the text content will be parsed.
+//!
+//! Content in unnamed stitches or pure knots (any lines before a stitch marker
 //! is encountered in an `Ink` story file) will be placed in a stitch with a default
 //! name. This name will not overlap with the allowed namespace of knots or stitches,
 //! so there can be no collisions.
@@ -107,7 +107,7 @@ impl Stitch {
     }
 }
 
-/// Read a knot name from a non-parsed string which contains text markers for a knot. 
+/// Read a knot name from a non-parsed string which contains text markers for a knot.
 /// The name is validated before returning.
 pub fn read_knot_name(line: &str) -> Result<String, KnotError> {
     if line.trim_start().starts_with(KNOT_MARKER) {
@@ -121,7 +121,7 @@ pub fn read_knot_name(line: &str) -> Result<String, KnotError> {
     }
 }
 
-/// Read a stitch name from a non-parsed string which contains text markers for a stitch. 
+/// Read a stitch name from a non-parsed string which contains text markers for a stitch.
 /// The name is validated before returning.
 pub fn read_stitch_name(line: &str) -> Result<String, KnotError> {
     if line.trim_start().starts_with(STITCH_MARKER) && !line.trim_start().starts_with(KNOT_MARKER) {
@@ -135,13 +135,13 @@ pub fn read_stitch_name(line: &str) -> Result<String, KnotError> {
     }
 }
 
-/// Read a name beginning with the given knot or stitch marker. The name is validated 
+/// Read a name beginning with the given knot or stitch marker. The name is validated
 /// before returning.
-/// 
+///
 /// # Notes
 ///  *  Uses the [stitch marker][crate::consts::STITCH_MARKER] to trim extraneous markers
-///     from the line before validating the name. Since the stitch marker is a subset 
-///     of the knot marker this will trim both types, but any other marker will not be 
+///     from the line before validating the name. Since the stitch marker is a subset
+///     of the knot marker this will trim both types, but any other marker will not be
 ///     trimmed from the line.
 fn read_name_with_marker(line: &str) -> Result<String, KnotError> {
     let trimmed_name = line
