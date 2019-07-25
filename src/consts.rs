@@ -15,9 +15,10 @@ pub const DIVERT_MARKER: &'static str = "->";
 /// Marker for glue which joins separate lines together without a newline character. 
 pub const GLUE_MARKER: &'static str = "<>";
 
-/// Marker for a tag associated with a line in the story. Multiple markers can be used 
-/// in a single line. All text content between markers (or the end of the line) will 
-/// be a single tag.
+/// Marker for a tag associated with a line in the story. 
+/// 
+/// Multiple markers can be used  in a single line. All text content between markers 
+/// (or the end of the line) will be a single tag.
 pub const TAG_MARKER: char = '#';
 
 /// Marker for a knot, the main divisor of story content.
@@ -29,12 +30,12 @@ pub const STITCH_MARKER: &'static str = "=";
 /// Marker for line comments, which will be ignored when parsing a story.
 pub const LINE_COMMENT_MARKER: &'static str = "//";
 
-/// Marker for comments which will be ignored and printed to standard error when 
-/// parsing a story.
+/// Marker for line comments which will print a reminder message when encountered.
 pub const TODO_COMMENT_MARKER: &'static str = "TODO:";
 
-/// Default name for the root `Stitch` in a `Knot` and `Knot` in a `Story`. Contains 
-/// characters which are not allowed in addresses, so there can never be a conflict 
+/// Default name for the root `Stitch` in a `Knot` and `Knot` in a `Story`. 
+/// 
+/// Contains characters which are not allowed in addresses, so there can never be a conflict 
 /// with a name in the `Ink` story.
 pub const ROOT_KNOT_NAME: &'static str = "$ROOT$";
 
