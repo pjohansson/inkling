@@ -142,7 +142,7 @@ mod tests {
         assert_eq!(chunk.items.len(), 1);
         assert_eq!(
             chunk.items[0],
-            Content::PureText("Hello, World!".to_string())
+            Content::Text("Hello, World!".to_string())
         );
     }
 
@@ -157,7 +157,7 @@ mod tests {
         let line = "    Hello, World!       ";
         let chunk = parse_chunk(line).unwrap();
 
-        assert_eq!(chunk.items[0], Content::PureText(line.to_string()));
+        assert_eq!(chunk.items[0], Content::Text(line.to_string()));
     }
 
     #[test]
@@ -188,7 +188,7 @@ mod tests {
     #[test]
     fn divert_marker_adds_whitespace_to_the_left_of_it() {
         let chunk = parse_chunk("hello-> world").unwrap();
-        assert_eq!(chunk.items[0], Content::PureText("hello ".to_string()))
+        assert_eq!(chunk.items[0], Content::Text("hello ".to_string()))
     }
 
     #[test]
@@ -250,7 +250,7 @@ mod tests {
         let line = parse_line("<> Hello, World! <>").unwrap();
         assert_eq!(
             line.chunk.items[0],
-            Content::PureText(" Hello, World! ".to_string())
+            Content::Text(" Hello, World! ".to_string())
         );
     }
 
@@ -277,7 +277,7 @@ mod tests {
         assert_eq!(line.chunk.items.len(), 1);
         assert_eq!(
             line.chunk.items[0],
-            Content::PureText("Hello, World! ".to_string())
+            Content::Text("Hello, World! ".to_string())
         );
     }
 }
