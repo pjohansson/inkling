@@ -51,7 +51,7 @@ impl ParsedLineKind {
 }
 
 /// Parse a line into a `ParsedLineKind` object.
-pub fn parse_line_kind(content: &str) -> Result<ParsedLineKind, LineParsingError> {
+pub fn parse_line(content: &str) -> Result<ParsedLineKind, LineParsingError> {
     if let Some(choice) = parse_choice(content)? {
         Ok(choice)
     } else if let Some(gather) = parse_gather(content)? {
@@ -100,7 +100,7 @@ pub mod tests {
 
     #[test]
     fn simple_line_parses_to_line() {
-        let line = parse_line_kind("Hello, World!").unwrap();
+        let line = parse_line("Hello, World!").unwrap();
         let comparison = parse_internal_line("Hello, World!").unwrap();
 
         assert_eq!(line, ParsedLineKind::Line(comparison));
@@ -108,7 +108,7 @@ pub mod tests {
 
     #[test]
     fn line_with_choice_markers_parses_to_choice() {
-        let line = parse_line_kind("* Hello, World!").unwrap();
+        let line = parse_line("* Hello, World!").unwrap();
 
         match line {
             ParsedLineKind::Choice { .. } => (),
@@ -118,7 +118,7 @@ pub mod tests {
 
     #[test]
     fn line_with_gather_markers_parses_to_gather() {
-        let line = parse_line_kind("- Hello, World!").unwrap();
+        let line = parse_line("- Hello, World!").unwrap();
 
         match line {
             ParsedLineKind::Gather { .. } => (),
@@ -128,7 +128,7 @@ pub mod tests {
 
     #[test]
     fn choices_are_parsed_before_gathers() {
-        let line = parse_line_kind("* - Hello, World!").unwrap();
+        let line = parse_line("* - Hello, World!").unwrap();
 
         match line {
             ParsedLineKind::Choice { .. } => (),

@@ -22,23 +22,23 @@ pub fn parse_gather(content: &str) -> Result<Option<ParsedLineKind>, LineParsing
 pub mod tests {
     use super::*;
 
-    use crate::line::{parse_line_kind, Content, InternalLine};
+    use crate::line::{parse_line, Content, InternalLine};
 
     #[test]
     fn line_with_gather_markers_sets_line_text() {
-        match parse_line_kind("- Hello, World!").unwrap() {
+        match parse_line("- Hello, World!").unwrap() {
             ParsedLineKind::Gather { line, .. } => {
                 assert_eq!(line, InternalLine::from_string("Hello, World!"))
             }
             other => panic!("expected `ParsedLineKind::Gather` but got {:?}", other),
         }
 
-        match parse_line_kind("-- Hello, World!").unwrap() {
+        match parse_line("-- Hello, World!").unwrap() {
             ParsedLineKind::Gather { level, .. } => assert_eq!(level, 2),
             other => panic!("expected `ParsedLineKind::Gather` but got {:?}", other),
         }
 
-        match parse_line_kind("------ Hello, World!").unwrap() {
+        match parse_line("------ Hello, World!").unwrap() {
             ParsedLineKind::Gather { level, .. } => assert_eq!(level, 6),
             other => panic!("expected `ParsedLineKind::Gather` but got {:?}", other),
         }
@@ -46,17 +46,17 @@ pub mod tests {
 
     #[test]
     fn line_with_gather_markers_counts_them() {
-        match parse_line_kind("- Hello, World!").unwrap() {
+        match parse_line("- Hello, World!").unwrap() {
             ParsedLineKind::Gather { level, .. } => assert_eq!(level, 1),
             other => panic!("expected `ParsedLineKind::Gather` but got {:?}", other),
         }
 
-        match parse_line_kind("-- Hello, World!").unwrap() {
+        match parse_line("-- Hello, World!").unwrap() {
             ParsedLineKind::Gather { level, .. } => assert_eq!(level, 2),
             other => panic!("expected `ParsedLineKind::Gather` but got {:?}", other),
         }
 
-        match parse_line_kind("------ Hello, World!").unwrap() {
+        match parse_line("------ Hello, World!").unwrap() {
             ParsedLineKind::Gather { level, .. } => assert_eq!(level, 6),
             other => panic!("expected `ParsedLineKind::Gather` but got {:?}", other),
         }
@@ -64,7 +64,7 @@ pub mod tests {
 
     #[test]
     fn line_with_gather_markers_ignores_whitespace() {
-        match parse_line_kind("   - - -- Hello, World!").unwrap() {
+        match parse_line("   - - -- Hello, World!").unwrap() {
             ParsedLineKind::Gather { level, .. } => assert_eq!(level, 4),
             other => panic!("expected `ParsedLineKind::Gather` but got {:?}", other),
         }
@@ -72,7 +72,7 @@ pub mod tests {
 
     #[test]
     fn gather_markers_do_not_require_text() {
-        match parse_line_kind("-").unwrap() {
+        match parse_line("-").unwrap() {
             ParsedLineKind::Gather { line, .. } => {
                 assert_eq!(line.chunk.items.len(), 1);
                 assert_eq!(line.chunk.items[0], Content::Empty);
@@ -80,7 +80,7 @@ pub mod tests {
             other => panic!("expected `ParsedLineKind::Gather` but got {:?}", other),
         }
 
-        match parse_line_kind(" - -  ").unwrap() {
+        match parse_line(" - -  ").unwrap() {
             ParsedLineKind::Gather { line, .. } => {
                 assert_eq!(line.chunk.items.len(), 1);
                 assert_eq!(line.chunk.items[0], Content::Empty);
@@ -91,7 +91,7 @@ pub mod tests {
 
     #[test]
     fn diverts_can_come_directly_after_gathers() {
-        match parse_line_kind("- -> world").unwrap() {
+        match parse_line("- -> world").unwrap() {
             ParsedLineKind::Gather { line, .. } => {
                 assert_eq!(line.chunk.items[0], Content::Empty);
                 assert_eq!(line.chunk.items[1], Content::Divert("world".to_string()));
@@ -102,7 +102,7 @@ pub mod tests {
 
     #[test]
     fn line_with_beginning_divert_parses_into_line_instead_of_gather() {
-        match parse_line_kind("  -> world").unwrap() {
+        match parse_line("  -> world").unwrap() {
             ParsedLineKind::Line(line) => {
                 assert_eq!(line.chunk.items[1], Content::Divert("world".to_string()));
             }
