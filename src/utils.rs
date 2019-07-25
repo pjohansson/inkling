@@ -1,3 +1,5 @@
+//! Utilities and derives used elsewhere in the library.
+
 #[cfg(feature = "serde_support")]
 use serde::*;
 #[cfg(feature = "serde_support")]
