@@ -1,7 +1,7 @@
 use crate::{
     consts::{DONE_KNOT, END_KNOT},
     error::{InklingError, ParseError, StackError},
-    follow::{FollowResult, LineDataBuffer, Next, *},
+    follow::{ChoiceExtra, FollowResult, LineDataBuffer, Next},
     knot::{Knot, Stitch},
 };
 

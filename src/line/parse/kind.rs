@@ -1,5 +1,7 @@
-use crate::consts::*;
-use crate::line::*;
+use crate::{
+    consts::DIVERT_MARKER,
+    line::{parse_choice, parse_gather, parse_line, FullChoice, FullLine, LineParsingError},
+};
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum ParsedLineKind {
@@ -73,5 +75,35 @@ pub mod tests {
         let comparison = parse_line("Hello, World!").unwrap();
 
         assert_eq!(line, ParsedLineKind::Line(comparison));
+    }
+
+    #[test]
+    fn line_with_choice_markers_parses_to_choice() {
+        let line = parse_line_kind("* Hello, World!").unwrap();
+
+        match line {
+            ParsedLineKind::Choice { .. } => (),
+            other => panic!("expected `ParsedLineKind::Choice` but got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn line_with_gather_markers_parses_to_gather() {
+        let line = parse_line_kind("- Hello, World!").unwrap();
+
+        match line {
+            ParsedLineKind::Gather { .. } => (),
+            other => panic!("expected `ParsedLineKind::Gather` but got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn choices_are_parsed_before_gathers() {
+        let line = parse_line_kind("* - Hello, World!").unwrap();
+
+        match line {
+            ParsedLineKind::Choice { .. } => (),
+            other => panic!("expected `ParsedLineKind::Choice` but got {:?}", other),
+        }
     }
 }

@@ -2,9 +2,8 @@
 
 use crate::{
     error::InklingError,
-    follow::LineDataBuffer,
-    follow::*,
-    line::{Condition, *},
+    follow::{ChoiceExtra, LineDataBuffer},
+    line::{Condition, Content, FullLine},
 };
 
 use super::{
@@ -221,6 +220,7 @@ mod tests {
     use crate::{
         consts::ROOT_KNOT_NAME,
         knot::{Knot, Stitch},
+        line::{FullChoice, FullChoiceBuilder, FullLineBuilder},
     };
 
     use std::{cmp::Ordering, collections::HashMap, str::FromStr};

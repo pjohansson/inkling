@@ -1,5 +1,7 @@
-use crate::follow::*;
-use crate::line::*;
+use crate::{
+    follow::{LineDataBuffer, Next},
+    line::{parse_line, Content, FullLine, LineChunk},
+};
 
 pub type ProcessError = String;
 
@@ -57,6 +59,8 @@ impl Process for Content {
 mod tests {
     use super::*;
 
+    use crate::line::LineChunkBuilder;
+
     #[test]
     fn full_line_processing_retains_glue() {
         let mut line = parse_line("A test string").unwrap();
@@ -64,7 +68,7 @@ mod tests {
         line.glue_end = true;
 
         let mut buffer = Vec::new();
-        line.process(&mut buffer);
+        line.process(&mut buffer).unwrap();
 
         let result = &buffer[0];
         assert!(result.glue_begin);
@@ -77,7 +81,7 @@ mod tests {
         line.tags = vec!["tag 1".to_string(), "tag 2".to_string()];
 
         let mut buffer = Vec::new();
-        line.process(&mut buffer);
+        line.process(&mut buffer).unwrap();
 
         let result = &buffer[0];
         assert_eq!(result.tags, line.tags);
@@ -87,7 +91,9 @@ mod tests {
     fn pure_text_line_processes_into_the_contained_string() {
         let mut buffer = String::new();
 
-        Content::Text("Hello, World!".to_string()).process(&mut buffer);
+        Content::Text("Hello, World!".to_string())
+            .process(&mut buffer)
+            .unwrap();
 
         assert_eq!(&buffer, "Hello, World!");
     }
@@ -96,7 +102,7 @@ mod tests {
     fn empty_content_does_not_process_into_anything() {
         let mut buffer = String::new();
 
-        Content::Empty.process(&mut buffer);
+        Content::Empty.process(&mut buffer).unwrap();
 
         assert!(buffer.is_empty());
     }

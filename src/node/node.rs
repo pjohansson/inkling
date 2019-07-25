@@ -1,5 +1,5 @@
 use crate::{
-    line::{FullLine, LineChunk, LineChunkBuilder, *},
+    line::{FullChoice, FullLine, ParsedLineKind},
     node::parse_root_node,
 };
 
@@ -59,7 +59,12 @@ impl NodeItem {
 }
 
 pub mod builders {
-    use super::{Branch, FullChoice, FullLine, LineChunk, LineChunkBuilder, NodeItem, RootNode};
+    use super::{Branch, NodeItem, RootNode};
+
+    use crate::line::{FullChoice, FullLine};
+
+    #[cfg(test)]
+    use crate::line::LineChunk;
 
     /// Builder for a `RootNote`.
     ///
@@ -98,23 +103,24 @@ pub mod builders {
         }
 
         #[cfg(test)]
-        pub fn with_branching_choice(mut self, branching_choice_set: NodeItem) -> Self {
-            self.items.push(branching_choice_set);
+        pub fn with_item(mut self, item: NodeItem) -> Self {
+            self.items.push(item);
             self
         }
 
         #[cfg(test)]
-        pub fn with_line_chunk(mut self, chunk: LineChunk) -> Self {
-            let line = FullLine::from_chunk(chunk);
-            self.items.push(NodeItem::Line(line));
-            self
+        pub fn with_branching_choice(self, branching_choice_set: NodeItem) -> Self {
+            self.with_item(branching_choice_set)
         }
 
         #[cfg(test)]
-        pub fn with_text_line_chunk(mut self, content: &str) -> Self {
-            let line = FullLine::from_string(content);
-            self.items.push(NodeItem::Line(line));
-            self
+        pub fn with_line_chunk(self, chunk: LineChunk) -> Self {
+            self.with_item(NodeItem::Line(FullLine::from_chunk(chunk)))
+        }
+
+        #[cfg(test)]
+        pub fn with_text_line_chunk(self, content: &str) -> Self {
+            self.with_item(NodeItem::Line(FullLine::from_string(content)))
         }
     }
 
@@ -161,16 +167,19 @@ pub mod builders {
         }
 
         #[cfg(test)]
-        pub fn with_branching_choice(mut self, branching_choice_set: NodeItem) -> Self {
-            self.items.push(branching_choice_set);
+        pub fn with_item(mut self, item: NodeItem) -> Self {
+            self.items.push(item);
             self
         }
 
         #[cfg(test)]
-        pub fn with_text_line_chunk(mut self, content: &str) -> Self {
-            let line = FullLine::from_string(content);
-            self.items.push(NodeItem::Line(line));
-            self
+        pub fn with_branching_choice(self, branching_choice_set: NodeItem) -> Self {
+            self.with_item(branching_choice_set)
+        }
+
+        #[cfg(test)]
+        pub fn with_text_line_chunk(self, content: &str) -> Self {
+            self.with_item(NodeItem::Line(FullLine::from_string(content)))
         }
     }
 

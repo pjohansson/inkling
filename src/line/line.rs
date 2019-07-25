@@ -1,5 +1,4 @@
-use crate::follow::{LineDataBuffer, Next};
-use crate::line::*;
+use crate::line::{Alternative, Condition};
 
 #[cfg(feature = "serde_support")]
 use serde::{Deserialize, Serialize};
@@ -78,6 +77,8 @@ impl FullLine {
 
     #[cfg(test)]
     pub fn from_string(line: &str) -> Self {
+        use crate::line::LineChunkBuilder;
+
         let chunk = LineChunkBuilder::from_string(line).build();
         Self::from_chunk(chunk)
     }
@@ -181,7 +182,7 @@ pub mod builders {
         }
 
         #[cfg(test)]
-        pub fn with_divert(mut self, address: &str) -> Self {
+        pub fn with_divert(self, address: &str) -> Self {
             self.with_item(Content::Divert(address.to_string()))
         }
 
@@ -192,7 +193,7 @@ pub mod builders {
         }
 
         #[cfg(test)]
-        pub fn with_text(mut self, text: &str) -> Self {
+        pub fn with_text(self, text: &str) -> Self {
             self.with_item(Content::Text(text.to_string()))
         }
 

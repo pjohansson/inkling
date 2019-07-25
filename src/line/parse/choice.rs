@@ -1,5 +1,11 @@
-use crate::consts::*;
-use crate::line::*;
+use crate::{
+    consts::{CHOICE_MARKER, STICKY_CHOICE_MARKER},
+    line::{
+        parse_choice_conditions, parse_line, parse_markers_and_text, split_at_divert_marker,
+        Content, FullChoice, FullChoiceBuilder, FullLine, LineErrorKind, LineParsingError,
+        ParsedLineKind,
+    },
+};
 
 pub fn parse_choice(content: &str) -> Result<Option<ParsedLineKind>, LineParsingError> {
     parse_choice_markers_and_text(content)?

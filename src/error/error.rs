@@ -1,14 +1,13 @@
 //! Internal errors from `inkling` itself.
 
+use std::{error::Error, fmt};
+
 use crate::{
-    follow::*,
+    follow::ChoiceExtra,
     line::ProcessError,
-    line::*,
     node::Stack,
     story::{Address, Choice},
 };
-
-use std::{error::Error, fmt};
 
 #[derive(Clone, Debug)]
 /// Internal error from walking through a story.

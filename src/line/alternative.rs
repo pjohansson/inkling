@@ -1,5 +1,7 @@
-use crate::follow::*;
-use crate::line::*;
+use crate::{
+    follow::Next,
+    line::{LineChunk, Process, ProcessError},
+};
 
 #[cfg(feature = "serde_support")]
 use serde::{Deserialize, Serialize};
@@ -106,6 +108,8 @@ impl AlternativeBuilder {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    use crate::line::{Content, LineChunkBuilder};
 
     #[test]
     fn sequence_alternative_walks_through_content_when_processed_repeatably() {

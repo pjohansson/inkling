@@ -1,8 +1,4 @@
-use crate::{
-    consts::{CHOICE_MARKER, DIVERT_MARKER, STICKY_CHOICE_MARKER},
-    error::{LineError, ParseError},
-    line::*,
-};
+use crate::line::{Condition, FullLine};
 
 #[cfg(feature = "serde_support")]
 use serde::{Deserialize, Serialize};
@@ -66,6 +62,7 @@ impl FullChoiceBuilder {
         self.conditions = conditions.to_vec();
     }
 
+    #[cfg(test)]
     pub fn set_display_text(&mut self, line: FullLine) {
         self.display_text = line;
     }
@@ -81,12 +78,6 @@ impl FullChoiceBuilder {
     #[cfg(test)]
     pub fn from_string(line: &str) -> Self {
         Self::from_line(FullLine::from_string(line))
-    }
-
-    #[cfg(test)]
-    pub fn from_display_string(line: &str) -> Self {
-        let empty = FullLine::from_string("");
-        Self::from_string(line).with_selection_text(empty)
     }
 
     #[cfg(test)]
@@ -116,12 +107,6 @@ impl FullChoiceBuilder {
     #[cfg(test)]
     pub fn with_display_text(mut self, line: FullLine) -> Self {
         self.set_display_text(line);
-        self
-    }
-
-    #[cfg(test)]
-    pub fn with_selection_text(mut self, line: FullLine) -> Self {
-        self.set_selection_text(line);
         self
     }
 

@@ -1,9 +1,9 @@
+use std::cmp::Ordering;
+
 #[cfg(feature = "serde_support")]
 use crate::utils::OrderingDerive;
 #[cfg(feature = "serde_support")]
 use serde::{Deserialize, Serialize};
-
-use std::cmp::Ordering;
 
 #[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]

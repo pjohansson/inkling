@@ -1,7 +1,6 @@
 use crate::{
     error::{IncorrectNodeStackError, InklingError, InternalError},
-    follow::{FollowResult, LineDataBuffer, Next, *},
-    line::*,
+    follow::{ChoiceExtra, FollowResult, LineDataBuffer, Next},
     node::{Branch, NodeItem, RootNode},
 };
 
@@ -336,7 +335,10 @@ fn get_invalid_choice_error_stub(
 mod tests {
     use super::*;
 
-    use crate::node::builders::{BranchBuilder, BranchingPointBuilder, RootNodeBuilder};
+    use crate::{
+        line::*,
+        node::builders::{BranchBuilder, BranchingPointBuilder, RootNodeBuilder},
+    };
 
     #[test]
     fn stack_that_points_to_line_instead_of_branching_choice_returns_error() {

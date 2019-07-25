@@ -1,7 +1,9 @@
-use crate::error::*;
-use crate::line::*;
-
 use std::cmp::Ordering;
+
+use crate::{
+    error::{LineError, ParseError},
+    line::Condition,
+};
 
 pub fn parse_choice_conditions(line: &mut String) -> Result<Vec<Condition>, ParseError> {
     let mut conditions = Vec::new();

@@ -1,6 +1,6 @@
 use crate::{
     error::InklingError,
-    line::{FullLine, *},
+    line::{FullChoice, FullLine},
 };
 
 pub type FollowResult = Result<Next, InklingError>;

@@ -1,4 +1,10 @@
-use crate::{consts::*, line::*};
+use crate::{
+    consts::GATHER_MARKER,
+    line::{
+        parse_line, parse_markers_and_text, split_at_divert_marker, LineParsingError,
+        ParsedLineKind,
+    },
+};
 
 pub fn parse_gather(content: &str) -> Result<Option<ParsedLineKind>, LineParsingError> {
     let (line_without_divert, line_from_divert) = split_at_divert_marker(content);
@@ -13,38 +19,25 @@ pub fn parse_gather(content: &str) -> Result<Option<ParsedLineKind>, LineParsing
 pub mod tests {
     use super::*;
 
-    #[test]
-    fn line_with_gather_marks_parses_to_gather() {
-        let line = parse_line_kind("- Hello, World!").unwrap();
-        let comparison = parse_line("Hello, World!").unwrap();
+    use crate::line::{parse_line_kind, Content, FullLine};
 
-        match line {
+    #[test]
+    fn line_with_gather_markers_sets_line_text() {
+        match parse_line_kind("- Hello, World!").unwrap() {
             ParsedLineKind::Gather { line, .. } => {
-                assert_eq!(line, comparison);
+                assert_eq!(line, FullLine::from_string("Hello, World!"))
             }
             other => panic!("expected `ParsedLineKind::Gather` but got {:?}", other),
         }
-    }
 
-    #[test]
-    fn line_with_choice_markers_parses_to_choice() {
-        let line = parse_line_kind("* Hello, World!").unwrap();
-        let comparison = parse_line("Hello, World!").unwrap();
-
-        match line {
-            ParsedLineKind::Choice { .. } => (),
-            other => panic!("expected `ParsedLineKind::Choice` but got {:?}", other),
+        match parse_line_kind("-- Hello, World!").unwrap() {
+            ParsedLineKind::Gather { level, .. } => assert_eq!(level, 2),
+            other => panic!("expected `ParsedLineKind::Gather` but got {:?}", other),
         }
-    }
 
-    #[test]
-    fn choices_are_parsed_before_gathers() {
-        let line = parse_line_kind("* - Hello, World!").unwrap();
-        let comparison = parse_line("- Hello, World!").unwrap();
-
-        match line {
-            ParsedLineKind::Choice { .. } => (),
-            other => panic!("expected `ParsedLineKind::Choice` but got {:?}", other),
+        match parse_line_kind("------ Hello, World!").unwrap() {
+            ParsedLineKind::Gather { level, .. } => assert_eq!(level, 6),
+            other => panic!("expected `ParsedLineKind::Gather` but got {:?}", other),
         }
     }
 

@@ -1,7 +1,6 @@
 use crate::{
-    consts::*,
-    // error::*,
-    line::*,
+    consts::{DIVERT_MARKER, GLUE_MARKER, TAG_MARKER},
+    line::{Content, FullLine, FullLineBuilder, LineChunk, LineChunkBuilder},
 };
 
 #[derive(Clone, Debug)]

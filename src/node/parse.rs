@@ -1,5 +1,5 @@
 use crate::{
-    line::{FullLine, *},
+    line::{FullLine, ParsedLineKind},
     node::{
         builders::{BranchBuilder, RootNodeBuilder},
         Branch, RootNode,
@@ -168,7 +168,19 @@ fn parse_branch_at_given_level(
 mod tests {
     use super::*;
 
-    use crate::node::NodeItem;
+    use crate::{line::FullChoice, node::NodeItem};
+
+    pub fn get_empty_choice(level: u32) -> ParsedLineKind {
+        ParsedLineKind::choice(level, FullChoice::from_string(""))
+    }
+
+    pub fn get_empty_gather(level: u32) -> ParsedLineKind {
+        ParsedLineKind::gather(level, FullLine::from_string(""))
+    }
+
+    pub fn get_parsed_line(line: &str) -> ParsedLineKind {
+        ParsedLineKind::line(FullLine::from_string(line))
+    }
 
     #[test]
     fn parsing_a_branch_adds_the_choice_final_line_as_line_in_items() {
@@ -570,20 +582,5 @@ mod tests {
             }
             _ => unreachable!(),
         }
-    }
-
-    pub fn get_empty_choice(level: u32) -> ParsedLineKind {
-        let choice_data = FullChoice::from_string("");
-        ParsedLineKind::Choice { level, choice_data }
-    }
-
-    pub fn get_empty_gather(level: u32) -> ParsedLineKind {
-        let line = parse_line("").unwrap();
-        ParsedLineKind::Gather { level, line }
-    }
-
-    pub fn get_parsed_line(s: &str) -> ParsedLineKind {
-        let line = parse_line(s).unwrap();
-        ParsedLineKind::Line(line)
     }
 }

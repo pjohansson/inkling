@@ -2,7 +2,7 @@ use crate::{
     consts::{KNOT_MARKER, STITCH_MARKER},
     error::{KnotError, KnotNameError},
     follow::{FollowResult, LineDataBuffer, Next},
-    line::*,
+    line::parse_line_kind,
     node::{Follow, RootNode, Stack},
 };
 
@@ -150,7 +150,10 @@ fn read_name_with_marker(line: &str) -> Result<String, KnotError> {
 mod tests {
     use super::*;
 
-    use crate::error::{InklingError, ParseError};
+    use crate::{
+        error::{InklingError, ParseError},
+        line::{FullLine, LineParsingError, ParsedLineKind},
+    };
 
     use std::str::FromStr;
 
@@ -248,11 +251,11 @@ mod tests {
 
         assert_eq!(
             choices[0].choice_data.display_text,
-            parse_line("Choice 1").unwrap()
+            FullLine::from_string("Choice 1")
         );
         assert_eq!(
             choices[1].choice_data.display_text,
-            parse_line("Choice 2").unwrap()
+            FullLine::from_string("Choice 2")
         );
     }
 
