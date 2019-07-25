@@ -5,12 +5,6 @@ use crate::{
 
 pub type FollowResult = Result<Next, InklingError>;
 
-#[derive(Clone, Debug, PartialEq)]
-pub struct ChoiceInfo {
-    pub num_visited: u32,
-    pub choice_data: InternalChoice,
-}
-
 pub type LineDataBuffer = Vec<InternalLine>;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -22,4 +16,13 @@ pub enum Next {
     Divert(String),
     /// Choice for the user.
     ChoiceSet(Vec<ChoiceInfo>),
+}
+
+#[derive(Clone, Debug, PartialEq)]
+/// Information about a branching choice encountered in the story.
+pub struct ChoiceInfo {
+    /// Number of times that the branching node (not the choice itself) has been seen.
+    pub num_visited: u32,
+    /// Choice data to process before presenting to the user.
+    pub choice_data: InternalChoice,
 }
