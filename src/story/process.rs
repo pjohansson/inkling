@@ -149,7 +149,7 @@ fn add_line_ending(line: &mut FullLine, next_line: Option<&FullLine>) {
         }
 
         match line.chunk.items[0] {
-            Content::PureText(ref mut content) => *content = text,
+            Content::Text(ref mut content) => *content = text,
             _ => unreachable!(),
         }
     }

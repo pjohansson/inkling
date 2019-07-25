@@ -130,15 +130,20 @@ pub mod builders {
 
     impl BranchBuilder {
         pub fn from_choice(choice: FullChoice) -> Self {
-            // let chunk = LineBuilder::new().with_line(choice.line.clone()).build();
-            // let full_line = FullLine::from_chunk(chunk);
-
             let line = choice.display_text.clone();
 
             BranchBuilder {
                 choice,
                 items: vec![NodeItem::Line(line)],
                 num_visited: 0,
+            }
+        }
+
+        pub fn build(self) -> Branch {
+            Branch {
+                choice: self.choice,
+                items: self.items,
+                num_visited: self.num_visited,
             }
         }
 
@@ -171,14 +176,6 @@ pub mod builders {
             let full_line = FullLine::from_chunk(chunk);
             self.items.push(NodeItem::Line(full_line));
             self
-        }
-
-        pub fn build(self) -> Branch {
-            Branch {
-                choice: self.choice,
-                items: self.items,
-                num_visited: self.num_visited,
-            }
         }
     }
 
