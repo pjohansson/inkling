@@ -77,7 +77,7 @@ impl FullLine {
 
     #[cfg(test)]
     pub fn from_string(line: &str) -> Self {
-        use crate::line::LineChunkBuilder;
+        use builders::LineChunkBuilder;
 
         let chunk = LineChunkBuilder::from_string(line).build();
         Self::from_chunk(chunk)

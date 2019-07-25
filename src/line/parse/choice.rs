@@ -1,7 +1,9 @@
 use crate::{
     consts::{CHOICE_MARKER, STICKY_CHOICE_MARKER},
     line::{
-        parse_choice_conditions, parse_line, parse_markers_and_text, split_at_divert_marker,
+        parse::{
+            parse_choice_conditions, parse_line, parse_markers_and_text, split_at_divert_marker,
+        },
         Content, FullChoice, FullChoiceBuilder, FullLine, LineErrorKind, LineParsingError,
         ParsedLineKind,
     },

@@ -1,14 +1,16 @@
 mod alternative;
-pub(crate) mod choice;
+mod choice;
 mod condition;
 mod line;
-pub mod parse;
+pub(self) mod parse;
 mod process;
 
-pub use alternative::*;
-pub use choice::*;
-pub use condition::*;
-pub use line::builders::*;
-pub use line::*;
-pub use parse::*;
-pub use process::*;
+pub(self) use alternative::Alternative;
+pub(crate) use choice::{FullChoice, FullChoiceBuilder};
+pub(crate) use condition::Condition;
+pub(crate) use line::{
+    builders::{FullLineBuilder, LineChunkBuilder},
+    Content, FullLine, LineChunk,
+};
+pub(crate) use parse::{parse_line_kind, LineErrorKind, LineParsingError, ParsedLineKind};
+pub(crate) use process::{Process, ProcessError};

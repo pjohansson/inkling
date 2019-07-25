@@ -1,8 +1,8 @@
 use crate::{
     consts::GATHER_MARKER,
     line::{
-        parse_line, parse_markers_and_text, split_at_divert_marker, LineParsingError,
-        ParsedLineKind,
+        parse::{parse_line, parse_markers_and_text, split_at_divert_marker},
+        LineParsingError, ParsedLineKind,
     },
 };
 

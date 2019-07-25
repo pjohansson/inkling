@@ -1,6 +1,6 @@
 use crate::{
     follow::{LineDataBuffer, Next},
-    line::{parse_line, Content, FullLine, LineChunk},
+    line::{parse::parse_line, Content, FullLine, LineChunk},
 };
 
 pub type ProcessError = String;

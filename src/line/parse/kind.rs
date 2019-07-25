@@ -1,6 +1,9 @@
 use crate::{
     consts::DIVERT_MARKER,
-    line::{parse_choice, parse_gather, parse_line, FullChoice, FullLine, LineParsingError},
+    line::{
+        parse::{parse_choice, parse_gather, parse_line},
+        FullChoice, FullLine, LineParsingError,
+    },
 };
 
 #[derive(Clone, Debug, PartialEq)]
