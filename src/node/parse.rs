@@ -168,10 +168,10 @@ fn parse_branch_at_given_level(
 mod tests {
     use super::*;
 
-    use crate::{line::FullChoice, node::NodeItem};
+    use crate::{line::InternalChoice, node::NodeItem};
 
     pub fn get_empty_choice(level: u32) -> ParsedLineKind {
-        ParsedLineKind::choice(level, FullChoice::from_string(""))
+        ParsedLineKind::choice(level, InternalChoice::from_string(""))
     }
 
     pub fn get_empty_gather(level: u32) -> ParsedLineKind {
@@ -220,7 +220,7 @@ mod tests {
     fn parsing_a_branch_sets_the_choice_data_in_the_branch_item() {
         let text = "\"To Netherfield Park, then\", I exclaimed.";
 
-        let choice = FullChoice::from_string(text);
+        let choice = InternalChoice::from_string(text);
 
         let input = ParsedLineKind::Choice {
             level: 1,

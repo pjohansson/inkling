@@ -1,6 +1,6 @@
 use crate::{
     error::InklingError,
-    line::{FullChoice, FullLine},
+    line::{InternalChoice, FullLine},
 };
 
 pub type FollowResult = Result<Next, InklingError>;
@@ -8,7 +8,7 @@ pub type FollowResult = Result<Next, InklingError>;
 #[derive(Clone, Debug, PartialEq)]
 pub struct ChoiceExtra {
     pub num_visited: u32,
-    pub choice_data: FullChoice,
+    pub choice_data: InternalChoice,
 }
 
 pub type LineDataBuffer = Vec<FullLine>;

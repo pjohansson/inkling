@@ -394,7 +394,7 @@ mod tests {
 
     #[test]
     fn branch_choices_are_collected_when_supplying_an_incorrect_index_for_a_choice() {
-        let internal_choice = FullChoice::from_string("Choice");
+        let internal_choice = InternalChoice::from_string("Choice");
 
         let mut node = RootNodeBuilder::new()
             .with_branching_choice(
@@ -551,8 +551,8 @@ mod tests {
 
     #[test]
     fn encountering_a_branching_choice_returns_the_choice_data() {
-        let choice1 = FullChoice::from_string("Choice 1");
-        let choice2 = FullChoice::from_string("Choice 2");
+        let choice1 = InternalChoice::from_string("Choice 1");
+        let choice2 = InternalChoice::from_string("Choice 2");
 
         let branching_choice_set = BranchingPointBuilder::new()
             .with_branch(BranchBuilder::from_choice(choice1.clone()).build())
@@ -578,8 +578,8 @@ mod tests {
 
     #[test]
     fn encountering_a_branching_choice_keeps_stack_at_that_index() {
-        let choice1 = FullChoice::from_string("Choice 1");
-        let choice2 = FullChoice::from_string("Choice 2");
+        let choice1 = InternalChoice::from_string("Choice 1");
+        let choice2 = InternalChoice::from_string("Choice 2");
 
         let branching_choice_set = BranchingPointBuilder::new()
             .with_branch(BranchBuilder::from_choice(choice1.clone()).build())
@@ -601,8 +601,8 @@ mod tests {
 
     #[test]
     fn following_with_choice_follows_from_last_position_in_stack() {
-        let choice = FullChoice::from_string("Choice");
-        let empty_choice = FullChoice::from_string("");
+        let choice = InternalChoice::from_string("Choice");
+        let empty_choice = InternalChoice::from_string("");
 
         let empty_branch = BranchBuilder::from_choice(empty_choice.clone()).build();
 
@@ -646,7 +646,7 @@ mod tests {
 
     #[test]
     fn after_finishing_with_a_branch_lower_nodes_return_to_their_content() {
-        let choice = FullChoice::from_string("Choice");
+        let choice = InternalChoice::from_string("Choice");
 
         let mut node = RootNodeBuilder::new()
             .with_branching_choice(
@@ -671,7 +671,7 @@ mod tests {
 
     #[test]
     fn selected_branches_have_their_number_of_visits_number_incremented() {
-        let choice = FullChoice::from_string("Choice");
+        let choice = InternalChoice::from_string("Choice");
 
         let mut node = RootNodeBuilder::new()
             .with_branching_choice(
@@ -701,7 +701,7 @@ mod tests {
 
     #[test]
     fn encountered_choices_return_with_their_number_of_visits_counter() {
-        let choice = FullChoice::from_string("Choice");
+        let choice = InternalChoice::from_string("Choice");
 
         let mut node = RootNodeBuilder::new()
             .with_branching_choice(
@@ -730,7 +730,7 @@ mod tests {
 
     #[test]
     fn selected_branches_adds_line_text_to_line_buffer() {
-        let choice = FullChoice::from_string("Choice");
+        let choice = InternalChoice::from_string("Choice");
 
         let mut node = RootNodeBuilder::new()
             .with_branching_choice(
@@ -751,7 +751,7 @@ mod tests {
 
     #[test]
     fn diverts_found_after_selections_are_returned() {
-        let choice = FullChoice::from_string("Choice -> divert");
+        let choice = InternalChoice::from_string("Choice -> divert");
 
         let mut node = RootNodeBuilder::new()
             .with_branching_choice(
@@ -773,7 +773,7 @@ mod tests {
 
     #[test]
     fn following_into_nested_branches_works() {
-        let choice = FullChoice::from_string("Choice");
+        let choice = InternalChoice::from_string("Choice");
 
         let nested_branch = BranchingPointBuilder::new()
             .with_branch(BranchBuilder::from_choice(choice.clone()).build())
@@ -805,7 +805,7 @@ mod tests {
 
     #[test]
     fn after_a_followed_choice_returns_the_caller_nodes_always_follow_into_their_next_lines() {
-        let choice = FullChoice::from_string("Choice");
+        let choice = InternalChoice::from_string("Choice");
 
         let mut node = RootNodeBuilder::new()
             .with_branching_choice(

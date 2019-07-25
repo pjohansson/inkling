@@ -220,7 +220,7 @@ mod tests {
     use crate::{
         consts::ROOT_KNOT_NAME,
         knot::{Knot, Stitch},
-        line::{FullChoice, FullChoiceBuilder, FullLineBuilder},
+        line::{InternalChoice, InternalChoiceBuilder, FullLineBuilder},
     };
 
     use std::{cmp::Ordering, collections::HashMap, str::FromStr};
@@ -235,7 +235,7 @@ mod tests {
         (empty_address, empty_hash_map)
     }
 
-    fn create_choice_extra(num_visited: u32, choice_data: FullChoice) -> ChoiceExtra {
+    fn create_choice_extra(num_visited: u32, choice_data: InternalChoice) -> ChoiceExtra {
         ChoiceExtra {
             num_visited,
             choice_data,
@@ -466,9 +466,9 @@ mod tests {
 
     #[test]
     fn preparing_choices_returns_selection_text_lines() {
-        let choice1 = FullChoiceBuilder::from_selection_string("Choice 1").build();
+        let choice1 = InternalChoiceBuilder::from_selection_string("Choice 1").build();
 
-        let choice2 = FullChoiceBuilder::from_selection_string("Choice 2").build();
+        let choice2 = InternalChoiceBuilder::from_selection_string("Choice 2").build();
 
         let choices = vec![
             create_choice_extra(0, choice1),
@@ -487,7 +487,7 @@ mod tests {
     #[test]
     fn preparing_choices_preserves_tags() {
         let tags = vec!["tag 1".to_string(), "tag 2".to_string()];
-        let choice = FullChoiceBuilder::from_string("Choice with tags")
+        let choice = InternalChoiceBuilder::from_string("Choice with tags")
             .with_tags(&tags)
             .build();
 
@@ -535,13 +535,13 @@ mod tests {
             not: false,
         };
 
-        let choice1 = FullChoiceBuilder::from_string("Removed")
+        let choice1 = InternalChoiceBuilder::from_string("Removed")
             .with_condition(&unfulfilled_condition)
             .build();
-        let choice2 = FullChoiceBuilder::from_string("Kept")
+        let choice2 = InternalChoiceBuilder::from_string("Kept")
             .with_condition(&fulfilled_condition)
             .build();
-        let choice3 = FullChoiceBuilder::from_string("Removed")
+        let choice3 = InternalChoiceBuilder::from_string("Removed")
             .with_condition(&unfulfilled_condition)
             .build();
 
@@ -560,9 +560,9 @@ mod tests {
 
     #[test]
     fn preparing_choices_filters_choices_which_have_been_visited_for_non_sticky_lines() {
-        let choice1 = FullChoiceBuilder::from_string("Kept").build();
-        let choice2 = FullChoiceBuilder::from_string("Removed").build();
-        let choice3 = FullChoiceBuilder::from_string("Kept").build();
+        let choice1 = InternalChoiceBuilder::from_string("Kept").build();
+        let choice2 = InternalChoiceBuilder::from_string("Removed").build();
+        let choice3 = InternalChoiceBuilder::from_string("Kept").build();
 
         let choices = vec![
             create_choice_extra(0, choice1),
@@ -581,9 +581,9 @@ mod tests {
 
     #[test]
     fn preparing_choices_does_not_filter_visited_sticky_lines() {
-        let choice1 = FullChoiceBuilder::from_string("Kept").build();
-        let choice2 = FullChoiceBuilder::from_string("Removed").build();
-        let choice3 = FullChoiceBuilder::from_string("Kept").is_sticky().build();
+        let choice1 = InternalChoiceBuilder::from_string("Kept").build();
+        let choice2 = InternalChoiceBuilder::from_string("Removed").build();
+        let choice3 = InternalChoiceBuilder::from_string("Kept").is_sticky().build();
 
         let choices = vec![
             create_choice_extra(0, choice1),
@@ -602,11 +602,11 @@ mod tests {
 
     #[test]
     fn preparing_choices_filters_fallback_choices() {
-        let choice1 = FullChoiceBuilder::from_string("Kept").build();
-        let choice2 = FullChoiceBuilder::from_string("Removed")
+        let choice1 = InternalChoiceBuilder::from_string("Kept").build();
+        let choice2 = InternalChoiceBuilder::from_string("Removed")
             .is_fallback()
             .build();
-        let choice3 = FullChoiceBuilder::from_string("Kept").is_sticky().build();
+        let choice3 = InternalChoiceBuilder::from_string("Kept").is_sticky().build();
 
         let choices = vec![
             create_choice_extra(0, choice1),
@@ -625,8 +625,8 @@ mod tests {
 
     #[test]
     fn invalid_choice_error_is_filled_in_with_all_presented_choices() {
-        let choice1 = FullChoiceBuilder::from_string("Choice 1").build();
-        let choice2 = FullChoiceBuilder::from_string("Choice 2").build();
+        let choice1 = InternalChoiceBuilder::from_string("Choice 1").build();
+        let choice2 = InternalChoiceBuilder::from_string("Choice 2").build();
 
         let internal_choices = vec![
             create_choice_extra(0, choice1),
@@ -684,11 +684,11 @@ mod tests {
 
     #[test]
     fn fallback_choices_are_filtered_as_usual_choices() {
-        let choice1 = FullChoiceBuilder::from_string("Kept").is_fallback().build();
-        let choice2 = FullChoiceBuilder::from_string("Removed")
+        let choice1 = InternalChoiceBuilder::from_string("Kept").is_fallback().build();
+        let choice2 = InternalChoiceBuilder::from_string("Removed")
             .is_fallback()
             .build();
-        let choice3 = FullChoiceBuilder::from_string("Kept")
+        let choice3 = InternalChoiceBuilder::from_string("Kept")
             .is_sticky()
             .is_fallback()
             .build();

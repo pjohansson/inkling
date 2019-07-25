@@ -1,5 +1,5 @@
 use crate::{
-    line::{FullChoice, FullLine, ParsedLineKind},
+    line::{InternalChoice, FullLine, ParsedLineKind},
     node::parse_root_node,
 };
 
@@ -26,7 +26,7 @@ impl RootNode {
 /// Branch from a set of choices in a `Stitch`. Largely identical to `RootNode`
 /// but also contains the data associated with the choice leading to it.
 pub struct Branch {
-    pub choice: FullChoice,
+    pub choice: InternalChoice,
     pub items: Vec<NodeItem>,
     pub num_visited: u32,
 }
@@ -61,7 +61,7 @@ impl NodeItem {
 pub mod builders {
     use super::{Branch, NodeItem, RootNode};
 
-    use crate::line::{FullChoice, FullLine};
+    use crate::line::{InternalChoice, FullLine};
 
     #[cfg(test)]
     use crate::line::LineChunk;
@@ -130,13 +130,13 @@ pub mod builders {
     /// # Notes
     ///  *  Adds the line from its choice as the first in its item list.
     pub struct BranchBuilder {
-        choice: FullChoice,
+        choice: InternalChoice,
         items: Vec<NodeItem>,
         num_visited: u32,
     }
 
     impl BranchBuilder {
-        pub fn from_choice(choice: FullChoice) -> Self {
+        pub fn from_choice(choice: InternalChoice) -> Self {
             let line = choice.display_text.clone();
 
             BranchBuilder {

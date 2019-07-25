@@ -4,7 +4,7 @@ use crate::{
         parse::{
             parse_choice_conditions, parse_line, parse_markers_and_text, split_at_divert_marker,
         },
-        Content, FullChoice, FullChoiceBuilder, FullLine, LineErrorKind, LineParsingError,
+        Content, InternalChoice, InternalChoiceBuilder, FullLine, LineErrorKind, LineParsingError,
         ParsedLineKind,
     },
 };
@@ -22,7 +22,7 @@ pub fn parse_choice(content: &str) -> Result<Option<ParsedLineKind>, LineParsing
         .transpose()
 }
 
-fn parse_choice_data(content: &str) -> Result<FullChoice, LineParsingError> {
+fn parse_choice_data(content: &str) -> Result<InternalChoice, LineParsingError> {
     let mut buffer = content.to_string();
     let choice_conditions = parse_choice_conditions(&mut buffer).unwrap();
 
@@ -44,7 +44,7 @@ fn parse_choice_data(content: &str) -> Result<FullChoice, LineParsingError> {
         result => result,
     }?;
 
-    let mut builder = FullChoiceBuilder::from_line(display_text);
+    let mut builder = InternalChoiceBuilder::from_line(display_text);
 
     builder.set_conditions(&choice_conditions);
     builder.set_is_fallback(is_fallback);
@@ -146,7 +146,7 @@ fn parse_choice_line_variants(line: &str) -> Result<(String, String), LineParsin
 pub(crate) mod tests {
     use super::*;
 
-    impl FullChoice {
+    impl InternalChoice {
         pub fn from_string(line: &str) -> Self {
             parse_choice_data(line).unwrap()
         }

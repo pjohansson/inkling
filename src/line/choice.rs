@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
 /// A single choice in a (usually) set of choices presented to the user.
-pub struct FullChoice {
+pub struct InternalChoice {
     /// Text presented to the user to represent the choice.
     pub selection_text: FullLine,
     /// Text that the choice produces when selected, replacing the `selection_text` line.
@@ -22,7 +22,7 @@ pub struct FullChoice {
     pub is_fallback: bool,
 }
 
-pub struct FullChoiceBuilder {
+pub struct InternalChoiceBuilder {
     selection_text: FullLine,
     display_text: FullLine,
     conditions: Vec<Condition>,
@@ -31,9 +31,9 @@ pub struct FullChoiceBuilder {
     tags: Option<Vec<String>>,
 }
 
-impl FullChoiceBuilder {
+impl InternalChoiceBuilder {
     pub fn from_line(line: FullLine) -> Self {
-        FullChoiceBuilder {
+        InternalChoiceBuilder {
             selection_text: line.clone(),
             display_text: line,
             conditions: Vec::new(),
@@ -43,13 +43,13 @@ impl FullChoiceBuilder {
         }
     }
 
-    pub fn build(mut self) -> FullChoice {
+    pub fn build(mut self) -> InternalChoice {
         if let Some(tags) = self.tags {
             self.display_text.tags = tags.clone();
             self.selection_text.tags = tags.clone();
         }
 
-        FullChoice {
+        InternalChoice {
             selection_text: self.selection_text,
             display_text: self.display_text,
             conditions: self.conditions,

@@ -6,7 +6,7 @@ pub(self) mod parse;
 mod process;
 
 pub(self) use alternative::Alternative;
-pub(crate) use choice::{FullChoice, FullChoiceBuilder};
+pub(crate) use choice::{InternalChoice, InternalChoiceBuilder};
 pub(crate) use condition::Condition;
 pub(crate) use line::{
     builders::{FullLineBuilder, LineChunkBuilder},
