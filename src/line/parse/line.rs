@@ -43,7 +43,7 @@ pub fn parse_line(content: &str) -> Result<FullLine, LineParsingError> {
 }
 
 pub fn parse_chunk(content: &str) -> Result<LineChunk, LineParsingError> {
-    let mut builder = LineBuilder::new();
+    let mut builder = LineChunkBuilder::new();
 
     let mut buffer = content.to_string();
     let divert = parse_divert(&mut buffer)?;

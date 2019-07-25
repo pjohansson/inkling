@@ -123,13 +123,13 @@ pub mod builders {
         }
     }
 
-    pub struct LineBuilder {
+    pub struct LineChunkBuilder {
         items: Vec<Content>,
     }
 
-    impl LineBuilder {
+    impl LineChunkBuilder {
         pub fn new() -> Self {
-            LineBuilder { items: Vec::new() }
+            LineChunkBuilder { items: Vec::new() }
         }
 
         pub fn build(self) -> LineChunk {

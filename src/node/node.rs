@@ -1,5 +1,5 @@
 use crate::{
-    line::{FullLine, LineBuilder, LineChunk, *},
+    line::{FullLine, LineChunkBuilder, LineChunk, *},
     node::parse_root_node,
 };
 
@@ -59,7 +59,7 @@ impl NodeItem {
 }
 
 pub mod builders {
-    use super::{Branch, FullChoice, FullLine, LineBuilder, LineChunk, NodeItem, RootNode};
+    use super::{Branch, FullChoice, FullLine, LineChunkBuilder, LineChunk, NodeItem, RootNode};
 
     /// Builder for a `RootNote`.
     ///
@@ -110,7 +110,7 @@ pub mod builders {
 
         #[cfg(test)]
         pub fn with_line_text(mut self, content: &str) -> Self {
-            let chunk = LineBuilder::new().with_text(content).unwrap().build();
+            let chunk = LineChunkBuilder::new().with_text(content).unwrap().build();
             let full_line = FullLine::from_chunk(chunk);
             self.items.push(NodeItem::Line(full_line));
             self
@@ -172,7 +172,7 @@ pub mod builders {
 
         #[cfg(test)]
         pub fn with_line_text(mut self, content: &str) -> Self {
-            let chunk = LineBuilder::new().with_text(content).unwrap().build();
+            let chunk = LineChunkBuilder::new().with_text(content).unwrap().build();
             let full_line = FullLine::from_chunk(chunk);
             self.items.push(NodeItem::Line(full_line));
             self

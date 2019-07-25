@@ -110,8 +110,8 @@ mod tests {
     #[test]
     fn sequence_alternative_walks_through_content_when_processed_repeatably() {
         let mut sequence = AlternativeBuilder::sequence()
-            .with_line(LineBuilder::new().with_text("Line 1").unwrap().build())
-            .with_line(LineBuilder::new().with_text("Line 2").unwrap().build())
+            .with_line(LineChunkBuilder::new().with_text("Line 1").unwrap().build())
+            .with_line(LineChunkBuilder::new().with_text("Line 2").unwrap().build())
             .build();
 
         let mut buffer = String::new();
@@ -132,8 +132,8 @@ mod tests {
     #[test]
     fn once_only_alternative_walks_through_content_and_stops_after_final_item_when_processed() {
         let mut once_only = AlternativeBuilder::once_only()
-            .with_line(LineBuilder::new().with_text("Line 1").unwrap().build())
-            .with_line(LineBuilder::new().with_text("Line 2").unwrap().build())
+            .with_line(LineChunkBuilder::new().with_text("Line 1").unwrap().build())
+            .with_line(LineChunkBuilder::new().with_text("Line 2").unwrap().build())
             .build();
 
         let mut buffer = String::new();
@@ -153,8 +153,8 @@ mod tests {
     #[test]
     fn cycle_alternative_repeats_from_first_index_after_reaching_end() {
         let mut cycle = AlternativeBuilder::cycle()
-            .with_line(LineBuilder::new().with_text("Line 1").unwrap().build())
-            .with_line(LineBuilder::new().with_text("Line 2").unwrap().build())
+            .with_line(LineChunkBuilder::new().with_text("Line 1").unwrap().build())
+            .with_line(LineChunkBuilder::new().with_text("Line 2").unwrap().build())
             .build();
 
         let mut buffer = String::new();
@@ -175,9 +175,9 @@ mod tests {
     #[test]
     fn diverts_in_alternates_shortcut_when_finally_processed() {
         let mut alternative = AlternativeBuilder::sequence()
-            .with_line(LineBuilder::new().with_text("Line 1").unwrap().build())
-            .with_line(LineBuilder::new().with_divert("divert").build())
-            .with_line(LineBuilder::new().with_text("Line 2").unwrap().build())
+            .with_line(LineChunkBuilder::new().with_text("Line 1").unwrap().build())
+            .with_line(LineChunkBuilder::new().with_divert("divert").build())
+            .with_line(LineChunkBuilder::new().with_text("Line 2").unwrap().build())
             .build();
 
         let mut buffer = String::new();
@@ -200,27 +200,27 @@ mod tests {
     fn diverts_are_raised_through_the_nested_stack_when_encountered() {
         let alternative = AlternativeBuilder::sequence()
             .with_line(
-                LineBuilder::new()
+                LineChunkBuilder::new()
                     .with_text("Alternative line 1")
                     .unwrap()
                     .build(),
             )
             .with_line(
-                LineBuilder::new()
+                LineChunkBuilder::new()
                     .with_text("Divert")
                     .unwrap()
                     .with_divert("divert")
                     .build(),
             )
             .with_line(
-                LineBuilder::new()
+                LineChunkBuilder::new()
                     .with_text("Alternative line 2")
                     .unwrap()
                     .build(),
             )
             .build();
 
-        let mut line = LineBuilder::new()
+        let mut line = LineChunkBuilder::new()
             .with_text("Line 1")
             .unwrap()
             .with_item(Content::Alternative(alternative))
