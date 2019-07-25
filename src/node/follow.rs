@@ -1,6 +1,6 @@
 use crate::{
     error::{IncorrectNodeStackError, InklingError, InternalError},
-    follow::{ChoiceInfo, FollowResult, LineDataBuffer, Next},
+    follow::{ChoiceInfo, EncounteredEvent, FollowResult, LineDataBuffer},
     node::{Branch, NodeItem, RootNode},
 };
 
@@ -80,7 +80,7 @@ pub trait Follow: FollowInternal {
                 NodeItem::Line(line) => {
                     let result = line.process(buffer)?;
 
-                    if let Next::Divert(..) = result {
+                    if let EncounteredEvent::Divert(..) = result {
                         return Ok(result);
                     }
                 }
@@ -89,12 +89,12 @@ pub trait Follow: FollowInternal {
 
                     let branching_choice_set = get_choices_from_branching_set(branches);
 
-                    return Ok(Next::ChoiceSet(branching_choice_set));
+                    return Ok(EncounteredEvent::BranchingChoice(branching_choice_set));
                 }
             }
         }
 
-        Ok(Next::Done)
+        Ok(EncounteredEvent::Done)
     }
 
     /// Resume the follow of content in the tree with a supplied choice from the currently
@@ -136,7 +136,7 @@ pub trait Follow: FollowInternal {
         }?;
 
         match result {
-            Next::Done => {
+            EncounteredEvent::Done => {
                 stack.truncate(stack_index + 1);
                 stack.last_mut().map(|i| *i += 1);
 
@@ -435,7 +435,10 @@ mod tests {
         let mut buffer = Vec::new();
         let mut stack = vec![0];
 
-        assert_eq!(node.follow(&mut stack, &mut buffer).unwrap(), Next::Done);
+        assert_eq!(
+            node.follow(&mut stack, &mut buffer).unwrap(),
+            EncounteredEvent::Done
+        );
 
         assert_eq!(buffer.len(), 2);
         assert_eq!(&buffer[0].text(), "Line 1");
@@ -541,7 +544,7 @@ mod tests {
 
         assert_eq!(
             node.follow(&mut stack, &mut buffer).unwrap(),
-            Next::Divert("divert".to_string())
+            EncounteredEvent::Divert("divert".to_string())
         );
 
         assert_eq!(buffer.len(), 2);
@@ -567,12 +570,15 @@ mod tests {
         let mut stack = vec![0];
 
         match node.follow(&mut stack, &mut buffer).unwrap() {
-            Next::ChoiceSet(choice_set) => {
+            EncounteredEvent::BranchingChoice(choice_set) => {
                 assert_eq!(choice_set.len(), 2);
                 assert_eq!(choice_set[0].choice_data, choice1);
                 assert_eq!(choice_set[1].choice_data, choice2);
             }
-            other => panic!("expected a `Next::ChoiceSet` but got {:?}", other),
+            other => panic!(
+                "expected a `EncounteredEvent::BranchingChoice` but got {:?}",
+                other
+            ),
         }
     }
 
@@ -721,10 +727,13 @@ mod tests {
             .unwrap();
 
         match node.follow(&mut vec![0], &mut buffer).unwrap() {
-            Next::ChoiceSet(branches) => {
+            EncounteredEvent::BranchingChoice(branches) => {
                 assert_eq!(branches[0].num_visited, 3);
             }
-            other => panic!("expected a `Next::ChoiceSet` but got {:?}", other),
+            other => panic!(
+                "expected a `EncounteredEvent::BranchingChoice` but got {:?}",
+                other
+            ),
         }
     }
 
@@ -767,7 +776,7 @@ mod tests {
         assert_eq!(
             node.follow_with_choice(0, 0, &mut stack, &mut buffer)
                 .unwrap(),
-            Next::Divert("divert".to_string())
+            EncounteredEvent::Divert("divert".to_string())
         );
     }
 
@@ -798,8 +807,8 @@ mod tests {
             .follow_with_choice(0, 0, &mut stack, &mut buffer)
             .unwrap()
         {
-            Next::ChoiceSet(branches) => assert_eq!(branches.len(), 1),
-            other => panic!("expected a `ChoiceSet` but got {:?}", other),
+            EncounteredEvent::BranchingChoice(branches) => assert_eq!(branches.len(), 1),
+            other => panic!("expected a `BranchingChoice` but got {:?}", other),
         }
     }
 

@@ -505,14 +505,14 @@ mod tests {
 
         let lines = vec![
             line.clone(),
-            choice1.clone(), // ChoiceSet starts here as second level-1 element
-            choice2.clone(), // First element of level-2 ChoiceSet
+            choice1.clone(), // BranchingChoice starts here as second level-1 element
+            choice2.clone(), // First element of level-2 BranchingChoice
             choice2.clone(),
-            gather2.clone(), // Breaks level-2 ChoiceSet; becomes second element
+            gather2.clone(), // Breaks level-2 BranchingChoice; becomes second element
             choice1.clone(),
             gather2.clone(),
             choice1.clone(),
-            gather1.clone(), // Breaks ChoiceSet; becomes third level-1 element
+            gather1.clone(), // Breaks BranchingChoice; becomes third level-1 element
         ];
 
         let root_node = parse_root_node(&lines);

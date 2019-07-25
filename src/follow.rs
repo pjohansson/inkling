@@ -3,19 +3,19 @@ use crate::{
     line::{InternalChoice, InternalLine},
 };
 
-pub type FollowResult = Result<Next, InklingError>;
+pub type FollowResult = Result<EncounteredEvent, InklingError>;
 
 pub type LineDataBuffer = Vec<InternalLine>;
 
 #[derive(Clone, Debug, PartialEq)]
 /// What action that is prompted by following a story.
-pub enum Next {
-    /// Finished with the current node or story.
-    Done,
+pub enum EncounteredEvent {
+    /// Choice for the user.
+    BranchingChoice(Vec<ChoiceInfo>),
     /// Divert to a new knot with the given name.
     Divert(String),
-    /// Choice for the user.
-    ChoiceSet(Vec<ChoiceInfo>),
+    /// Finished with the current node or story.
+    Done,
 }
 
 #[derive(Clone, Debug, PartialEq)]

@@ -1,7 +1,7 @@
 use crate::{
     consts::{DONE_KNOT, END_KNOT},
     error::{InklingError, ParseError, StackError},
-    follow::{ChoiceInfo, FollowResult, LineDataBuffer, Next},
+    follow::{ChoiceInfo, EncounteredEvent, FollowResult, LineDataBuffer},
     knot::{Knot, Stitch},
 };
 
@@ -224,7 +224,7 @@ impl Story {
         line_buffer: &mut LineBuffer,
     ) -> Result<Prompt, InklingError>
     where
-        F: FnOnce(&mut Self, &mut LineDataBuffer) -> Result<Next, InklingError>,
+        F: FnOnce(&mut Self, &mut LineDataBuffer) -> Result<EncounteredEvent, InklingError>,
     {
         let mut internal_buffer = Vec::new();
         let result = func(self, &mut internal_buffer)?;
@@ -232,7 +232,7 @@ impl Story {
         process_buffer(line_buffer, internal_buffer);
 
         match result {
-            Next::ChoiceSet(choice_set) => {
+            EncounteredEvent::BranchingChoice(choice_set) => {
                 let current_address = self.stack.last().ok_or(StackError::NoStack)?;
 
                 let user_choice_lines =
@@ -245,8 +245,8 @@ impl Story {
                     self.resume_with_choice(&choice, line_buffer)
                 }
             }
-            Next::Done => Ok(Prompt::Done),
-            Next::Divert(..) => unreachable!("diverts are treated in the closure"),
+            EncounteredEvent::Done => Ok(Prompt::Done),
+            EncounteredEvent::Divert(..) => unreachable!("diverts are treated in the closure"),
         }
     }
 
@@ -281,7 +281,7 @@ impl Story {
             get_mut_stitch(knot_name, &mut self.knots).and_then(|stitch| f(stitch, buffer))?;
 
         match result {
-            Next::Divert(destination) => self.divert_to_knot(&destination, buffer),
+            EncounteredEvent::Divert(destination) => self.divert_to_knot(&destination, buffer),
             _ => Ok(result),
         }
     }
@@ -294,7 +294,7 @@ impl Story {
     /// the full address as `santiago.cinema` in the stack.
     fn divert_to_knot(&mut self, to_address: &str, buffer: &mut LineDataBuffer) -> FollowResult {
         if to_address == DONE_KNOT || to_address == END_KNOT {
-            Ok(Next::Done)
+            Ok(EncounteredEvent::Done)
         } else {
             let current_address = self.stack.last().ok_or(StackError::NoStack)?;
             let address = Address::from_target_address(to_address, current_address, &self.knots)?;

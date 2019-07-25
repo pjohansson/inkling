@@ -1,16 +1,19 @@
 use crate::{
-    follow::{LineDataBuffer, Next},
+    follow::{EncounteredEvent, LineDataBuffer},
     line::{parse::parse_line, Content, InternalLine, LineChunk},
 };
 
 pub type ProcessError = String;
 
 pub trait Process {
-    fn process(&mut self, buffer: &mut String) -> Result<Next, ProcessError>;
+    fn process(&mut self, buffer: &mut String) -> Result<EncounteredEvent, ProcessError>;
 }
 
 impl InternalLine {
-    pub fn process(&mut self, buffer: &mut LineDataBuffer) -> Result<Next, ProcessError> {
+    pub fn process(
+        &mut self,
+        buffer: &mut LineDataBuffer,
+    ) -> Result<EncounteredEvent, ProcessError> {
         let mut string = String::new();
 
         let result = self.chunk.process(&mut string);
@@ -28,28 +31,28 @@ impl InternalLine {
 }
 
 impl Process for LineChunk {
-    fn process(&mut self, buffer: &mut String) -> Result<Next, ProcessError> {
+    fn process(&mut self, buffer: &mut String) -> Result<EncounteredEvent, ProcessError> {
         for item in self.items.iter_mut() {
             let result = item.process(buffer)?;
 
-            if let Next::Divert(..) = result {
+            if let EncounteredEvent::Divert(..) = result {
                 return Ok(result);
             }
         }
 
-        Ok(Next::Done)
+        Ok(EncounteredEvent::Done)
     }
 }
 
 impl Process for Content {
-    fn process(&mut self, buffer: &mut String) -> Result<Next, ProcessError> {
+    fn process(&mut self, buffer: &mut String) -> Result<EncounteredEvent, ProcessError> {
         match self {
             Content::Alternative(alternative) => alternative.process(buffer),
-            Content::Divert(address) => Ok(Next::Divert(address.to_string())),
-            Content::Empty => Ok(Next::Done),
+            Content::Divert(address) => Ok(EncounteredEvent::Divert(address.to_string())),
+            Content::Empty => Ok(EncounteredEvent::Done),
             Content::Text(string) => {
                 buffer.push_str(string);
-                Ok(Next::Done)
+                Ok(EncounteredEvent::Done)
             }
         }
     }
@@ -146,7 +149,7 @@ mod tests {
 
         assert_eq!(
             line.process(&mut buffer).unwrap(),
-            Next::Divert("divert".to_string())
+            EncounteredEvent::Divert("divert".to_string())
         );
 
         assert_eq!(&buffer, "Line 1");

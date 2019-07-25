@@ -1,7 +1,7 @@
 use crate::{
     consts::{KNOT_MARKER, STITCH_MARKER},
     error::{KnotError, KnotNameError},
-    follow::{FollowResult, LineDataBuffer, Next},
+    follow::{EncounteredEvent, FollowResult, LineDataBuffer},
     line::parse_line_kind,
     node::{Follow, RootNode, Stack},
 };
@@ -46,8 +46,8 @@ impl Stitch {
         let result = self.root.follow(&mut self.stack, buffer)?;
 
         match &result {
-            Next::Done | Next::Divert(..) => self.reset_stack(),
-            Next::ChoiceSet(..) => (),
+            EncounteredEvent::Done | EncounteredEvent::Divert(..) => self.reset_stack(),
+            EncounteredEvent::BranchingChoice(..) => (),
         }
 
         Ok(result)
@@ -64,7 +64,7 @@ impl Stitch {
             .follow_with_choice(choice_index, 0, &mut self.stack, buffer)?;
 
         match result {
-            Next::Done | Next::Divert(..) => self.reset_stack(),
+            EncounteredEvent::Done | EncounteredEvent::Divert(..) => self.reset_stack(),
             _ => (),
         }
 
@@ -212,7 +212,10 @@ mod tests {
 
         let mut buffer = Vec::new();
 
-        assert_eq!(knot.follow(&mut buffer).unwrap(), Next::Divert(name));
+        assert_eq!(
+            knot.follow(&mut buffer).unwrap(),
+            EncounteredEvent::Divert(name)
+        );
 
         assert_eq!(buffer.len(), 2);
         assert_eq!(&buffer[0].text(), pre);
@@ -241,8 +244,8 @@ mod tests {
         let mut buffer = Vec::new();
 
         let choices = match knot.follow(&mut buffer).unwrap() {
-            Next::ChoiceSet(choices) => choices,
-            _ => panic!("did not get a `ChoiceSet`"),
+            EncounteredEvent::BranchingChoice(choices) => choices,
+            _ => panic!("did not get a `BranchingChoice`"),
         };
 
         assert_eq!(choices.len(), 2);

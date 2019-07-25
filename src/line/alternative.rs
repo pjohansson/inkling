@@ -1,5 +1,5 @@
 use crate::{
-    follow::Next,
+    follow::EncounteredEvent,
     line::{LineChunk, Process, ProcessError},
 };
 
@@ -23,7 +23,7 @@ enum AlternativeKind {
 }
 
 impl Process for Alternative {
-    fn process(&mut self, buffer: &mut String) -> Result<Next, ProcessError> {
+    fn process(&mut self, buffer: &mut String) -> Result<EncounteredEvent, ProcessError> {
         let num_items = self.items.len();
 
         match self.kind {
@@ -48,7 +48,7 @@ impl Process for Alternative {
                         *index += 1;
                         item.process(buffer)
                     }
-                    None => Ok(Next::Done),
+                    None => Ok(EncounteredEvent::Done),
                 }
             }
             AlternativeKind::Sequence => {
@@ -186,17 +186,23 @@ mod tests {
 
         let mut buffer = String::new();
 
-        assert_eq!(alternative.process(&mut buffer).unwrap(), Next::Done);
+        assert_eq!(
+            alternative.process(&mut buffer).unwrap(),
+            EncounteredEvent::Done
+        );
         assert_eq!(&buffer, "Line 1");
         buffer.clear();
 
         assert_eq!(
             alternative.process(&mut buffer).unwrap(),
-            Next::Divert("divert".to_string())
+            EncounteredEvent::Divert("divert".to_string())
         );
         buffer.clear();
 
-        assert_eq!(alternative.process(&mut buffer).unwrap(), Next::Done);
+        assert_eq!(
+            alternative.process(&mut buffer).unwrap(),
+            EncounteredEvent::Done
+        );
         assert_eq!(&buffer, "Line 2");
     }
 
@@ -220,20 +226,20 @@ mod tests {
 
         let mut buffer = String::new();
 
-        assert_eq!(line.process(&mut buffer).unwrap(), Next::Done);
+        assert_eq!(line.process(&mut buffer).unwrap(), EncounteredEvent::Done);
 
         assert_eq!(&buffer, "Line 1Alternative line 1Line 2");
         buffer.clear();
 
         assert_eq!(
             line.process(&mut buffer).unwrap(),
-            Next::Divert("divert".to_string())
+            EncounteredEvent::Divert("divert".to_string())
         );
 
         assert_eq!(&buffer, "Line 1Divert");
         buffer.clear();
 
-        assert_eq!(line.process(&mut buffer).unwrap(), Next::Done);
+        assert_eq!(line.process(&mut buffer).unwrap(), EncounteredEvent::Done);
 
         assert_eq!(&buffer, "Line 1Alternative line 2Line 2");
     }
