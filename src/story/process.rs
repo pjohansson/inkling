@@ -225,6 +225,23 @@ mod tests {
 
     use std::{cmp::Ordering, collections::HashMap, str::FromStr};
 
+    fn get_mock_address_and_knots() -> (Address, Knots) {
+        let empty_hash_map = HashMap::new();
+        let empty_address = Address {
+            knot: "".to_string(),
+            stitch: "".to_string(),
+        };
+
+        (empty_address, empty_hash_map)
+    }
+
+    fn create_choice_extra(num_visited: u32, choice_data: FullChoice) -> ChoiceExtra {
+        ChoiceExtra {
+            num_visited,
+            choice_data,
+        }
+    }
+
     #[test]
     fn check_some_conditions_against_number_of_visits_in_a_hash_map() {
         let name = "knot_name".to_string();
@@ -307,9 +324,9 @@ mod tests {
         let text = "Mr. and Mrs. Doubtfire";
 
         let buffer = vec![
-            parse_line(text).unwrap(),
-            parse_line("").unwrap(),
-            parse_line(text).unwrap(),
+            FullLineBuilder::from_string(text).build(),
+            FullLineBuilder::from_string("").build(),
+            FullLineBuilder::from_string(text).build(),
         ];
 
         let mut processed = Vec::new();
@@ -323,8 +340,8 @@ mod tests {
     #[test]
     fn processing_line_buffer_trims_extra_whitespace() {
         let buffer = vec![
-            parse_line("    Hello, World!    ").unwrap(),
-            parse_line("    Hello right back at you!  ").unwrap(),
+            FullLineBuilder::from_string("    Hello, World!    ").build(),
+            FullLineBuilder::from_string("    Hello right back at you!  ").build(),
         ];
 
         let mut processed = Vec::new();
@@ -339,7 +356,10 @@ mod tests {
     fn processing_line_buffer_adds_newlines_if_no_glue() {
         let text = "Mr. and Mrs. Doubtfire";
 
-        let buffer = vec![parse_line(text).unwrap(), parse_line(text).unwrap()];
+        let buffer = vec![
+            FullLineBuilder::from_string(text).build(),
+            FullLineBuilder::from_string(text).build(),
+        ];
 
         let mut processed = Vec::new();
         process_buffer(&mut processed, buffer);
@@ -352,10 +372,10 @@ mod tests {
     fn processing_line_buffer_removes_newlines_between_lines_with_glue_end_on_first() {
         let text = "Mr. and Mrs. Doubtfire";
 
-        let mut line1 = parse_line(text).unwrap();
-        line1.glue_end = true;
-
-        let buffer = vec![line1, parse_line(text).unwrap()];
+        let buffer = vec![
+            FullLineBuilder::from_string(text).with_glue_end().build(),
+            FullLineBuilder::from_string(text).build(),
+        ];
 
         let mut processed = Vec::new();
         process_buffer(&mut processed, buffer);
@@ -368,10 +388,10 @@ mod tests {
     fn processing_line_buffer_removes_newlines_between_lines_with_glue_start_on_second() {
         let text = "Mr. and Mrs. Doubtfire";
 
-        let mut line2 = parse_line(text).unwrap();
-        line2.glue_begin = true;
-
-        let buffer = vec![parse_line(text).unwrap(), line2];
+        let buffer = vec![
+            FullLineBuilder::from_string(text).build(),
+            FullLineBuilder::from_string(text).with_glue_begin().build(),
+        ];
 
         let mut processed = Vec::new();
         process_buffer(&mut processed, buffer);
@@ -384,10 +404,11 @@ mod tests {
     fn processing_line_buffer_with_glue_works_across_empty_lines() {
         let text = "Mr. and Mrs. Doubtfire";
 
-        let mut line3 = parse_line(text).unwrap();
-        line3.glue_begin = true;
-
-        let buffer = vec![parse_line(text).unwrap(), parse_line("").unwrap(), line3];
+        let buffer = vec![
+            FullLineBuilder::from_string(text).build(),
+            FullLineBuilder::from_string("").build(),
+            FullLineBuilder::from_string(text).with_glue_begin().build(),
+        ];
 
         let mut processed = Vec::new();
         process_buffer(&mut processed, buffer);
@@ -398,10 +419,9 @@ mod tests {
 
     #[test]
     fn processing_line_buffer_sets_newline_on_last_line_regardless_of_glue() {
-        let text = "Mr. and Mrs. Doubtfire";
-
-        let mut line = parse_line(text).unwrap();
-        line.glue_end = true;
+        let line = FullLineBuilder::from_string("Mr. and Mrs. Doubtfire")
+            .with_glue_end()
+            .build();
 
         let buffer = vec![line];
 
@@ -413,11 +433,12 @@ mod tests {
 
     #[test]
     fn processing_line_buffer_keeps_single_whitespace_between_lines_with_glue() {
-        let mut line1 = parse_line("Ends with whitespace before glue, ").unwrap();
-        line1.glue_end = true;
-
-        let mut line2 = parse_line(" starts with whitespace after glue").unwrap();
-        line2.glue_begin = true;
+        let line1 = FullLineBuilder::from_string("Ends with whitespace before glue, ")
+            .with_glue_end()
+            .build();
+        let line2 = FullLineBuilder::from_string(" starts with whitespace after glue")
+            .with_glue_begin()
+            .build();
 
         let buffer = vec![line1, line2];
 
@@ -433,8 +454,7 @@ mod tests {
         let text = "Mr. and Mrs. Doubtfire";
         let tags = vec!["tag 1".to_string(), "tag 2".to_string()];
 
-        let mut line = parse_line(text).unwrap();
-        line.tags = tags.clone();
+        let line = FullLineBuilder::from_string(text).with_tags(&tags).build();
 
         let buffer = vec![line];
 
@@ -446,35 +466,16 @@ mod tests {
 
     #[test]
     fn preparing_choices_returns_selection_text_lines() {
-        let empty_text = parse_line("").unwrap();
-        let selection_text1 = parse_line("Choice 1").unwrap();
-        let selection_text2 = parse_line("Choice 2").unwrap();
+        let choice1 = FullChoiceBuilder::from_selection_string("Choice 1").build();
 
-        let choice1 = FullChoiceBuilder::from_line(selection_text1)
-            .with_display_text(empty_text.clone())
-            .build();
-
-        let choice2 = FullChoiceBuilder::from_line(selection_text2)
-            .with_display_text(empty_text.clone())
-            .build();
+        let choice2 = FullChoiceBuilder::from_selection_string("Choice 2").build();
 
         let choices = vec![
-            ChoiceExtra {
-                num_visited: 0,
-                choice_data: choice1,
-            },
-            ChoiceExtra {
-                num_visited: 0,
-                choice_data: choice2,
-            },
+            create_choice_extra(0, choice1),
+            create_choice_extra(0, choice2),
         ];
 
-        let empty_hash_map = HashMap::new();
-        let empty_address = Address {
-            knot: "".to_string(),
-            stitch: "".to_string(),
-        };
-
+        let (empty_address, empty_hash_map) = get_mock_address_and_knots();
         let displayed_choices =
             prepare_choices_for_user(&choices, &empty_address, &empty_hash_map).unwrap();
 
@@ -486,19 +487,13 @@ mod tests {
     #[test]
     fn preparing_choices_preserves_tags() {
         let tags = vec!["tag 1".to_string(), "tag 2".to_string()];
-        let choice = FullChoice::from_string("Choice with tags # tag 1 # tag 2");
+        let choice = FullChoiceBuilder::from_string("Choice with tags")
+            .with_tags(&tags)
+            .build();
 
-        let choices = vec![ChoiceExtra {
-            num_visited: 0,
-            choice_data: choice,
-        }];
+        let choices = vec![create_choice_extra(0, choice)];
 
-        let empty_hash_map = HashMap::new();
-        let empty_address = Address {
-            knot: "".to_string(),
-            stitch: "".to_string(),
-        };
-
+        let (empty_address, empty_hash_map) = get_mock_address_and_knots();
         let displayed_choices =
             prepare_choices_for_user(&choices, &empty_address, &empty_hash_map).unwrap();
 
@@ -540,32 +535,20 @@ mod tests {
             not: false,
         };
 
-        let kept_line = parse_line("Kept").unwrap();
-        let removed_line = parse_line("Removed").unwrap();
-
-        let choice1 = FullChoiceBuilder::from_line(removed_line.clone())
-            .with_conditions(&[unfulfilled_condition.clone()])
+        let choice1 = FullChoiceBuilder::from_string("Removed")
+            .with_condition(&unfulfilled_condition)
             .build();
-        let choice2 = FullChoiceBuilder::from_line(kept_line.clone())
-            .with_conditions(&[fulfilled_condition.clone()])
+        let choice2 = FullChoiceBuilder::from_string("Kept")
+            .with_condition(&fulfilled_condition)
             .build();
-        let choice3 = FullChoiceBuilder::from_line(removed_line.clone())
-            .with_conditions(&[unfulfilled_condition.clone()])
+        let choice3 = FullChoiceBuilder::from_string("Removed")
+            .with_condition(&unfulfilled_condition)
             .build();
 
         let choices = vec![
-            ChoiceExtra {
-                num_visited: 0,
-                choice_data: choice1,
-            },
-            ChoiceExtra {
-                num_visited: 0,
-                choice_data: choice2,
-            },
-            ChoiceExtra {
-                num_visited: 0,
-                choice_data: choice3,
-            },
+            create_choice_extra(0, choice1),
+            create_choice_extra(0, choice2),
+            create_choice_extra(0, choice3),
         ];
 
         let displayed_choices =
@@ -577,34 +560,17 @@ mod tests {
 
     #[test]
     fn preparing_choices_filters_choices_which_have_been_visited_for_non_sticky_lines() {
-        let empty_hash_map = HashMap::new();
-        let empty_address = Address {
-            knot: "".to_string(),
-            stitch: "".to_string(),
-        };
-
-        let kept_line = parse_line("Kept").unwrap();
-        let removed_line = parse_line("Removed").unwrap();
-
-        let choice1 = FullChoiceBuilder::from_line(kept_line.clone()).build();
-        let choice2 = FullChoiceBuilder::from_line(removed_line.clone()).build();
-        let choice3 = FullChoiceBuilder::from_line(kept_line.clone()).build();
+        let choice1 = FullChoiceBuilder::from_string("Kept").build();
+        let choice2 = FullChoiceBuilder::from_string("Removed").build();
+        let choice3 = FullChoiceBuilder::from_string("Kept").build();
 
         let choices = vec![
-            ChoiceExtra {
-                num_visited: 0,
-                choice_data: choice1,
-            },
-            ChoiceExtra {
-                num_visited: 1,
-                choice_data: choice2,
-            },
-            ChoiceExtra {
-                num_visited: 0,
-                choice_data: choice3,
-            },
+            create_choice_extra(0, choice1),
+            create_choice_extra(1, choice2),
+            create_choice_extra(0, choice3),
         ];
 
+        let (empty_address, empty_hash_map) = get_mock_address_and_knots();
         let displayed_choices =
             prepare_choices_for_user(&choices, &empty_address, &empty_hash_map).unwrap();
 
@@ -615,36 +581,17 @@ mod tests {
 
     #[test]
     fn preparing_choices_does_not_filter_visited_sticky_lines() {
-        let empty_hash_map = HashMap::new();
-        let empty_address = Address {
-            knot: "".to_string(),
-            stitch: "".to_string(),
-        };
-
-        let kept_line = parse_line("Kept").unwrap();
-        let removed_line = parse_line("Removed").unwrap();
-
-        let choice1 = FullChoiceBuilder::from_line(kept_line.clone()).build();
-        let choice2 = FullChoiceBuilder::from_line(removed_line.clone()).build();
-        let choice3 = FullChoiceBuilder::from_line(kept_line.clone())
-            .is_sticky()
-            .build();
+        let choice1 = FullChoiceBuilder::from_string("Kept").build();
+        let choice2 = FullChoiceBuilder::from_string("Removed").build();
+        let choice3 = FullChoiceBuilder::from_string("Kept").is_sticky().build();
 
         let choices = vec![
-            ChoiceExtra {
-                num_visited: 0,
-                choice_data: choice1,
-            },
-            ChoiceExtra {
-                num_visited: 1,
-                choice_data: choice2,
-            },
-            ChoiceExtra {
-                num_visited: 1,
-                choice_data: choice3,
-            },
+            create_choice_extra(0, choice1),
+            create_choice_extra(1, choice2),
+            create_choice_extra(1, choice3),
         ];
 
+        let (empty_address, empty_hash_map) = get_mock_address_and_knots();
         let displayed_choices =
             prepare_choices_for_user(&choices, &empty_address, &empty_hash_map).unwrap();
 
@@ -655,38 +602,19 @@ mod tests {
 
     #[test]
     fn preparing_choices_filters_fallback_choices() {
-        let empty_hash_map = HashMap::new();
-        let empty_address = Address {
-            knot: "".to_string(),
-            stitch: "".to_string(),
-        };
-
-        let kept_line = parse_line("Kept").unwrap();
-        let removed_line = parse_line("Removed").unwrap();
-
-        let choice1 = FullChoiceBuilder::from_line(kept_line.clone()).build();
-        let choice2 = FullChoiceBuilder::from_line(removed_line.clone())
+        let choice1 = FullChoiceBuilder::from_string("Kept").build();
+        let choice2 = FullChoiceBuilder::from_string("Removed")
             .is_fallback()
             .build();
-        let choice3 = FullChoiceBuilder::from_line(kept_line.clone())
-            .is_sticky()
-            .build();
+        let choice3 = FullChoiceBuilder::from_string("Kept").is_sticky().build();
 
         let choices = vec![
-            ChoiceExtra {
-                num_visited: 0,
-                choice_data: choice1,
-            },
-            ChoiceExtra {
-                num_visited: 0,
-                choice_data: choice2,
-            },
-            ChoiceExtra {
-                num_visited: 0,
-                choice_data: choice3,
-            },
+            create_choice_extra(0, choice1),
+            create_choice_extra(0, choice2),
+            create_choice_extra(0, choice3),
         ];
 
+        let (empty_address, empty_hash_map) = get_mock_address_and_knots();
         let displayed_choices =
             prepare_choices_for_user(&choices, &empty_address, &empty_hash_map).unwrap();
 
@@ -697,21 +625,12 @@ mod tests {
 
     #[test]
     fn invalid_choice_error_is_filled_in_with_all_presented_choices() {
-        let line1 = parse_line("Choice 1").unwrap();
-        let line2 = parse_line("Choice 2").unwrap();
-
-        let choice1 = FullChoiceBuilder::from_line(line1.clone()).build();
-        let choice2 = FullChoiceBuilder::from_line(line2.clone()).build();
+        let choice1 = FullChoiceBuilder::from_string("Choice 1").build();
+        let choice2 = FullChoiceBuilder::from_string("Choice 2").build();
 
         let internal_choices = vec![
-            ChoiceExtra {
-                num_visited: 0,
-                choice_data: choice1,
-            },
-            ChoiceExtra {
-                num_visited: 1,
-                choice_data: choice2,
-            },
+            create_choice_extra(0, choice1),
+            create_choice_extra(1, choice2),
         ];
 
         let made_choice = Choice {
@@ -727,14 +646,9 @@ mod tests {
             internal_choices: internal_choices.clone(),
         };
 
-        let knots = HashMap::new();
-        let empty_address = Address {
-            knot: "".to_string(),
-            stitch: "".to_string(),
-        };
-
+        let (empty_address, empty_hash_map) = get_mock_address_and_knots();
         let filled_error =
-            fill_in_invalid_error(error.clone(), &made_choice, &empty_address, &knots);
+            fill_in_invalid_error(error.clone(), &made_choice, &empty_address, &empty_hash_map);
 
         match (filled_error, error) {
             (
@@ -770,41 +684,22 @@ mod tests {
 
     #[test]
     fn fallback_choices_are_filtered_as_usual_choices() {
-        let empty_hash_map = HashMap::new();
-        let empty_address = Address {
-            knot: "".to_string(),
-            stitch: "".to_string(),
-        };
-
-        let kept_line = parse_line("Kept").unwrap();
-        let removed_line = parse_line("Removed").unwrap();
-
-        let choice1 = FullChoiceBuilder::from_line(kept_line.clone())
+        let choice1 = FullChoiceBuilder::from_string("Kept").is_fallback().build();
+        let choice2 = FullChoiceBuilder::from_string("Removed")
             .is_fallback()
             .build();
-        let choice2 = FullChoiceBuilder::from_line(removed_line.clone())
-            .is_fallback()
-            .build();
-        let choice3 = FullChoiceBuilder::from_line(kept_line.clone())
+        let choice3 = FullChoiceBuilder::from_string("Kept")
             .is_sticky()
             .is_fallback()
             .build();
 
         let choices = vec![
-            ChoiceExtra {
-                num_visited: 0,
-                choice_data: choice1,
-            },
-            ChoiceExtra {
-                num_visited: 1,
-                choice_data: choice2,
-            },
-            ChoiceExtra {
-                num_visited: 1,
-                choice_data: choice3,
-            },
+            create_choice_extra(0, choice1),
+            create_choice_extra(1, choice2),
+            create_choice_extra(1, choice3),
         ];
 
+        let (empty_address, empty_hash_map) = get_mock_address_and_knots();
         let fallback_choices =
             get_fallback_choices(&choices, &empty_address, &empty_hash_map).unwrap();
 

@@ -32,6 +32,7 @@ pub struct FullChoiceBuilder {
     conditions: Vec<Condition>,
     is_fallback: bool,
     is_sticky: bool,
+    tags: Option<Vec<String>>,
 }
 
 impl FullChoiceBuilder {
@@ -42,10 +43,16 @@ impl FullChoiceBuilder {
             conditions: Vec::new(),
             is_sticky: false,
             is_fallback: false,
+            tags: None,
         }
     }
 
-    pub fn build(self) -> FullChoice {
+    pub fn build(mut self) -> FullChoice {
+        if let Some(tags) = self.tags {
+            self.display_text.tags = tags.clone();
+            self.selection_text.tags = tags.clone();
+        }
+
         FullChoice {
             selection_text: self.selection_text,
             display_text: self.display_text,
@@ -65,10 +72,6 @@ impl FullChoiceBuilder {
 
     pub fn set_is_fallback(&mut self, fallback: bool) {
         self.is_fallback = fallback;
-    }
-
-    pub fn set_is_sticky(&mut self, sticky: bool) {
-        self.is_sticky = sticky;
     }
 
     pub fn set_selection_text(&mut self, line: FullLine) {
@@ -94,13 +97,13 @@ impl FullChoiceBuilder {
 
     #[cfg(test)]
     pub fn is_fallback(mut self) -> Self {
-        self.set_is_fallback(true);
+        self.is_fallback = true;
         self
     }
 
     #[cfg(test)]
     pub fn is_sticky(mut self) -> Self {
-        self.set_is_sticky(true);
+        self.is_sticky = true;
         self
     }
 
@@ -111,8 +114,8 @@ impl FullChoiceBuilder {
     }
 
     #[cfg(test)]
-    pub fn with_conditions(mut self, conditions: &[Condition]) -> Self {
-        self.set_conditions(conditions);
+    pub fn with_display_text(mut self, line: FullLine) -> Self {
+        self.set_display_text(line);
         self
     }
 
@@ -123,8 +126,8 @@ impl FullChoiceBuilder {
     }
 
     #[cfg(test)]
-    pub fn with_display_text(mut self, line: FullLine) -> Self {
-        self.set_display_text(line);
+    pub fn with_tags(mut self, tags: &[String]) -> Self {
+        self.tags.replace(tags.to_vec());
         self
     }
 }

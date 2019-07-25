@@ -127,6 +127,29 @@ pub mod builders {
         pub fn set_tags(&mut self, tags: &[String]) {
             self.tags = tags.to_vec();
         }
+
+        #[cfg(test)]
+        pub fn from_string(line: &str) -> Self {
+            Self::from_chunk(LineChunkBuilder::from_string(line).build())
+        }
+
+        #[cfg(test)]
+        pub fn with_glue_begin(mut self) -> Self {
+            self.glue_begin = true;
+            self
+        }
+
+        #[cfg(test)]
+        pub fn with_glue_end(mut self) -> Self {
+            self.glue_end = true;
+            self
+        }
+
+        #[cfg(test)]
+        pub fn with_tags(mut self, tags: &[String]) -> Self {
+            self.set_tags(tags);
+            self
+        }
     }
 
     pub struct LineChunkBuilder {
