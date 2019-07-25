@@ -3,7 +3,7 @@
 use crate::{
     consts::DIVERT_MARKER,
     line::{
-        parse::{parse_choice, parse_gather, parse_line},
+        parse::{parse_choice, parse_gather, parse_internal_line},
         InternalChoice, InternalLine, LineParsingError,
     },
 };
@@ -57,7 +57,7 @@ pub fn parse_line_kind(content: &str) -> Result<ParsedLineKind, LineParsingError
     } else if let Some(gather) = parse_gather(content)? {
         Ok(gather)
     } else {
-        let line = parse_line(content)?;
+        let line = parse_internal_line(content)?;
 
         Ok(ParsedLineKind::Line(line))
     }
@@ -101,7 +101,7 @@ pub mod tests {
     #[test]
     fn simple_line_parses_to_line() {
         let line = parse_line_kind("Hello, World!").unwrap();
-        let comparison = parse_line("Hello, World!").unwrap();
+        let comparison = parse_internal_line("Hello, World!").unwrap();
 
         assert_eq!(line, ParsedLineKind::Line(comparison));
     }

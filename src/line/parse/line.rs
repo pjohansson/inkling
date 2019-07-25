@@ -22,7 +22,7 @@ pub enum LineErrorKind {
 }
 
 /// Parse an `InternalLine` from a string.
-pub fn parse_line(content: &str) -> Result<InternalLine, LineParsingError> {
+pub fn parse_internal_line(content: &str) -> Result<InternalLine, LineParsingError> {
     let mut buffer = content.to_string();
 
     let tags = parse_tags(&mut buffer);
@@ -232,26 +232,26 @@ mod tests {
 
     #[test]
     fn glue_markers_add_glue_on_either_side_of_a_full_line() {
-        let line = parse_line("Hello, World!").unwrap();
+        let line = parse_internal_line("Hello, World!").unwrap();
         assert!(!line.glue_begin);
         assert!(!line.glue_end);
 
-        let line = parse_line("<> Hello, World!").unwrap();
+        let line = parse_internal_line("<> Hello, World!").unwrap();
         assert!(line.glue_begin);
         assert!(!line.glue_end);
 
-        let line = parse_line("Hello, World! <>").unwrap();
+        let line = parse_internal_line("Hello, World! <>").unwrap();
         assert!(!line.glue_begin);
         assert!(line.glue_end);
 
-        let line = parse_line("<> Hello, World! <>").unwrap();
+        let line = parse_internal_line("<> Hello, World! <>").unwrap();
         assert!(line.glue_begin);
         assert!(line.glue_end);
     }
 
     #[test]
     fn glue_markers_are_trimmed_from_line() {
-        let line = parse_line("<> Hello, World! <>").unwrap();
+        let line = parse_internal_line("<> Hello, World! <>").unwrap();
         assert_eq!(
             line.chunk.items[0],
             Content::Text(" Hello, World! ".to_string())
@@ -260,19 +260,19 @@ mod tests {
 
     #[test]
     fn diverts_are_parsed_if_there_is_glue() {
-        let line = parse_line("Hello <> -> world").unwrap();
+        let line = parse_internal_line("Hello <> -> world").unwrap();
         assert_eq!(line.chunk.items[1], Content::Divert("world".to_string()));
     }
 
     #[test]
     fn diverts_act_as_glue_for_full_line() {
-        let line = parse_line("Hello -> world").unwrap();
+        let line = parse_internal_line("Hello -> world").unwrap();
         assert!(line.glue_end);
     }
 
     #[test]
     fn tags_are_split_off_from_string_and_added_to_full_line_when_parsed() {
-        let line = parse_line("Hello, World! # tag one # tag two").unwrap();
+        let line = parse_internal_line("Hello, World! # tag one # tag two").unwrap();
 
         assert_eq!(line.tags.len(), 2);
         assert_eq!(&line.tags[0], "tag one");

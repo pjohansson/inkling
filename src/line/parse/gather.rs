@@ -3,7 +3,7 @@
 use crate::{
     consts::GATHER_MARKER,
     line::{
-        parse::{parse_line, parse_markers_and_text, split_at_divert_marker},
+        parse::{parse_internal_line, parse_markers_and_text, split_at_divert_marker},
         LineParsingError, ParsedLineKind,
     },
 };
@@ -14,7 +14,7 @@ pub fn parse_gather(content: &str) -> Result<Option<ParsedLineKind>, LineParsing
 
     parse_markers_and_text(line_without_divert, GATHER_MARKER)
         .map(|(level, remaining_text)| (level, format!("{}{}", remaining_text, line_from_divert)))
-        .map(|(level, line)| parse_line(&line).map(|line| ParsedLineKind::Gather { level, line }))
+        .map(|(level, line)| parse_internal_line(&line).map(|line| ParsedLineKind::Gather { level, line }))
         .transpose()
 }
 

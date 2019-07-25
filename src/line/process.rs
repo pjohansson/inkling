@@ -2,7 +2,7 @@
 
 use crate::{
     follow::{EncounteredEvent, LineDataBuffer},
-    line::{parse::parse_line, Content, InternalLine, LineChunk},
+    line::{parse::parse_internal_line, Content, InternalLine, LineChunk},
 };
 
 pub type ProcessError = String;
@@ -20,7 +20,7 @@ impl InternalLine {
 
         let result = self.chunk.process(&mut string);
 
-        let mut full_line = parse_line(&string).unwrap();
+        let mut full_line = parse_internal_line(&string).unwrap();
 
         full_line.glue_begin = self.glue_begin;
         full_line.glue_end = self.glue_end;
@@ -68,7 +68,7 @@ mod tests {
 
     #[test]
     fn full_line_processing_retains_glue() {
-        let mut line = parse_line("A test string").unwrap();
+        let mut line = parse_internal_line("A test string").unwrap();
         line.glue_begin = true;
         line.glue_end = true;
 
@@ -82,7 +82,7 @@ mod tests {
 
     #[test]
     fn full_line_processing_retains_tags() {
-        let mut line = parse_line("A test string").unwrap();
+        let mut line = parse_internal_line("A test string").unwrap();
         line.tags = vec!["tag 1".to_string(), "tag 2".to_string()];
 
         let mut buffer = Vec::new();

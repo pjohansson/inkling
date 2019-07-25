@@ -4,7 +4,7 @@ use crate::{
     consts::{CHOICE_MARKER, STICKY_CHOICE_MARKER},
     line::{
         parse::{
-            parse_choice_conditions, parse_line, parse_markers_and_text, split_at_divert_marker,
+            parse_choice_conditions, parse_internal_line, parse_markers_and_text, split_at_divert_marker,
         },
         Content, InternalChoice, InternalChoiceBuilder, InternalLine, LineErrorKind,
         LineParsingError, ParsedLineKind,
@@ -37,17 +37,17 @@ fn parse_choice_data(content: &str) -> Result<InternalChoice, LineParsingError> 
     let (selection_text_line, display_text_line) = parse_choice_line_variants(&buffer)?;
 
     let (without_divert, _) = split_at_divert_marker(&selection_text_line);
-    let selection_text = parse_line(without_divert)?;
+    let selection_text = parse_internal_line(without_divert)?;
 
     let is_fallback = is_choice_fallback(&selection_text, content)?;
 
-    let display_text = match parse_line(&display_text_line) {
+    let display_text = match parse_internal_line(&display_text_line) {
         Err(LineParsingError {
             kind: LineErrorKind::EmptyDivert,
             ..
         }) if is_fallback => {
             let (without_divert, _) = split_at_divert_marker(&display_text_line);
-            parse_line(without_divert)
+            parse_internal_line(without_divert)
         }
         result => result,
     }?;
@@ -235,7 +235,7 @@ pub(crate) mod tests {
     #[test]
     fn simple_lines_parse_into_choices_with_same_display_and_selection_texts() {
         let choice = parse_choice_data("Choice line").unwrap();
-        let comparison = parse_line("Choice line").unwrap();
+        let comparison = parse_internal_line("Choice line").unwrap();
 
         assert_eq!(choice.selection_text, comparison);
         assert_eq!(choice.display_text, comparison);
@@ -245,19 +245,19 @@ pub(crate) mod tests {
     fn choice_with_variants_set_selection_and_display_text_separately() {
         let choice = parse_choice_data("Selection[] plus display").unwrap();
 
-        assert_eq!(choice.selection_text, parse_line("Selection").unwrap());
+        assert_eq!(choice.selection_text, parse_internal_line("Selection").unwrap());
         assert_eq!(
             choice.display_text,
-            parse_line("Selection plus display").unwrap()
+            parse_internal_line("Selection plus display").unwrap()
         );
 
         let choice = parse_choice_data("[Separate selection]And display").unwrap();
 
         assert_eq!(
             choice.selection_text,
-            parse_line("Separate selection").unwrap()
+            parse_internal_line("Separate selection").unwrap()
         );
-        assert_eq!(choice.display_text, parse_line("And display").unwrap());
+        assert_eq!(choice.display_text, parse_internal_line("And display").unwrap());
     }
 
     #[test]
