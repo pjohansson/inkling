@@ -8,7 +8,7 @@ mod process;
 pub use alternative::*;
 pub use choice::*;
 pub use condition::*;
-pub use line::*;
 pub use line::builders::*;
+pub use line::*;
 pub use parse::*;
 pub use process::*;

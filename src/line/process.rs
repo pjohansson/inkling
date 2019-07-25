@@ -105,7 +105,7 @@ mod tests {
     fn line_with_text_processes_into_that_text() {
         let content = "Text string.";
 
-        let mut line = LineChunkBuilder::new().with_text(content).unwrap().build();
+        let mut line = LineChunkBuilder::from_string(content).build();
 
         let mut buffer = String::new();
 
@@ -118,9 +118,7 @@ mod tests {
     fn chunks_with_several_text_items_stitch_them_with_no_whitespace() {
         let mut line = LineChunkBuilder::new()
             .with_text("Line 1")
-            .unwrap()
             .with_text("Line 2")
-            .unwrap()
             .build();
 
         let mut buffer = String::new();
@@ -134,10 +132,8 @@ mod tests {
     fn lines_shortcut_if_proper_diverts_are_encountered() {
         let mut line = LineChunkBuilder::new()
             .with_text("Line 1")
-            .unwrap()
             .with_divert("divert")
             .with_text("Line 2")
-            .unwrap()
             .build();
 
         let mut buffer = String::new();

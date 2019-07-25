@@ -8,6 +8,21 @@ pub enum ParsedLineKind {
     Line(FullLine),
 }
 
+#[cfg(test)]
+impl ParsedLineKind {
+    pub fn choice(level: u32, choice_data: FullChoice) -> Self {
+        ParsedLineKind::Choice { level, choice_data }
+    }
+
+    pub fn gather(level: u32, line: FullLine) -> Self {
+        ParsedLineKind::Gather { level, line }
+    }
+
+    pub fn line(line: FullLine) -> Self {
+        ParsedLineKind::Line(line)
+    }
+}
+
 pub fn parse_line_kind(content: &str) -> Result<ParsedLineKind, LineParsingError> {
     if let Some(choice) = parse_choice(content)? {
         Ok(choice)

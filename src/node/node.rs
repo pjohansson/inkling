@@ -1,5 +1,5 @@
 use crate::{
-    line::{FullLine, LineChunkBuilder, LineChunk, *},
+    line::{FullLine, LineChunk, LineChunkBuilder, *},
     node::parse_root_node,
 };
 
@@ -59,7 +59,7 @@ impl NodeItem {
 }
 
 pub mod builders {
-    use super::{Branch, FullChoice, FullLine, LineChunkBuilder, LineChunk, NodeItem, RootNode};
+    use super::{Branch, FullChoice, FullLine, LineChunk, LineChunkBuilder, NodeItem, RootNode};
 
     /// Builder for a `RootNote`.
     ///
@@ -93,13 +93,8 @@ pub mod builders {
             self.items.push(item);
         }
 
-        pub fn add_full_line(&mut self, line: FullLine) {
+        pub fn add_line(&mut self, line: FullLine) {
             self.add_item(NodeItem::Line(line));
-        }
-
-        pub fn add_line(&mut self, line: LineChunk) {
-            let full_line = FullLine::from_chunk(line);
-            self.add_item(NodeItem::Line(full_line));
         }
 
         #[cfg(test)]
@@ -109,10 +104,16 @@ pub mod builders {
         }
 
         #[cfg(test)]
-        pub fn with_line_text(mut self, content: &str) -> Self {
-            let chunk = LineChunkBuilder::new().with_text(content).unwrap().build();
-            let full_line = FullLine::from_chunk(chunk);
-            self.items.push(NodeItem::Line(full_line));
+        pub fn with_line_chunk(mut self, chunk: LineChunk) -> Self {
+            let line = FullLine::from_chunk(chunk);
+            self.items.push(NodeItem::Line(line));
+            self
+        }
+
+        #[cfg(test)]
+        pub fn with_text_line_chunk(mut self, content: &str) -> Self {
+            let line = FullLine::from_string(content);
+            self.items.push(NodeItem::Line(line));
             self
         }
     }
@@ -155,13 +156,8 @@ pub mod builders {
             self.items.push(item);
         }
 
-        pub fn add_full_line(&mut self, line: FullLine) {
+        pub fn add_line(&mut self, line: FullLine) {
             self.add_item(NodeItem::Line(line));
-        }
-
-        pub fn add_line(&mut self, chunk: LineChunk) {
-            let full_line = FullLine::from_chunk(chunk);
-            self.add_item(NodeItem::Line(full_line));
         }
 
         #[cfg(test)]
@@ -171,10 +167,9 @@ pub mod builders {
         }
 
         #[cfg(test)]
-        pub fn with_line_text(mut self, content: &str) -> Self {
-            let chunk = LineChunkBuilder::new().with_text(content).unwrap().build();
-            let full_line = FullLine::from_chunk(chunk);
-            self.items.push(NodeItem::Line(full_line));
+        pub fn with_text_line_chunk(mut self, content: &str) -> Self {
+            let line = FullLine::from_string(content);
+            self.items.push(NodeItem::Line(line));
             self
         }
     }

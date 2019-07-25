@@ -51,7 +51,7 @@ pub fn parse_chunk(content: &str) -> Result<LineChunk, LineParsingError> {
     if buffer.trim().is_empty() {
         builder.add_item(Content::Empty);
     } else {
-        builder.add_pure_text(&buffer);
+        builder.add_text(&buffer);
     }
 
     if let Some(address) = divert {
@@ -140,10 +140,7 @@ mod tests {
         let chunk = parse_chunk("Hello, World!").unwrap();
 
         assert_eq!(chunk.items.len(), 1);
-        assert_eq!(
-            chunk.items[0],
-            Content::Text("Hello, World!".to_string())
-        );
+        assert_eq!(chunk.items[0], Content::Text("Hello, World!".to_string()));
     }
 
     #[test]

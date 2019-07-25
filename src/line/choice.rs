@@ -76,6 +76,23 @@ impl FullChoiceBuilder {
     }
 
     #[cfg(test)]
+    pub fn from_string(line: &str) -> Self {
+        Self::from_line(FullLine::from_string(line))
+    }
+
+    #[cfg(test)]
+    pub fn from_display_string(line: &str) -> Self {
+        let empty = FullLine::from_string("");
+        Self::from_string(line).with_selection_text(empty)
+    }
+
+    #[cfg(test)]
+    pub fn from_selection_string(line: &str) -> Self {
+        let empty = FullLine::from_string("");
+        Self::from_string(line).with_display_text(empty)
+    }
+
+    #[cfg(test)]
     pub fn is_fallback(mut self) -> Self {
         self.set_is_fallback(true);
         self
@@ -84,6 +101,12 @@ impl FullChoiceBuilder {
     #[cfg(test)]
     pub fn is_sticky(mut self) -> Self {
         self.set_is_sticky(true);
+        self
+    }
+
+    #[cfg(test)]
+    pub fn with_condition(mut self, condition: &Condition) -> Self {
+        self.conditions.push(condition.clone());
         self
     }
 

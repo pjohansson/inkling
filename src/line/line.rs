@@ -52,6 +52,15 @@ pub enum Content {
 }
 
 impl FullLine {
+    pub fn from_chunk(chunk: LineChunk) -> Self {
+        FullLine {
+            chunk,
+            tags: Vec::new(),
+            glue_begin: false,
+            glue_end: false,
+        }
+    }
+
     pub fn text(&self) -> String {
         let mut buffer = String::new();
 
@@ -67,13 +76,10 @@ impl FullLine {
         buffer
     }
 
-    pub fn from_chunk(chunk: LineChunk) -> Self {
-        FullLine {
-            chunk,
-            tags: Vec::new(),
-            glue_begin: false,
-            glue_end: false,
-        }
+    #[cfg(test)]
+    pub fn from_string(line: &str) -> Self {
+        let chunk = LineChunkBuilder::from_string(line).build();
+        Self::from_chunk(chunk)
     }
 }
 
@@ -139,7 +145,7 @@ pub mod builders {
             }
         }
 
-        pub fn add_pure_text(&mut self, text: &str) {
+        pub fn add_text(&mut self, text: &str) {
             self.add_item(Content::Text(text.to_string()));
         }
 
@@ -151,28 +157,25 @@ pub mod builders {
             self.items.push(item);
         }
 
+        #[cfg(test)]
         pub fn with_divert(mut self, address: &str) -> Self {
             self.with_item(Content::Divert(address.to_string()))
         }
 
+        #[cfg(test)]
         pub fn with_item(mut self, item: Content) -> Self {
             self.items.push(item);
             self
         }
 
-        pub fn with_pure_text(mut self, text: &str) -> Self {
+        #[cfg(test)]
+        pub fn with_text(mut self, text: &str) -> Self {
             self.with_item(Content::Text(text.to_string()))
         }
 
-        // #[cfg(test)]
-        pub fn with_text(mut self, text: &str) -> Result<Self, LineParsingError> {
-            let chunk = parse_chunk(text)?;
-
-            for item in chunk.items {
-                self.add_item(item);
-            }
-
-            Ok(self)
+        #[cfg(test)]
+        pub fn from_string(line: &str) -> Self {
+            LineChunkBuilder::new().with_text(line)
         }
     }
 }

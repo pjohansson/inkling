@@ -18,7 +18,7 @@ pub fn parse_root_node(lines: &[ParsedLineKind]) -> RootNode {
 
         match line {
             ParsedLineKind::Line(line) => {
-                builder.add_full_line(line.clone());
+                builder.add_line(line.clone());
             }
             ParsedLineKind::Choice { level, .. } => {
                 let (branches, gather) =
@@ -27,7 +27,7 @@ pub fn parse_root_node(lines: &[ParsedLineKind]) -> RootNode {
                 builder.add_branching_choice(branches);
 
                 if let Some(line) = gather {
-                    builder.add_full_line(line);
+                    builder.add_line(line);
 
                     // `parse_choice_set_with_gather` advances the index to the next line
                     // after this group if a gather was found, but this loop also does that
@@ -36,7 +36,7 @@ pub fn parse_root_node(lines: &[ParsedLineKind]) -> RootNode {
                 }
             }
             ParsedLineKind::Gather { line, .. } => {
-                builder.add_full_line(line.clone());
+                builder.add_line(line.clone());
             }
         };
 
@@ -130,7 +130,7 @@ fn parse_branch_at_given_level(
 
         match line {
             ParsedLineKind::Line(line) => {
-                builder.add_full_line(line.clone());
+                builder.add_line(line.clone());
             }
             ParsedLineKind::Choice { level, .. } if *level == current_level => break,
             ParsedLineKind::Choice { level, .. } if *level > current_level => {
@@ -140,7 +140,7 @@ fn parse_branch_at_given_level(
                 builder.add_branching_choice(branching_set);
 
                 if let Some(line) = gather {
-                    builder.add_full_line(line);
+                    builder.add_line(line);
                 }
 
                 // `parse_branching_choice_set_and_gather` advances the index to the next line

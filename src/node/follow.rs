@@ -340,7 +340,9 @@ mod tests {
 
     #[test]
     fn stack_that_points_to_line_instead_of_branching_choice_returns_error() {
-        let mut node = RootNodeBuilder::new().with_line_text("Line 1").build();
+        let mut node = RootNodeBuilder::new()
+            .with_text_line_chunk("Line 1")
+            .build();
 
         let mut buffer = Vec::new();
         let mut stack = vec![0];
@@ -424,8 +426,8 @@ mod tests {
     #[test]
     fn following_items_in_a_node_adds_lines_to_buffer() {
         let mut node = RootNodeBuilder::new()
-            .with_line_text("Line 1")
-            .with_line_text("Line 2")
+            .with_text_line_chunk("Line 1")
+            .with_text_line_chunk("Line 2")
             .build();
 
         let mut buffer = Vec::new();
@@ -440,7 +442,9 @@ mod tests {
 
     #[test]
     fn following_into_a_node_increments_number_of_visits() {
-        let mut node = RootNodeBuilder::new().with_line_text("Line 1").build();
+        let mut node = RootNodeBuilder::new()
+            .with_text_line_chunk("Line 1")
+            .build();
 
         let mut buffer = Vec::new();
 
@@ -455,8 +459,8 @@ mod tests {
     #[test]
     fn following_items_updates_stack() {
         let mut node = RootNodeBuilder::new()
-            .with_line_text("Line 1")
-            .with_line_text("Line 2")
+            .with_text_line_chunk("Line 1")
+            .with_text_line_chunk("Line 2")
             .build();
 
         let mut buffer = Vec::new();
@@ -469,8 +473,8 @@ mod tests {
     #[test]
     fn following_items_starts_from_stack() {
         let mut node = RootNodeBuilder::new()
-            .with_line_text("Line 1")
-            .with_line_text("Line 2")
+            .with_text_line_chunk("Line 1")
+            .with_text_line_chunk("Line 2")
             .build();
 
         let mut buffer = Vec::new();
@@ -485,9 +489,9 @@ mod tests {
     #[test]
     fn follow_always_uses_last_position_in_stack() {
         let mut node = RootNodeBuilder::new()
-            .with_line_text("Line 1")
-            .with_line_text("Line 2")
-            .with_line_text("Line 3")
+            .with_text_line_chunk("Line 1")
+            .with_text_line_chunk("Line 2")
+            .with_text_line_chunk("Line 3")
             .build();
 
         let mut buffer = Vec::new();
@@ -504,8 +508,8 @@ mod tests {
     #[test]
     fn following_into_a_node_does_not_increment_number_of_visits_if_stack_is_non_zero() {
         let mut node = RootNodeBuilder::new()
-            .with_line_text("Line 1")
-            .with_line_text("Line 2")
+            .with_text_line_chunk("Line 1")
+            .with_text_line_chunk("Line 2")
             .build();
 
         let mut buffer = Vec::new();
@@ -520,9 +524,14 @@ mod tests {
     #[test]
     fn following_into_line_with_divert_immediately_returns_it() {
         let mut node = RootNodeBuilder::new()
-            .with_line_text("Line 1")
-            .with_line_text("Divert -> divert")
-            .with_line_text("Line 2")
+            .with_text_line_chunk("Line 1")
+            .with_line_chunk(
+                LineChunkBuilder::new()
+                    .with_text("Divert")
+                    .with_divert("divert")
+                    .build(),
+            )
+            .with_text_line_chunk("Line 2")
             .build();
 
         let mut buffer = Vec::new();
@@ -576,7 +585,7 @@ mod tests {
             .build();
 
         let mut node = RootNodeBuilder::new()
-            .with_line_text("Line 1")
+            .with_text_line_chunk("Line 1")
             .with_branching_choice(branching_choice_set)
             .build();
 
@@ -599,15 +608,15 @@ mod tests {
             .with_branch(empty_branch.clone())
             .with_branch(
                 BranchBuilder::from_choice(choice.clone()) // Stack: [1, 2, 2], Choice: 1
-                    .with_line_text("Line 3")
-                    .with_line_text("Line 4")
+                    .with_text_line_chunk("Line 3")
+                    .with_text_line_chunk("Line 4")
                     .build(),
             )
             .with_branch(empty_branch.clone())
             .build();
 
         let nested_branch = BranchBuilder::from_choice(choice.clone())
-            .with_line_text("Line 2")
+            .with_text_line_chunk("Line 2")
             .with_branching_choice(nested_branching_choice) // Stack: [1, 2, 1]
             .build();
 
@@ -618,9 +627,9 @@ mod tests {
             .build();
 
         let mut node = RootNodeBuilder::new()
-            .with_line_text("Line 1")
+            .with_text_line_chunk("Line 1")
             .with_branching_choice(root_branching_choice) // Stack: [1]
-            .with_line_text("Line 5")
+            .with_text_line_chunk("Line 5")
             .build();
 
         let mut buffer = Vec::new();
@@ -643,7 +652,7 @@ mod tests {
                     .with_branch(BranchBuilder::from_choice(choice).build())
                     .build(),
             )
-            .with_line_text("Line 1")
+            .with_text_line_chunk("Line 1")
             .build();
 
         let mut buffer = Vec::new();
@@ -809,22 +818,22 @@ mod tests {
                                                 BranchingPointBuilder::new()
                                                     .with_branch(
                                                         BranchBuilder::from_choice(choice.clone())
-                                                            .with_line_text("Line 1")
+                                                            .with_text_line_chunk("Line 1")
                                                             .build(),
                                                     )
                                                     .build(),
                                             )
-                                            .with_line_text("Line 2")
+                                            .with_text_line_chunk("Line 2")
                                             .build(),
                                     )
                                     .build(),
                             )
-                            .with_line_text("Line 3")
+                            .with_text_line_chunk("Line 3")
                             .build(),
                     )
                     .build(),
             )
-            .with_line_text("Line 4")
+            .with_text_line_chunk("Line 4")
             .build();
 
         let mut buffer = Vec::new();
@@ -846,7 +855,9 @@ mod tests {
 
     #[test]
     fn following_with_stack_that_has_too_large_index_raises_error() {
-        let mut node = RootNodeBuilder::new().with_line_text("Line 1").build();
+        let mut node = RootNodeBuilder::new()
+            .with_text_line_chunk("Line 1")
+            .build();
 
         let mut buffer = Vec::new();
 
@@ -867,7 +878,9 @@ mod tests {
 
     #[test]
     fn following_with_empty_stack_raises_error() {
-        let mut node = RootNodeBuilder::new().with_line_text("Line 1").build();
+        let mut node = RootNodeBuilder::new()
+            .with_text_line_chunk("Line 1")
+            .build();
 
         let mut buffer = Vec::new();
 
