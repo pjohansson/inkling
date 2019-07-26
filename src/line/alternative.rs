@@ -120,8 +120,8 @@ impl AlternativeBuilder {
     }
 
     /// Set the alternative `LineChunk`s to the builder.
-    /// 
-    /// # Notes 
+    ///
+    /// # Notes
     /// *   Replaces the current set of items.
     pub fn with_items(mut self, items: Vec<LineChunk>) -> Self {
         self.items = items;

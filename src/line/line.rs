@@ -189,8 +189,8 @@ pub mod builders {
     }
 
     /// Builder for constructing a `LineChunk`.
-    /// 
-    /// # Notes 
+    ///
+    /// # Notes
     /// *   If no items were added to the chunk, a `Content::Empty` item will be filled in.
     pub struct LineChunkBuilder {
         items: Vec<Content>,

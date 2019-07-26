@@ -14,6 +14,40 @@ pub enum LinePart<'a> {
     Embraced(&'a str),
 }
 
+/// Return line split at a separator, ignoring separators inside curly braces.
+pub fn split_line_at_separator(
+    content: &str,
+    separator: char,
+) -> Result<Vec<&str>, LineParsingError> {
+    let mut parts = Vec::new();
+
+    let mut brace_level = 0;
+    let mut last_index = 0;
+
+    for (i, c) in content.chars().enumerate() {
+        match c {
+            c if c == separator && brace_level == 0 => {
+                parts.push(content.get(last_index..i).unwrap());
+                last_index = i + 1;
+            }
+            '{' => brace_level += 1,
+            '}' => brace_level -= 1,
+            _ => (),
+        }
+    }
+
+    if brace_level != 0 {
+        return Err(LineParsingError {
+            kind: LineErrorKind::UnmatchedBraces,
+            line: content.to_string(),
+        });
+    }
+
+    parts.push(content.get(last_index..).unwrap());
+
+    Ok(parts)
+}
+
 /// Split a line into parts of pure text and text enclosed in curly braces.
 pub fn split_line_into_variants<'a>(
     content: &'a str,
@@ -155,6 +189,65 @@ mod tests {
                 other
             ),
         }
+    }
+
+    #[test]
+    fn split_empty_string_at_separator_returns_empty_string() {
+        assert_eq!(split_line_at_separator("", '|').unwrap(), &[""]);
+    }
+
+    #[test]
+    fn split_empty_string_with_separators_return_multiple_empty_strings() {
+        assert_eq!(split_line_at_separator("||", '|').unwrap(), &["", "", ""]);
+    }
+
+    #[test]
+    fn splitting_string_at_separators_returns_content() {
+        assert_eq!(
+            split_line_at_separator("Hello|World!", '|').unwrap(),
+            &["Hello", "World!"]
+        );
+    }
+
+    #[test]
+    fn any_separator_can_be_used() {
+        assert_eq!(
+            split_line_at_separator("One|Two", '|').unwrap(),
+            &["One", "Two"]
+        );
+
+        assert_eq!(
+            split_line_at_separator("One,Two", ',').unwrap(),
+            &["One", "Two"]
+        );
+
+        assert_eq!(
+            split_line_at_separator("One$Two", '$').unwrap(),
+            &["One", "Two"]
+        );
+    }
+
+    #[test]
+    fn splitting_string_with_separator_inside_curly_braces_returns_one_item() {
+        assert_eq!(
+            split_line_at_separator("{Hello|World!}", '|').unwrap(),
+            &["{Hello|World!}"]
+        );
+    }
+
+    #[test]
+    fn splitting_string_with_mixed_braces_and_separators_return_correct_items() {
+        assert_eq!(
+            split_line_at_separator("Hello, {World|!}|Again!", '|').unwrap(),
+            &["Hello, {World|!}", "Again!"]
+        );
+    }
+
+    #[test]
+    fn splitting_string_with_unmatched_braces_returns_error() {
+        assert!(split_line_at_separator("}Hello, World!", '|').is_err());
+        assert!(split_line_at_separator("{Hello, World!", '|').is_err());
+        assert!(split_line_at_separator("Hello, {World{}!", '|').is_err());
     }
 
     #[test]

@@ -3,7 +3,8 @@
 use crate::{
     consts::{CYCLE_MARKER, ONCE_ONLY_MARKER, SEQUENCE_SEPARATOR, SHUFFLE_MARKER},
     line::{
-        parse::parse_chunk, Alternative, AlternativeBuilder, AlternativeKind, LineParsingError,
+        parse::{parse_chunk, split_line_at_separator},
+        Alternative, AlternativeBuilder, AlternativeKind, LineParsingError,
     },
 };
 
@@ -15,9 +16,9 @@ use crate::{
 pub fn parse_alternative(content: &str) -> Result<Alternative, LineParsingError> {
     let (tail, kind) = get_alternative_kind_and_cut_marker(content.trim_start());
 
-    let items = tail
-        .split(SEQUENCE_SEPARATOR)
-        .map(|s| parse_chunk(s))
+    let items = split_line_at_separator(tail, SEQUENCE_SEPARATOR)?
+        .into_iter()
+        .map(|text| parse_chunk(text))
         .collect::<Result<Vec<_>, _>>()?;
 
     Ok(AlternativeBuilder::from_kind(kind)
