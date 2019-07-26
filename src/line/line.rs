@@ -7,9 +7,9 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
-/// Representation of a single line of Ink content. 
-/// 
-/// All of its raw data will be processed into a final form and presented to the user 
+/// Representation of a single line of Ink content.
+///
+/// All of its raw data will be processed into a final form and presented to the user
 /// as the story is followed.
 pub struct InternalLine {
     /// Root chunk of line content, which may possibly be nested into even finer parts.
@@ -27,14 +27,14 @@ pub struct InternalLine {
 
 #[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
-/// Line content is nested into these smaller chunks. 
-/// 
-/// When the chunk is processed it will, in order, process all child items. The simplest 
+/// Line content is nested into these smaller chunks.
+///
+/// When the chunk is processed it will, in order, process all child items. The simplest
 /// example is a line of text with a divert. This can be represented as two items in this chunk.
 /// When the chunk is processed the line content will be visited first, then
 /// the divert will be encountered and returned through the call stack.
-/// 
-/// A more complicated example is a line which contains a set of variational content, which 
+///
+/// A more complicated example is a line which contains a set of variational content, which
 /// in turn contain their own text, diverts and further nested variations. This necessitates
 /// that the content in line is split into chunks like this.
 ///
@@ -42,8 +42,8 @@ pub struct InternalLine {
 /// and displayed to the user.
 pub struct LineChunk {
     /// Conditions that must be fulfilled for the content to be processed.
-    /// 
-    /// The conditions represent the entire chunk of items. If they are fulfilled, all items 
+    ///
+    /// The conditions represent the entire chunk of items. If they are fulfilled, all items
     /// will be processed. If not, the chunk will be skipped during processing.
     pub conditions: Vec<Condition>,
     /// Set of line content which will be processed in order.
@@ -66,7 +66,7 @@ pub enum Content {
 
 impl InternalLine {
     /// Create the line from a finished chunk of line content.
-    /// 
+    ///
     /// Will not set any tags or glue to the object.
     pub fn from_chunk(chunk: LineChunk) -> Self {
         InternalLine {
@@ -78,7 +78,7 @@ impl InternalLine {
     }
 
     /// Get the text content from the lines direct children.
-    /// 
+    ///
     /// TODO: Replace with a proper function once we finalize how `InternalLine` is processed.
     pub fn text(&self) -> String {
         let mut buffer = String::new();
@@ -106,10 +106,10 @@ impl InternalLine {
 
 pub mod builders {
     //! Builders for line structures.
-    //! 
-    //! For testing purposes most of these structs implement additional functions when 
+    //!
+    //! For testing purposes most of these structs implement additional functions when
     //! the `test` profile is activated. These functions are not meant to be used internally
-    //! except by tests, since they do not perform any validation of the content. 
+    //! except by tests, since they do not perform any validation of the content.
 
     use super::*;
 
@@ -158,7 +158,7 @@ pub mod builders {
         }
 
         /// Set the input tags to the object.
-        /// 
+        ///
         /// Note that this replaces the current tags, it does not extend it.
         pub fn set_tags(&mut self, tags: &[String]) {
             self.tags = tags.to_vec();

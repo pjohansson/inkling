@@ -9,12 +9,12 @@ use crate::{
 };
 
 #[derive(Clone, Debug, PartialEq)]
-/// Representation of a parsed line of content. 
-/// 
-/// To construct the nested tree structure of branching choices and gather points 
-/// we need information about which level every choice and gather line is at. 
-/// 
-/// This structure marks the actual data of choices and gathers with their level. 
+/// Representation of a parsed line of content.
+///
+/// To construct the nested tree structure of branching choices and gather points
+/// we need information about which level every choice and gather line is at.
+///
+/// This structure marks the actual data of choices and gathers with their level.
 pub enum ParsedLineKind {
     Choice {
         /// Nested level of choice.

@@ -65,8 +65,8 @@ pub fn parse_chunk(content: &str) -> Result<LineChunk, LineParsingError> {
 }
 
 /// Parse and remove glue markers from either side.
-/// 
-/// Enclosed whitespace within these markers is retained. Markers that are placed further 
+///
+/// Enclosed whitespace within these markers is retained. Markers that are placed further
 /// in are not (currently) removed.
 fn parse_line_glue(line: &mut String, has_divert: bool) -> (bool, bool) {
     let glue_left = line.starts_with(GLUE_MARKER);

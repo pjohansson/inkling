@@ -8,8 +8,8 @@ use crate::{
 };
 
 /// Parse conditions for a choice and trim them from the line.
-/// 
-/// Choices can lead with multiple conditions. Every condition is contained inside 
+///
+/// Choices can lead with multiple conditions. Every condition is contained inside
 /// `{}` bracket pairs and may be whitespace separated. This function reads all conditions
 /// until no bracket pairs are left in the leading part of the line.
 pub fn parse_choice_conditions(line: &mut String) -> Result<Vec<Condition>, ParseError> {
@@ -67,9 +67,9 @@ fn parse_condition(line: &str) -> Result<Condition, String> {
 }
 
 /// Parse the condition `name` and whether the condition is negated.
-/// 
-/// Conditions are of the form {(not) name (op value)} and this function treats 
-/// the line that is left after trimming the (op value) part from it. Thus, we want 
+///
+/// Conditions are of the form {(not) name (op value)} and this function treats
+/// the line that is left after trimming the (op value) part from it. Thus, we want
 /// to get the name and whether a `not` statement preceedes it.
 fn get_name_and_if_not_condition(line: &str) -> Result<(String, bool), String> {
     let words = line.trim().split_whitespace().collect::<Vec<_>>();

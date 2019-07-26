@@ -12,7 +12,7 @@ pub struct InternalChoice {
     /// Text presented to the user to represent the choice.
     pub selection_text: InternalLine,
     /// Text that the choice produces when selected, replacing the `selection_text` line.
-    /// 
+    ///
     /// Can be empty, in which case the presented text is removed before the story flow
     /// continues to the next line.
     pub display_text: InternalLine,
@@ -27,12 +27,12 @@ pub struct InternalChoice {
 
 /// Builder for constructing an `InternalChoice`.
 ///
-/// For testing purposes this struct implement additional functions when 
+/// For testing purposes this struct implement additional functions when
 /// the `test` profile is activated. These functions are not meant to be used internally
-/// except by tests, since they do not perform any validation of the content. 
-/// 
+/// except by tests, since they do not perform any validation of the content.
+///
 /// # Notes
-///  *  Tags can be set to the builder, in which case they are set to both 
+///  *  Tags can be set to the builder, in which case they are set to both
 ///     the `selection_text` and `display_text` items.
 pub struct InternalChoiceBuilder {
     selection_text: InternalLine,
@@ -45,7 +45,7 @@ pub struct InternalChoiceBuilder {
 
 impl InternalChoiceBuilder {
     /// Construct the builder with a line of text.
-    /// 
+    ///
     /// The given line is set as both the `selection_text` and `display_text` items.
     pub fn from_line(line: InternalLine) -> Self {
         InternalChoiceBuilder {
@@ -59,8 +59,8 @@ impl InternalChoiceBuilder {
     }
 
     /// Finalize the `InternalChoice` and return it.
-    /// 
-    /// If tags have been set they are set as the tags for both the `selection_text` 
+    ///
+    /// If tags have been set they are set as the tags for both the `selection_text`
     /// and `display_text` lines.
     pub fn build(mut self) -> InternalChoice {
         if let Some(tags) = self.tags {
@@ -100,8 +100,8 @@ impl InternalChoiceBuilder {
 
     #[cfg(test)]
     /// Construct the builder with a line of pure text.
-    /// 
-    /// Uses `InternalLine::from_string` to create the line which is set to both `selection_text` 
+    ///
+    /// Uses `InternalLine::from_string` to create the line which is set to both `selection_text`
     /// and `display_text`.
     pub fn from_string(line: &str) -> Self {
         Self::from_line(InternalLine::from_string(line))
@@ -109,7 +109,7 @@ impl InternalChoiceBuilder {
 
     #[cfg(test)]
     /// Construct the builder with a line of pure text for the `selection_text` item.
-    /// 
+    ///
     /// The `display_text` line will be empty.
     pub fn from_selection_string(line: &str) -> Self {
         let empty = InternalLine::from_string("");
@@ -131,8 +131,8 @@ impl InternalChoiceBuilder {
     }
 
     #[cfg(test)]
-    /// Add a single `Condition` to the choice. 
-    /// 
+    /// Add a single `Condition` to the choice.
+    ///
     /// This can be run multiple times to add more conditions.
     pub fn with_condition(mut self, condition: &Condition) -> Self {
         self.conditions.push(condition.clone());

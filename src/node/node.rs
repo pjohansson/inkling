@@ -69,10 +69,10 @@ impl NodeItem {
 
 pub mod builders {
     //! Builders for constructing nodes.
-    //! 
-    //! For testing purposes most of these structs implement additional functions when 
+    //!
+    //! For testing purposes most of these structs implement additional functions when
     //! the `test` profile is activated. These functions are not meant to be used internally
-    //! except by tests, since they do not perform any validation of the content. 
+    //! except by tests, since they do not perform any validation of the content.
 
     use super::{Branch, NodeItem, RootNode};
 

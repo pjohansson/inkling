@@ -14,7 +14,9 @@ pub fn parse_gather(content: &str) -> Result<Option<ParsedLineKind>, LineParsing
 
     parse_markers_and_text(line_without_divert, GATHER_MARKER)
         .map(|(level, remaining_text)| (level, format!("{}{}", remaining_text, line_from_divert)))
-        .map(|(level, line)| parse_internal_line(&line).map(|line| ParsedLineKind::Gather { level, line }))
+        .map(|(level, line)| {
+            parse_internal_line(&line).map(|line| ParsedLineKind::Gather { level, line })
+        })
         .transpose()
 }
 

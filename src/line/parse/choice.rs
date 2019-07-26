@@ -4,7 +4,8 @@ use crate::{
     consts::{CHOICE_MARKER, STICKY_CHOICE_MARKER},
     line::{
         parse::{
-            parse_choice_conditions, parse_internal_line, parse_markers_and_text, split_at_divert_marker,
+            parse_choice_conditions, parse_internal_line, parse_markers_and_text,
+            split_at_divert_marker,
         },
         Content, InternalChoice, InternalChoiceBuilder, InternalLine, LineErrorKind,
         LineParsingError, ParsedLineKind,
@@ -26,9 +27,9 @@ pub fn parse_choice(content: &str) -> Result<Option<ParsedLineKind>, LineParsing
 }
 
 /// Parse the content of an `InternalChoice` from a line.
-/// 
-/// The line should not contain the markers used to determine whether a line of content 
-/// represents a choice. It should only contain the part of the line which represents 
+///
+/// The line should not contain the markers used to determine whether a line of content
+/// represents a choice. It should only contain the part of the line which represents
 /// the choice text.
 fn parse_choice_data(content: &str) -> Result<InternalChoice, LineParsingError> {
     let mut buffer = content.to_string();
@@ -61,11 +62,11 @@ fn parse_choice_data(content: &str) -> Result<InternalChoice, LineParsingError> 
     Ok(builder.build())
 }
 
-/// Check whether a choice line is a fallback. 
-/// 
+/// Check whether a choice line is a fallback.
+///
 /// The condition for a fallback choice is that it has no displayed text for the user.
-/// 
-/// Furthermore, a choice with no displayed text can have no regular text, either. 
+///
+/// Furthermore, a choice with no displayed text can have no regular text, either.
 /// We can determine this by checking if a separator bracket is present in the string.
 /// If so, return an error.
 fn is_choice_fallback(
@@ -90,9 +91,9 @@ fn is_choice_fallback(
     }
 }
 
-/// Split choice markers from a line and determine whether it is sticky. 
-/// 
-/// If markers are present, ensure that the line does not have both sticky and non-sticky markers. 
+/// Split choice markers from a line and determine whether it is sticky.
+///
+/// If markers are present, ensure that the line does not have both sticky and non-sticky markers.
 /// Return the number of markers along with whether the choice was sticky and the remaining line.
 pub fn parse_choice_markers_and_text(
     content: &str,
@@ -127,9 +128,9 @@ fn marker_exists_before_text(line: &str, marker: char) -> bool {
 }
 
 /// Return `selection_text` and `display_text` strings from a line.
-/// 
-/// These are demarcated by `[]` brackets. Content before the bracket is both selection 
-/// and display text. Content inside the bracket is only for the selection and content 
+///
+/// These are demarcated by `[]` brackets. Content before the bracket is both selection
+/// and display text. Content inside the bracket is only for the selection and content
 /// after the bracket only for display.  
 fn parse_choice_line_variants(line: &str) -> Result<(String, String), LineParsingError> {
     match (line.find('['), line.find(']')) {
@@ -245,7 +246,10 @@ pub(crate) mod tests {
     fn choice_with_variants_set_selection_and_display_text_separately() {
         let choice = parse_choice_data("Selection[] plus display").unwrap();
 
-        assert_eq!(choice.selection_text, parse_internal_line("Selection").unwrap());
+        assert_eq!(
+            choice.selection_text,
+            parse_internal_line("Selection").unwrap()
+        );
         assert_eq!(
             choice.display_text,
             parse_internal_line("Selection plus display").unwrap()
@@ -257,7 +261,10 @@ pub(crate) mod tests {
             choice.selection_text,
             parse_internal_line("Separate selection").unwrap()
         );
-        assert_eq!(choice.display_text, parse_internal_line("And display").unwrap());
+        assert_eq!(
+            choice.display_text,
+            parse_internal_line("And display").unwrap()
+        );
     }
 
     #[test]
