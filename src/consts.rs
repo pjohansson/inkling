@@ -1,5 +1,9 @@
 //! Constant markers used when parsing `Ink` lines.
 
+/************************
+ * Line content markers *
+ ************************/
+
 /// Marker for a non-sticky choice, which can only ever be followed once in the story.
 pub const CHOICE_MARKER: char = '*';
 
@@ -21,17 +25,45 @@ pub const GLUE_MARKER: &'static str = "<>";
 /// (or the end of the line) will be a single tag.
 pub const TAG_MARKER: char = '#';
 
+/********************
+ * Sequence markers *
+ ********************/
+
+/// Marker for a cycle alternative sequence.
+pub const CYCLE_MARKER: char = '&';
+
+/// Marker for a once-only alternative sequence.
+pub const ONCE_ONLY_MARKER: char = '!';
+
+/// Marker for a shuffle alternative sequence.
+pub const SHUFFLE_MARKER: char = '~';
+
+/// Marker for sequence item separator.
+pub const SEQUENCE_SEPARATOR: char = '|';
+
+/****************
+ * Knot markers *
+ ****************/
+
 /// Marker for a knot, the main divisor of story content.
 pub const KNOT_MARKER: &'static str = "==";
 
 /// Marker for a stitch belonging to a knot.
 pub const STITCH_MARKER: &'static str = "=";
 
+/************************
+ * Comment line markers *
+ ************************/
+
 /// Marker for line comments, which will be ignored when parsing a story.
 pub const LINE_COMMENT_MARKER: &'static str = "//";
 
 /// Marker for line comments which will print a reminder message when encountered.
 pub const TODO_COMMENT_MARKER: &'static str = "TODO:";
+
+/*****************************
+ * Default names for objects *
+ *****************************/
 
 /// Default name for the root `Stitch` in a `Knot` and `Knot` in a `Story`.
 ///

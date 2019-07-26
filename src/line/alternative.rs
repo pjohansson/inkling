@@ -11,42 +11,42 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
 /// Set of line content which can vary when it is processed.
-/// 
-/// The variational content comes from a fixed set of chunks. When the `Alternative` 
-/// is processed it will pick one item from this set and process it. Which item is 
+///
+/// The variational content comes from a fixed set of chunks. When the `Alternative`
+/// is processed it will pick one item from this set and process it. Which item is
 /// selected depends on which kind of alternative it is.
-/// 
+///
 /// Any selected `LineChunk`s can of course contain nested alternatives, and so on.
 pub struct Alternative {
     /// Current index in the set of content.
     current_index: Option<usize>,
     /// Which kind of alternative this represents.
-    kind: AlternativeKind,
+    pub kind: AlternativeKind,
     /// Set of content which the object will select and process from.
-    items: Vec<LineChunk>,
+    pub items: Vec<LineChunk>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 #[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
 /// Variants of alternating content.
-enum AlternativeKind {
+pub enum AlternativeKind {
     /// Cycles through the set, starting from the beginning after reaching the end.
-    /// 
-    /// # Example 
+    ///
+    /// # Example
     /// A set of the week days `[Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday]`
     /// will in turn print every day, then start over again from Monday after Sunday has been
     /// visited.
     Cycle,
     /// Goes through the set of content once, then produces nothing.
-    /// 
-    /// # Example 
-    /// A countdown from `[Three, Two, One]` will print the numbers, then nothing after 
+    ///
+    /// # Example
+    /// A countdown from `[Three, Two, One]` will print the numbers, then nothing after
     /// the last item has been shown.
     OnceOnly,
     /// Goes through the set of content once, then repeats the final item.
-    /// 
-    /// # Example 
-    /// A train traveling to its destination `[Frankfurt, Mannheim, Heidelberg]` will print 
+    ///
+    /// # Example
+    /// A train traveling to its destination `[Frankfurt, Mannheim, Heidelberg]` will print
     /// each destination, then `Heidelberg` forever after reaching the city.
     Sequence,
 }
@@ -103,7 +103,7 @@ pub struct AlternativeBuilder {
 
 impl AlternativeBuilder {
     /// Construct the builder with the given `AlternativeKind`.
-    fn from_kind(kind: AlternativeKind) -> Self {
+    pub fn from_kind(kind: AlternativeKind) -> Self {
         AlternativeBuilder {
             kind,
             items: Vec::new(),
@@ -142,6 +142,11 @@ impl AlternativeBuilder {
     /// Add a chunk of line content to the set of alternatives.
     pub fn with_line(mut self, line: LineChunk) -> Self {
         self.add_line(line);
+        self
+    }
+
+    pub fn with_items(mut self, items: Vec<LineChunk>) -> Self {
+        self.items = items;
         self
     }
 }
