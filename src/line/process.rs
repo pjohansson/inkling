@@ -61,10 +61,17 @@ impl Process for Content {
 }
 
 #[cfg(test)]
-mod tests {
+pub mod tests {
     use super::*;
 
     use crate::line::LineChunkBuilder;
+
+    /// Process an item into a buffer an return it.
+    pub fn get_processed_string<T: Process>(item: &mut T) -> String {
+        let mut buffer = String::new();
+        item.process(&mut buffer).unwrap();
+        buffer
+    }
 
     #[test]
     fn full_line_processing_retains_glue() {

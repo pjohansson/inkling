@@ -56,13 +56,8 @@ fn get_sequence_kind(content: &str) -> AlternativeKind {
 mod tests {
     use super::*;
 
-    use crate::line::Process;
+    use crate::line::process::tests::get_processed_string;
 
-    fn get_processed_string<T: Process>(item: &mut T) -> String {
-        let mut buffer = String::new();
-        item.process(&mut buffer).unwrap();
-        buffer
-    }
     #[test]
     fn list_of_strings_separated_by_vertical_lines_are_added_to_set() {
         let text = "One|Two|Three";

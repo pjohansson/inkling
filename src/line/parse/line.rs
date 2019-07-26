@@ -2,7 +2,10 @@
 
 use crate::{
     consts::{DIVERT_MARKER, GLUE_MARKER, TAG_MARKER},
-    line::{Content, InternalLine, InternalLineBuilder, LineChunk, LineChunkBuilder},
+    line::{
+        parse::{parse_alternative, split_line_into_variants, LinePart},
+        Content, InternalLine, InternalLineBuilder, LineChunk, LineChunkBuilder,
+    },
 };
 
 #[derive(Clone, Debug)]
@@ -19,6 +22,7 @@ pub enum LineErrorKind {
     InvalidAddress { address: String },
     StickyAndNonSticky,
     UnmatchedBrackets,
+    UnmatchedBraces,
 }
 
 /// Parse an `InternalLine` from a string.
@@ -48,6 +52,23 @@ pub fn parse_internal_line(content: &str) -> Result<InternalLine, LineParsingErr
 pub fn parse_chunk(content: &str) -> Result<LineChunk, LineParsingError> {
     let mut builder = LineChunkBuilder::new();
 
+    for part in split_line_into_variants(content)? {
+        match part {
+            LinePart::Text(part) => {
+                add_text_items(part, &mut builder)?;
+            }
+            LinePart::Embraced(text) => {
+                let alternative = parse_alternative(text)?;
+                builder.add_item(Content::Alternative(alternative));
+            }
+        }
+    }
+
+    Ok(builder.build())
+}
+
+/// Parse and add text and divert items to a `LineChunkBuilder`.
+fn add_text_items(content: &str, builder: &mut LineChunkBuilder) -> Result<(), LineParsingError> {
     let mut buffer = content.to_string();
     let divert = parse_divert(&mut buffer)?;
 
@@ -61,7 +82,7 @@ pub fn parse_chunk(content: &str) -> Result<LineChunk, LineParsingError> {
         builder.add_divert(&address);
     }
 
-    Ok(builder.build())
+    Ok(())
 }
 
 /// Parse and remove glue markers from either side.
@@ -142,6 +163,8 @@ fn verify_divert_address(line: &str, backup_line: String) -> Result<String, Line
 mod tests {
     use super::*;
 
+    use crate::line::process::tests::get_processed_string;
+
     #[test]
     fn simple_text_string_parses_into_chunk_with_single_item() {
         let chunk = parse_chunk("Hello, World!").unwrap();
@@ -162,6 +185,21 @@ mod tests {
         let chunk = parse_chunk(line).unwrap();
 
         assert_eq!(chunk.items[0], Content::Text(line.to_string()));
+    }
+
+    #[test]
+    fn braces_denote_alternative_sequences_in_chunks() {
+        let mut chunk = parse_chunk("{One|Two}").unwrap();
+
+        assert_eq!(chunk.items.len(), 1);
+
+        match &chunk.items[0] {
+            Content::Alternative(..) => (),
+            other => panic!("expected `Content::Alternative` but got {:?}", other),
+        }
+
+        assert_eq!(&get_processed_string(&mut chunk), "One");
+        assert_eq!(&get_processed_string(&mut chunk), "Two");
     }
 
     #[test]

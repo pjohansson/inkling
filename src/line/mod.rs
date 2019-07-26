@@ -25,7 +25,7 @@ mod choice;
 mod condition;
 mod line;
 pub(self) mod parse;
-mod process;
+pub(self) mod process;
 
 pub(self) use alternative::{Alternative, AlternativeBuilder, AlternativeKind};
 pub(crate) use choice::{InternalChoice, InternalChoiceBuilder};

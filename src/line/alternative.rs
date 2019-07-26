@@ -119,34 +119,43 @@ impl AlternativeBuilder {
         }
     }
 
+    /// Set the alternative `LineChunk`s to the builder.
+    /// 
+    /// # Notes 
+    /// *   Replaces the current set of items.
+    pub fn with_items(mut self, items: Vec<LineChunk>) -> Self {
+        self.items = items;
+        self
+    }
+
+    #[cfg(test)]
     /// Construct a builder with `AlternativeKind::Cycle`.
     pub fn cycle() -> Self {
         AlternativeBuilder::from_kind(AlternativeKind::Cycle)
     }
 
+    #[cfg(test)]
     /// Construct a builder with `AlternativeKind::OnceOnly`.
     pub fn once_only() -> Self {
         AlternativeBuilder::from_kind(AlternativeKind::OnceOnly)
     }
 
+    #[cfg(test)]
     /// Construct a builder with `AlternativeKind::Sequence`.
     pub fn sequence() -> Self {
         AlternativeBuilder::from_kind(AlternativeKind::Sequence)
     }
 
+    #[cfg(test)]
     /// Add a chunk of line content to the set of alternatives.
     pub fn add_line(&mut self, line: LineChunk) {
         self.items.push(line);
     }
 
+    #[cfg(test)]
     /// Add a chunk of line content to the set of alternatives.
     pub fn with_line(mut self, line: LineChunk) -> Self {
         self.add_line(line);
-        self
-    }
-
-    pub fn with_items(mut self, items: Vec<LineChunk>) -> Self {
-        self.items = items;
         self
     }
 }
