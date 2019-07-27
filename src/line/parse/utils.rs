@@ -65,8 +65,7 @@ pub fn split_line_into_variants<'a>(
         parts.push(LinePart::Text(text));
 
         if let Some(&Range {
-            start: start_next,
-            ..
+            start: start_next, ..
         }) = iter.peek()
         {
             let text = content.get(end + 1..*start_next - 1).unwrap();
@@ -408,7 +407,6 @@ mod tests {
     #[test]
     fn multiple_nested_braces_split_correctly() {
         let parts = split_line_into_variants("Hello, {World{!}}").unwrap();
-        dbg!(&parts);
 
         assert_eq!(&parts[1], &LinePart::Embraced("World{!}"));
     }
