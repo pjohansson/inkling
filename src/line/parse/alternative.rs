@@ -42,12 +42,12 @@ fn get_sequence_kind(content: &str) -> AlternativeKind {
         AlternativeKind::OnceOnly
     } else if content.starts_with(SHUFFLE_MARKER) {
         eprintln!(
-            "WARNING: Shuffle sequences are not yet implemented. Creating a regular sequence. \
+            "WARNING: Shuffle sequences are not yet implemented. Creating a `Cycle` sequence. \
              (line was: '{}')",
             content
         );
 
-        AlternativeKind::Sequence
+        AlternativeKind::Cycle
     } else {
         AlternativeKind::Sequence
     }
