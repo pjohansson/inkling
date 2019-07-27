@@ -164,6 +164,8 @@ fn parse_choice_line_variants(line: &str) -> Result<(String, String), LineParsin
 pub(crate) mod tests {
     use super::*;
 
+    use crate::line::InternalLineBuilder;
+
     impl InternalChoice {
         pub fn from_string(line: &str) -> Self {
             parse_choice_data(line).unwrap()
@@ -243,6 +245,33 @@ pub(crate) mod tests {
     }
 
     #[test]
+    fn choices_can_be_parsed_with_alternatives_in_selection_text() {
+        let choice = parse_choice_data("Hi! {One|Two}").unwrap();
+        assert_eq!(
+            choice.selection_text,
+            parse_internal_line("Hi! {One|Two}").unwrap(),
+        );
+    }
+
+    #[test]
+    fn braces_with_backslash_are_not_conditions() {
+        let choice = parse_choice_data("\\{One|Two}").unwrap();
+        assert_eq!(
+            choice.selection_text,
+            parse_internal_line("{One|Two}").unwrap(),
+        );
+    }
+
+    #[test]
+    fn alternatives_can_be_within_brackets() {
+        let choice = parse_choice_data("[{One|Two}]").unwrap();
+        assert_eq!(
+            choice.selection_text,
+            parse_internal_line("{One|Two}").unwrap(),
+        );
+    }
+
+    #[test]
     fn choice_with_variants_set_selection_and_display_text_separately() {
         let choice = parse_choice_data("Selection[] plus display").unwrap();
 
@@ -300,7 +329,7 @@ pub(crate) mod tests {
 
     #[test]
     fn choices_can_be_parsed_with_conditions() {
-        let choice = parse_choice_data("* {knot_name} Hello, World!").unwrap();
+        let choice = parse_choice_data("{knot_name} Hello, World!").unwrap();
         assert_eq!(choice.conditions.len(), 1);
     }
 

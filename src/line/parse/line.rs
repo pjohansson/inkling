@@ -28,6 +28,8 @@ pub enum LineErrorKind {
     BlankChoice,
     EmptyDivert,
     ExpectedEndOfLine { tail: String },
+    ExpectedLogic { line: String },
+    ExpectedNumber { value: String },
     FoundTunnel,
     InvalidAddress { address: String },
     StickyAndNonSticky,
