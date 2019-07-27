@@ -24,6 +24,20 @@ pub fn parse_choice_conditions(line: &mut String) -> Result<Vec<Condition>, Line
         .collect()
 }
 
+/// Split conditions from the string and return them separately.
+/// 
+/// In this case, splitting from the string means that all characters up until the regular 
+/// line begins are removed from the input string as a side effect. The string up until 
+/// that point is split into string expressions of the conditions contained within them.
+/// 
+/// # Notes 
+/// *   Conditions are marked by being contained within curly '{}' braces. This is unique
+///     to parsing conditions for choices. Other conditional lines require separate markup.
+/// *   As soon as text which is not enclosed by braces appear the condition parsing 
+///     ends.
+/// *   A backslash '\\' can be used in front of a curly brace to denote that it's not 
+///     a condition. 
+/// *   The condition strings are returned without the enclosing braces.
 fn split_choice_conditions_off_string(
     content: &mut String,
 ) -> Result<Vec<String>, LineParsingError> {
