@@ -167,6 +167,10 @@ fn get_brace_level_zero_ranges(content: &str) -> Result<Vec<Range<usize>>, LineP
 
 /// Map every byte in a string to how many curly braces are nested for it.
 ///
+/// # Notes
+/// *   Braces can be preceeded with backslashes ('\') in which case they do not
+///     count as nesting braces.
+///
 /// # Example
 /// ```ignore
 /// assert_eq!(
@@ -177,10 +181,10 @@ fn get_brace_level_zero_ranges(content: &str) -> Result<Vec<Range<usize>>, LineP
 fn get_brace_level_of_line(content: &str) -> Result<Vec<u8>, LineParsingError> {
     content
         .bytes()
-        .scan(0, |brace_level, b| {
-            if b == b'{' {
+        .scan((None, 0), |(prev, brace_level), byte| {
+            if byte == b'{' && prev.map(|c| c != b'\\').unwrap_or(true) {
                 *brace_level += 1;
-            } else if b == b'}' {
+            } else if byte == b'}' && prev.map(|c| c != b'\\').unwrap_or(true) {
                 if *brace_level > 0 {
                     *brace_level -= 1;
                 } else {
@@ -190,6 +194,8 @@ fn get_brace_level_of_line(content: &str) -> Result<Vec<u8>, LineParsingError> {
                     )));
                 }
             }
+
+            prev.replace(byte);
 
             Some(Ok(*brace_level))
         })
@@ -515,5 +521,28 @@ mod tests {
         assert!(get_brace_level_of_line("}Hello").is_err());
         assert!(get_brace_level_of_line("Hel{{}lo").is_err());
         assert!(get_brace_level_of_line("Hel{}}lo").is_err());
+    }
+
+    #[test]
+    fn braces_with_leading_backslashes_do_not_increase_or_decrease_the_level() {
+        assert_eq!(
+            &get_brace_level_of_line("Hello, World!").unwrap(),
+            &vec![0; 13],
+        );
+
+        assert_eq!(
+            &get_brace_level_of_line("\\{Hello, World!").unwrap(),
+            &vec![0; 15],
+        );
+
+        assert_eq!(
+            &get_brace_level_of_line("\\}Hello, World!").unwrap(),
+            &vec![0; 15],
+        );
+
+        assert_eq!(
+            &get_brace_level_of_line("Hello\\{, \\}World!").unwrap(),
+            &vec![0; 17],
+        );
     }
 }
