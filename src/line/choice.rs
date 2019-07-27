@@ -30,10 +30,12 @@ pub struct InternalChoice {
     /// This means that any processing of choices further up will affect the data in the node,
     /// meaning that for example alternative sequences will be updated if the choice was seen.
     pub selection_text: Rc<RefCell<InternalLine>>,
-    /// Text that the choice produces when selected, replacing the `selection_text` line.
+    /// Text that will be added to the output line buffer if the choice is selected.
     ///
-    /// Can be empty, in which case the presented text is removed before the story flow
-    /// continues to the next line.
+    /// This will be added to the buffer before the rest of the lines from the selected 
+    /// branch will be followed and processed.
+    /// 
+    /// Can be empty.
     pub display_text: InternalLine,
     /// Conditions that must be fulfilled for the choice to be displayed.
     pub conditions: Vec<Condition>,
