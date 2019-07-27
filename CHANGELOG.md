@@ -10,9 +10,13 @@
 
 ## 0.10.2
 
-*   Add support for fallback choices 
+*   Add support for fallback choices
 
-## 0.10.3 
+## 0.10.3
 
 *   Improved documentation
-*   Maintenance work: node system replaced with something simpler, lines replaced with something more advanced but feature rich 
+*   Maintenance work: node system replaced with something simpler, lines replaced with something more advanced but feature rich
+
+## 0.10.4
+
+*   Add alternatives in text and choice lines. Currently regular sequences, cycles and once-only sequences are supported.

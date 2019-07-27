@@ -41,13 +41,14 @@ Currently and likely for the foreseeable future the feature set is very limited 
 *   Knots, stitches, glue and diverts, ie. basic story structure
 *   Choices, of sticky and non-sticky kinds, plus fallback choices
 *   Nesting choices and gather points
+*   Line text alternative sequences (sequences, cycle, once-only)
 *   Simple conditionals for which choices are presented, but only for checking against how many times knots have been visited
 *   Tagging of lines and choices
 *   Optional: De/serialization of finished stories through `serde`
 
 Likely candidates for further development:
 
-*   Line text variations: sequences, cycles, variables, conditionals
+*   Line text conditionals
 *   Includes of other files
 
 Difficult features for which I doubt my skill level to implement:

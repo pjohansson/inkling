@@ -113,11 +113,11 @@
 //!
 //! *   Structure:  Knots, stitches, nested branching choices, gathers, diverts
 //! *   Choices:    Non-sticky, sticky, fallback, line variations, simple conditions
-//! *   Lines:      Plain text, diverts, tags
+//! *   Lines:      Plain text, diverts, tags, alternative sequences (all except shuffle)
 //!
 //! Hopefully coming:
 //!
-//! *   Lines:      Alternating (sequences, cycles, etc.) (soon), conditions
+//! *   Lines:      Conditions
 //! *   Variables:  Use in lines, ability to modify from the calling program
 //! *   Reading:    Include statements in files, verifying addresses and content
 //! *   Logic:      Nested conditions with brackets, `and`/`or` statements
