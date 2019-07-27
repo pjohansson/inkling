@@ -214,11 +214,6 @@ pub mod builders {
             }
         }
 
-        /// Add a `Content::Text` item with the given string to the object.
-        pub fn add_text(&mut self, text: &str) {
-            self.add_item(Content::Text(text.to_string()));
-        }
-
         /// Add a `Content::Divert` item with the given address to the object.
         pub fn add_divert(&mut self, address: &str) {
             self.add_item(Content::Divert(address.to_string()));
@@ -227,6 +222,16 @@ pub mod builders {
         /// Add an item to the object.
         pub fn add_item(&mut self, item: Content) {
             self.items.push(item);
+        }
+
+        /// Add a `Content::Text` item with the given string to the object.
+        pub fn add_text(&mut self, text: &str) {
+            self.add_item(Content::Text(text.to_string()));
+        }
+
+        #[cfg(test)]
+        pub fn with_alternative(self, alternative: Alternative) -> Self {
+            self.with_item(Content::Alternative(alternative))
         }
 
         #[cfg(test)]

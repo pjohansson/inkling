@@ -2,6 +2,8 @@
 
 use crate::line::{Condition, InternalLine};
 
+use std::{cell::RefCell, rc::Rc};
+
 #[cfg(feature = "serde_support")]
 use serde::{Deserialize, Serialize};
 
@@ -10,7 +12,24 @@ use serde::{Deserialize, Serialize};
 /// A single choice in a (usually) set of choices presented to the user.
 pub struct InternalChoice {
     /// Text presented to the user to represent the choice.
-    pub selection_text: InternalLine,
+    ///
+    /// This is a reference counted object because of how we process the sets of encountered
+    /// choices. When encountered inside the node during a follow, all choices in a set are
+    /// collected and sent further up in the stack. They are then processed before displaying
+    /// to the user.
+    ///
+    /// This is different from how regular lines are processed to their final form, which
+    /// is done during the follow as the lines are encountered by the `Process` trait.
+    ///
+    /// In theory, we could rewrite the choice code to process them at collection, but
+    /// that would mess a bit with how the nodes are processing the data: changing their
+    /// responsibility from just finding the content, to checking conditions for which
+    /// choices will be available and so on.
+    ///
+    /// Instead, we use a pointer with internal mutability and send that further up the stack.
+    /// This means that any processing of choices further up will affect the data in the node,
+    /// meaning that for example alternative sequences will be updated if the choice was seen.
+    pub selection_text: Rc<RefCell<InternalLine>>,
     /// Text that the choice produces when selected, replacing the `selection_text` line.
     ///
     /// Can be empty, in which case the presented text is removed before the story flow
@@ -69,7 +88,7 @@ impl InternalChoiceBuilder {
         }
 
         InternalChoice {
-            selection_text: self.selection_text,
+            selection_text: Rc::new(RefCell::new(self.selection_text)),
             display_text: self.display_text,
             conditions: self.conditions,
             is_sticky: self.is_sticky,

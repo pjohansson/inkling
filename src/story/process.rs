@@ -11,6 +11,8 @@ use super::{
     story::{get_stitch, Choice, Knots, Line, LineBuffer},
 };
 
+use std::{cell::RefCell, rc::Rc};
+
 /// Process internal lines to a user-ready state.
 pub fn process_buffer(into_buffer: &mut LineBuffer, from_buffer: LineDataBuffer) {
     let mut iter = from_buffer
@@ -88,17 +90,46 @@ fn zip_choices_with_filter_values(
 
     let filtered_choices = choices
         .iter()
-        .enumerate()
-        .map(|(i, ChoiceInfo { choice_data, .. })| Choice {
-            text: choice_data.selection_text.text().trim().to_string(),
-            tags: choice_data.selection_text.tags.clone(),
-            index: i,
-        })
         .zip(checked_choices.into_iter())
+        .enumerate()
+        .map(|(i, (ChoiceInfo { choice_data, .. }, keep))| {
+            let (text, tags) = if keep {
+                process_choice_text_and_tags(choice_data.selection_text.clone())
+            } else {
+                let independent_text = choice_data.selection_text.borrow().clone();
+                process_choice_text_and_tags(Rc::new(RefCell::new(independent_text)))
+            };
+
+            (
+                Choice {
+                    text,
+                    tags,
+                    index: i,
+                },
+                keep,
+            )
+        })
         .map(|(choice, keep)| (keep, choice))
         .collect();
 
     Ok(filtered_choices)
+}
+
+/// Process a line into a string and return it with its tags.
+fn process_choice_text_and_tags(choice_line: Rc<RefCell<InternalLine>>) -> (String, Vec<String>) {
+    let mut data_buffer = Vec::new();
+
+    let mut line = choice_line.borrow_mut();
+
+    line.process(&mut data_buffer).unwrap();
+
+    let mut buffer = String::new();
+
+    for data in data_buffer.into_iter() {
+        buffer.push_str(&data.text());
+    }
+
+    (buffer.trim().to_string(), line.tags.clone())
 }
 
 /// Return a list of whether choices fulfil their conditions.
@@ -236,7 +267,10 @@ mod tests {
     use crate::{
         consts::ROOT_KNOT_NAME,
         knot::{Knot, Stitch},
-        line::{InternalChoice, InternalChoiceBuilder, InternalLineBuilder},
+        line::{
+            AlternativeBuilder, InternalChoice, InternalChoiceBuilder, InternalLineBuilder,
+            LineChunkBuilder,
+        },
     };
 
     use std::{cmp::Ordering, collections::HashMap, str::FromStr};
@@ -736,5 +770,39 @@ mod tests {
         assert_eq!(fallback_choices.len(), 2);
         assert_eq!(&fallback_choices[0].text, "Kept");
         assert_eq!(&fallback_choices[1].text, "Kept");
+    }
+
+    #[test]
+    fn getting_available_choices_processes_the_text() {
+        let alternative = AlternativeBuilder::cycle()
+            .with_line(LineChunkBuilder::from_string("once").build())
+            .with_line(LineChunkBuilder::from_string("twice").build())
+            .build();
+
+        let chunk = LineChunkBuilder::new()
+            .with_text("Hello ")
+            .with_alternative(alternative)
+            .with_text("!")
+            .build();
+
+        let line = InternalLineBuilder::from_chunk(chunk).build();
+
+        let choice = InternalChoiceBuilder::from_line(line).build();
+
+        let choices = vec![create_choice_extra(0, choice)];
+
+        let (empty_address, empty_hash_map) = get_mock_address_and_knots();
+
+        let presented_choices =
+            prepare_choices_for_user(&choices, &empty_address, &empty_hash_map).unwrap();
+
+        assert_eq!(presented_choices.len(), 1);
+        assert_eq!(&presented_choices[0].text, "Hello once!");
+
+        let presented_choices =
+            prepare_choices_for_user(&choices, &empty_address, &empty_hash_map).unwrap();
+
+        assert_eq!(presented_choices.len(), 1);
+        assert_eq!(&presented_choices[0].text, "Hello twice!");
     }
 }

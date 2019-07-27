@@ -27,7 +27,7 @@ mod line;
 pub(self) mod parse;
 pub(self) mod process;
 
-pub(self) use alternative::{Alternative, AlternativeBuilder, AlternativeKind};
+pub(crate) use alternative::{Alternative, AlternativeBuilder, AlternativeKind};
 pub(crate) use choice::{InternalChoice, InternalChoiceBuilder};
 pub(crate) use condition::Condition;
 pub(crate) use line::{

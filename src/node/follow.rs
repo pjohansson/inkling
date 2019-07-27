@@ -304,14 +304,7 @@ impl FollowInternal for Branch {
 fn get_choices_from_branching_set(branches: &[Branch]) -> Vec<ChoiceInfo> {
     branches
         .iter()
-        .map(|branch| {
-            let num_visited = branch.num_visited;
-
-            ChoiceInfo {
-                num_visited,
-                choice_data: branch.choice.clone(),
-            }
-        })
+        .map(|branch| ChoiceInfo::from_choice(&branch.choice, branch.num_visited))
         .collect::<Vec<_>>()
 }
 

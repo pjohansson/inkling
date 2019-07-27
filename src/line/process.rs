@@ -54,7 +54,7 @@ impl Process for Content {
             Content::Empty => {
                 buffer.push(' ');
                 Ok(EncounteredEvent::Done)
-            },
+            }
             Content::Text(string) => {
                 buffer.push_str(string);
                 Ok(EncounteredEvent::Done)

@@ -30,3 +30,13 @@ pub struct ChoiceInfo {
     /// Choice data to process before presenting to the user.
     pub choice_data: InternalChoice,
 }
+
+impl ChoiceInfo {
+    /// Create the information container from given data.
+    pub fn from_choice(choice: &InternalChoice, num_visited: u32) -> Self {
+        ChoiceInfo {
+            num_visited,
+            choice_data: choice.clone(),
+        }
+    }
+}

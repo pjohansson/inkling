@@ -277,8 +277,6 @@ mod tests {
         };
 
         assert_eq!(choices.len(), 2);
-        // assert_eq!(&choices[0].line.text, &choice1);
-        // assert_eq!(&choices[1].line.text, &choice2);
 
         assert_eq!(
             choices[0].choice_data.display_text,

@@ -131,7 +131,7 @@ fn marker_exists_before_text(line: &str, marker: char) -> bool {
 ///
 /// These are demarcated by `[]` brackets. Content before the bracket is both selection
 /// and display text. Content inside the bracket is only for the selection and content
-/// after the bracket only for display.  
+/// after the bracket only for display.
 fn parse_choice_line_variants(line: &str) -> Result<(String, String), LineParsingError> {
     match (line.find('['), line.find(']')) {
         (Some(i), Some(j)) if i < j => {
@@ -238,7 +238,7 @@ pub(crate) mod tests {
         let choice = parse_choice_data("Choice line").unwrap();
         let comparison = parse_internal_line("Choice line").unwrap();
 
-        assert_eq!(choice.selection_text, comparison);
+        assert_eq!(*choice.selection_text.borrow(), comparison);
         assert_eq!(choice.display_text, comparison);
     }
 
@@ -246,7 +246,7 @@ pub(crate) mod tests {
     fn choices_can_be_parsed_with_alternatives_in_selection_text() {
         let choice = parse_choice_data("Hi! {One|Two}").unwrap();
         assert_eq!(
-            choice.selection_text,
+            *choice.selection_text.borrow(),
             parse_internal_line("Hi! {One|Two}").unwrap(),
         );
     }
@@ -255,7 +255,7 @@ pub(crate) mod tests {
     fn braces_with_backslash_are_not_conditions() {
         let choice = parse_choice_data("\\{One|Two}").unwrap();
         assert_eq!(
-            choice.selection_text,
+            *choice.selection_text.borrow(),
             parse_internal_line("{One|Two}").unwrap(),
         );
     }
@@ -264,7 +264,7 @@ pub(crate) mod tests {
     fn alternatives_can_be_within_brackets() {
         let choice = parse_choice_data("[{One|Two}]").unwrap();
         assert_eq!(
-            choice.selection_text,
+            *choice.selection_text.borrow(),
             parse_internal_line("{One|Two}").unwrap(),
         );
     }
@@ -274,7 +274,7 @@ pub(crate) mod tests {
         let choice = parse_choice_data("Selection[] plus display").unwrap();
 
         assert_eq!(
-            choice.selection_text,
+            *choice.selection_text.borrow(),
             parse_internal_line("Selection").unwrap()
         );
         assert_eq!(
@@ -285,7 +285,7 @@ pub(crate) mod tests {
         let choice = parse_choice_data("[Separate selection]And display").unwrap();
 
         assert_eq!(
-            choice.selection_text,
+            *choice.selection_text.borrow(),
             parse_internal_line("Separate selection").unwrap()
         );
         assert_eq!(
