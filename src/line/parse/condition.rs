@@ -3,7 +3,6 @@
 use std::cmp::Ordering;
 
 use crate::{
-    error::{LineError, ParseError},
     line::{
         parse::{split_line_into_variants, LinePart},
         Condition, LineErrorKind, LineParsingError,
@@ -127,23 +126,6 @@ fn get_name_and_if_not_condition(line: &str) -> Result<(String, bool), LineParsi
                 line: line.to_string(),
             },
         ))
-    }
-}
-
-/// Return a string possibly contained between a `{}` bracket pair.
-fn get_string_inside_brackets(line: &mut String) -> Result<Option<String>, ParseError> {
-    match (line.find('{'), line.find('}')) {
-        (None, None) => Ok(None),
-        (Some(i), Some(j)) if i < j => {
-            let mut inside: String = line.drain(..j + 1).take(j).collect();
-            inside.drain(..i + 1);
-
-            Ok(Some(inside))
-        }
-        _ => Err(LineError::UnmatchedBrackets {
-            line: line.to_string(),
-        }
-        .into()),
     }
 }
 

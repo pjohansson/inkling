@@ -164,8 +164,6 @@ fn parse_choice_line_variants(line: &str) -> Result<(String, String), LineParsin
 pub(crate) mod tests {
     use super::*;
 
-    use crate::line::InternalLineBuilder;
-
     impl InternalChoice {
         pub fn from_string(line: &str) -> Self {
             parse_choice_data(line).unwrap()

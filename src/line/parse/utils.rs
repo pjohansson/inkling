@@ -87,39 +87,6 @@ pub fn split_line_into_variants<'a>(
     Ok(parts)
 }
 
-/// Get the content enclosed in the first '{}' pair of the line.
-fn get_enclosed_content(content: &str) -> Result<&str, LineParsingError> {
-    let internal_content = content.get(1..).unwrap();
-    let index_closing = find_closing_brace(internal_content)?;
-
-    Ok(internal_content.get(..index_closing).unwrap())
-}
-
-/// Find the first right brace '}' that closes the content.
-fn find_closing_brace(content: &str) -> Result<usize, LineParsingError> {
-    let mut brace_level = 0;
-
-    for (i, c) in content.chars().enumerate() {
-        match c {
-            '}' if brace_level == 0 => {
-                return Ok(i);
-            }
-            '}' => {
-                brace_level -= 1;
-            }
-            '{' => {
-                brace_level += 1;
-            }
-            _ => (),
-        }
-    }
-
-    Err(LineParsingError {
-        kind: LineErrorKind::UnmatchedBraces,
-        line: content.to_string(),
-    })
-}
-
 /// Find the `Range`s of bytes in a string which are not enclosed by curly braces.
 ///
 /// Since content withing braces should be kept together we often will not want to split
@@ -215,71 +182,6 @@ fn get_brace_level_of_line(content: &str) -> Result<Vec<u8>, LineParsingError> {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn enclosed_content_from_string_with_single_pair_of_braces_is_the_string() {
-        assert_eq!(
-            get_enclosed_content("{Hello, World!}").unwrap(),
-            "Hello, World!"
-        );
-    }
-
-    #[test]
-    fn enclosed_content_from_string_with_internal_braces_includes_them_too() {
-        assert_eq!(
-            get_enclosed_content("{Hello, {World}!}").unwrap(),
-            "Hello, {World}!"
-        );
-    }
-
-    #[test]
-    fn enclosed_content_from_just_opening_brace_returns_error() {
-        assert!(get_enclosed_content("{").is_err());
-    }
-
-    #[test]
-    fn finding_closing_brace_returns_distance_from_start() {
-        assert_eq!(find_closing_brace("}").unwrap(), 0);
-        assert_eq!(find_closing_brace("123}").unwrap(), 3);
-        assert_eq!(find_closing_brace("   }").unwrap(), 3);
-    }
-
-    #[test]
-    fn finding_closing_brace_skips_over_internal_brace_pairs() {
-        assert_eq!(find_closing_brace("{}}").unwrap(), 2);
-        assert_eq!(find_closing_brace("{{}}}").unwrap(), 4);
-    }
-
-    #[test]
-    fn finding_closing_brace_ignores_braces_after_first_closing() {
-        assert_eq!(find_closing_brace("}}").unwrap(), 0);
-        assert_eq!(find_closing_brace("}{}").unwrap(), 0);
-    }
-
-    #[test]
-    fn finding_no_closing_brace_returns_unmatched_braces_error() {
-        match find_closing_brace("") {
-            Err(LineParsingError {
-                kind: LineErrorKind::UnmatchedBraces,
-                ..
-            }) => (),
-            other => panic!(
-                "expected `LineErrorKind::UnmatchedBraces` error but got {:?}",
-                other
-            ),
-        }
-
-        match find_closing_brace("{}") {
-            Err(LineParsingError {
-                kind: LineErrorKind::UnmatchedBraces,
-                ..
-            }) => (),
-            other => panic!(
-                "expected `LineErrorKind::UnmatchedBraces` error but got {:?}",
-                other
-            ),
-        }
-    }
 
     #[test]
     fn split_empty_string_at_separator_returns_empty_string() {

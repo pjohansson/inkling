@@ -51,7 +51,10 @@ impl Process for Content {
         match self {
             Content::Alternative(alternative) => alternative.process(buffer),
             Content::Divert(address) => Ok(EncounteredEvent::Divert(address.to_string())),
-            Content::Empty => Ok(EncounteredEvent::Done),
+            Content::Empty => {
+                buffer.push(' ');
+                Ok(EncounteredEvent::Done)
+            },
             Content::Text(string) => {
                 buffer.push_str(string);
                 Ok(EncounteredEvent::Done)
@@ -111,12 +114,12 @@ pub mod tests {
     }
 
     #[test]
-    fn empty_content_does_not_process_into_anything() {
+    fn empty_content_processes_into_single_white_space() {
         let mut buffer = String::new();
 
         Content::Empty.process(&mut buffer).unwrap();
 
-        assert!(buffer.is_empty());
+        assert_eq!(&buffer, " ");
     }
 
     #[test]
