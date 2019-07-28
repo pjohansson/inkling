@@ -1,5 +1,6 @@
 //! Errors from creating or walking through stories.
 
+#[macro_use]
 mod error;
 mod parse;
 
