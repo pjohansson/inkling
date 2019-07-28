@@ -1,8 +1,6 @@
 use std::{error::Error, fmt};
 
-use crate::{
-    consts::{CHOICE_MARKER, STICKY_CHOICE_MARKER},
-};
+use crate::consts::{CHOICE_MARKER, STICKY_CHOICE_MARKER};
 
 #[derive(Debug)]
 /// Error from parsing text to construct a story.
@@ -15,19 +13,34 @@ pub enum ParseError {
     LineError(LineParsingError),
 }
 
-impl Error for ParseError {}
+#[derive(Debug)]
+pub enum KnotError {
+    /// Knot has no content.
+    Empty,
+    /// Could not parse a name for the knot. The offending string is encapsulated.
+    InvalidName { line: String, kind: KnotNameError },
+    /// Could not parse a line inside a not.
+    LineError(LineParsingError),
+}
 
-impl fmt::Display for ParseError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        use ParseError::*;
+#[derive(Clone, Debug)]
+pub struct LineParsingError {
+    pub line: String,
+    pub kind: LineErrorKind,
+}
 
-        match self {
-            Empty => write!(f, "Tried to read from an empty file or string"),
-            KnotError(err) => write!(f, "{}", err),
-            LineError(err) => write!(f, "{:?}", err),
+impl LineParsingError {
+    pub fn from_kind<T: Into<String>>(line: T, kind: LineErrorKind) -> Self {
+        LineParsingError {
+            line: line.into(),
+            kind,
         }
     }
 }
+
+impl Error for ParseError {}
+impl Error for KnotError {}
+impl Error for LineParsingError {}
 
 impl_from_error![
     ParseError;
@@ -40,14 +53,16 @@ impl_from_error![
     [LineError, LineParsingError]
 ];
 
-#[derive(Debug)]
-pub enum KnotError {
-    /// Knot has no content.
-    Empty,
-    /// Could not parse a name for the knot. The offending string is encapsulated.
-    InvalidName { line: String, kind: KnotNameError },
-    /// Could not parse a line inside a not.
-    LineError(LineParsingError),
+impl fmt::Display for ParseError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        use ParseError::*;
+
+        match self {
+            Empty => write!(f, "Tried to read from an empty file or string"),
+            KnotError(err) => write!(f, "{}", err),
+            LineError(err) => write!(f, "{}", err),
+        }
+    }
 }
 
 impl fmt::Display for KnotError {
@@ -89,33 +104,70 @@ impl fmt::Display for KnotError {
                 }
 
                 write!(f, " (line: {})", line)
-            },
-            LineError(err) => unimplemented!(),
+            }
+            LineError(err) => write!(f, "{}", err),
         }
     }
 }
 
-#[derive(Debug)]
+impl fmt::Display for LineParsingError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        use LineErrorKind::*;
+
+        match self.kind {
+            BlankChoice => write!(
+                f,
+                "Found a choice with no selection text for the user to see, but with text \
+                 that will be added to the buffer when selected. If this is a fallback choice \
+                 the line content should be an empty divert, after which the content follows: \n\
+                 '->'\n\
+                 {{content}}\n\
+                 "
+            ),
+            EmptyDivert => write!(f, "Encountered a divert statement with no address",),
+            ExpectedEndOfLine { ref tail } => write!(
+                f,
+                "Expected no more content after a divert statement address but found '{}'",
+                tail
+            ),
+            ExpectedLogic { ref line } => write!(
+                f,
+                "Could not parse a conditional logic statement '{}'",
+                line
+            ),
+            ExpectedNumber { ref value } => write!(f, "Could not parse a number from '{}'", value),
+            FoundTunnel => write!(
+                f,
+                "Found multiple divert markers in a line. In the `Ink` language this indicates \
+                 a `tunnel` for the story to pass through, but these are not yet implemented \
+                 in `inkling`."
+            ),
+            InvalidAddress { ref address } => write!(
+                f,
+                "Found an invalid address to knot, stitch or variable '{}': \
+                 contains invalid characters",
+                address
+            ),
+            StickyAndNonSticky => write!(
+                f,
+                "Encountered a line which has both non-sticky ('{}') and sticky ('{}') \
+                 choice markers. This is not allowed.",
+                CHOICE_MARKER, STICKY_CHOICE_MARKER
+            ),
+            UnmatchedBraces => write!(f, "Line has unmatched curly '{{}}' braces"),
+            UnmatchedBrackets => write!(f, "Choice line has unmatched square '[]' brackets"),
+        }?;
+
+        write!(f, " (line: {}", &self.line)
+    }
+}
+
+#[derive(Clone, Debug)]
 pub enum KnotNameError {
     ContainsInvalidCharacter(char),
     ContainsWhitespace,
     Empty,
     NoNamePresent,
-}
-
-#[derive(Clone, Debug)]
-pub struct LineParsingError {
-    pub line: String,
-    pub kind: LineErrorKind,
-}
-
-impl LineParsingError {
-    pub fn from_kind<T: Into<String>>(line: T, kind: LineErrorKind) -> Self {
-        LineParsingError {
-            line: line.into(),
-            kind,
-        }
-    }
 }
 
 #[derive(Clone, Debug)]
@@ -128,6 +180,6 @@ pub enum LineErrorKind {
     FoundTunnel,
     InvalidAddress { address: String },
     StickyAndNonSticky,
-    UnmatchedBrackets,
     UnmatchedBraces,
+    UnmatchedBrackets,
 }
