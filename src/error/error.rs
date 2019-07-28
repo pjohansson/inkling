@@ -212,7 +212,7 @@ impl fmt::Display for InklingError {
             StartOnStoryInProgress => {
                 write!(f, "Called `start` on a story that is already in progress")
             }
-            ProcessError => unimplemented!(),
+            ProcessError => write!(f, "Could not process a line into text."),
         }
     }
 }
@@ -297,8 +297,7 @@ pub enum StackError {
 }
 
 #[derive(Clone, Debug)]
-/// Error variant associated with the stack created when walking through a `DialogueNode`
-/// tree being poorly constructed.
+/// Current node tree [`Stack`][crate::node::Stack] is incorrect.
 pub enum IncorrectNodeStackError {
     /// Tried to follow through nodes with an empty stack.
     EmptyStack,
