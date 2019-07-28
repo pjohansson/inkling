@@ -14,6 +14,7 @@ pub enum ParseError {
 }
 
 #[derive(Debug)]
+/// Error from parsing a `Knot` or `Stitch` in a story.
 pub enum KnotError {
     /// Knot has no content.
     Empty,
@@ -24,12 +25,16 @@ pub enum KnotError {
 }
 
 #[derive(Clone, Debug)]
+/// Error from parsing individual lines in a story.
 pub struct LineParsingError {
+    /// Line that caused the error.
     pub line: String,
+    /// Kind of error.
     pub kind: LineErrorKind,
 }
 
 impl LineParsingError {
+    /// Constructor of error from some string and kind.
     pub fn from_kind<T: Into<String>>(line: T, kind: LineErrorKind) -> Self {
         LineParsingError {
             line: line.into(),
@@ -164,22 +169,39 @@ impl fmt::Display for LineParsingError {
 
 #[derive(Clone, Debug)]
 pub enum KnotNameError {
+    /// Knot name contains an invalid character.
     ContainsInvalidCharacter(char),
+    /// Knot name contains a whitespace character.
     ContainsWhitespace,
+    /// No name existed to read for the knot.
     Empty,
+    /// No name existed to read for the knot.
     NoNamePresent,
 }
 
 #[derive(Clone, Debug)]
 pub enum LineErrorKind {
+    /// Found a choice with no selection text but display text after '[]' markers.
+    /// 
+    /// This is allowed but warned for in `Inkle`s implementation. We currently disallow it 
+    /// but maybe this is wrong.
     BlankChoice,
+    /// Found a divert marker but no address.
     EmptyDivert,
+    /// Line did not end after a divert statement.
     ExpectedEndOfLine { tail: String },
+    /// Could not parse the logic in a conditional statement.
     ExpectedLogic { line: String },
+    /// Could not parse a number from a string.
     ExpectedNumber { value: String },
+    /// Found several divert markers which indicates unimplemented tunnels.
     FoundTunnel,
+    /// Found an address with invalid characters.
     InvalidAddress { address: String },
+    /// A choice has both non-sticky and sticky markers. 
     StickyAndNonSticky,
+    /// Found unmatched curly braces.
     UnmatchedBraces,
+    /// Found unmatched square brackets.
     UnmatchedBrackets,
 }
