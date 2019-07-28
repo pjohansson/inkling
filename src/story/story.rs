@@ -288,7 +288,7 @@ impl Story {
     where
         F: FnOnce(&mut Stitch, &mut LineDataBuffer) -> FollowResult,
     {
-        let knot_name = self.stack.last().unwrap();
+        let knot_name = self.stack.last().ok_or(StackError::NoStack)?;
 
         let result =
             get_mut_stitch(knot_name, &mut self.knots).and_then(|stitch| f(stitch, buffer))?;

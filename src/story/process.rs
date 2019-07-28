@@ -88,7 +88,7 @@ fn zip_choices_with_filter_values(
 ) -> Result<Vec<(bool, Choice)>, InklingError> {
     let checked_choices = check_choices_for_conditions(choices, current_address, knots, fallback)?;
 
-    let filtered_choices = choices
+    choices
         .iter()
         .zip(checked_choices.into_iter())
         .enumerate()
@@ -98,30 +98,29 @@ fn zip_choices_with_filter_values(
             } else {
                 let independent_text = choice_data.selection_text.borrow().clone();
                 process_choice_text_and_tags(Rc::new(RefCell::new(independent_text)))
-            };
+            }?;
 
-            (
+            Ok((
+                keep,
                 Choice {
                     text,
                     tags,
                     index: i,
                 },
-                keep,
-            )
+            ))
         })
-        .map(|(choice, keep)| (keep, choice))
-        .collect();
-
-    Ok(filtered_choices)
+        .collect()
 }
 
 /// Process a line into a string and return it with its tags.
-fn process_choice_text_and_tags(choice_line: Rc<RefCell<InternalLine>>) -> (String, Vec<String>) {
+fn process_choice_text_and_tags(
+    choice_line: Rc<RefCell<InternalLine>>,
+) -> Result<(String, Vec<String>), InklingError> {
     let mut data_buffer = Vec::new();
 
     let mut line = choice_line.borrow_mut();
 
-    line.process(&mut data_buffer).unwrap();
+    line.process(&mut data_buffer)?;
 
     let mut buffer = String::new();
 
@@ -129,7 +128,7 @@ fn process_choice_text_and_tags(choice_line: Rc<RefCell<InternalLine>>) -> (Stri
         buffer.push_str(&data.text());
     }
 
-    (buffer.trim().to_string(), line.tags.clone())
+    Ok((buffer.trim().to_string(), line.tags.clone()))
 }
 
 /// Return a list of whether choices fulfil their conditions.

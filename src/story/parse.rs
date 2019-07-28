@@ -77,7 +77,7 @@ fn get_stitch_from_lines(
     let stitch_name =
         get_stitch_name(&mut lines).map(|name| get_stitch_identifier(name, stitch_index))?;
 
-    let content = Stitch::from_lines(&lines).unwrap();
+    let content = Stitch::from_lines(&lines)?;
 
     Ok((stitch_name, content))
 }

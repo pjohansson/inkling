@@ -16,7 +16,7 @@
 
 use crate::{
     consts::{KNOT_MARKER, STITCH_MARKER},
-    error::{KnotError, KnotNameError},
+    error::{KnotError, KnotNameError, LineParsingError},
     follow::{EncounteredEvent, FollowResult, LineDataBuffer},
     line::parse_line,
     node::{Follow, RootNode, Stack},
@@ -87,11 +87,11 @@ impl Stitch {
         Ok(result)
     }
 
-    pub fn from_lines(lines: &[&str]) -> Result<Self, String> {
+    pub fn from_lines(lines: &[&str]) -> Result<Self, LineParsingError> {
         let parsed_lines = lines
             .into_iter()
-            .map(|line| parse_line(line).unwrap())
-            .collect::<Vec<_>>();
+            .map(|line| parse_line(line))
+            .collect::<Result<Vec<_>, _>>()?;
 
         let root = RootNode::from_lines(&parsed_lines);
 

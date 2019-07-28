@@ -32,9 +32,9 @@ pub struct InternalChoice {
     pub selection_text: Rc<RefCell<InternalLine>>,
     /// Text that will be added to the output line buffer if the choice is selected.
     ///
-    /// This will be added to the buffer before the rest of the lines from the selected 
+    /// This will be added to the buffer before the rest of the lines from the selected
     /// branch will be followed and processed.
-    /// 
+    ///
     /// Can be empty.
     pub display_text: InternalLine,
     /// Conditions that must be fulfilled for the choice to be displayed.

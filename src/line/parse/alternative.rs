@@ -5,7 +5,7 @@ use crate::{
     error::LineParsingError,
     line::{
         parse::{parse_chunk, split_line_at_separator},
-        Alternative, AlternativeBuilder, AlternativeKind, 
+        Alternative, AlternativeBuilder, AlternativeKind,
     },
 };
 

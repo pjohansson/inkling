@@ -5,7 +5,7 @@ use crate::{
     error::LineParsingError,
     line::{
         parse::{parse_choice, parse_gather, parse_internal_line},
-        InternalChoice, InternalLine, 
+        InternalChoice, InternalLine,
     },
 };
 
