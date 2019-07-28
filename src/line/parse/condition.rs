@@ -2,9 +2,12 @@
 
 use std::cmp::Ordering;
 
-use crate::line::{
-    parse::{split_line_into_variants, LinePart},
-    Condition, LineErrorKind, LineParsingError,
+use crate::{
+    error::{LineErrorKind, LineParsingError},
+    line::{
+        parse::{split_line_into_variants, LinePart},
+        Condition,
+    },
 };
 
 /// Parse conditions for a choice and trim them from the line.

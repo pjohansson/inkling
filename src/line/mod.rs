@@ -34,5 +34,5 @@ pub(crate) use line::{
     builders::{InternalLineBuilder, LineChunkBuilder},
     Content, InternalLine, LineChunk,
 };
-pub(crate) use parse::{parse_line, LineErrorKind, LineParsingError, ParsedLineKind};
+pub(crate) use parse::{parse_line, ParsedLineKind};
 pub(crate) use process::{Process, ProcessError};

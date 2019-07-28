@@ -2,40 +2,12 @@
 
 use crate::{
     consts::{DIVERT_MARKER, GLUE_MARKER, TAG_MARKER},
+    error::{LineErrorKind, LineParsingError},
     line::{
         parse::{parse_alternative, split_line_at_separator, split_line_into_variants, LinePart},
         Content, InternalLine, InternalLineBuilder, LineChunk, LineChunkBuilder,
     },
 };
-
-#[derive(Clone, Debug)]
-pub struct LineParsingError {
-    pub line: String,
-    pub kind: LineErrorKind,
-}
-
-impl LineParsingError {
-    pub fn from_kind<T: Into<String>>(line: T, kind: LineErrorKind) -> Self {
-        LineParsingError {
-            line: line.into(),
-            kind,
-        }
-    }
-}
-
-#[derive(Clone, Debug)]
-pub enum LineErrorKind {
-    BlankChoice,
-    EmptyDivert,
-    ExpectedEndOfLine { tail: String },
-    ExpectedLogic { line: String },
-    ExpectedNumber { value: String },
-    FoundTunnel,
-    InvalidAddress { address: String },
-    StickyAndNonSticky,
-    UnmatchedBrackets,
-    UnmatchedBraces,
-}
 
 /// Parse an `InternalLine` from a string.
 pub fn parse_internal_line(content: &str) -> Result<InternalLine, LineParsingError> {

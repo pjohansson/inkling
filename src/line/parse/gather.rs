@@ -2,9 +2,10 @@
 
 use crate::{
     consts::GATHER_MARKER,
+    error::LineParsingError,
     line::{
         parse::{parse_internal_line, parse_markers_and_text, split_at_divert_marker},
-        LineParsingError, ParsedLineKind,
+        ParsedLineKind,
     },
 };
 

@@ -25,5 +25,5 @@ pub(self) use condition::parse_choice_conditions;
 pub(self) use gather::parse_gather;
 pub use kind::{parse_line, ParsedLineKind};
 pub(self) use kind::{parse_markers_and_text, split_at_divert_marker};
-pub use line::{parse_chunk, parse_internal_line, LineErrorKind, LineParsingError};
+pub use line::{parse_chunk, parse_internal_line};
 pub(self) use utils::{split_line_at_separator, split_line_into_variants, LinePart};

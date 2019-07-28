@@ -179,8 +179,8 @@ mod tests {
     use super::*;
 
     use crate::{
-        error::{InklingError, ParseError},
-        line::{InternalLine, LineParsingError, ParsedLineKind},
+        error::{InklingError, LineParsingError, ParseError},
+        line::{InternalLine, ParsedLineKind},
     };
 
     use std::str::FromStr;
@@ -189,7 +189,7 @@ mod tests {
         type Err = ParseError;
 
         fn from_str(content: &str) -> Result<Self, Self::Err> {
-            let lines = parse_lines(content).unwrap();
+            let lines = parse_lines(content)?;
             let root = RootNode::from_lines(&lines);
 
             Ok(Stitch {

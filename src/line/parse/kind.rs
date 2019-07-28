@@ -2,9 +2,10 @@
 
 use crate::{
     consts::DIVERT_MARKER,
+    error::LineParsingError,
     line::{
         parse::{parse_choice, parse_gather, parse_internal_line},
-        InternalChoice, InternalLine, LineParsingError,
+        InternalChoice, InternalLine, 
     },
 };
 

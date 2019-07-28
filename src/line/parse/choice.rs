@@ -2,13 +2,13 @@
 
 use crate::{
     consts::{CHOICE_MARKER, STICKY_CHOICE_MARKER},
+    error::{LineParsingError, LineErrorKind},
     line::{
         parse::{
             parse_choice_conditions, parse_internal_line, parse_markers_and_text,
             split_at_divert_marker,
         },
-        Content, InternalChoice, InternalChoiceBuilder, InternalLine, LineErrorKind,
-        LineParsingError, ParsedLineKind,
+        Content, InternalChoice, InternalChoiceBuilder, InternalLine, ParsedLineKind,
     },
 };
 
