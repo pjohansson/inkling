@@ -1,14 +1,17 @@
 use std::{error::Error, fmt};
 
-use crate::consts::{CHOICE_MARKER, STICKY_CHOICE_MARKER};
+use crate::{
+    consts::{CHOICE_MARKER, STICKY_CHOICE_MARKER},
+};
 
 #[derive(Debug)]
 /// Error from parsing text to construct a story.
 pub enum ParseError {
     /// Attempted to construct a story from an empty file/string.
     Empty,
-    /// Error from constructing a knot.
+    /// Could not construct a `Knot` or `Stitch` as the content was read.
     KnotError(KnotError),
+    /// Could not parse a individual line outside of knots.
     LineError(LineParsingError),
 }
 
@@ -26,17 +29,16 @@ impl fmt::Display for ParseError {
     }
 }
 
-impl From<KnotError> for ParseError {
-    fn from(err: KnotError) -> Self {
-        ParseError::KnotError(err)
-    }
-}
+impl_from_error![
+    ParseError;
+    [KnotError, KnotError],
+    [LineError, LineParsingError]
+];
 
-impl From<LineParsingError> for ParseError {
-    fn from(err: LineParsingError) -> Self {
-        ParseError::LineError(err)
-    }
-}
+impl_from_error![
+    KnotError;
+    [LineError, LineParsingError]
+];
 
 #[derive(Debug)]
 pub enum KnotError {
@@ -44,6 +46,8 @@ pub enum KnotError {
     Empty,
     /// Could not parse a name for the knot. The offending string is encapsulated.
     InvalidName { line: String, kind: KnotNameError },
+    /// Could not parse a line inside a not.
+    LineError(LineParsingError),
 }
 
 impl fmt::Display for KnotError {
@@ -85,7 +89,8 @@ impl fmt::Display for KnotError {
                 }
 
                 write!(f, " (line: {})", line)
-            }
+            },
+            LineError(err) => unimplemented!(),
         }
     }
 }
