@@ -279,7 +279,7 @@ mod tests {
         let current_address = Address::from_root_knot("knot_name", &knots).unwrap();
 
         let greater_than_condition = Condition::NumVisits {
-            address: Address::Raw(name.clone()),
+            address: Address::from_target_address(&name, &current_address, &knots).unwrap(),
             rhs_value: 2,
             ordering: Ordering::Greater,
             not: false,
@@ -288,7 +288,7 @@ mod tests {
         assert!(check_condition(&greater_than_condition, &current_address, &knots).unwrap());
 
         let less_than_condition = Condition::NumVisits {
-            address: Address::Raw(name.clone()),
+            address: Address::from_target_address(&name, &current_address, &knots).unwrap(),
             rhs_value: 2,
             ordering: Ordering::Less,
             not: false,
@@ -297,7 +297,7 @@ mod tests {
         assert!(!check_condition(&less_than_condition, &current_address, &knots).unwrap());
 
         let equal_condition = Condition::NumVisits {
-            address: Address::Raw(name.clone()),
+            address: Address::from_target_address(&name, &current_address, &knots).unwrap(),
             rhs_value: 3,
             ordering: Ordering::Equal,
             not: false,
@@ -306,32 +306,13 @@ mod tests {
         assert!(check_condition(&equal_condition, &current_address, &knots).unwrap());
 
         let not_equal_condition = Condition::NumVisits {
-            address: Address::Raw(name.clone()),
+            address: Address::from_target_address(&name, &current_address, &knots).unwrap(),
             rhs_value: 3,
             ordering: Ordering::Equal,
             not: true,
         };
 
         assert!(!check_condition(&not_equal_condition, &current_address, &knots).unwrap());
-    }
-
-    #[test]
-    fn if_condition_checks_knot_that_is_not_in_map_an_error_is_raised() {
-        let knots = HashMap::new();
-
-        let gt_condition = Condition::NumVisits {
-            address: Address::Raw("knot_name".to_string()),
-            rhs_value: 0,
-            ordering: Ordering::Greater,
-            not: false,
-        };
-
-        let current_address = Address::Validated {
-            knot: "".to_string(),
-            stitch: "".to_string(),
-        };
-
-        assert!(check_condition(&gt_condition, &current_address, &knots).is_err());
     }
 
     #[test]
@@ -537,14 +518,14 @@ mod tests {
         let current_address = Address::from_root_knot("knot_name", &knots).unwrap();
 
         let fulfilled_condition = Condition::NumVisits {
-            address: Address::Raw(name.clone()),
+            address: Address::from_target_address(&name, &current_address, &knots).unwrap(),
             rhs_value: 0,
             ordering: Ordering::Greater,
             not: false,
         };
 
         let unfulfilled_condition = Condition::NumVisits {
-            address: Address::Raw(name.clone()),
+            address: Address::from_target_address(&name, &current_address, &knots).unwrap(),
             rhs_value: 2,
             ordering: Ordering::Greater,
             not: false,
