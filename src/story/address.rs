@@ -6,8 +6,10 @@ use super::story::Knots;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    consts::{DONE_KNOT, END_KNOT},
+    consts::{DONE_KNOT, END_KNOT, ROOT_KNOT_NAME},
     error::{InklingError, InvalidAddressError, StackError},
+    knot::{Knot, Stitch},
+    node::RootNodeBuilder,
 };
 
 #[derive(Clone, Debug, PartialEq)]
@@ -109,7 +111,7 @@ impl ValidateAddresses for Address {
         match self {
             Address::Validated { .. } | Address::End => true,
             Address::Raw(..) => false,
-}
+        }
     }
 }
 
@@ -176,8 +178,53 @@ fn get_full_address_from_head(
     }
 }
 
-fn validate_addresses_in_knots(knots: &mut Knots) -> Result<(), InvalidAddressError> {
-    unimplemented!();
+pub fn validate_addresses_in_knots(knots: &mut Knots) -> Result<(), InvalidAddressError> {
+    let empty_knots = get_empty_knot_map(knots);
+
+    knots
+        .iter_mut()
+        .map(|(knot_name, knot)| {
+            knot.stitches
+                .iter_mut()
+                .map(|(stitch_name, stitch)| {
+                    let current_address = Address::Validated {
+                        knot: knot_name.clone(),
+                        stitch: stitch_name.clone(),
+                    };
+
+                    stitch.root.validate(&current_address, &empty_knots)
+                })
+                .collect()
+        })
+        .collect()
+}
+
+fn get_empty_knot_map(knots: &Knots) -> Knots {
+    knots
+        .iter()
+        .map(|(knot_name, knot)| {
+            let empty_stitches = knot
+                .stitches
+                .keys()
+                .map(|stitch_name| {
+                    let empty_stitch = Stitch {
+                        root: RootNodeBuilder::new().build(),
+                        stack: Vec::new(),
+                        num_visited: 0,
+                    };
+
+                    (stitch_name.clone(), empty_stitch)
+                })
+                .collect();
+
+            let empty_knot = Knot {
+                default_stitch: ROOT_KNOT_NAME.to_string(),
+                stitches: empty_stitches,
+            };
+
+            (knot_name.clone(), empty_knot)
+        })
+        .collect()
 }
 
 pub trait ValidateAddresses {
@@ -186,6 +233,7 @@ pub trait ValidateAddresses {
         current_address: &Address,
         knots: &Knots,
     ) -> Result<(), InvalidAddressError>;
+
     fn all_addresses_are_valid(&self) -> bool;
 }
 

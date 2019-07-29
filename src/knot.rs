@@ -51,7 +51,7 @@ pub struct Stitch {
     // pub(crate) root: DialogueNode,
     pub(crate) root: RootNode,
     /// Last recorded position inside the `root` graph of content.
-    stack: Stack,
+    pub(crate) stack: Stack,
     /// Number of times this stitch has been diverted to.
     pub num_visited: u32,
 }

@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 use super::{
-    address::Address,
+    address::{validate_addresses_in_knots, Address},
     parse::read_knots_from_string,
     process::{get_fallback_choices, prepare_choices_for_user, process_buffer},
 };
@@ -274,7 +274,9 @@ impl Story {
 /// let story: Story = read_story_from_string(content).unwrap();
 /// ```
 pub fn read_story_from_string(string: &str) -> Result<Story, ParseError> {
-    let (root, knots) = read_knots_from_string(string)?;
+    let (root, mut knots) = read_knots_from_string(string)?;
+
+    validate_addresses_in_knots(&mut knots).unwrap();
 
     let root_address = Address::from_root_knot(&root, &knots).expect(
         "After successfully creating all knots, the root knot name that was returned from \
@@ -345,10 +347,7 @@ fn follow_knot(
         }?;
 
         match result {
-            EncounteredEvent::Divert(Address::End) => 
-            {
-                break EncounteredEvent::Done
-            }
+            EncounteredEvent::Divert(Address::End) => break EncounteredEvent::Done,
             EncounteredEvent::Divert(to_address) => {
                 current_address = to_address;
 
@@ -856,5 +855,36 @@ Hello, World!
         let address = Address::from_root_knot("$ROOT$", &story.knots).unwrap();
 
         assert_eq!(get_stitch(&address, &story.knots).unwrap().num_visited, 1);
+    }
+
+    #[test]
+    fn all_addresses_are_validated_in_knots_after_reading_story_from_lines() {
+        let content = "
+
+== back_in_almaty
+We arrived into Almaty at 9.45pm exactly.
+-> hurry_home
+
+== hurry_home
+*   We hurried home as fast as we could. 
+    -> END
+*   But we decided our trip wasn't done yet.
+    *   We immediately left the city. 
+        After a few days me returned again.
+        -> back_in_almaty
+    *   Still, we could not head out just yet. -> fin
+
+== fin
+-> END
+        
+";
+
+        let story = read_story_from_string(content).unwrap();
+
+        for knot in story.knots.values() {
+            for stitch in knot.stitches.values() {
+                assert!(stitch.root.all_addresses_are_valid());
+            }
+        }
     }
 }
