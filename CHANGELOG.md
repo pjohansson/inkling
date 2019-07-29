@@ -1,3 +1,7 @@
+# 0.11.0
+
+*   Resume stories with index of instead of reference to a choice from the previous result.
+
 # 0.10.0
 
 *   Add stitches to organize stories through.
