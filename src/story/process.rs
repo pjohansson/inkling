@@ -211,8 +211,7 @@ fn check_condition(
             ordering,
             not,
         } => {
-            let address = Address::from_target_address(name, current_address, knots)?;
-            let num_visits = get_stitch(&address, knots)?.num_visited as i32;
+            let num_visits = get_stitch(name, knots)?.num_visited as i32;
 
             let value = num_visits.cmp(rhs_value) == *ordering;
 
@@ -280,7 +279,7 @@ mod tests {
         let current_address = Address::from_root_knot("knot_name", &knots).unwrap();
 
         let greater_than_condition = Condition::NumVisits {
-            name: name.clone(),
+            name: Address::Raw(name.clone()),
             rhs_value: 2,
             ordering: Ordering::Greater,
             not: false,
@@ -289,7 +288,7 @@ mod tests {
         assert!(check_condition(&greater_than_condition, &current_address, &knots).unwrap());
 
         let less_than_condition = Condition::NumVisits {
-            name: name.clone(),
+            name: Address::Raw(name.clone()),
             rhs_value: 2,
             ordering: Ordering::Less,
             not: false,
@@ -298,7 +297,7 @@ mod tests {
         assert!(!check_condition(&less_than_condition, &current_address, &knots).unwrap());
 
         let equal_condition = Condition::NumVisits {
-            name: name.clone(),
+            name: Address::Raw(name.clone()),
             rhs_value: 3,
             ordering: Ordering::Equal,
             not: false,
@@ -307,7 +306,7 @@ mod tests {
         assert!(check_condition(&equal_condition, &current_address, &knots).unwrap());
 
         let not_equal_condition = Condition::NumVisits {
-            name: name.clone(),
+            name: Address::Raw(name.clone()),
             rhs_value: 3,
             ordering: Ordering::Equal,
             not: true,
@@ -321,7 +320,7 @@ mod tests {
         let knots = HashMap::new();
 
         let gt_condition = Condition::NumVisits {
-            name: "knot_name".to_string(),
+            name: Address::Raw("knot_name".to_string()),
             rhs_value: 0,
             ordering: Ordering::Greater,
             not: false,
@@ -538,14 +537,14 @@ mod tests {
         let current_address = Address::from_root_knot("knot_name", &knots).unwrap();
 
         let fulfilled_condition = Condition::NumVisits {
-            name: name.clone(),
+            name: Address::Raw(name.clone()),
             rhs_value: 0,
             ordering: Ordering::Greater,
             not: false,
         };
 
         let unfulfilled_condition = Condition::NumVisits {
-            name: name.clone(),
+            name: Address::Raw(name.clone()),
             rhs_value: 2,
             ordering: Ordering::Greater,
             not: false,

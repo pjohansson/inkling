@@ -8,6 +8,7 @@ use crate::{
         parse::{split_line_into_variants, LinePart},
         Condition,
     },
+    story::Address,
 };
 
 /// Parse conditions for a choice and trim them from the line.
@@ -103,7 +104,7 @@ fn parse_condition(line: &str) -> Result<Condition, LineParsingError> {
             })? + adjustment;
 
             Ok(Condition::NumVisits {
-                name,
+                name: Address::Raw(name.to_string()),
                 rhs_value,
                 ordering,
                 not,
@@ -113,7 +114,7 @@ fn parse_condition(line: &str) -> Result<Condition, LineParsingError> {
             let (name, not) = get_name_and_if_not_condition(line)?;
 
             Ok(Condition::NumVisits {
-                name,
+                name: Address::Raw(name.to_string()),
                 rhs_value: 0,
                 ordering: Ordering::Greater,
                 not,
@@ -176,7 +177,7 @@ mod tests {
                 ordering,
                 not,
             } => {
-                assert_eq!(name, "knot_name");
+                assert_eq!(name, &Address::Raw("knot_name".to_string()));
                 assert_eq!(*rhs_value, 0);
                 assert_eq!(*ordering, Ordering::Greater);
                 assert_eq!(*not, false);
@@ -215,7 +216,7 @@ mod tests {
                 ordering,
                 not,
             } => {
-                assert_eq!(name, "third_knot");
+                assert_eq!(name, &Address::Raw("third_knot".to_string()));
                 assert_eq!(*rhs_value, 0);
                 assert_eq!(*ordering, Ordering::Greater);
                 assert_eq!(*not, true);
@@ -235,7 +236,7 @@ mod tests {
                 ordering,
                 not,
             } => {
-                assert_eq!(name, "knot_name");
+                assert_eq!(name, &Address::Raw("knot_name".to_string()));
                 assert_eq!(*rhs_value, 0);
                 assert_eq!(*ordering, Ordering::Greater);
                 assert_eq!(*not, true);
@@ -255,7 +256,7 @@ mod tests {
                 ordering,
                 not,
             } => {
-                assert_eq!(name, "knot_name");
+                assert_eq!(name, &Address::Raw("knot_name".to_string()));
                 assert_eq!(*rhs_value, 2);
                 assert_eq!(*ordering, Ordering::Greater);
                 assert_eq!(*not, false);
@@ -275,7 +276,7 @@ mod tests {
                 ordering,
                 not,
             } => {
-                assert_eq!(name, "knot_name");
+                assert_eq!(name, &Address::Raw("knot_name".to_string()));
                 assert_eq!(*rhs_value, 2);
                 assert_eq!(*ordering, Ordering::Greater);
                 assert_eq!(*not, true);
@@ -295,7 +296,7 @@ mod tests {
                 ordering,
                 not,
             } => {
-                assert_eq!(name, "knot_name");
+                assert_eq!(name, &Address::Raw("knot_name".to_string()));
                 assert_eq!(*rhs_value, 2);
                 assert_eq!(*ordering, Ordering::Less);
                 assert_eq!(*not, false);
@@ -315,7 +316,7 @@ mod tests {
                 ordering,
                 not,
             } => {
-                assert_eq!(name, "knot_name");
+                assert_eq!(name, &Address::Raw("knot_name".to_string()));
                 assert_eq!(*rhs_value, 2);
                 assert_eq!(*ordering, Ordering::Equal);
                 assert_eq!(*not, false);
@@ -335,7 +336,7 @@ mod tests {
                 ordering,
                 not,
             } => {
-                assert_eq!(name, "knot_name");
+                assert_eq!(name, &Address::Raw("knot_name".to_string()));
                 assert_eq!(*rhs_value, 1);
                 assert_eq!(*ordering, Ordering::Greater);
                 assert_eq!(*not, false);
@@ -355,7 +356,7 @@ mod tests {
                 ordering,
                 not,
             } => {
-                assert_eq!(name, "knot_name");
+                assert_eq!(name, &Address::Raw("knot_name".to_string()));
                 assert_eq!(*rhs_value, 3);
                 assert_eq!(*ordering, Ordering::Less);
                 assert_eq!(*not, false);
