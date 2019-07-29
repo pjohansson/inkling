@@ -41,6 +41,8 @@ pub enum InklingError {
 pub enum InvalidAddressError {
     /// The address is not formatted correctly.
     BadFormat { line: String },
+    /// Tried to validate an address but the given current knot did not exist in the system.
+    UnknownCurrentAddress { address: Address },
     /// The address references a `Knot` that is not in the story.
     UnknownKnot { knot_name: String },
     /// The address references a `Stitch` that is not present in the current `Knot`.
@@ -153,6 +155,7 @@ impl fmt::Display for InklingError {
                     "Encountered an address '{}' that could not be parsed",
                     line
                 ),
+                InvalidAddressError::UnknownCurrentAddress { .. } => unimplemented!(),
                 InvalidAddressError::UnknownKnot { knot_name } => write!(
                     f,
                     "Tried to divert to a knot with name '{}', \
