@@ -153,13 +153,12 @@ impl fmt::Display for InklingError {
                 knot, stitch
             ),
             OutOfChoices {
-                address: Address::Raw(address),
+                address
             } => write!(
                 f,
-                "Tried to use a non-validated `Address` ('{}') when following a story",
+                "Tried to use a non-validated `Address` ('{:?}') when following a story",
                 address
             ),
-            OutOfChoices { .. } => unimplemented!(),
             OutOfContent => write!(f, "Story ran out of content before an end was reached"),
             ResumeBeforeStart => write!(f, "Tried to resume a story that has not yet been started"),
             StartOnStoryInProgress => {
@@ -187,13 +186,12 @@ impl fmt::Display for InternalError {
                     knot, stitch
                 ),
                 BadAddress {
-                    address: Address::Raw(address),
+                    address
                 } => write!(
                     f,
-                    "Tried to used a non-validated `Address` ('{}') in a function",
+                    "Tried to used a non-validated `Address` ('{:?}') in a function",
                     address
                 ),
-                BadAddress { .. } => unimplemented!(),
                 NoLastChoices => write!(
                     f,
                     "Tried to follow with a choice but the last set of presented choices has \
