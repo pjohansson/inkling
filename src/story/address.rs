@@ -42,6 +42,10 @@ impl Address {
         Ok(Address { knot, stitch })
     }
 
+    /// Return an address from a string that is just a knot name.
+    /// 
+    /// The knot name is verified as present in the `Knots` set. The `Stitch` is set 
+    /// as the default for the found `Knot`.
     pub fn from_root_knot(root_knot_name: &str, knots: &Knots) -> Result<Self, InklingError> {
         let knot = knots.get(root_knot_name).ok_or(StackError::NoRootKnot {
             knot_name: root_knot_name.to_string(),
