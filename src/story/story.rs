@@ -368,8 +368,8 @@ fn follow_knot(
 /// Return a reference to the `Stitch` at the target address.
 pub fn get_stitch<'a>(target: &Address, knots: &'a Knots) -> Result<&'a Stitch, InklingError> {
     knots
-        .get(&target.knot)
-        .and_then(|knot| knot.stitches.get(&target.stitch))
+        .get(target.get_knot())
+        .and_then(|knot| knot.stitches.get(target.get_stitch()))
         .ok_or(
             StackError::BadAddress {
                 address: target.clone(),
@@ -384,8 +384,8 @@ pub fn get_mut_stitch<'a>(
     knots: &'a mut Knots,
 ) -> Result<&'a mut Stitch, InklingError> {
     knots
-        .get_mut(&target.knot)
-        .and_then(|knot| knot.stitches.get_mut(&target.stitch))
+        .get_mut(target.get_knot())
+        .and_then(|knot| knot.stitches.get_mut(target.get_stitch()))
         .ok_or(
             StackError::BadAddress {
                 address: target.clone(),

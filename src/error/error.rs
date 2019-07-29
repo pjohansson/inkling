@@ -181,12 +181,19 @@ impl fmt::Display for InklingError {
                 presented_choices.len() - 1
             ),
             OutOfChoices {
-                address: Address { knot, stitch },
+                address: Address::Validated { knot, stitch },
             } => write!(
                 f,
                 "Story reached a branching choice with no available choices to present \
                  or default choices to fall back on (knot: {}, stitch: {})",
                 knot, stitch
+            ),
+            OutOfChoices {
+                address: Address::Raw(address)
+            } => write!(
+                f,
+                "Tried to use a non-validated `Address` ('{}') when following a story",
+                address
             ),
             OutOfContent => write!(f, "Story ran out of content before an end was reached"),
             ResumeBeforeStart => write!(f, "Tried to resume a story that has not yet been started"),
@@ -207,12 +214,19 @@ impl fmt::Display for InternalError {
         match self {
             BadKnotStack(err) => match err {
                 BadAddress {
-                    address: Address { knot, stitch },
+                    address: Address::Validated { knot, stitch },
                 } => write!(
                     f,
                     "The currently set knot address (knot: {}, stitch: {}) does not \
                      actually represent a knot in the story",
                     knot, stitch
+                ),
+                BadAddress {
+                    address: Address::Raw(address),
+                } => write!(
+                    f,
+                    "Tried to used a non-validated `Address` ('{}') in a function",
+                    address
                 ),
                 NoLastChoices => write!(
                     f,

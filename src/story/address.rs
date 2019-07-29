@@ -13,9 +13,14 @@ use crate::error::{InklingError, InvalidAddressError, StackError};
 ///
 /// Used to leverage the type system and ensure that functions which require complete addresses
 /// get them.
-pub struct Address {
-    pub knot: String,
-    pub stitch: String,
+pub enum Address {
+    /// An address that has been validated and is guarantueed to resolve.
+    Validated {
+        knot: String,
+        stitch: String,
+    },
+    /// This string-formatted address has not yet been validated.
+    Raw(String),
 }
 
 impl Address {
@@ -39,7 +44,7 @@ impl Address {
             (head, None) => get_full_address_from_head(head, current_address, knots)?,
         };
 
-        Ok(Address { knot, stitch })
+        Ok(Address::Validated { knot, stitch })
     }
 
     /// Return an address from a string that is just a knot name.
@@ -51,10 +56,24 @@ impl Address {
             knot_name: root_knot_name.to_string(),
         })?;
 
-        Ok(Address {
+        Ok(Address::Validated {
             knot: root_knot_name.to_string(),
             stitch: knot.default_stitch.clone(),
         })
+    }
+
+    pub fn get_knot(&self) -> &str {
+        match self {
+            Address::Validated { knot, .. } => knot,
+            _ => panic!("tried to get `Knot` name from an unvalidated `Address`"),
+        }
+    }
+
+    pub fn get_stitch(&self) -> &str {
+        match self {
+            Address::Validated { stitch, .. } => stitch,
+            _ => panic!("tried to get `Stitch` name from an unvalidated `Address`"),
+        }
     }
 }
 
@@ -106,13 +125,13 @@ fn get_full_address_from_head(
     knots: &Knots,
 ) -> Result<(String, String), InklingError> {
     let current_knot = knots
-        .get(&current_address.knot)
+        .get(current_address.get_knot())
         .ok_or(StackError::BadAddress {
             address: current_address.clone(),
         })?;
 
     if current_knot.stitches.contains_key(head) {
-        Ok((current_address.knot.clone(), head.to_string()))
+        Ok((current_address.get_knot().to_string(), head.to_string()))
     } else {
         let target_knot = knots.get(head).ok_or(InvalidAddressError::UnknownKnot {
             knot_name: head.to_string(),
@@ -130,7 +149,7 @@ pub mod tests {
 
     impl Address {
         fn from_knot(name: &str) -> Self {
-            Address {
+            Address::Validated {
                 knot: name.to_string(),
                 stitch: String::new(),
             }
@@ -152,7 +171,7 @@ Line one.
             Address::from_target_address("knot.stitch", &current_address, &knots).unwrap();
         assert_eq!(
             address,
-            Address {
+            Address::Validated {
                 knot: "knot".into(),
                 stitch: "stitch".into()
             }
@@ -178,7 +197,7 @@ Line three.
         let address = Address::from_target_address("knot_one", &current_address, &knots).unwrap();
         assert_eq!(
             address,
-            Address {
+            Address::Validated {
                 knot: "knot_one".into(),
                 stitch: "stitch".into()
             }
@@ -187,7 +206,7 @@ Line three.
         let address = Address::from_target_address("knot_two", &current_address, &knots).unwrap();
         assert_eq!(
             address,
-            Address {
+            Address::Validated {
                 knot: "knot_two".into(),
                 stitch: ROOT_KNOT_NAME.into()
             }
@@ -212,7 +231,7 @@ Line two.
         let address = Address::from_target_address("stitch_one", &current_address, &knots).unwrap();
         assert_eq!(
             address,
-            Address {
+            Address::Validated {
                 knot: "knot_one".into(),
                 stitch: "stitch_one".into()
             }
@@ -221,7 +240,7 @@ Line two.
         let address = Address::from_target_address("stitch_two", &current_address, &knots).unwrap();
         assert_eq!(
             address,
-            Address {
+            Address::Validated {
                 knot: "knot_one".into(),
                 stitch: "stitch_two".into()
             }
@@ -251,7 +270,7 @@ Line three.
         let address = Address::from_target_address("opera", &current_address, &knots).unwrap();
         assert_eq!(
             address,
-            Address {
+            Address::Validated {
                 knot: "hamburg".into(),
                 stitch: "opera".into()
             }
@@ -330,7 +349,7 @@ Line one.
             Address::from_target_address(" paris.opera ", &current_address, &knots).unwrap();
         assert_eq!(
             address,
-            Address {
+            Address::Validated {
                 knot: "paris".into(),
                 stitch: "opera".into()
             }

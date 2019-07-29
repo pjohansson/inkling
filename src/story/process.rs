@@ -243,7 +243,7 @@ mod tests {
 
     fn get_mock_address_and_knots() -> (Address, Knots) {
         let empty_hash_map = HashMap::new();
-        let empty_address = Address {
+        let empty_address = Address::Validated {
             knot: "".to_string(),
             stitch: "".to_string(),
         };
@@ -327,7 +327,7 @@ mod tests {
             not: false,
         };
 
-        let current_address = Address {
+        let current_address = Address::Validated {
             knot: "".to_string(),
             stitch: "".to_string(),
         };
