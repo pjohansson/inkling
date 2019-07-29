@@ -19,7 +19,7 @@ pub enum Condition {
     /// Use a knot (or maybe other string-like variable) to check whether its value
     /// compares to the set condition.
     NumVisits {
-        name: Address,
+        address: Address,
         rhs_value: i32,
         #[cfg_attr(feature = "serde_support", serde(with = "OrderingDerive"))]
         ordering: Ordering,
@@ -30,13 +30,13 @@ pub enum Condition {
 impl ValidateAddresses for Condition {
     fn validate(&mut self, current_address: &Address, knots: &Knots) -> Result<(), InvalidAddressError> {
         match self {
-            Condition::NumVisits { ref mut name, .. } => name.validate(current_address, knots),
+            Condition::NumVisits { ref mut address, .. } => address.validate(current_address, knots),
         }
     }
 
     fn all_addresses_are_valid(&self) -> bool {
         match self {
-            Condition::NumVisits { name, .. } => name.all_addresses_are_valid(),
+            Condition::NumVisits { address, .. } => address.all_addresses_are_valid(),
         }
     }
 }

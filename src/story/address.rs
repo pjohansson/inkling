@@ -13,12 +13,12 @@ use crate::{
 };
 
 /// Trait for validating `Address` objects.
-/// 
-/// Meant to be implemented recursively for all relevant items. Any new item that has an 
-/// address should implement this trait and ensure that a parent item calls this function 
+///
+/// Meant to be implemented recursively for all relevant items. Any new item that has an
+/// address should implement this trait and ensure that a parent item calls this function
 /// on it when itself called.
-/// 
-/// At the end of a recursively called chain of objects containing addresses somewhere 
+///
+/// At the end of a recursively called chain of objects containing addresses somewhere
 /// there should be the actual address that will be verified.
 pub trait ValidateAddresses {
     /// Validate any addresses belonging to this item or their children.

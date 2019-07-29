@@ -104,7 +104,7 @@ fn parse_condition(line: &str) -> Result<Condition, LineParsingError> {
             })? + adjustment;
 
             Ok(Condition::NumVisits {
-                name: Address::Raw(name.to_string()),
+                address: Address::Raw(name.to_string()),
                 rhs_value,
                 ordering,
                 not,
@@ -114,7 +114,7 @@ fn parse_condition(line: &str) -> Result<Condition, LineParsingError> {
             let (name, not) = get_name_and_if_not_condition(line)?;
 
             Ok(Condition::NumVisits {
-                name: Address::Raw(name.to_string()),
+                address: Address::Raw(name.to_string()),
                 rhs_value: 0,
                 ordering: Ordering::Greater,
                 not,
