@@ -102,7 +102,7 @@
 //! implementation.
 //!
 //! # Features
-//! A complete recreation of all features in the `Ink` language is beyond the scope
+//! A complete recreation of all features in the Ink language is beyond the scope
 //! of this project (and my capabilities as a programmer).
 //!
 //! Currently the processor supports:
@@ -122,13 +122,17 @@
 //! Unlikely features:
 //!
 //! *   Structure:  Threads and tunnels (maybe?)
-//! *   Program:    Defining functions in the `Ink` story file, "advanced state tracking",
+//! *   Program:    Defining functions in the Ink story file, "advanced state tracking,"
 //!                 calling Rust functions from the script to get variables
 //! *   Mathematics: I'm not yet sure that I want to write a calculator
 //!
 //! # De/serializing stories
 //! Enable the `serde_support` feature to derive `Deserialize` and `Serialize` for all
-//! required objects.
+//! required objects. If you are unfamiliar with `serde`, this corresponds to reading 
+//! and writing finished story files in their current state. In game terms: saving 
+//! and loading. 
+//! 
+//! For more information about `serde` see their [website](https://serde.rs/).
 //!
 //! # Contributions
 //! I am a complete novice at designing frameworks which will fit into larger schemes.
