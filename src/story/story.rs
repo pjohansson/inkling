@@ -337,15 +337,15 @@ fn follow_knot(
     let mut buffer = Vec::new();
     let mut current_address = address.clone();
 
-    let result = loop {
+    let event = loop {
         let current_stitch = get_mut_stitch(&current_address, knots)?;
 
-        let inner_result = match selection.take() {
+        let result = match selection.take() {
             Some(i) => current_stitch.follow_with_choice(i, &mut buffer),
             None => current_stitch.follow(&mut buffer),
         }?;
 
-        match inner_result {
+        match result {
             EncounteredEvent::Divert(ref to_address)
                 if to_address == END_KNOT || to_address == DONE_KNOT =>
             {
@@ -358,11 +358,11 @@ fn follow_knot(
                 let knot = get_mut_stitch(&current_address, knots)?;
                 knot.num_visited += 1;
             }
-            _ => break inner_result,
+            _ => break result,
         }
     };
 
-    Ok((buffer, current_address, result))
+    Ok((buffer, current_address, event))
 }
 
 /// Return a reference to the `Stitch` at the target address.
