@@ -195,6 +195,7 @@ impl fmt::Display for InklingError {
                 "Tried to use a non-validated `Address` ('{}') when following a story",
                 address
             ),
+            OutOfChoices { .. } => unimplemented!(),
             OutOfContent => write!(f, "Story ran out of content before an end was reached"),
             ResumeBeforeStart => write!(f, "Tried to resume a story that has not yet been started"),
             StartOnStoryInProgress => {
@@ -228,6 +229,7 @@ impl fmt::Display for InternalError {
                     "Tried to used a non-validated `Address` ('{}') in a function",
                     address
                 ),
+                BadAddress { .. } => unimplemented!(),
                 NoLastChoices => write!(
                     f,
                     "Tried to follow with a choice but the last set of presented choices has \
