@@ -6,7 +6,7 @@ use super::story::Knots;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    consts::{DONE_KNOT, END_KNOT, ROOT_KNOT_NAME},
+    consts::{DONE_KNOT, END_KNOT},
     error::{InklingError, InvalidAddressError, StackError},
     knot::{Knot, Stitch},
     node::RootNodeBuilder,
@@ -94,10 +94,13 @@ impl ValidateAddresses for Address {
                 *self = Address::End;
             }
             Address::Raw(ref target) => {
+                dbg!(&target);
                 let (knot, stitch) = match split_address_into_parts(target.trim())? {
                     (knot, Some(stitch)) => get_full_address(knot, stitch, knots)?,
                     (head, None) => get_full_address_from_head(head, current_address, knots)?,
                 };
+                dbg!(&knot, &stitch);
+                eprintln!("");
 
                 *self = Address::Validated { knot, stitch };
             }
@@ -218,9 +221,11 @@ fn get_empty_knot_map(knots: &Knots) -> Knots {
                 .collect();
 
             let empty_knot = Knot {
-                default_stitch: ROOT_KNOT_NAME.to_string(),
+                default_stitch: knot.default_stitch.clone(),
                 stitches: empty_stitches,
             };
+
+            dbg!(&knot.default_stitch, &empty_knot.default_stitch);
 
             (knot_name.clone(), empty_knot)
         })
@@ -251,6 +256,20 @@ pub mod tests {
                 stitch: String::new(),
             }
         }
+    }
+
+    #[test]
+    fn creating_empty_knots_from_base_conserves_default_stitch_names() {
+        let content = "
+== tripoli
+= cinema
+-> END
+";
+
+        let (_, knots) = read_knots_from_string(content).unwrap();
+        let empty_knot = get_empty_knot_map(&knots);
+
+        assert_eq!(&empty_knot.get("tripoli").unwrap().default_stitch, "cinema");
     }
 
     #[test]

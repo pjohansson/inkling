@@ -898,4 +898,23 @@ We arrived into Almaty at 9.45pm exactly.
             }
         }
     }
+
+    #[test]
+    fn knots_with_non_default_root_stitch_gets_validated_addresses_that_point_to_them() {
+        let content = "
+-> almaty
+
+== almaty
+= back
+We arrived into Almaty at 9.45pm exactly.
+-> END
+";
+
+        let mut story = read_story_from_string(content).unwrap();
+        let mut line_buffer = Vec::new();
+
+        story.start(&mut line_buffer).unwrap();
+
+        assert_eq!(&line_buffer[0].text, "We arrived into Almaty at 9.45pm exactly.\n");
+    }
 }
