@@ -409,6 +409,8 @@ fn get_fallback_choice(
 mod tests {
     use super::*;
 
+    use crate::story::ValidateAddresses;
+
     #[test]
     fn follow_knot_diverts_to_new_knots_when_encountered() {
         let content = "
@@ -421,6 +423,7 @@ We hurried home to Savile Row as fast as we could.
 ";
 
         let (_, mut knots) = read_knots_from_string(content).unwrap();
+        validate_addresses_in_knots(&mut knots).unwrap();
         let root_address = Address::from_root_knot("back_in_london", &knots).unwrap();
 
         let (buffer, _, _) = follow_knot(&root_address, None, &mut knots).unwrap();
@@ -443,6 +446,7 @@ We hurried home to Savile Row as fast as we could.
 ";
 
         let (_, mut knots) = read_knots_from_string(content).unwrap();
+        validate_addresses_in_knots(&mut knots).unwrap();
         let root_address = Address::from_root_knot("back_in_london", &knots).unwrap();
 
         let (_, _, event) = follow_knot(&root_address, None, &mut knots).unwrap();
@@ -463,6 +467,7 @@ We hurried home to Savile Row as fast as we could.
 ";
 
         let (_, mut knots) = read_knots_from_string(content).unwrap();
+        validate_addresses_in_knots(&mut knots).unwrap();
         let root_address = Address::from_root_knot("select_destination", &knots).unwrap();
 
         let (_, _, event) = follow_knot(&root_address, None, &mut knots).unwrap();
@@ -490,6 +495,7 @@ We hurried home to Savile Row as fast as we could.
 ";
 
         let (_, mut knots) = read_knots_from_string(content).unwrap();
+        validate_addresses_in_knots(&mut knots).unwrap();
         let root_address = Address::from_root_knot("back_in_london", &knots).unwrap();
 
         let (_, last_address, _) = follow_knot(&root_address, None, &mut knots).unwrap();
@@ -511,6 +517,7 @@ We hurried home to Savile Row as fast as we could.
 ";
 
         let (_, mut knots) = read_knots_from_string(content).unwrap();
+        validate_addresses_in_knots(&mut knots).unwrap();
         let done_address = Address::from_root_knot("knot_done", &knots).unwrap();
         let end_address = Address::from_root_knot("knot_end", &knots).unwrap();
 
@@ -536,6 +543,7 @@ We hurried home to Savile Row as fast as we could.
 ";
 
         let (_, mut knots) = read_knots_from_string(content).unwrap();
+        validate_addresses_in_knots(&mut knots).unwrap();
 
         let current_address = Address::from_root_knot("addis_ababa", &knots).unwrap();
         let divert_address = Address::from_root_knot("tripoli", &knots).unwrap();
@@ -556,6 +564,7 @@ We hurried home to Savile Row as fast as we could.
 *   Visit family -> END
 ";
         let (_, mut knots) = read_knots_from_string(content).unwrap();
+        validate_addresses_in_knots(&mut knots).unwrap();
         let current_address = Address::from_root_knot("tripoli", &knots).unwrap();
 
         assert_eq!(get_stitch(&current_address, &knots).unwrap().num_visited, 0);
@@ -581,6 +590,7 @@ We hurried home to Savile Row as fast as we could.
 ";
 
         let (_, mut knots) = read_knots_from_string(content).unwrap();
+        validate_addresses_in_knots(&mut knots).unwrap();
         let current_address = Address::from_root_knot("addis_ababa", &knots).unwrap();
 
         let mut line_buffer = Vec::new();
@@ -606,6 +616,7 @@ We hurried home to Savile Row as fast as we could.
 ";
 
         let (_, mut knots) = read_knots_from_string(content).unwrap();
+        validate_addresses_in_knots(&mut knots).unwrap();
         let current_address = Address::from_root_knot("addis_ababa", &knots).unwrap();
 
         let mut line_buffer = Vec::new();
