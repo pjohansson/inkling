@@ -1,3 +1,5 @@
+//! Errors from parsing stories, knots, stitches and lines.
+
 use std::{error::Error, fmt};
 
 use crate::consts::{CHOICE_MARKER, STICKY_CHOICE_MARKER};
@@ -168,6 +170,7 @@ impl fmt::Display for LineParsingError {
 }
 
 #[derive(Clone, Debug)]
+/// Invalid knot or stitch name.
 pub enum KnotNameError {
     /// Knot name contains an invalid character.
     ContainsInvalidCharacter(char),
@@ -180,6 +183,7 @@ pub enum KnotNameError {
 }
 
 #[derive(Clone, Debug)]
+/// Variants of line errors.
 pub enum LineErrorKind {
     /// Found a choice with no selection text but display text after '[]' markers.
     ///
