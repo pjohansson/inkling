@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     consts::{DONE_KNOT, END_KNOT},
-    error::{InklingError, InternalError, InvalidAddressError, StackError},
+    error::{InklingError, InvalidAddressError, StackError},
     knot::{Knot, Stitch},
     node::RootNodeBuilder,
 };
@@ -48,29 +48,6 @@ pub enum Address {
 }
 
 impl Address {
-    /// Get the full address from a target.
-    ///
-    /// The given address may be to a `Knot`, in which case its default `Stitch` is used.
-    ///
-    /// The given address may be internal to the `Knot` specified by `current_address`,
-    /// in which case the full address is returned.
-    ///
-    /// For example, if we are currently in a knot with name `helsinki` and want to move to
-    /// a stitch within it with the name `date_with_kielo`, this function can be given
-    /// `date_with_kielo` and return the full address `helsinki` and `date_with_kielo`.
-    pub fn from_target_address(
-        target: &str,
-        current_address: &Address,
-        knots: &Knots,
-    ) -> Result<Self, InvalidAddressError> {
-        let (knot, stitch) = match split_address_into_parts(target.trim())? {
-            (knot, Some(stitch)) => get_full_address(knot, stitch, knots)?,
-            (head, None) => get_full_address_from_head(head, current_address, knots)?,
-        };
-
-        Ok(Address::Validated { knot, stitch })
-    }
-
     /// Return an address from a string that is just a knot name.
     ///
     /// The knot name is verified as present in the `Knots` set. The `Stitch` is set
@@ -102,6 +79,17 @@ impl Address {
             Address::End => panic!("tried to get `Stitch` name from a divert to `End`"),
             _ => panic!("tried to get `Stitch` name from an unvalidated `Address`"),
         }
+    }
+
+    #[cfg(test)]
+    /// Get a validated address from a string.
+    pub fn from_target_address(
+        target: &str,
+        current_address: &Address,
+        knots: &Knots,
+    ) -> Result<Self, InvalidAddressError> {
+        let mut address = Address::Raw(target.to_string());
+        address.validate(current_address, knots).map(|_| address)
     }
 }
 
