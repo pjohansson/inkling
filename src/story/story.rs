@@ -36,7 +36,8 @@ pub struct Line {
 pub struct Choice {
     /// Line of text to represent the choice with.
     ///
-    /// The text is ready to be printed as-is. It contains no newline character at the end.
+    /// The text is ready to be printed as-is. It is trimmed of whitespace from both ends 
+    /// and contains no newline character at the end.
     pub text: String,
     /// Tags associated with the choice.
     pub tags: Vec<String>,
