@@ -12,6 +12,26 @@ use crate::{
     node::RootNodeBuilder,
 };
 
+/// Trait for validating `Address` objects.
+/// 
+/// Meant to be implemented recursively for all relevant items. Any new item that has an 
+/// address should implement this trait and ensure that a parent item calls this function 
+/// on it when itself called.
+/// 
+/// At the end of a recursively called chain of objects containing addresses somewhere 
+/// there should be the actual address that will be verified.
+pub trait ValidateAddresses {
+    /// Validate any addresses belonging to this item or their children.
+    fn validate(
+        &mut self,
+        current_address: &Address,
+        knots: &Knots,
+    ) -> Result<(), InvalidAddressError>;
+
+    /// Assert that all addresses are valid.
+    fn all_addresses_are_valid(&self) -> bool;
+}
+
 #[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
 /// A verified address to a `Knot` or `Stitch` in the story.
@@ -66,6 +86,7 @@ impl Address {
         })
     }
 
+    /// Get the knot name of a validated address.
     pub fn get_knot(&self) -> &str {
         match self {
             Address::Validated { knot, .. } => knot,
@@ -74,6 +95,7 @@ impl Address {
         }
     }
 
+    /// Get the stitch name of a validateed address.
     pub fn get_stitch(&self) -> &str {
         match self {
             Address::Validated { stitch, .. } => stitch,
@@ -94,13 +116,10 @@ impl ValidateAddresses for Address {
                 *self = Address::End;
             }
             Address::Raw(ref target) => {
-                dbg!(&target);
                 let (knot, stitch) = match split_address_into_parts(target.trim())? {
                     (knot, Some(stitch)) => get_full_address(knot, stitch, knots)?,
                     (head, None) => get_full_address_from_head(head, current_address, knots)?,
                 };
-                dbg!(&knot, &stitch);
-                eprintln!("");
 
                 *self = Address::Validated { knot, stitch };
             }
@@ -181,6 +200,7 @@ fn get_full_address_from_head(
     }
 }
 
+/// Validate all addresses in knots using the `ValidateAddresses` trait.
 pub fn validate_addresses_in_knots(knots: &mut Knots) -> Result<(), InvalidAddressError> {
     let empty_knots = get_empty_knot_map(knots);
 
@@ -202,6 +222,7 @@ pub fn validate_addresses_in_knots(knots: &mut Knots) -> Result<(), InvalidAddre
         .collect()
 }
 
+/// Return an empty copy of the `Knots` set.
 fn get_empty_knot_map(knots: &Knots) -> Knots {
     knots
         .iter()
@@ -225,21 +246,9 @@ fn get_empty_knot_map(knots: &Knots) -> Knots {
                 stitches: empty_stitches,
             };
 
-            dbg!(&knot.default_stitch, &empty_knot.default_stitch);
-
             (knot_name.clone(), empty_knot)
         })
         .collect()
-}
-
-pub trait ValidateAddresses {
-    fn validate(
-        &mut self,
-        current_address: &Address,
-        knots: &Knots,
-    ) -> Result<(), InvalidAddressError>;
-
-    fn all_addresses_are_valid(&self) -> bool;
 }
 
 #[cfg(test)]
