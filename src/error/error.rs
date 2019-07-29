@@ -20,10 +20,7 @@ pub enum InklingError {
     Internal(InternalError),
     /// An invalid address was encountered when following the story.
     InvalidAddress(InvalidAddressError),
-    /// A choice was made with an internal index that does not match one existing in the set.
-    /// This means that the choice set presented to the user was not created to represent the set
-    /// of encountered choices, or that somehow a faulty choice was returned to continue
-    /// the story with.
+    /// An invalid choice index was given to resume the story with.
     InvalidChoice {
         /// Choice input by the user to resume the story with.
         selection: usize,
