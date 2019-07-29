@@ -1,4 +1,4 @@
-//! Internal errors from `inkling` itself.
+//! Errors from running `inkling`.
 
 use std::{error::Error, fmt};
 
@@ -9,11 +9,21 @@ use crate::{
 };
 
 #[derive(Clone, Debug)]
-/// Internal error from walking through a story.
-///
-/// Most likely due to the `DialogueNode` tree of a story being constructed incorrectly,
-/// which will be due to a logical error in the set-up code since the user has no
-/// control over it.
+/// Errors from running a story.
+/// 
+/// This struct mostly concerns errors which will be encountered due to some mistake 
+/// with the story or user input. 
+/// 
+/// `OutOfChoices` and `OutOfContent` are runtime errors from the story running out 
+/// of content to display. This is likely due to the story returning to a single knot 
+/// or stitch multiple times, consuming all of its choices if no fallback choice has 
+/// been added. These issues should be taken into account when writing the story: 
+/// if content will be returned to it is important to keep track of how many times 
+/// this is allowed to happen, or have a fallback in place.
+/// 
+/// All internal errors are contained in the `Internal` variant. These concern everything 
+/// that went wrong due to some issue within `inkling` itself. If you encounter any, 
+/// please open an issue on Github.
 pub enum InklingError {
     /// Internal errors caused by `inkling`.
     Internal(InternalError),
