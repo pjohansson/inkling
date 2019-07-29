@@ -2,7 +2,10 @@
 
 use std::{error::Error, fmt};
 
-use crate::consts::{CHOICE_MARKER, STICKY_CHOICE_MARKER};
+use crate::{
+    consts::{CHOICE_MARKER, STICKY_CHOICE_MARKER},
+    story::Address,
+};
 
 #[derive(Debug)]
 /// Error from parsing text to construct a story.
@@ -13,6 +16,24 @@ pub enum ParseError {
     KnotError(KnotError),
     /// Could not parse a individual line outside of knots.
     LineError(LineParsingError),
+    /// An invalid address was encountered when parsing the story.
+    InvalidAddress(InvalidAddressError),
+}
+
+#[derive(Clone, Debug)]
+/// A divert (or other address) in the story is invalid.
+pub enum InvalidAddressError {
+    /// The address is not formatted correctly.
+    BadFormat { line: String },
+    /// Tried to validate an address but the given current knot did not exist in the system.
+    UnknownCurrentAddress { address: Address },
+    /// The address references a `Knot` that is not in the story.
+    UnknownKnot { knot_name: String },
+    /// The address references a `Stitch` that is not present in the current `Knot`.
+    UnknownStitch {
+        knot_name: String,
+        stitch_name: String,
+    },
 }
 
 #[derive(Debug)]
@@ -46,6 +67,7 @@ impl LineParsingError {
 }
 
 impl Error for ParseError {}
+impl Error for InvalidAddressError {}
 impl Error for KnotError {}
 impl Error for LineParsingError {}
 
@@ -66,8 +88,39 @@ impl fmt::Display for ParseError {
 
         match self {
             Empty => write!(f, "Tried to read from an empty file or string"),
+            InvalidAddress(err) => write!(f, "{}", err),
             KnotError(err) => write!(f, "{}", err),
             LineError(err) => write!(f, "{}", err),
+        }
+    }
+}
+
+impl fmt::Display for InvalidAddressError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        use InvalidAddressError::*;
+
+        write!(f, "Encountered an invalid address: ")?;
+
+        match self {
+            BadFormat { line } => write!(
+                f,
+                "address was incorrectly formatted ('{}')",
+                line
+            ),
+            UnknownCurrentAddress { .. } => unimplemented!(),
+            UnknownKnot { knot_name } => write!(
+                f,
+                "no knot with name '{}' in the story",
+                knot_name
+            ),
+            UnknownStitch {
+                knot_name,
+                stitch_name,
+            } => write!(
+                f,
+                "no stitch with name '{}' in knot '{}'",
+                stitch_name, knot_name
+            ),
         }
     }
 }

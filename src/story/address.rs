@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     consts::{DONE_KNOT, END_KNOT},
-    error::{InklingError, InvalidAddressError, StackError},
+    error::{InklingError, InternalError, InvalidAddressError, StackError},
     knot::{Knot, Stitch},
     node::RootNodeBuilder,
 };
@@ -62,7 +62,7 @@ impl Address {
         target: &str,
         current_address: &Address,
         knots: &Knots,
-    ) -> Result<Self, InklingError> {
+    ) -> Result<Self, InvalidAddressError> {
         let (knot, stitch) = match split_address_into_parts(target.trim())? {
             (knot, Some(stitch)) => get_full_address(knot, stitch, knots)?,
             (head, None) => get_full_address_from_head(head, current_address, knots)?,

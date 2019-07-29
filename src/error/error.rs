@@ -17,8 +17,6 @@ use crate::{
 pub enum InklingError {
     /// Internal errors caused by `inkling`.
     Internal(InternalError),
-    /// An invalid address was encountered when following the story.
-    InvalidAddress(InvalidAddressError),
     /// An invalid choice index was given to resume the story with.
     InvalidChoice {
         /// Choice input by the user to resume the story with.
@@ -37,35 +35,19 @@ pub enum InklingError {
 }
 
 #[derive(Clone, Debug)]
-/// A divert (or other address) in the story is invalid.
-pub enum InvalidAddressError {
-    /// The address is not formatted correctly.
-    BadFormat { line: String },
-    /// Tried to validate an address but the given current knot did not exist in the system.
-    UnknownCurrentAddress { address: Address },
-    /// The address references a `Knot` that is not in the story.
-    UnknownKnot { knot_name: String },
-    /// The address references a `Stitch` that is not present in the current `Knot`.
-    UnknownStitch {
-        knot_name: String,
-        stitch_name: String,
-    },
-}
-
-#[derive(Clone, Debug)]
 /// Internal errors from `inkling`.
-/// 
-/// These are errors which arise when the library produces objects, trees, text 
-/// or internal stacks that are inconsistent with each other or themselves. 
-/// 
-/// If the library is well written these should not possibly occur; at least until 
-/// this point every part of the internals are fully deterministic. That obviously 
-/// goes for a lot of buggy code that has been written since forever, so nothing 
-/// unique there. 
-/// 
-/// Either way, all those sorts of errors are encapsulated here. They should never 
-/// be caused by invalid user input or Ink files, those errors should be captured 
-/// by either the parent [`InklingError`][crate::error::InklingError] 
+///
+/// These are errors which arise when the library produces objects, trees, text
+/// or internal stacks that are inconsistent with each other or themselves.
+///
+/// If the library is well written these should not possibly occur; at least until
+/// this point every part of the internals are fully deterministic. That obviously
+/// goes for a lot of buggy code that has been written since forever, so nothing
+/// unique there.
+///
+/// Either way, all those sorts of errors are encapsulated here. They should never
+/// be caused by invalid user input or Ink files, those errors should be captured
+/// by either the parent [`InklingError`][crate::error::InklingError]
 /// or parsing [`ParseError`][crate::error::ParseError] error structures.
 pub enum InternalError {
     /// The internal stack of knots is inconsistent or has not been set properly.
@@ -81,6 +63,8 @@ pub enum InternalError {
     },
     /// Current stack is not properly representing the graph or has some indexing problems.
     IncorrectNodeStack(IncorrectNodeStackError),
+    /// Tried to use an unvalidated address after the story was parsed.
+    UseOfUnvalidatedAddress { address: Address },
 }
 
 impl Error for InklingError {}
@@ -127,8 +111,7 @@ macro_rules! impl_from_error {
 
 impl_from_error![
     InklingError;
-    [Internal, InternalError],
-    [InvalidAddress, InvalidAddressError]
+    [Internal, InternalError]
 ];
 
 impl_from_error![
@@ -149,29 +132,6 @@ impl fmt::Display for InklingError {
 
         match self {
             Internal(err) => write!(f, "INTERNAL ERROR: {}", err),
-            InvalidAddress(err) => match err {
-                InvalidAddressError::BadFormat { line } => write!(
-                    f,
-                    "Encountered an address '{}' that could not be parsed",
-                    line
-                ),
-                InvalidAddressError::UnknownCurrentAddress { .. } => unimplemented!(),
-                InvalidAddressError::UnknownKnot { knot_name } => write!(
-                    f,
-                    "Tried to divert to a knot with name '{}', \
-                     but no such knot exists in the story",
-                    knot_name
-                ),
-                InvalidAddressError::UnknownStitch {
-                    knot_name,
-                    stitch_name,
-                } => write!(
-                    f,
-                    "Tried to divert to stitch '{}' belonging to knot '{}', \
-                     but no such stitch exists in the knot",
-                    stitch_name, knot_name
-                ),
-            },
             InvalidChoice {
                 selection,
                 presented_choices,
@@ -192,7 +152,7 @@ impl fmt::Display for InklingError {
                 knot, stitch
             ),
             OutOfChoices {
-                address: Address::Raw(address)
+                address: Address::Raw(address),
             } => write!(
                 f,
                 "Tried to use a non-validated `Address` ('{}') when following a story",
@@ -308,6 +268,10 @@ impl fmt::Display for InternalError {
                     stack[*stack_index], stack_index, num_items, stack
                 ),
             },
+            UseOfUnvalidatedAddress { address } => write!(
+                f, 
+                "Tried to use unvalidated address '{:?}'", address
+            ),
         }
     }
 }
@@ -327,14 +291,14 @@ pub enum ProcessErrorKind {
 }
 
 #[derive(Clone, Debug)]
-/// Errors related to the stack of `Knots`, `Stitches` and choices set to 
+/// Errors related to the stack of `Knots`, `Stitches` and choices set to
 /// the [`Story`][crate::story::Story].
 pub enum StackError {
     /// The current stack of `Address`es is empty and a follow was requested.
     NoStack,
     /// An invalid address was used inside the system.
-    /// 
-    /// This means that some bad assumptions have been made somewhere. Addresses are 
+    ///
+    /// This means that some bad assumptions have been made somewhere. Addresses are
     /// always supposed to be verified as valid before use.
     BadAddress { address: Address },
     /// No set of presented choices have been added to the system.
