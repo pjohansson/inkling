@@ -1,5 +1,5 @@
-use inkling::*;
 use inkling::error::ParseError;
+use inkling::*;
 
 #[test]
 fn knot_names_in_diverts_are_validated() {

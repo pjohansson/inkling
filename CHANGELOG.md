@@ -6,6 +6,10 @@
 
 *   Remove debugging output from used functions.
 
+## 0.11.2 
+
+*   Validate knot and stitch addresses after parsing a story.
+
 # 0.10.0
 
 *   Add stitches to organize stories through.
