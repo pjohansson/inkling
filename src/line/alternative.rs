@@ -169,7 +169,10 @@ impl AlternativeBuilder {
 mod tests {
     use super::*;
 
-    use crate::line::{Content, LineChunkBuilder};
+    use crate::{
+        line::{Content, LineChunkBuilder},
+        story::Address,
+    };
 
     #[test]
     fn sequence_alternative_walks_through_content_when_processed_repeatably() {
@@ -255,7 +258,7 @@ mod tests {
 
         assert_eq!(
             alternative.process(&mut buffer).unwrap(),
-            EncounteredEvent::Divert("divert".to_string())
+            EncounteredEvent::Divert(Address::Raw("divert".to_string()))
         );
         buffer.clear();
 
@@ -293,7 +296,7 @@ mod tests {
 
         assert_eq!(
             line.process(&mut buffer).unwrap(),
-            EncounteredEvent::Divert("divert".to_string())
+            EncounteredEvent::Divert(Address::Raw("divert".to_string()))
         );
 
         assert_eq!(&buffer, "Line 1Divert");

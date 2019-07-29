@@ -50,7 +50,7 @@ impl Process for Content {
     fn process(&mut self, buffer: &mut String) -> Result<EncounteredEvent, ProcessError> {
         match self {
             Content::Alternative(alternative) => alternative.process(buffer),
-            Content::Divert(address) => Ok(EncounteredEvent::Divert(address.to_string())),
+            Content::Divert(address) => Ok(EncounteredEvent::Divert(address.clone())),
             Content::Empty => {
                 buffer.push(' ');
                 Ok(EncounteredEvent::Done)
@@ -67,7 +67,10 @@ impl Process for Content {
 pub mod tests {
     use super::*;
 
-    use crate::line::{parse::parse_internal_line, LineChunkBuilder};
+    use crate::{
+        line::{parse::parse_internal_line, LineChunkBuilder},
+        story::Address,
+    };
 
     /// Process an item into a buffer an return it.
     pub fn get_processed_string<T: Process>(item: &mut T) -> String {
@@ -161,7 +164,7 @@ pub mod tests {
 
         assert_eq!(
             line.process(&mut buffer).unwrap(),
-            EncounteredEvent::Divert("divert".to_string())
+            EncounteredEvent::Divert(Address::Raw("divert".to_string()))
         );
 
         assert_eq!(&buffer, "Line 1");

@@ -1,7 +1,6 @@
 //! Structures which contain parsed `Ink` stories and content presented to the user.
 
 use crate::{
-    consts::{DONE_KNOT, END_KNOT},
     error::{InklingError, ParseError, StackError},
     follow::{ChoiceInfo, EncounteredEvent, LineDataBuffer},
     knot::{Knot, Stitch},
@@ -346,14 +345,12 @@ fn follow_knot(
         }?;
 
         match result {
-            EncounteredEvent::Divert(ref to_address)
-                if to_address == END_KNOT || to_address == DONE_KNOT =>
+            EncounteredEvent::Divert(Address::End) => 
             {
                 break EncounteredEvent::Done
             }
-            EncounteredEvent::Divert(ref to_address) => {
-                current_address =
-                    Address::from_target_address(to_address, &current_address, knots)?;
+            EncounteredEvent::Divert(to_address) => {
+                current_address = to_address;
 
                 let knot = get_mut_stitch(&current_address, knots)?;
                 knot.num_visited += 1;

@@ -1,6 +1,6 @@
 //! Results and data that is used or encountered when following, or walking through, a story.
 
-use crate::{error::InklingError, line::InternalChoice};
+use crate::{error::InklingError, line::InternalChoice, story::Address};
 
 /// Convenience type for a result of the encountered event and main error type.
 pub type FollowResult = Result<EncounteredEvent, InklingError>;
@@ -14,7 +14,7 @@ pub enum EncounteredEvent {
     /// Choice for the user.
     BranchingChoice(Vec<ChoiceInfo>),
     /// Divert to a new knot with the given name.
-    Divert(String),
+    Divert(Address),
     /// Finished with the current node or story.
     Done,
 }

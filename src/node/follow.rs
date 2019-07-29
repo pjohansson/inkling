@@ -322,6 +322,7 @@ mod tests {
         error::InklingError,
         line::{InternalChoice, LineChunkBuilder},
         node::builders::{BranchBuilder, BranchingPointBuilder, RootNodeBuilder},
+        story::Address,
     };
 
     #[test]
@@ -524,7 +525,7 @@ mod tests {
 
         assert_eq!(
             node.follow(&mut stack, &mut buffer).unwrap(),
-            EncounteredEvent::Divert("divert".to_string())
+            EncounteredEvent::Divert(Address::Raw("divert".to_string()))
         );
 
         assert_eq!(buffer.len(), 2);
@@ -756,7 +757,7 @@ mod tests {
         assert_eq!(
             node.follow_with_choice(0, 0, &mut stack, &mut buffer)
                 .unwrap(),
-            EncounteredEvent::Divert("divert".to_string())
+            EncounteredEvent::Divert(Address::Raw("divert".to_string()))
         );
     }
 

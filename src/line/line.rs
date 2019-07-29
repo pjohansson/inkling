@@ -1,6 +1,9 @@
 //! Structures for representing a single, whole line of `Ink` content.
 
-use crate::line::{Alternative, Condition};
+use crate::{
+    line::{Alternative, Condition},
+    story::Address,
+};
 
 #[cfg(feature = "serde_support")]
 use serde::{Deserialize, Serialize};
@@ -57,7 +60,7 @@ pub enum Content {
     /// Content that alternates every time it is visited in the story.
     Alternative(Alternative),
     /// Divert to a new node in the story.
-    Divert(String),
+    Divert(Address),
     /// Null content.
     Empty,
     /// String of regular text content in the line.
@@ -144,7 +147,7 @@ pub mod builders {
 
         /// Add a divert item at the end of the internal `LineChunk`.
         pub fn set_divert(&mut self, address: &str) {
-            self.chunk.items.push(Content::Divert(address.to_string()));
+            self.chunk.items.push(Content::Divert(Address::Raw(address.to_string())));
         }
 
         /// Set whether the line glues to the previous line.
@@ -193,7 +196,7 @@ pub mod builders {
 
         /// Add a `Content::Divert` item with the given address to the object.
         pub fn add_divert(&mut self, address: &str) {
-            self.add_item(Content::Divert(address.to_string()));
+            self.add_item(Content::Divert(Address::Raw(address.to_string())));
         }
 
         /// Add an item to the object.
@@ -213,7 +216,7 @@ pub mod builders {
 
         #[cfg(test)]
         pub fn with_divert(self, address: &str) -> Self {
-            self.with_item(Content::Divert(address.to_string()))
+            self.with_item(Content::Divert(Address::Raw(address.to_string())))
         }
 
         #[cfg(test)]

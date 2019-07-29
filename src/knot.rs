@@ -181,6 +181,7 @@ mod tests {
     use crate::{
         error::{LineParsingError, ParseError},
         line::{InternalLine, ParsedLineKind},
+        story::Address,
     };
 
     use std::str::FromStr;
@@ -242,7 +243,7 @@ mod tests {
 
         assert_eq!(
             knot.follow(&mut buffer).unwrap(),
-            EncounteredEvent::Divert(name)
+            EncounteredEvent::Divert(Address::Raw(name))
         );
 
         assert_eq!(buffer.len(), 2);

@@ -67,7 +67,7 @@ impl Address {
     pub fn get_knot(&self) -> &str {
         match self {
             Address::Validated { knot, .. } => knot,
-            Address::End => panic!("tried to get `Knot` name from a divert to `End`")
+            Address::End => panic!("tried to get `Knot` name from a divert to `End`"),
             _ => panic!("tried to get `Knot` name from an unvalidated `Address`"),
         }
     }
@@ -75,7 +75,7 @@ impl Address {
     pub fn get_stitch(&self) -> &str {
         match self {
             Address::Validated { stitch, .. } => stitch,
-            Address::End => panic!("tried to get `Stitch` name from a divert to `End`")
+            Address::End => panic!("tried to get `Stitch` name from a divert to `End`"),
             _ => panic!("tried to get `Stitch` name from an unvalidated `Address`"),
         }
     }
