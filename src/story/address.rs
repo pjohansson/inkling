@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     consts::{DONE_KNOT, END_KNOT},
-    error::{InklingError, InvalidAddressError, StackError},
+    error::{InklingError, InternalError, InvalidAddressError, StackError},
     knot::{Knot, Stitch},
     node::RootNodeBuilder,
 };
@@ -52,10 +52,15 @@ impl Address {
     ///
     /// The knot name is verified as present in the `Knots` set. The `Stitch` is set
     /// as the default for the found `Knot`.
-    pub fn from_root_knot(root_knot_name: &str, knots: &Knots) -> Result<Self, InklingError> {
-        let knot = knots.get(root_knot_name).ok_or(StackError::NoRootKnot {
-            knot_name: root_knot_name.to_string(),
-        })?;
+    pub fn from_root_knot(
+        root_knot_name: &str,
+        knots: &Knots,
+    ) -> Result<Self, InvalidAddressError> {
+        let knot = knots
+            .get(root_knot_name)
+            .ok_or(InvalidAddressError::UnknownKnot {
+                knot_name: root_knot_name.to_string(),
+            })?;
 
         Ok(Address::Validated {
             knot: root_knot_name.to_string(),
