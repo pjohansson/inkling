@@ -96,6 +96,9 @@ fn zip_choices_with_filter_values(
             let (text, tags) = if keep {
                 process_choice_text_and_tags(choice_data.selection_text.clone())
             } else {
+                // If we are filtering the choice we do not want it's processed selection 
+                // text to update their state. Instead, we clone the data and process that.
+
                 let independent_text = choice_data.selection_text.borrow().clone();
                 process_choice_text_and_tags(Rc::new(RefCell::new(independent_text)))
             }?;
