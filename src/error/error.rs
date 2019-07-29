@@ -207,7 +207,11 @@ impl fmt::Display for InternalError {
                      actually represent a knot in the story",
                     knot, stitch
                 ),
-                NoLastChoices => unimplemented!(),
+                NoLastChoices => write!(
+                    f,
+                    "Tried to follow with a choice but the last set of presented choices has \
+                     not been saved"
+                ),
                 NoRootKnot { knot_name } => write!(
                     f,
                     "After reading a set of knots, the root knot with name {} \
@@ -219,7 +223,24 @@ impl fmt::Display for InternalError {
                     "There is no currently set knot or address to follow the story from"
                 ),
             },
-            IncorrectChoiceIndex { .. } => unimplemented!(),
+            IncorrectChoiceIndex {
+                selection,
+                ref available_choices,
+                stack_index,
+                ref stack,
+            } => write!(
+                f,
+                "Tried to resume after a choice was made but the chosen index does not exist \
+                 in the set of choices. Somehow a faulty set of choices was created from this \
+                 branch point and returned upwards, the stack is wrong, or the wrong set of \
+                 choices was used elsewhere in the preparation of the choice list. \
+                 Selection index: {}, number of branches: {} \
+                 (node level: {}, stack: {:?})",
+                selection,
+                available_choices.len(),
+                stack_index,
+                stack
+            ),
             IncorrectNodeStack(err) => match err {
                 EmptyStack => write!(f, "Tried to advance through a knot with an empty stack"),
                 ExpectedBranchingPoint { stack_index, stack } => {
