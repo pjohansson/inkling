@@ -128,11 +128,14 @@ impl ValidateAddresses for LineChunk {
         current_address: &Address,
         knots: &Knots,
     ) -> Result<(), InvalidAddressError> {
-        // TODO: Conditions
-
-        self.items
+        self.conditions
             .iter_mut()
             .map(|item| item.validate(current_address, knots))
+            .chain(
+                self.items
+                    .iter_mut()
+                    .map(|item| item.validate(current_address, knots)),
+            )
             .collect()
     }
 
