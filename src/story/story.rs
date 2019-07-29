@@ -302,11 +302,11 @@ fn follow_story(
     selection: Option<usize>,
     knots: &mut Knots,
 ) -> Result<(Prompt, Address), InklingError> {
-    let (internal_buffer, last_address, result) = follow_knot(current_address, selection, knots)?;
+    let (internal_buffer, last_address, event) = follow_knot(current_address, selection, knots)?;
 
     process_buffer(line_buffer, internal_buffer);
 
-    match result {
+    match event {
         EncounteredEvent::BranchingChoice(choice_set) => {
             let user_choice_lines = prepare_choices_for_user(&choice_set, &current_address, knots)?;
             if !user_choice_lines.is_empty() {
