@@ -135,8 +135,9 @@
 //! If you have a suggestion for how to make it easier for a user to run the processor
 //! I would be very glad to hear it!
 //!
-//! Likewise, contributions are welcome. Please open an issue on [Github](https://github.com/pjohansson/inkling) to discuss improvements
-//! or submit a pull request.
+//! Likewise, contributions are welcome. Please open an issue on 
+//! [Github](https://github.com/pjohansson/inkling) to discuss improvements or submit 
+//! a pull request.
 mod consts;
 pub mod error;
 mod follow;
