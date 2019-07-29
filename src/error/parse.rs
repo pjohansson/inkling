@@ -78,6 +78,7 @@ impl Error for LineParsingError {}
 
 impl_from_error![
     ParseError;
+    [InvalidAddress, InvalidAddressError],
     [KnotError, KnotError],
     [LineError, LineParsingError]
 ];

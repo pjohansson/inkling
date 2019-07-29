@@ -276,7 +276,7 @@ impl Story {
 pub fn read_story_from_string(string: &str) -> Result<Story, ParseError> {
     let (root_knot_name, mut knots) = read_knots_from_string(string)?;
 
-    validate_addresses_in_knots(&mut knots).unwrap();
+    validate_addresses_in_knots(&mut knots)?;
 
     let root_address = Address::from_root_knot(&root_knot_name, &knots).expect(
         "After successfully creating all knots, the root knot name that was returned from \
