@@ -1,11 +1,10 @@
 //! Processing of nested line chunks into text content.
 
 use crate::{
+    error::ProcessError,
     follow::{EncounteredEvent, LineDataBuffer, LineText},
     line::{Content, InternalLine, LineChunk},
 };
-
-pub type ProcessError = String;
 
 pub trait Process {
     fn process(&mut self, buffer: &mut String) -> Result<EncounteredEvent, ProcessError>;

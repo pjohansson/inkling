@@ -1,7 +1,7 @@
 //! Process content to display to the user.
 
 use crate::{
-    error::InklingError,
+    error::{InklingError, InternalError},
     follow::{ChoiceInfo, LineDataBuffer, LineText},
     line::{Condition, InternalLine},
 };
@@ -96,7 +96,7 @@ fn zip_choices_with_filter_values(
             let (text, tags) = if keep {
                 process_choice_text_and_tags(choice_data.selection_text.clone())
             } else {
-                // If we are filtering the choice we do not want it's processed selection 
+                // If we are filtering the choice we do not want it's processed selection
                 // text to update their state. Instead, we clone the data and process that.
 
                 let independent_text = choice_data.selection_text.borrow().clone();
@@ -123,7 +123,8 @@ fn process_choice_text_and_tags(
 
     let mut line = choice_line.borrow_mut();
 
-    line.process(&mut data_buffer)?;
+    line.process(&mut data_buffer)
+        .map_err(|err| InternalError::from(err))?;
 
     let mut buffer = String::new();
 
@@ -388,9 +389,7 @@ mod tests {
         let text = "Mr. and Mrs. Doubtfire";
 
         let buffer = vec![
-            LineTextBuilder::from_string(text)
-                .with_glue_end()
-                .build(),
+            LineTextBuilder::from_string(text).with_glue_end().build(),
             LineTextBuilder::from_string(text).build(),
         ];
 
@@ -407,9 +406,7 @@ mod tests {
 
         let buffer = vec![
             LineTextBuilder::from_string(text).build(),
-            LineTextBuilder::from_string(text)
-                .with_glue_begin()
-                .build(),
+            LineTextBuilder::from_string(text).with_glue_begin().build(),
         ];
 
         let mut processed = Vec::new();
@@ -426,9 +423,7 @@ mod tests {
         let buffer = vec![
             LineTextBuilder::from_string(text).build(),
             LineTextBuilder::from_string("").build(),
-            LineTextBuilder::from_string(text)
-                .with_glue_begin()
-                .build(),
+            LineTextBuilder::from_string(text).with_glue_begin().build(),
         ];
 
         let mut processed = Vec::new();
@@ -475,9 +470,7 @@ mod tests {
         let text = "Mr. and Mrs. Doubtfire";
         let tags = vec!["tag 1".to_string(), "tag 2".to_string()];
 
-        let line = LineTextBuilder::from_string(text)
-            .with_tags(&tags)
-            .build();
+        let line = LineTextBuilder::from_string(text).with_tags(&tags).build();
 
         let buffer = vec![line];
 

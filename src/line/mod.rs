@@ -35,4 +35,4 @@ pub(crate) use line::{
     Content, InternalLine, LineChunk,
 };
 pub(crate) use parse::{parse_line, ParsedLineKind};
-pub(crate) use process::{Process, ProcessError};
+pub(crate) use process::Process;

@@ -1,9 +1,6 @@
 //! Results and data that is used or encountered when following, or walking through, a story.
 
-use crate::{
-    error::InklingError,
-    line::InternalChoice,
-};
+use crate::{error::InklingError, line::InternalChoice};
 
 /// Convenience type for a result of the encountered event and main error type.
 pub type FollowResult = Result<EncounteredEvent, InklingError>;
@@ -43,15 +40,15 @@ impl ChoiceInfo {
 
 #[derive(Clone, Debug, PartialEq)]
 /// Processed text from a full line.
-/// 
-/// This is the result from calling [`Process`][crate::line::Process] on a single 
-/// [`InternalLine`][crate::line::InternalLine] object and filling in the remaining 
+///
+/// This is the result from calling [`Process`][crate::line::Process] on a single
+/// [`InternalLine`][crate::line::InternalLine] object and filling in the remaining
 /// information. It is one possible result from that object since the `Process` trait
 /// can handle variations depending on variables or alternatives.
 pub struct LineText {
-    /// Processed text. 
-    /// 
-    /// The result while not yet have been trimmed of extraneous whitespace between 
+    /// Processed text.
+    ///
+    /// The result while not yet have been trimmed of extraneous whitespace between
     /// words or lines.
     pub text: String,
     /// Whether or not the line glues to the next line.
@@ -64,7 +61,7 @@ pub struct LineText {
 
 #[cfg(test)]
 /// Constructing struct for `LineText` objects.
-/// 
+///
 /// Used for test creation of prepared `LineDataBuffer` objects.
 pub struct LineTextBuilder {
     pub text: String,
@@ -85,7 +82,7 @@ impl LineTextBuilder {
     }
 
     pub fn build(self) -> LineText {
-        LineText { 
+        LineText {
             text: self.text,
             glue_begin: self.glue_begin,
             glue_end: self.glue_end,

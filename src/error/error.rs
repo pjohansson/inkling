@@ -4,7 +4,6 @@ use std::{error::Error, fmt};
 
 use crate::{
     follow::ChoiceInfo,
-    line::ProcessError,
     node::Stack,
     story::{Address, Choice},
 };
@@ -28,16 +27,13 @@ pub enum InklingError {
         presented_choices: Vec<Choice>,
     },
     /// No choices or fallback choices were available in a story branch at the given address.
-    OutOfChoices {
-        address: Address,
-    },
+    OutOfChoices { address: Address },
     /// No content was available for the story to continue from.
     OutOfContent,
     /// Tried to resume a story that has not been started.
     ResumeBeforeStart,
     /// Tried to `start` a story that is already in progress.
     StartOnStoryInProgress,
-    ProcessError,
 }
 
 #[derive(Clone, Debug)]
@@ -67,6 +63,8 @@ pub enum InternalError {
     },
     /// Current stack is not properly representing the graph or has some indexing problems.
     IncorrectNodeStack(IncorrectNodeStackError),
+    /// Could not `Process` a line of text into its final form.
+    CouldNotProcess(ProcessError),
 }
 
 impl Error for InklingError {}
@@ -119,14 +117,9 @@ impl_from_error![
 
 impl_from_error![
     InternalError;
-    [IncorrectNodeStack, IncorrectNodeStackError]
+    [IncorrectNodeStack, IncorrectNodeStackError],
+    [CouldNotProcess, ProcessError]
 ];
-
-impl From<ProcessError> for InklingError {
-    fn from(_: ProcessError) -> Self {
-        InklingError::ProcessError
-    }
-}
 
 impl From<StackError> for InklingError {
     fn from(err: StackError) -> Self {
@@ -186,7 +179,6 @@ impl fmt::Display for InklingError {
             StartOnStoryInProgress => {
                 write!(f, "Called `start` on a story that is already in progress")
             }
-            ProcessError => write!(f, "Could not process a line into text."),
         }
     }
 }
@@ -195,6 +187,7 @@ impl fmt::Display for InternalError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         use IncorrectNodeStackError::*;
         use InternalError::*;
+        use ProcessErrorKind::*;
         use StackError::*;
 
         match self {
@@ -221,6 +214,12 @@ impl fmt::Display for InternalError {
                 NoStack => write!(
                     f,
                     "There is no currently set knot or address to follow the story from"
+                ),
+            },
+            CouldNotProcess(ProcessError { kind }) => match kind {
+                InvalidAlternativeIndex => write!(
+                    f,
+                    "When processing an alternative, an invalid index was used to pick an item"
                 ),
             },
             IncorrectChoiceIndex {
@@ -278,6 +277,20 @@ impl fmt::Display for InternalError {
             },
         }
     }
+}
+
+#[derive(Clone, Debug)]
+/// Error from calling the [`Process`][crate::line::Process] trait on line data.
+pub struct ProcessError {
+    /// Error variant.
+    pub kind: ProcessErrorKind,
+}
+
+#[derive(Clone, Debug)]
+/// Variant of `ProcessError`.
+pub enum ProcessErrorKind {
+    /// An `Alternative` sequence tried to access an item with an out-of-bounds index.
+    InvalidAlternativeIndex,
 }
 
 #[derive(Clone, Debug)]

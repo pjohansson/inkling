@@ -1,8 +1,9 @@
 //! Content that alternates from a fixed set when processed.
 
 use crate::{
+    error::{ProcessError, ProcessErrorKind},
     follow::EncounteredEvent,
-    line::{LineChunk, Process, ProcessError},
+    line::{LineChunk, Process},
 };
 
 #[cfg(feature = "serde_support")]
@@ -59,7 +60,9 @@ impl Process for Alternative {
             AlternativeKind::Cycle => {
                 let index = self.current_index.get_or_insert(0);
 
-                let item = self.items.get_mut(*index).ok_or(ProcessError::default())?;
+                let item = self.items.get_mut(*index).ok_or_else(|| ProcessError {
+                    kind: ProcessErrorKind::InvalidAlternativeIndex,
+                })?;
 
                 if *index < num_items - 1 {
                     *index += 1;
@@ -83,7 +86,9 @@ impl Process for Alternative {
             AlternativeKind::Sequence => {
                 let index = self.current_index.get_or_insert(0);
 
-                let item = self.items.get_mut(*index).ok_or(ProcessError::default())?;
+                let item = self.items.get_mut(*index).ok_or_else(|| ProcessError {
+                    kind: ProcessErrorKind::InvalidAlternativeIndex,
+                })?;
 
                 if *index < num_items - 1 {
                     *index += 1;
