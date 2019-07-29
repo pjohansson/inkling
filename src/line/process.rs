@@ -1,8 +1,8 @@
 //! Processing of nested line chunks into text content.
 
 use crate::{
-    follow::{EncounteredEvent, LineDataBuffer},
-    line::{parse::parse_internal_line, Content, InternalLine, LineChunk},
+    follow::{EncounteredEvent, LineDataBuffer, LineText},
+    line::{Content, InternalLine, LineChunk},
 };
 
 pub type ProcessError = String;
@@ -16,17 +16,18 @@ impl InternalLine {
         &mut self,
         buffer: &mut LineDataBuffer,
     ) -> Result<EncounteredEvent, ProcessError> {
-        let mut string = String::new();
+        let mut text_buffer = String::new();
 
-        let result = self.chunk.process(&mut string);
+        let result = self.chunk.process(&mut text_buffer);
 
-        let mut full_line = parse_internal_line(&string).unwrap();
+        let line_text = LineText {
+            text: text_buffer,
+            glue_begin: self.glue_begin,
+            glue_end: self.glue_end,
+            tags: self.tags.clone(),
+        };
 
-        full_line.glue_begin = self.glue_begin;
-        full_line.glue_end = self.glue_end;
-        full_line.tags = self.tags.clone();
-
-        buffer.push(full_line);
+        buffer.push(line_text);
 
         result
     }
@@ -67,7 +68,7 @@ impl Process for Content {
 pub mod tests {
     use super::*;
 
-    use crate::line::LineChunkBuilder;
+    use crate::line::{parse::parse_internal_line, LineChunkBuilder};
 
     /// Process an item into a buffer an return it.
     pub fn get_processed_string<T: Process>(item: &mut T) -> String {

@@ -430,7 +430,7 @@ We hurried home to Savile Row as fast as we could.
         let (buffer, _, _) = follow_knot(&root_address, None, &mut knots).unwrap();
 
         assert_eq!(
-            &buffer.last().unwrap().text(),
+            &buffer.last().unwrap().text,
             "We hurried home to Savile Row as fast as we could."
         );
     }

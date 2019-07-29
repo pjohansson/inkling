@@ -216,8 +216,8 @@ mod tests {
         knot.follow(&mut buffer).unwrap();
 
         assert_eq!(buffer.len(), 2);
-        assert_eq!(&buffer[0].text(), text);
-        assert_eq!(&buffer[1].text(), text);
+        assert_eq!(&buffer[0].text, text);
+        assert_eq!(&buffer[1].text, text);
     }
 
     #[test]
@@ -246,8 +246,8 @@ mod tests {
         );
 
         assert_eq!(buffer.len(), 2);
-        assert_eq!(&buffer[0].text(), pre);
-        assert_eq!(buffer[1].text().trim(), "");
+        assert_eq!(&buffer[0].text, pre);
+        assert_eq!(buffer[1].text.trim(), "");
     }
 
     #[test]
@@ -301,7 +301,7 @@ mod tests {
         knot.follow_with_choice(0, &mut buffer).unwrap();
 
         assert_eq!(buffer.len(), 1);
-        assert_eq!(&buffer[0].text(), choice);
+        assert_eq!(&buffer[0].text, choice);
     }
 
     #[test]
@@ -350,8 +350,8 @@ mod tests {
         knot.follow_with_choice(1, &mut buffer).unwrap();
 
         assert_eq!(buffer.len(), 3);
-        assert_eq!(&buffer[1].text(), line1);
-        assert_eq!(&buffer[2].text(), line2);
+        assert_eq!(&buffer[1].text, line1);
+        assert_eq!(&buffer[2].text, line2);
     }
 
     #[test]

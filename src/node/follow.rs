@@ -419,8 +419,8 @@ mod tests {
         );
 
         assert_eq!(buffer.len(), 2);
-        assert_eq!(&buffer[0].text(), "Line 1");
-        assert_eq!(&buffer[1].text(), "Line 2");
+        assert_eq!(&buffer[0].text, "Line 1");
+        assert_eq!(&buffer[1].text, "Line 2");
     }
 
     #[test]
@@ -465,7 +465,7 @@ mod tests {
 
         node.follow(&mut stack, &mut buffer).unwrap();
 
-        assert_eq!(&buffer[0].text(), "Line 2");
+        assert_eq!(&buffer[0].text, "Line 2");
         assert_eq!(stack[0], 2);
     }
 
@@ -484,8 +484,8 @@ mod tests {
         node.follow(&mut stack, &mut buffer).unwrap();
 
         assert_eq!(buffer.len(), 2);
-        assert_eq!(&buffer[0].text(), "Line 2");
-        assert_eq!(&buffer[1].text(), "Line 3");
+        assert_eq!(&buffer[0].text, "Line 2");
+        assert_eq!(&buffer[1].text, "Line 3");
     }
 
     #[test]
@@ -526,8 +526,8 @@ mod tests {
         );
 
         assert_eq!(buffer.len(), 2);
-        assert_eq!(&buffer[0].text(), "Line 1");
-        assert_eq!(buffer[1].text().trim(), "Divert");
+        assert_eq!(&buffer[0].text, "Line 1");
+        assert_eq!(buffer[1].text.trim(), "Divert");
     }
 
     #[test]
@@ -624,8 +624,8 @@ mod tests {
         node.follow_with_choice(1, 0, &mut stack, &mut buffer)
             .unwrap();
 
-        assert_eq!(&buffer[1].text(), "Line 3");
-        assert_eq!(&buffer[2].text(), "Line 4");
+        assert_eq!(&buffer[1].text, "Line 3");
+        assert_eq!(&buffer[2].text, "Line 4");
     }
 
     #[test]
@@ -648,7 +648,7 @@ mod tests {
             .unwrap();
 
         assert_eq!(buffer.len(), 2);
-        assert_eq!(&buffer[1].text(), "Line 1");
+        assert_eq!(&buffer[1].text, "Line 1");
 
         assert_eq!(&stack, &[2]);
     }
@@ -733,7 +733,7 @@ mod tests {
         node.follow_with_choice(0, 0, &mut stack, &mut buffer)
             .unwrap();
 
-        assert_eq!(&buffer[0].text(), "Choice");
+        assert_eq!(&buffer[0].text, "Choice");
     }
 
     #[test]
@@ -836,10 +836,10 @@ mod tests {
             .unwrap();
 
         assert_eq!(buffer.len(), 7);
-        assert_eq!(&buffer[3].text(), "Line 1");
-        assert_eq!(&buffer[4].text(), "Line 2");
-        assert_eq!(&buffer[5].text(), "Line 3");
-        assert_eq!(&buffer[6].text(), "Line 4");
+        assert_eq!(&buffer[3].text, "Line 1");
+        assert_eq!(&buffer[4].text, "Line 2");
+        assert_eq!(&buffer[5].text, "Line 3");
+        assert_eq!(&buffer[6].text, "Line 4");
     }
 
     #[test]

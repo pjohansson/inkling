@@ -2,8 +2,8 @@
 
 use crate::{
     error::InklingError,
-    follow::{ChoiceInfo, LineDataBuffer},
-    line::{Condition, Content, InternalLine},
+    follow::{ChoiceInfo, LineDataBuffer, LineText},
+    line::{Condition, InternalLine},
 };
 
 use super::{
@@ -17,14 +17,14 @@ use std::{cell::RefCell, rc::Rc};
 pub fn process_buffer(into_buffer: &mut LineBuffer, from_buffer: LineDataBuffer) {
     let mut iter = from_buffer
         .into_iter()
-        .filter(|line| !line.text().trim().is_empty())
+        .filter(|line| !line.text.trim().is_empty())
         .peekable();
 
     while let Some(mut line) = iter.next() {
         add_line_ending(&mut line, iter.peek());
 
         into_buffer.push(Line {
-            text: line.text(),
+            text: line.text,
             tags: line.tags,
         });
     }
@@ -128,7 +128,7 @@ fn process_choice_text_and_tags(
     let mut buffer = String::new();
 
     for data in data_buffer.into_iter() {
-        buffer.push_str(&data.text());
+        buffer.push_str(&data.text);
     }
 
     Ok((buffer.trim().to_string(), line.tags.clone()))
@@ -171,19 +171,19 @@ fn check_choices_for_conditions(
 /// Add a newline character to the current line if it is not glued to the next.
 ///
 /// Ensure that only a single whitespace remains between the lines if they are glued.
-fn add_line_ending(line: &mut InternalLine, next_line: Option<&InternalLine>) {
+fn add_line_ending(line: &mut LineText, next_line: Option<&LineText>) {
     let glue = next_line
         .map(|next_line| line.glue_end || next_line.glue_begin)
         .unwrap_or(false);
 
     let whitespace = glue && {
         next_line
-            .map(|next_line| line.text().ends_with(' ') || next_line.text().starts_with(' '))
+            .map(|next_line| line.text.ends_with(' ') || next_line.text.starts_with(' '))
             .unwrap_or(false)
     };
 
     if !glue || whitespace {
-        let mut text = line.text().trim().to_string();
+        let mut text = line.text.trim().to_string();
 
         if whitespace {
             text.push(' ');
@@ -193,10 +193,7 @@ fn add_line_ending(line: &mut InternalLine, next_line: Option<&InternalLine>) {
             text.push('\n');
         }
 
-        match line.chunk.items[0] {
-            Content::Text(ref mut content) => *content = text,
-            _ => unreachable!(),
-        }
+        line.text = text;
     }
 }
 
@@ -233,6 +230,7 @@ mod tests {
 
     use crate::{
         consts::ROOT_KNOT_NAME,
+        follow::LineTextBuilder,
         knot::{Knot, Stitch},
         line::{
             AlternativeBuilder, InternalChoice, InternalChoiceBuilder, InternalLineBuilder,
@@ -341,9 +339,9 @@ mod tests {
         let text = "Mr. and Mrs. Doubtfire";
 
         let buffer = vec![
-            InternalLineBuilder::from_string(text).build(),
-            InternalLineBuilder::from_string("").build(),
-            InternalLineBuilder::from_string(text).build(),
+            LineTextBuilder::from_string(text).build(),
+            LineTextBuilder::from_string("").build(),
+            LineTextBuilder::from_string(text).build(),
         ];
 
         let mut processed = Vec::new();
@@ -357,8 +355,8 @@ mod tests {
     #[test]
     fn processing_line_buffer_trims_extra_whitespace() {
         let buffer = vec![
-            InternalLineBuilder::from_string("    Hello, World!    ").build(),
-            InternalLineBuilder::from_string("    Hello right back at you!  ").build(),
+            LineTextBuilder::from_string("    Hello, World!    ").build(),
+            LineTextBuilder::from_string("    Hello right back at you!  ").build(),
         ];
 
         let mut processed = Vec::new();
@@ -374,8 +372,8 @@ mod tests {
         let text = "Mr. and Mrs. Doubtfire";
 
         let buffer = vec![
-            InternalLineBuilder::from_string(text).build(),
-            InternalLineBuilder::from_string(text).build(),
+            LineTextBuilder::from_string(text).build(),
+            LineTextBuilder::from_string(text).build(),
         ];
 
         let mut processed = Vec::new();
@@ -390,10 +388,10 @@ mod tests {
         let text = "Mr. and Mrs. Doubtfire";
 
         let buffer = vec![
-            InternalLineBuilder::from_string(text)
+            LineTextBuilder::from_string(text)
                 .with_glue_end()
                 .build(),
-            InternalLineBuilder::from_string(text).build(),
+            LineTextBuilder::from_string(text).build(),
         ];
 
         let mut processed = Vec::new();
@@ -408,8 +406,8 @@ mod tests {
         let text = "Mr. and Mrs. Doubtfire";
 
         let buffer = vec![
-            InternalLineBuilder::from_string(text).build(),
-            InternalLineBuilder::from_string(text)
+            LineTextBuilder::from_string(text).build(),
+            LineTextBuilder::from_string(text)
                 .with_glue_begin()
                 .build(),
         ];
@@ -426,9 +424,9 @@ mod tests {
         let text = "Mr. and Mrs. Doubtfire";
 
         let buffer = vec![
-            InternalLineBuilder::from_string(text).build(),
-            InternalLineBuilder::from_string("").build(),
-            InternalLineBuilder::from_string(text)
+            LineTextBuilder::from_string(text).build(),
+            LineTextBuilder::from_string("").build(),
+            LineTextBuilder::from_string(text)
                 .with_glue_begin()
                 .build(),
         ];
@@ -442,7 +440,7 @@ mod tests {
 
     #[test]
     fn processing_line_buffer_sets_newline_on_last_line_regardless_of_glue() {
-        let line = InternalLineBuilder::from_string("Mr. and Mrs. Doubtfire")
+        let line = LineTextBuilder::from_string("Mr. and Mrs. Doubtfire")
             .with_glue_end()
             .build();
 
@@ -456,10 +454,10 @@ mod tests {
 
     #[test]
     fn processing_line_buffer_keeps_single_whitespace_between_lines_with_glue() {
-        let line1 = InternalLineBuilder::from_string("Ends with whitespace before glue, ")
+        let line1 = LineTextBuilder::from_string("Ends with whitespace before glue, ")
             .with_glue_end()
             .build();
-        let line2 = InternalLineBuilder::from_string(" starts with whitespace after glue")
+        let line2 = LineTextBuilder::from_string(" starts with whitespace after glue")
             .with_glue_begin()
             .build();
 
@@ -477,7 +475,7 @@ mod tests {
         let text = "Mr. and Mrs. Doubtfire";
         let tags = vec!["tag 1".to_string(), "tag 2".to_string()];
 
-        let line = InternalLineBuilder::from_string(text)
+        let line = LineTextBuilder::from_string(text)
             .with_tags(&tags)
             .build();
 
