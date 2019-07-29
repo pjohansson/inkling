@@ -188,15 +188,6 @@ impl fmt::Display for LineParsingError {
         use LineErrorKind::*;
 
         match self.kind {
-            BlankChoice => write!(
-                f,
-                "Found a choice with no selection text for the user to see, but with text \
-                 that will be added to the buffer when selected. If this is a fallback choice \
-                 the line content should be an empty divert, after which the content follows: \n\
-                 '->'\n\
-                 {{content}}\n\
-                 "
-            ),
             EmptyDivert => write!(f, "Encountered a divert statement with no address",),
             ExpectedEndOfLine { ref tail } => write!(
                 f,
@@ -251,11 +242,6 @@ pub enum KnotNameError {
 #[derive(Clone, Debug)]
 /// Variants of line errors.
 pub enum LineErrorKind {
-    /// Found a choice with no selection text but display text after '[]' markers.
-    ///
-    /// This is allowed but warned for in `Inkle`s implementation. We currently disallow it
-    /// but maybe this is wrong.
-    BlankChoice,
     /// Found a divert marker but no address.
     EmptyDivert,
     /// Line did not end after a divert statement.

@@ -40,7 +40,7 @@ fn parse_choice_data(content: &str) -> Result<InternalChoice, LineParsingError> 
     let (without_divert, _) = split_at_divert_marker(&selection_text_line);
     let selection_text = parse_internal_line(without_divert)?;
 
-    let is_fallback = is_choice_fallback(&selection_text, content)?;
+    let is_fallback = is_choice_fallback(&selection_text);
 
     let display_text = match parse_internal_line(&display_text_line) {
         Err(LineParsingError {
@@ -65,30 +65,14 @@ fn parse_choice_data(content: &str) -> Result<InternalChoice, LineParsingError> 
 /// Check whether a choice line is a fallback.
 ///
 /// The condition for a fallback choice is that it has no displayed text for the user.
-///
-/// Furthermore, a choice with no displayed text can have no regular text, either.
-/// We can determine this by checking if a separator bracket is present in the string.
-/// If so, return an error.
 fn is_choice_fallback(
     selection_text: &InternalLine,
-    original_line: &str,
-) -> Result<bool, LineParsingError> {
-    let is_fallback = selection_text
+) -> bool {
+    selection_text
         .chunk
         .items
         .iter()
-        .all(|item| item == &Content::Empty);
-
-    let choice_has_separator = original_line.find('[').is_some();
-
-    if is_fallback && choice_has_separator {
-        Err(LineParsingError {
-            kind: LineErrorKind::BlankChoice,
-            line: original_line.to_string(),
-        })
-    } else {
-        Ok(is_fallback)
-    }
+        .all(|item| item == &Content::Empty)
 }
 
 /// Split choice markers from a line and determine whether it is sticky.
@@ -307,22 +291,24 @@ pub(crate) mod tests {
     }
 
     #[test]
-    fn choices_without_displayed_text_cannot_have_regular_text() {
-        match parse_choice_data("[]") {
-            Err(LineParsingError {
-                kind: LineErrorKind::BlankChoice,
-                ..
-            }) => (),
-            other => panic!("expected `LineErrorKind::BlankChoice` but got {:?}", other),
-        }
+    fn choices_without_displayed_text_can_have_regular_text() {
+        let choice =  parse_choice_data("[]").unwrap();
 
-        match parse_choice_data("[] Some text") {
-            Err(LineParsingError {
-                kind: LineErrorKind::BlankChoice,
-                ..
-            }) => (),
-            other => panic!("expected `LineErrorKind::BlankChoice` but got {:?}", other),
-        }
+        assert!(choice.is_fallback);
+
+        assert_eq!(
+            choice.display_text,
+            parse_internal_line("").unwrap()
+        );
+
+        let choice =  parse_choice_data("[] Some text").unwrap();
+
+        assert!(choice.is_fallback);
+
+        assert_eq!(
+            choice.display_text,
+            parse_internal_line(" Some text").unwrap()
+        );
     }
 
     #[test]
