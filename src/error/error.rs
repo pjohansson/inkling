@@ -25,15 +25,10 @@ pub enum InklingError {
     /// of encountered choices, or that somehow a faulty choice was returned to continue
     /// the story with.
     InvalidChoice {
-        /// Index of choice that was used internally when the choice was not found.
-        index: usize,
         /// Choice input by the user to resume the story with.
-        choice: Option<Choice>,
-        /// List of choices that were available for the selection and if they were given
-        /// to the user in the `Prompt::Choice` set.
-        presented_choices: Vec<(bool, Choice)>,
-        /// List of all choices that were available in their internal representation.
-        internal_choices: Vec<ChoiceInfo>,
+        selection: usize,
+        /// List of choices that were available for the selection
+        presented_choices: Vec<Choice>,
     },
     /// No choices or fallback choices were available in a story branch at the given address.
     OutOfChoices {
@@ -66,7 +61,14 @@ pub enum InvalidAddressError {
 pub enum InternalError {
     /// The internal stack of knots is inconsistent or has not been set properly.
     BadKnotStack(StackError),
-    /// The current stack is not properly representing the graph or has some indexing problems.
+    /// Selected branch index does not exist.
+    IncorrectChoiceIndex {
+        selection: usize,
+        available_choices: Vec<ChoiceInfo>,
+        stack_index: usize,
+        stack: Stack,
+    },
+    /// Current stack is not properly representing the graph or has some indexing problems.
     IncorrectNodeStack(IncorrectNodeStackError),
 }
 
@@ -164,41 +166,16 @@ impl fmt::Display for InklingError {
                 ),
             },
             InvalidChoice {
-                index,
-                choice,
+                selection,
                 presented_choices,
-                ..
-            } => {
-                let presented_choices_string = presented_choices
-                    .iter()
-                    .map(|(shown, choice)| {
-                        if *shown {
-                            format!("{:?} (shown as available)", choice)
-                        } else {
-                            format!("{:?} (not shown)", choice)
-                        }
-                    })
-                    .collect::<Vec<_>>()
-                    .join("\n");
-
-                match choice {
-                    Some(choice) => {
-                        write!(f,
-                        "Tried to resume the story with an invalid choice: input choice was {:?}, \
-                        while available choices were: \n
-                        {}",
-                        choice, presented_choices_string
-                        )
-                    }
-                    None => write!(
-                        f,
-                        "Tried to resume the story with an invalid choice: \
-                         input choice cannot be found but its internal index was {}, \
-                         available choices were: [{}]",
-                        index, presented_choices_string
-                    ),
-                }
-            }
+            } => write!(
+                f,
+                "Invalid selection of choice: selection was {} but number of choices was {} \
+                 (maximum selection index is {})",
+                selection,
+                presented_choices.len(),
+                presented_choices.len() - 1
+            ),
             OutOfChoices {
                 address: Address { knot, stitch },
             } => write!(
@@ -233,6 +210,7 @@ impl fmt::Display for InternalError {
                      actually represent a knot in the story",
                     knot, stitch
                 ),
+                NoLastChoices => unimplemented!(),
                 NoRootKnot { knot_name } => write!(
                     f,
                     "After reading a set of knots, the root knot with name {} \
@@ -244,6 +222,7 @@ impl fmt::Display for InternalError {
                     "There is no currently set knot or address to follow the story from"
                 ),
             },
+            IncorrectChoiceIndex { .. } => unimplemented!(),
             IncorrectNodeStack(err) => match err {
                 EmptyStack => write!(f, "Tried to advance through a knot with an empty stack"),
                 ExpectedBranchingPoint { stack_index, stack } => {
@@ -291,6 +270,8 @@ pub enum StackError {
     /// have been made somewhere. Addresses are always supposed to be verified correct before
     /// use.
     BadAddress { address: Address },
+    /// No set of presented choices have been added to the system.
+    NoLastChoices,
     /// When creating the initial stack after constructing the knots, the root knot was not
     /// present in the set.
     NoRootKnot { knot_name: String },
@@ -303,13 +284,13 @@ pub enum IncorrectNodeStackError {
     EmptyStack,
     /// Found a `Line` object where a set of branching choices should be.
     ExpectedBranchingPoint { stack_index: usize, stack: Stack },
+    /// Tried to follow a branch but stack does not have an index for the follow,
+    /// it is too short.
+    MissingBranchIndex { stack_index: usize, stack: Stack },
     /// Stack contains an invalid index for the current node level.
     OutOfBounds {
         stack_index: usize,
         stack: Stack,
         num_items: usize,
     },
-    /// Tried to follow a branch but stack does not have an index for the follow,
-    /// it is too short.
-    MissingBranchIndex { stack_index: usize, stack: Stack },
 }

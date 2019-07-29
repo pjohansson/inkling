@@ -182,8 +182,8 @@ pub enum KnotNameError {
 #[derive(Clone, Debug)]
 pub enum LineErrorKind {
     /// Found a choice with no selection text but display text after '[]' markers.
-    /// 
-    /// This is allowed but warned for in `Inkle`s implementation. We currently disallow it 
+    ///
+    /// This is allowed but warned for in `Inkle`s implementation. We currently disallow it
     /// but maybe this is wrong.
     BlankChoice,
     /// Found a divert marker but no address.
@@ -198,7 +198,7 @@ pub enum LineErrorKind {
     FoundTunnel,
     /// Found an address with invalid characters.
     InvalidAddress { address: String },
-    /// A choice has both non-sticky and sticky markers. 
+    /// A choice has both non-sticky and sticky markers.
     StickyAndNonSticky,
     /// Found unmatched curly braces.
     UnmatchedBraces,

@@ -122,18 +122,17 @@ pub trait Follow: FollowInternal {
     /// we keep `follow`ing the content in the current node until its end.
     fn follow_with_choice(
         &mut self,
-        chosen_branch_index: usize,
+        selection: usize,
         stack_index: usize,
         stack: &mut Stack,
         buffer: &mut LineDataBuffer,
     ) -> FollowResult {
         let result = if let Some(next_branch) = self.get_next_level_branch(stack_index, stack)? {
-            next_branch.follow_with_choice(chosen_branch_index, stack_index + 2, stack, buffer)
+            next_branch.follow_with_choice(selection, stack_index + 2, stack, buffer)
         } else {
-            let selected_branch =
-                self.get_selected_branch(chosen_branch_index, stack_index, stack)?;
+            let selected_branch = self.get_selected_branch(selection, stack_index, stack)?;
 
-            stack.extend_from_slice(&[chosen_branch_index, 0]);
+            stack.extend_from_slice(&[selection, 0]);
 
             selected_branch.follow(stack, buffer)
         }?;
@@ -200,7 +199,7 @@ pub trait FollowInternal {
         branch_index: usize,
         stack_index: usize,
         stack: &Stack,
-    ) -> Result<&mut Branch, InklingError> {
+    ) -> Result<&mut Branch, InternalError> {
         self.get_branches_at_stack_index(stack_index, stack)
             .map_err(|err| err.into())
             .and_then(|branches| {
@@ -208,7 +207,12 @@ pub trait FollowInternal {
 
                 branches
                     .get_mut(branch_index)
-                    .ok_or(get_invalid_choice_error_stub(branch_index, branch_choices))
+                    .ok_or(InternalError::IncorrectChoiceIndex {
+                        selection: branch_index,
+                        available_choices: branch_choices,
+                        stack_index,
+                        stack: stack.clone(),
+                    })
             })
     }
 
@@ -308,26 +312,6 @@ fn get_choices_from_branching_set(branches: &[Branch]) -> Vec<ChoiceInfo> {
         .collect::<Vec<_>>()
 }
 
-/// Construct a stub for an `InvalidChoice` error.
-///
-/// If the used index to select a choice with was wrong, construct a stub of the error
-/// with type `InklingError::InvalidChoice`. Here we fill in which index caused
-/// the error and the full list of available choices that it tried to select from.
-///
-/// The other fields should be filled in by later error handling if needed: this is
-/// the information that the current node has direct access to.
-fn get_invalid_choice_error_stub(
-    choice_index: usize,
-    branch_choices: Vec<ChoiceInfo>,
-) -> InklingError {
-    InklingError::InvalidChoice {
-        index: choice_index,
-        choice: None,
-        presented_choices: Vec::new(),
-        internal_choices: branch_choices,
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -405,18 +389,14 @@ mod tests {
         let mut stack = vec![0];
 
         match node.follow_with_choice(1, 0, &mut stack, &mut buffer) {
-            Err(InklingError::InvalidChoice {
-                index,
-                choice,
-                presented_choices,
-                internal_choices,
-            }) => {
-                assert_eq!(index, 1);
-                assert_eq!(internal_choices.len(), 1);
-                assert_eq!(internal_choices[0].choice_data, internal_choice);
-
-                assert!(choice.is_none());
-                assert!(presented_choices.is_empty());
+            Err(InklingError::Internal(InternalError::IncorrectChoiceIndex {
+                selection,
+                available_choices,
+                ..
+            })) => {
+                assert_eq!(selection, 1);
+                assert_eq!(available_choices.len(), 1);
+                assert_eq!(available_choices[0].choice_data, internal_choice);
             }
             other => panic!("expected `InklingError::InvalidChoice` but got {:?}", other),
         }

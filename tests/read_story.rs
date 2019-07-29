@@ -479,15 +479,11 @@ North no. 2 is standing in the bed room as the old man wakes up from his dream.
 
     match result {
         Err(InklingError::InvalidChoice {
-            index,
-            choice: invalid_choice,
+            selection,
             presented_choices,
-            internal_choices,
         }) => {
-            assert_eq!(index, 1);
-            assert_eq!(&invalid_choice.unwrap(), choice);
+            assert_eq!(selection, 1);
             assert_eq!(presented_choices.len(), 1);
-            assert_eq!(internal_choices.len(), 1);
         }
         _ => unreachable!("the error should be present and filled with information"),
     }

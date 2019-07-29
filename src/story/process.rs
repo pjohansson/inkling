@@ -224,41 +224,6 @@ fn check_condition(
     }
 }
 
-/// Fill in missing data for an `InvalidChoice` error stub.
-///
-/// If the story was followed with an invalid choice we want to collect as much information
-/// about it as possible. This is done when first encountering the error as the stack
-/// is followed, which fills in which `ChoiceData` values were available and which index
-/// was used to select with.
-///
-/// This function fills in the rest of the stub.
-pub fn fill_in_invalid_error(
-    error_stub: InklingError,
-    made_choice: &Choice,
-    current_address: &Address,
-    knots: &Knots,
-) -> InklingError {
-    match error_stub {
-        InklingError::InvalidChoice {
-            index,
-            internal_choices,
-            ..
-        } => {
-            let presented_choices =
-                zip_choices_with_filter_values(&internal_choices, current_address, knots, false)
-                    .unwrap_or(Vec::new());
-
-            InklingError::InvalidChoice {
-                index,
-                choice: Some(made_choice.clone()),
-                internal_choices,
-                presented_choices,
-            }
-        }
-        _ => error_stub,
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -682,65 +647,6 @@ mod tests {
         assert_eq!(displayed_choices.len(), 2);
         assert_eq!(&displayed_choices[0].text, "Kept");
         assert_eq!(&displayed_choices[1].text, "Kept");
-    }
-
-    #[test]
-    fn invalid_choice_error_is_filled_in_with_all_presented_choices() {
-        let choice1 = InternalChoiceBuilder::from_string("Choice 1").build();
-        let choice2 = InternalChoiceBuilder::from_string("Choice 2").build();
-
-        let internal_choices = vec![
-            create_choice_extra(0, choice1),
-            create_choice_extra(1, choice2),
-        ];
-
-        let made_choice = Choice {
-            text: "Made this choice".to_string(),
-            tags: Vec::new(),
-            index: 5,
-        };
-
-        let error = InklingError::InvalidChoice {
-            index: 2,
-            choice: None,
-            presented_choices: Vec::new(),
-            internal_choices: internal_choices.clone(),
-        };
-
-        let (empty_address, empty_hash_map) = get_mock_address_and_knots();
-        let filled_error =
-            fill_in_invalid_error(error.clone(), &made_choice, &empty_address, &empty_hash_map);
-
-        match (filled_error, error) {
-            (
-                InklingError::InvalidChoice {
-                    index: filled_index,
-                    choice: filled_choice,
-                    presented_choices: filled_presented_choices,
-                    internal_choices: filled_internal_choices,
-                },
-                InklingError::InvalidChoice {
-                    index,
-                    internal_choices,
-                    ..
-                },
-            ) => {
-                assert_eq!(filled_index, index);
-                assert_eq!(filled_internal_choices, internal_choices);
-
-                assert_eq!(filled_choice, Some(made_choice));
-                assert_eq!(filled_presented_choices.len(), 2);
-
-                let (shown1, choice1) = &filled_presented_choices[0];
-                assert!(shown1);
-                assert_eq!(choice1.text, "Choice 1");
-
-                let (shown2, choice2) = &filled_presented_choices[1];
-                assert!(!shown2);
-                assert_eq!(choice2.text, "Choice 2");
-            }
-            _ => panic!(),
-        }
     }
 
     #[test]

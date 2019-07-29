@@ -3,7 +3,7 @@
 use crate::{
     consts::{DONE_KNOT, END_KNOT},
     error::{InklingError, ParseError, StackError},
-    follow::{ChoiceInfo, EncounteredEvent, FollowResult, LineDataBuffer},
+    follow::{ChoiceInfo, EncounteredEvent, LineDataBuffer},
     knot::{Knot, Stitch},
 };
 
@@ -15,9 +15,7 @@ use std::collections::HashMap;
 use super::{
     address::Address,
     parse::read_knots_from_string,
-    process::{
-        fill_in_invalid_error, get_fallback_choices, prepare_choices_for_user, process_buffer,
-    },
+    process::{get_fallback_choices, prepare_choices_for_user, process_buffer},
 };
 
 #[derive(Clone, Debug, PartialEq)]
@@ -62,6 +60,8 @@ pub struct Story {
     knots: Knots,
     /// Internal stack for which `Knot` is actively being followed.
     stack: Vec<Address>,
+    /// Set of last choices presented to the user.
+    last_choices: Option<Vec<Choice>>,
     /// Whether or not the story has been started.
     in_progress: bool,
 }
@@ -127,6 +127,7 @@ impl Prompt {
 
 impl Story {
     /// Start walking through the story while reading all lines into the supplied buffer.
+    ///
     /// Returns either when the story reached an end or when a set of choices was encountered,
     /// which requires the user to select one. Continue the story with `resume_with_choice`.
     ///
@@ -158,15 +159,10 @@ impl Story {
 
         self.in_progress = true;
 
-        let root_knot_name = self.stack.last().cloned().ok_or(StackError::NoStack)?;
+        let initial_address = self.get_current_address()?;
+        get_mut_stitch(&initial_address, &mut self.knots)?.num_visited += 1;
 
-        self.increment_knot_visit_counter(&root_knot_name)?;
-
-        Self::follow_story_wrapper(
-            self,
-            |_self, buffer| Self::follow_knot(_self, buffer),
-            line_buffer,
-        )
+        self.follow_story_wrapper(None, line_buffer)
     }
 
     /// Resume the story with a choice from the given set.
@@ -212,119 +208,58 @@ impl Story {
         }
 
         let index = choice.index;
-        let current_address = self.stack.last().ok_or(StackError::NoStack)?.clone();
 
-        Self::follow_story_wrapper(
-            self,
-            |_self, buffer| Self::follow_knot_with_choice(_self, index, buffer),
-            line_buffer,
-        )
-        .map_err(|err| match err {
-            InklingError::InvalidChoice { .. } => {
-                fill_in_invalid_error(err, &choice, &current_address, &self.knots)
-            }
-            _ => err,
-        })
-    }
+        let last_choices = self
+            .last_choices
+            .as_ref()
+            .ok_or(StackError::NoLastChoices)?;
 
-    /// Wrapper of common behavior between `start` and `resume_with_choice`. Sets up
-    /// a `LineDataBuffer`, reads data into it with the supplied closure and processes
-    /// the data by calling `prepare_buffer` on it. If a choice was encountered it
-    /// is prepared and returned.
-    fn follow_story_wrapper<F>(
-        &mut self,
-        func: F,
-        line_buffer: &mut LineBuffer,
-    ) -> Result<Prompt, InklingError>
-    where
-        F: FnOnce(&mut Self, &mut LineDataBuffer) -> Result<EncounteredEvent, InklingError>,
-    {
-        let mut internal_buffer = Vec::new();
-        let result = func(self, &mut internal_buffer)?;
-
-        process_buffer(line_buffer, internal_buffer);
-
-        match result {
-            EncounteredEvent::BranchingChoice(choice_set) => {
-                let current_address = self.stack.last().ok_or(StackError::NoStack)?;
-
-                let user_choice_lines =
-                    prepare_choices_for_user(&choice_set, &current_address, &self.knots)?;
-
-                if !user_choice_lines.is_empty() {
-                    Ok(Prompt::Choice(user_choice_lines))
-                } else {
-                    let choice = get_fallback_choice(&choice_set, &current_address, &self.knots)?;
-                    self.resume_with_choice(&choice, line_buffer)
-                }
-            }
-            EncounteredEvent::Done => Ok(Prompt::Done),
-            EncounteredEvent::Divert(..) => unreachable!("diverts are treated in the closure"),
+        if last_choices
+            .iter()
+            .find(|choice| choice.index == index)
+            .is_none()
+        {
+            return Err(InklingError::InvalidChoice {
+                selection: index,
+                presented_choices: last_choices.clone(),
+            });
         }
+
+        self.follow_story_wrapper(Some(index), line_buffer)
     }
 
-    /* Internal functions to walk through the story into a `LineDataBuffer`
-     * which will be processed into the user supplied lines by the public functions */
-
-    fn follow_knot(&mut self, line_buffer: &mut LineDataBuffer) -> FollowResult {
-        self.follow_on_knot_wrapper(|knot, buffer| knot.follow(buffer), line_buffer)
-    }
-
-    fn follow_knot_with_choice(
-        &mut self,
-        choice_index: usize,
-        line_buffer: &mut LineDataBuffer,
-    ) -> FollowResult {
-        self.follow_on_knot_wrapper(
-            |knot, buffer| knot.follow_with_choice(choice_index, buffer),
-            line_buffer,
-        )
-    }
-
-    /// Wrapper for common behavior between `follow_knot` and `follow_knot_with_choice`.
-    /// Deals with `Diverts` when they are encountered, they are not returned further up
-    /// in the call stack.
-    fn follow_on_knot_wrapper<F>(&mut self, f: F, buffer: &mut LineDataBuffer) -> FollowResult
-    where
-        F: FnOnce(&mut Stitch, &mut LineDataBuffer) -> FollowResult,
-    {
-        let knot_name = self.stack.last().ok_or(StackError::NoStack)?;
-
-        let result =
-            get_mut_stitch(knot_name, &mut self.knots).and_then(|stitch| f(stitch, buffer))?;
-
-        match result {
-            EncounteredEvent::Divert(destination) => self.divert_to_knot(&destination, buffer),
-            _ => Ok(result),
-        }
-    }
-
-    /// Update the current stack to a given address and increment the destination's visit counter.
+    /// Wrapper of common behavior between `start` and `resume_with_choice`.
     ///
-    /// The address may be internal to the current knot, in which case the full address is set.
-    /// For example, if the current knot is called `santiago` and the story wants to divert
-    /// to a stitch with name `cinema` within this knot, the given address `cinema` will set
-    /// the full address as `santiago.cinema` in the stack.
-    fn divert_to_knot(&mut self, to_address: &str, buffer: &mut LineDataBuffer) -> FollowResult {
-        if to_address == DONE_KNOT || to_address == END_KNOT {
-            Ok(EncounteredEvent::Done)
-        } else {
-            let current_address = self.stack.last().ok_or(StackError::NoStack)?;
-            let address = Address::from_target_address(to_address, current_address, &self.knots)?;
+    /// Updates the stack to the last visited address and the last presented set of choices
+    /// if encountered.
+    fn follow_story_wrapper(
+        &mut self,
+        selection: Option<usize>,
+        line_buffer: &mut LineBuffer,
+    ) -> Result<Prompt, InklingError> {
+        let current_address = self.get_current_address()?;
 
-            self.increment_knot_visit_counter(&address)?;
+        let (result, last_address) =
+            follow_story(&current_address, line_buffer, selection, &mut self.knots)?;
 
-            self.stack.last_mut().map(|knot_name| *knot_name = address);
+        self.update_last_stack(&last_address);
 
-            self.follow_knot(buffer)
+        match result {
+            Prompt::Choice(choices) => {
+                self.last_choices.replace(choices.clone());
+
+                Ok(Prompt::Choice(choices))
+            }
+            other => Ok(other),
         }
     }
 
-    /// Increment the number of visits counter for the given address.
-    fn increment_knot_visit_counter(&mut self, address: &Address) -> Result<(), InklingError> {
-        get_mut_stitch(address, &mut self.knots)?.num_visited += 1;
+    fn get_current_address(&self) -> Result<Address, InklingError> {
+        self.stack.last().cloned().ok_or(StackError::NoStack.into())
+    }
 
-        Ok(())
+    fn update_last_stack(&mut self, address: &Address) {
+        self.stack.push(address.clone());
     }
 }
 
@@ -352,8 +287,87 @@ pub fn read_story_from_string(string: &str) -> Result<Story, ParseError> {
     Ok(Story {
         knots,
         stack: vec![root_address],
+        last_choices: None,
         in_progress: false,
     })
+}
+
+/// Follow the nodes in a story with selected branch index if supplied. 
+/// 
+/// When an event that triggers a `Prompt` is encountered it will be returned along with 
+/// the last visited address. Lines that are followed in the story will be processed 
+/// and added to the input buffer.
+fn follow_story(
+    current_address: &Address,
+    line_buffer: &mut LineBuffer,
+    selection: Option<usize>,
+    knots: &mut Knots,
+) -> Result<(Prompt, Address), InklingError> {
+    let (internal_buffer, last_address, result) = follow_knot(current_address, selection, knots)?;
+
+    dbg!(current_address, &last_address);
+
+    process_buffer(line_buffer, internal_buffer);
+
+    match result {
+        EncounteredEvent::BranchingChoice(choice_set) => {
+            let user_choice_lines = prepare_choices_for_user(&choice_set, &current_address, knots)?;
+            eprintln!("choiches: {:?}", user_choice_lines);
+
+            if !user_choice_lines.is_empty() {
+                Ok((Prompt::Choice(user_choice_lines), last_address))
+            } else {
+                let choice = get_fallback_choice(&choice_set, &current_address, knots)?;
+
+                follow_story(current_address, line_buffer, Some(choice.index), knots)
+            }
+        }
+        EncounteredEvent::Done => Ok((Prompt::Done, last_address)),
+        EncounteredEvent::Divert(..) => unreachable!("diverts are treated in `follow_knot`"),
+    }
+}
+
+/// Follow a knot through diverts.
+/// 
+/// Will [follow][crate::node::Follow] through the story starting from the input address 
+/// and return all encountered lines. Diverts will be automatically moved to. 
+/// 
+/// The function returns when either a branching point is encountered or there is no 
+/// content left to follow. When it returns it will return with the last visited address.
+fn follow_knot(
+    address: &Address,
+    mut selection: Option<usize>,
+    knots: &mut Knots,
+) -> Result<(LineDataBuffer, Address, EncounteredEvent), InklingError> {
+    let mut buffer = Vec::new();
+    let mut current_address = address.clone();
+
+    let result = loop {
+        let current_stitch = get_mut_stitch(&current_address, knots)?;
+
+        let inner_result = match selection.take() {
+            Some(i) => current_stitch.follow_with_choice(i, &mut buffer),
+            None => current_stitch.follow(&mut buffer),
+        }?;
+
+        match inner_result {
+            EncounteredEvent::Divert(ref to_address)
+                if to_address == END_KNOT || to_address == DONE_KNOT =>
+            {
+                break EncounteredEvent::Done
+            }
+            EncounteredEvent::Divert(ref to_address) => {
+                current_address =
+                    Address::from_target_address(to_address, &current_address, knots)?;
+
+                let knot = get_mut_stitch(&current_address, knots)?;
+                knot.num_visited += 1;
+            }
+            _ => break inner_result,
+        }
+    };
+
+    Ok((buffer, current_address, result))
 }
 
 /// Return a reference to the `Stitch` at the target address.
@@ -414,7 +428,7 @@ mod tests {
     }
 
     #[test]
-    fn story_internally_follows_through_knots_when_diverts_are_found() {
+    fn follow_knot_diverts_to_new_knots_when_encountered() {
         let content = "
 == back_in_london
 We arrived into London at 9.45pm exactly.
@@ -424,18 +438,10 @@ We arrived into London at 9.45pm exactly.
 We hurried home to Savile Row as fast as we could.
 ";
 
-        let (head_knot, knots) = read_knots_from_string(content).unwrap();
-        let root_address = Address::from_root_knot(&head_knot, &knots).unwrap();
+        let (_, mut knots) = read_knots_from_string(content).unwrap();
+        let root_address = Address::from_root_knot("back_in_london", &knots).unwrap();
 
-        let mut story = Story {
-            knots,
-            stack: vec![root_address],
-            in_progress: false,
-        };
-
-        let mut buffer = Vec::new();
-
-        story.follow_knot(&mut buffer).unwrap();
+        let (buffer, _, _) = follow_knot(&root_address, None, &mut knots).unwrap();
 
         assert_eq!(
             &buffer.last().unwrap().text(),
@@ -444,74 +450,71 @@ We hurried home to Savile Row as fast as we could.
     }
 
     #[test]
-    fn story_internally_resumes_from_the_new_knot_after_a_choice_is_made() {
+    fn follow_knot_does_not_return_divert_event_if_divert_is_encountered() {
         let content = "
 == back_in_london
 We arrived into London at 9.45pm exactly.
 -> hurry_home
 
 == hurry_home
-\"What's that?\" my master asked.
-*	\"I am somewhat tired[.\"],\" I repeated.
-\"Really,\" he responded. \"How deleterious.\"
-*	\"Nothing, Monsieur!\"[] I replied.
-\"Very good, then.\"
-*   \"I said, this journey is appalling[.\"] and I want no more of it.\"
-\"Ah,\" he replied, not unkindly. \"I see you are feeling frustrated. Tomorrow, things will improve.\"
+We hurried home to Savile Row as fast as we could.
 ";
 
-        let (_, knots) = read_knots_from_string(content).unwrap();
+        let (_, mut knots) = read_knots_from_string(content).unwrap();
         let root_address = Address::from_root_knot("back_in_london", &knots).unwrap();
 
-        let mut story = Story {
-            knots,
-            stack: vec![root_address],
-            in_progress: false,
-        };
+        let (_, _, event) = follow_knot(&root_address, None, &mut knots).unwrap();
 
-        let mut buffer = Vec::new();
-
-        story.follow_knot(&mut buffer).unwrap();
-        story.follow_knot_with_choice(1, &mut buffer).unwrap();
-
-        assert_eq!(&buffer.last().unwrap().text(), "\"Very good, then.\"");
+        match event {
+            EncounteredEvent::Done => (),
+            other => panic!("expected `EncounteredEvent::Done` but got {:?}", other),
+        }
     }
 
     #[test]
-    fn when_a_knot_is_returned_to_the_text_starts_from_the_beginning() {
+    fn follow_knot_returns_choices_when_encountered() {
+        let content = "
+== select_destination
+*   Tripoli
+*   Addis Ababa
+*   Rabat
+";
+
+        let (_, mut knots) = read_knots_from_string(content).unwrap();
+        let root_address = Address::from_root_knot("select_destination", &knots).unwrap();
+
+        let (_, _, event) = follow_knot(&root_address, None, &mut knots).unwrap();
+
+        match event {
+            EncounteredEvent::BranchingChoice(ref choices) => {
+                assert_eq!(choices.len(), 3);
+            }
+            other => panic!(
+                "expected `EncounteredEvent::BranchingChoice` but got {:?}",
+                other
+            ),
+        }
+    }
+
+    #[test]
+    fn follow_knot_returns_the_last_active_knot() {
         let content = "
 == back_in_london
 We arrived into London at 9.45pm exactly.
 -> hurry_home
 
 == hurry_home
-*   We hurried home to Savile Row as fast as we could.
-*   But we decided our trip wasn't done and immediately left.
-After a few days me returned again.
--> back_in_london
+We hurried home to Savile Row as fast as we could.
 ";
 
-        let (_, knots) = read_knots_from_string(content).unwrap();
+        let (_, mut knots) = read_knots_from_string(content).unwrap();
         let root_address = Address::from_root_knot("back_in_london", &knots).unwrap();
 
-        let mut story = Story {
-            knots,
-            stack: vec![root_address],
-            in_progress: false,
-        };
-
-        let mut buffer = Vec::new();
-
-        story.follow_knot(&mut buffer).unwrap();
-        story.follow_knot_with_choice(1, &mut buffer).unwrap();
+        let (_, last_address, _) = follow_knot(&root_address, None, &mut knots).unwrap();
 
         assert_eq!(
-            &buffer[0].text(),
-            "We arrived into London at 9.45pm exactly."
-        );
-        assert_eq!(
-            &buffer[5].text(),
-            "We arrived into London at 9.45pm exactly."
+            last_address,
+            Address::from_root_knot("hurry_home", &knots).unwrap()
         );
     }
 
@@ -525,105 +528,140 @@ After a few days me returned again.
 -> END
 ";
 
-        let (_, knots) = read_knots_from_string(content).unwrap();
+        let (_, mut knots) = read_knots_from_string(content).unwrap();
         let done_address = Address::from_root_knot("knot_done", &knots).unwrap();
         let end_address = Address::from_root_knot("knot_end", &knots).unwrap();
 
-        let mut story = Story {
-            knots,
-            stack: vec![done_address],
-            in_progress: false,
-        };
-
-        let mut buffer = Vec::new();
-
-        match story.start(&mut buffer).unwrap() {
-            Prompt::Done => (),
+        match follow_knot(&done_address, None, &mut knots).unwrap() {
+            (_, _, EncounteredEvent::Done) => (),
             _ => panic!("story should be done when diverting to DONE knot"),
         }
 
-        story.in_progress = false;
-        story.stack = vec![end_address];
-
-        match story.start(&mut buffer).unwrap() {
-            Prompt::Done => (),
+        match follow_knot(&end_address, None, &mut knots).unwrap() {
+            (_, _, EncounteredEvent::Done) => (),
             _ => panic!("story should be done when diverting to END knot"),
         }
     }
 
     #[test]
-    fn divert_to_knot_increments_visit_count() {
+    fn divert_to_knot_increments_its_visit_count() {
         let content = "
-== knot
-Line one.
+== addis_ababa
+-> tripoli
+
+== tripoli
+-> DONE
 ";
 
-        let (_, knots) = read_knots_from_string(content).unwrap();
-        let root_address = Address::from_root_knot("knot", &knots).unwrap();
-        let address = Address::from_target_address("knot", &root_address, &knots).unwrap();
+        let (_, mut knots) = read_knots_from_string(content).unwrap();
 
-        let mut buffer = Vec::new();
+        let current_address = Address::from_root_knot("addis_ababa", &knots).unwrap();
+        let divert_address = Address::from_root_knot("tripoli", &knots).unwrap();
 
-        let mut story = Story {
-            knots,
-            stack: vec![root_address.clone()],
-            in_progress: false,
-        };
+        assert_eq!(get_stitch(&divert_address, &knots).unwrap().num_visited, 0);
 
-        assert_eq!(get_stitch(&address, &story.knots).unwrap().num_visited, 0);
+        follow_knot(&current_address, None, &mut knots).unwrap();
 
-        story.divert_to_knot("knot", &mut buffer).unwrap();
-        assert_eq!(get_stitch(&address, &story.knots).unwrap().num_visited, 1);
+        assert_eq!(get_stitch(&divert_address, &knots).unwrap().num_visited, 1);
     }
 
     #[test]
-    fn divert_to_specific_stitch_sets_stack_to_it() {
+    fn knots_do_not_get_their_number_of_visits_incremented_when_resuming_a_choice() {
         let content = "
-== knot
-Line one.
-= stitch
-Line two.
+== tripoli
+
+*   Cinema -> END
+*   Visit family -> END
 ";
+        let (_, mut knots) = read_knots_from_string(content).unwrap();
+        let current_address = Address::from_root_knot("tripoli", &knots).unwrap();
 
-        let (_, knots) = read_knots_from_string(content).unwrap();
-        let root_address = Address::from_root_knot("knot", &knots).unwrap();
-        let address = Address::from_target_address("knot.stitch", &root_address, &knots).unwrap();
+        assert_eq!(get_stitch(&current_address, &knots).unwrap().num_visited, 0);
 
-        let mut buffer = Vec::new();
+        follow_knot(&current_address, Some(1), &mut knots).unwrap();
 
-        let mut story = Story {
-            knots,
-            stack: vec![root_address.clone()],
-            in_progress: false,
-        };
-
-        story.divert_to_knot("knot.stitch", &mut buffer).unwrap();
-
-        assert_eq!(story.stack.last().unwrap(), &address);
+        assert_eq!(get_stitch(&current_address, &knots).unwrap().num_visited, 0);
     }
 
     #[test]
-    fn divert_to_stitch_inside_knot_with_internal_target_sets_full_destination_in_stack() {
+    fn follow_story_returns_last_visited_address_when_reaching_end() {
         let content = "
-== knot
-Line one.
-= stitch
-Line two.
+== addis_ababa
+-> tripoli.cinema
+
+== tripoli
+
+= cinema
+-> END
+
+= visit_family
+-> END
 ";
 
-        let (_, knots) = read_knots_from_string(content).unwrap();
-        let root_address = Address::from_root_knot("knot", &knots).unwrap();
-        let address = Address::from_target_address("knot.stitch", &root_address, &knots).unwrap();
+        let (_, mut knots) = read_knots_from_string(content).unwrap();
+        let current_address = Address::from_root_knot("addis_ababa", &knots).unwrap();
 
-        let mut buffer = Vec::new();
+        let mut line_buffer = Vec::new();
+        let (_, last_address) =
+            follow_story(&current_address, &mut line_buffer, None, &mut knots).unwrap();
 
-        let mut story = Story {
-            knots,
-            stack: vec![root_address.clone()],
-            in_progress: false,
-        };
+        assert_eq!(
+            last_address,
+            Address::from_target_address("tripoli.cinema", &current_address, &knots).unwrap()
+        );
+    }
 
-        story.divert_to_knot("stitch", &mut buffer).unwrap();
+    #[test]
+    fn follow_story_returns_last_visited_address_when_encountering_choices() {
+        let content = "
+== addis_ababa
+-> tripoli
+
+== tripoli
+
+*   Cinema -> END
+*   Visit family -> END
+";
+
+        let (_, mut knots) = read_knots_from_string(content).unwrap();
+        let current_address = Address::from_root_knot("addis_ababa", &knots).unwrap();
+
+        let mut line_buffer = Vec::new();
+        let (_, last_address) =
+            follow_story(&current_address, &mut line_buffer, None, &mut knots).unwrap();
+
+        assert_eq!(
+            last_address,
+            Address::from_target_address("tripoli", &current_address, &knots).unwrap()
+        );
+    }
+
+    #[test]
+    fn following_story_wrapper_updates_stack_to_last_address() {
+        let content = "
+== addis_ababa
+-> tripoli.cinema
+
+== tripoli
+
+= cinema
+-> END
+
+= visit_family
+-> END
+";
+
+        let mut story = read_story_from_string(content).unwrap();
+        let mut line_buffer = Vec::new();
+
+        story.follow_story_wrapper(None, &mut line_buffer).unwrap();
+
+        let address = Address::from_target_address(
+            "tripoli.cinema",
+            &story.get_current_address().unwrap(),
+            &story.knots,
+        )
+        .unwrap();
 
         assert_eq!(story.stack.last().unwrap(), &address);
     }
@@ -672,6 +710,53 @@ Line two.
     }
 
     #[test]
+    fn last_set_of_presented_choices_are_stored() {
+        let content = "
+== knot 
+*   Choice 1
+*   Choice 2
+";
+
+        let mut story = read_story_from_string(content).unwrap();
+        let mut line_buffer = Vec::new();
+
+        assert!(story.last_choices.is_none());
+
+        story.start(&mut line_buffer).unwrap();
+
+        let last_choices = story.last_choices.as_ref().unwrap();
+
+        assert_eq!(last_choices.len(), 2);
+        assert_eq!(&last_choices[0].text, "Choice 1");
+        assert_eq!(&last_choices[1].text, "Choice 2");
+    }
+
+    #[test]
+    fn when_an_invalid_choices_is_made_to_resume_the_story_an_invalid_choice_error_is_yielded() {
+        let content = "
+== knot 
+*   Choice 1
+";
+
+        let mut story = read_story_from_string(content).unwrap();
+        let mut line_buffer = Vec::new();
+
+        story.start(&mut line_buffer).unwrap();
+
+        match story.resume_with_choice(&mock_choice(1), &mut line_buffer) {
+            Err(InklingError::InvalidChoice {
+                selection,
+                presented_choices,
+            }) => {
+                assert_eq!(selection, 1);
+                assert_eq!(presented_choices.len(), 1);
+                assert_eq!(&presented_choices[0].text, "Choice 1");
+            }
+            other => panic!("expected `InklingError::InvalidChoice` but got {:?}", other),
+        }
+    }
+
+    #[test]
     fn starting_a_story_is_only_allowed_once() {
         let mut story = read_story_from_string("Line 1").unwrap();
         let mut line_buffer = Vec::new();
@@ -699,5 +784,54 @@ Line two.
             Err(InklingError::ResumeBeforeStart) => (),
             _ => panic!("did not raise `ResumeBeforeStart` error"),
         }
+    }
+
+    #[test]
+    fn when_a_knot_is_returned_to_the_text_starts_from_the_beginning() {
+        let content = "
+== back_in_almaty
+We arrived into Almaty at 9.45pm exactly.
+-> hurry_home
+
+== hurry_home
+*   We hurried home as fast as we could. -> END
+*   But we decided our trip wasn't done and immediately left.
+    After a few days me returned again.
+    -> back_in_almaty
+";
+
+        let mut story = read_story_from_string(content).unwrap();
+
+        let mut line_buffer = Vec::new();
+
+        story.follow_story_wrapper(None, &mut line_buffer).unwrap();
+        story
+            .follow_story_wrapper(Some(1), &mut line_buffer)
+            .unwrap();
+
+        assert_eq!(
+            &line_buffer[0].text,
+            "We arrived into Almaty at 9.45pm exactly.\n"
+        );
+        assert_eq!(
+            &line_buffer[3].text,
+            "We arrived into Almaty at 9.45pm exactly.\n"
+        );
+    }
+
+    #[test]
+    fn when_the_story_begins_the_first_knot_gets_its_number_of_visits_set_to_one() {
+        let content = "
+Hello, World!
+";
+
+        let mut story = read_story_from_string(content).unwrap();
+        let mut line_buffer = Vec::new();
+
+        story.start(&mut line_buffer).unwrap();
+
+        let address = Address::from_root_knot("$ROOT$", &story.knots).unwrap();
+
+        assert_eq!(get_stitch(&address, &story.knots).unwrap().num_visited, 1);
     }
 }
