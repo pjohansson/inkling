@@ -51,9 +51,25 @@ pub enum InvalidAddressError {
 }
 
 #[derive(Clone, Debug)]
+/// Internal errors from `inkling`.
+/// 
+/// These are errors which arise when the library produces objects, trees, text 
+/// or internal stacks that are inconsistent with each other or themselves. 
+/// 
+/// If the library is well written these should not possibly occur; at least until 
+/// this point every part of the internals are fully deterministic. That obviously 
+/// goes for a lot of buggy code that has been written since forever, so nothing 
+/// unique there. 
+/// 
+/// Either way, all those sorts of errors are encapsulated here. They should never 
+/// be caused by invalid user input or Ink files, those errors should be captured 
+/// by either the parent [`InklingError`][crate::error::InklingError] 
+/// or parsing [`ParseError`][crate::error::ParseError] error structures.
 pub enum InternalError {
     /// The internal stack of knots is inconsistent or has not been set properly.
     BadKnotStack(StackError),
+    /// Could not `Process` a line of text into its final form.
+    CouldNotProcess(ProcessError),
     /// Selected branch index does not exist.
     IncorrectChoiceIndex {
         selection: usize,
@@ -63,8 +79,6 @@ pub enum InternalError {
     },
     /// Current stack is not properly representing the graph or has some indexing problems.
     IncorrectNodeStack(IncorrectNodeStackError),
-    /// Could not `Process` a line of text into its final form.
-    CouldNotProcess(ProcessError),
 }
 
 impl Error for InklingError {}
@@ -294,17 +308,19 @@ pub enum ProcessErrorKind {
 }
 
 #[derive(Clone, Debug)]
+/// Errors related to the stack of `Knots`, `Stitches` and choices set to 
+/// the [`Story`][crate::story::Story].
 pub enum StackError {
-    /// No stack has been set in the system, but a follow was requested. This should not happen.
+    /// The current stack of `Address`es is empty and a follow was requested.
     NoStack,
-    /// An invalid address was used inside the system, which means that some bad assumptions
-    /// have been made somewhere. Addresses are always supposed to be verified correct before
-    /// use.
+    /// An invalid address was used inside the system.
+    /// 
+    /// This means that some bad assumptions have been made somewhere. Addresses are 
+    /// always supposed to be verified as valid before use.
     BadAddress { address: Address },
     /// No set of presented choices have been added to the system.
     NoLastChoices,
-    /// When creating the initial stack after constructing the knots, the root knot was not
-    /// present in the set.
+    /// No root knot was added to the stack when the `Story` was constructed.
     NoRootKnot { knot_name: String },
 }
 
