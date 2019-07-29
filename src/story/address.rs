@@ -79,8 +79,10 @@ impl Address {
             _ => panic!("tried to get `Stitch` name from an unvalidated `Address`"),
         }
     }
+}
 
-    pub fn validate(
+impl ValidateAddresses for Address {
+    fn validate(
         &mut self,
         current_address: &Address,
         knots: &Knots,
@@ -101,6 +103,13 @@ impl Address {
         }
 
         Ok(())
+    }
+
+    fn all_addresses_are_valid(&self) -> bool {
+        match self {
+            Address::Validated { .. } | Address::End => true,
+            Address::Raw(..) => false,
+}
     }
 }
 
@@ -165,6 +174,19 @@ fn get_full_address_from_head(
         })?;
         Ok((head.to_string(), target_knot.default_stitch.clone()))
     }
+}
+
+fn validate_addresses_in_knots(knots: &mut Knots) -> Result<(), InvalidAddressError> {
+    unimplemented!();
+}
+
+pub trait ValidateAddresses {
+    fn validate(
+        &mut self,
+        current_address: &Address,
+        knots: &Knots,
+    ) -> Result<(), InvalidAddressError>;
+    fn all_addresses_are_valid(&self) -> bool;
 }
 
 #[cfg(test)]

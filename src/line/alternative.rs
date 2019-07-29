@@ -1,9 +1,10 @@
 //! Content that alternates from a fixed set when processed.
 
 use crate::{
-    error::{ProcessError, ProcessErrorKind},
+    error::{InvalidAddressError, ProcessError, ProcessErrorKind},
     follow::EncounteredEvent,
     line::{LineChunk, Process},
+    story::{Address, Knots, ValidateAddresses},
 };
 
 #[cfg(feature = "serde_support")]
@@ -97,6 +98,23 @@ impl Process for Alternative {
                 item.process(buffer)
             }
         }
+    }
+}
+
+impl ValidateAddresses for Alternative {
+    fn validate(
+        &mut self,
+        current_address: &Address,
+        knots: &Knots,
+    ) -> Result<(), InvalidAddressError> {
+        self.items
+            .iter_mut()
+            .map(|item| item.validate(current_address, knots))
+            .collect()
+    }
+
+    fn all_addresses_are_valid(&self) -> bool {
+        self.items.iter().all(|item| item.all_addresses_are_valid())
     }
 }
 

@@ -1,8 +1,10 @@
 //! Node tree structure for branching content.
 
 use crate::{
+    error::InvalidAddressError,
     line::{InternalChoice, InternalLine, ParsedLineKind},
     node::parse_root_node,
+    story::{Address, Knots, ValidateAddresses},
 };
 
 #[cfg(feature = "serde_support")]
@@ -63,6 +65,65 @@ impl NodeItem {
         match self {
             NodeItem::Line(..) => true,
             _ => false,
+        }
+    }
+}
+
+impl ValidateAddresses for RootNode {
+    fn validate(
+        &mut self,
+        current_address: &Address,
+        knots: &Knots,
+    ) -> Result<(), InvalidAddressError> {
+        self.items
+            .iter_mut()
+            .map(|item| item.validate(current_address, knots))
+            .collect()
+    }
+
+    fn all_addresses_are_valid(&self) -> bool {
+        self.items.iter().all(|item| item.all_addresses_are_valid())
+    }
+}
+
+impl ValidateAddresses for Branch {
+    fn validate(
+        &mut self,
+        current_address: &Address,
+        knots: &Knots,
+    ) -> Result<(), InvalidAddressError> {
+        self.items
+            .iter_mut()
+            .map(|item| item.validate(current_address, knots))
+            .collect()
+    }
+
+    fn all_addresses_are_valid(&self) -> bool {
+        self.items.iter().all(|item| item.all_addresses_are_valid())
+    }
+}
+
+impl ValidateAddresses for NodeItem {
+    fn validate(
+        &mut self,
+        current_address: &Address,
+        knots: &Knots,
+    ) -> Result<(), InvalidAddressError> {
+        match self {
+            NodeItem::BranchingPoint(branches) => branches
+                .iter_mut()
+                .map(|item| item.validate(current_address, knots))
+                .collect(),
+            NodeItem::Line(line) => line.validate(current_address, knots),
+        }
+    }
+
+    fn all_addresses_are_valid(&self) -> bool {
+        match self {
+            NodeItem::BranchingPoint(branches) => {
+                branches.iter().all(|item| item.all_addresses_are_valid())
+            }
+            NodeItem::Line(line) => line.all_addresses_are_valid(),
         }
     }
 }

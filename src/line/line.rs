@@ -1,8 +1,9 @@
 //! Structures for representing a single, whole line of `Ink` content.
 
 use crate::{
+    error::InvalidAddressError,
     line::{Alternative, Condition},
-    story::Address,
+    story::{Address, Knots, ValidateAddresses},
 };
 
 #[cfg(feature = "serde_support")]
@@ -107,6 +108,61 @@ impl InternalLine {
     }
 }
 
+impl ValidateAddresses for InternalLine {
+    fn validate(
+        &mut self,
+        current_address: &Address,
+        knots: &Knots,
+    ) -> Result<(), InvalidAddressError> {
+        self.chunk.validate(current_address, knots)
+    }
+
+    fn all_addresses_are_valid(&self) -> bool {
+        self.chunk.all_addresses_are_valid()
+    }
+}
+
+impl ValidateAddresses for LineChunk {
+    fn validate(
+        &mut self,
+        current_address: &Address,
+        knots: &Knots,
+    ) -> Result<(), InvalidAddressError> {
+        // TODO: Conditions
+
+        self.items
+            .iter_mut()
+            .map(|item| item.validate(current_address, knots))
+            .collect()
+    }
+
+    fn all_addresses_are_valid(&self) -> bool {
+        self.items.iter().all(|item| item.all_addresses_are_valid())
+    }
+}
+
+impl ValidateAddresses for Content {
+    fn validate(
+        &mut self,
+        current_address: &Address,
+        knots: &Knots,
+    ) -> Result<(), InvalidAddressError> {
+        match self {
+            Content::Alternative(alternative) => alternative.validate(current_address, knots),
+            Content::Divert(address) => address.validate(current_address, knots),
+            Content::Empty | Content::Text(..) => Ok(()),
+        }
+    }
+
+    fn all_addresses_are_valid(&self) -> bool {
+        match self {
+            Content::Alternative(ref alternative) => alternative.all_addresses_are_valid(),
+            Content::Divert(ref address) => address.all_addresses_are_valid(),
+            Content::Empty | Content::Text(..) => true,
+        }
+    }
+}
+
 pub mod builders {
     //! Builders for line structures.
     //!
@@ -147,7 +203,9 @@ pub mod builders {
 
         /// Add a divert item at the end of the internal `LineChunk`.
         pub fn set_divert(&mut self, address: &str) {
-            self.chunk.items.push(Content::Divert(Address::Raw(address.to_string())));
+            self.chunk
+                .items
+                .push(Content::Divert(Address::Raw(address.to_string())));
         }
 
         /// Set whether the line glues to the previous line.

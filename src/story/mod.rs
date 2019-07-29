@@ -20,6 +20,6 @@ mod process;
 mod story;
 mod utils;
 
-pub use address::Address;
+pub use address::{Address, ValidateAddresses};
 pub use story::{read_story_from_string, Choice, Knots, Line, LineBuffer, Prompt, Story};
 pub use utils::copy_lines_into_string;
