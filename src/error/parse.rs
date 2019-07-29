@@ -34,6 +34,11 @@ pub enum InvalidAddressError {
         knot_name: String,
         stitch_name: String,
     },
+    /// Tried to validate an address using an unvalidated current address.
+    ValidatedWithUnvalidatedAddress {
+        needle: String,
+        current_address: Address,
+    },
 }
 
 #[derive(Debug)]
@@ -102,17 +107,11 @@ impl fmt::Display for InvalidAddressError {
         write!(f, "Encountered an invalid address: ")?;
 
         match self {
-            BadFormat { line } => write!(
-                f,
-                "address was incorrectly formatted ('{}')",
-                line
-            ),
+            BadFormat { line } => write!(f, "address was incorrectly formatted ('{}')", line),
             UnknownCurrentAddress { .. } => unimplemented!(),
-            UnknownKnot { knot_name } => write!(
-                f,
-                "no knot with name '{}' in the story",
-                knot_name
-            ),
+            UnknownKnot { knot_name } => {
+                write!(f, "no knot with name '{}' in the story", knot_name)
+            }
             UnknownStitch {
                 knot_name,
                 stitch_name,
@@ -121,6 +120,10 @@ impl fmt::Display for InvalidAddressError {
                 "no stitch with name '{}' in knot '{}'",
                 stitch_name, knot_name
             ),
+            ValidatedWithUnvalidatedAddress {
+                needle,
+                current_address,
+            } => unimplemented!(),
         }
     }
 }

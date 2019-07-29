@@ -1,7 +1,7 @@
 //! Structures which contain parsed `Ink` stories and content presented to the user.
 
 use crate::{
-    error::{InklingError, ParseError, StackError},
+    error::{InklingError, InternalError, ParseError, StackError},
     follow::{ChoiceInfo, EncounteredEvent, LineDataBuffer},
     knot::{Knot, Stitch},
 };
@@ -274,14 +274,14 @@ impl Story {
 /// let story: Story = read_story_from_string(content).unwrap();
 /// ```
 pub fn read_story_from_string(string: &str) -> Result<Story, ParseError> {
-    let (root, mut knots) = read_knots_from_string(string)?;
+    let (root_knot_name, mut knots) = read_knots_from_string(string)?;
 
     validate_addresses_in_knots(&mut knots).unwrap();
 
-    let root_address = Address::from_root_knot(&root, &knots).expect(
+    let root_address = Address::from_root_knot(&root_knot_name, &knots).expect(
         "After successfully creating all knots, the root knot name that was returned from \
          `read_knots_from_string` is not present in the set of created knots. \
-         This should never happen.",
+         This simply should not be possible",
     );
 
     Ok(Story {
@@ -362,10 +362,13 @@ fn follow_knot(
 }
 
 /// Return a reference to the `Stitch` at the target address.
-pub fn get_stitch<'a>(target: &Address, knots: &'a Knots) -> Result<&'a Stitch, InklingError> {
+pub fn get_stitch<'a>(target: &Address, knots: &'a Knots) -> Result<&'a Stitch, InternalError> {
+    let knot_name = target.get_knot()?;
+    let stitch_name = target.get_stitch()?;
+
     knots
-        .get(target.get_knot())
-        .and_then(|knot| knot.stitches.get(target.get_stitch()))
+        .get(knot_name)
+        .and_then(|knot| knot.stitches.get(stitch_name))
         .ok_or(
             StackError::BadAddress {
                 address: target.clone(),
@@ -379,9 +382,12 @@ pub fn get_mut_stitch<'a>(
     target: &Address,
     knots: &'a mut Knots,
 ) -> Result<&'a mut Stitch, InklingError> {
+    let knot_name = target.get_knot()?;
+    let stitch_name = target.get_stitch()?;
+
     knots
-        .get_mut(target.get_knot())
-        .and_then(|knot| knot.stitches.get_mut(target.get_stitch()))
+        .get_mut(knot_name)
+        .and_then(|knot| knot.stitches.get_mut(stitch_name))
         .ok_or(
             StackError::BadAddress {
                 address: target.clone(),
@@ -915,6 +921,9 @@ We arrived into Almaty at 9.45pm exactly.
 
         story.start(&mut line_buffer).unwrap();
 
-        assert_eq!(&line_buffer[0].text, "We arrived into Almaty at 9.45pm exactly.\n");
+        assert_eq!(
+            &line_buffer[0].text,
+            "We arrived into Almaty at 9.45pm exactly.\n"
+        );
     }
 }

@@ -116,8 +116,9 @@ impl_from_error![
 
 impl_from_error![
     InternalError;
-    [IncorrectNodeStack, IncorrectNodeStackError],
-    [CouldNotProcess, ProcessError]
+    [BadKnotStack, StackError],
+    [CouldNotProcess, ProcessError],
+    [IncorrectNodeStack, IncorrectNodeStackError]
 ];
 
 impl From<StackError> for InklingError {
@@ -268,10 +269,9 @@ impl fmt::Display for InternalError {
                     stack[*stack_index], stack_index, num_items, stack
                 ),
             },
-            UseOfUnvalidatedAddress { address } => write!(
-                f, 
-                "Tried to use unvalidated address '{:?}'", address
-            ),
+            UseOfUnvalidatedAddress { address } => {
+                write!(f, "Tried to use unvalidated address '{:?}'", address)
+            }
         }
     }
 }

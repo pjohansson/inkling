@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     consts::{DONE_KNOT, END_KNOT},
-    error::{InklingError, InternalError, InvalidAddressError, StackError},
+    error::{InternalError, InvalidAddressError},
     knot::{Knot, Stitch},
     node::RootNodeBuilder,
 };
@@ -69,20 +69,22 @@ impl Address {
     }
 
     /// Get the knot name of a validated address.
-    pub fn get_knot(&self) -> &str {
+    pub fn get_knot(&self) -> Result<&str, InternalError> {
         match self {
-            Address::Validated { knot, .. } => knot,
-            Address::End => panic!("tried to get `Knot` name from a divert to `End`"),
-            _ => panic!("tried to get `Knot` name from an unvalidated `Address`"),
+            Address::Validated { knot, .. } => Ok(knot),
+            _ => Err(InternalError::UseOfUnvalidatedAddress {
+                address: self.clone(),
+            }),
         }
     }
 
     /// Get the stitch name of a validateed address.
-    pub fn get_stitch(&self) -> &str {
+    pub fn get_stitch(&self) -> Result<&str, InternalError> {
         match self {
-            Address::Validated { stitch, .. } => stitch,
-            Address::End => panic!("tried to get `Stitch` name from a divert to `End`"),
-            _ => panic!("tried to get `Stitch` name from an unvalidated `Address`"),
+            Address::Validated { stitch, .. } => Ok(stitch),
+            _ => Err(InternalError::UseOfUnvalidatedAddress {
+                address: self.clone(),
+            }),
         }
     }
 
@@ -177,14 +179,22 @@ fn get_full_address_from_head(
     current_address: &Address,
     knots: &Knots,
 ) -> Result<(String, String), InvalidAddressError> {
-    let current_knot = knots.get(current_address.get_knot()).ok_or(
-        InvalidAddressError::UnknownCurrentAddress {
-            address: current_address.clone(),
-        },
-    )?;
+    let current_knot_name = current_address.get_knot().map_err(|_| {
+        InvalidAddressError::ValidatedWithUnvalidatedAddress {
+            needle: head.to_string(),
+            current_address: current_address.clone(),
+        }
+    })?;
+
+    let current_knot =
+        knots
+            .get(current_knot_name)
+            .ok_or(InvalidAddressError::UnknownCurrentAddress {
+                address: current_address.clone(),
+            })?;
 
     if current_knot.stitches.contains_key(head) {
-        Ok((current_address.get_knot().to_string(), head.to_string()))
+        Ok((current_knot_name.to_string(), head.to_string()))
     } else {
         let target_knot = knots.get(head).ok_or(InvalidAddressError::UnknownKnot {
             knot_name: head.to_string(),
@@ -275,28 +285,6 @@ pub mod tests {
     }
 
     #[test]
-    fn address_from_complete_address_return_the_same_address() {
-        let content = "
-== knot
-= stitch
-Line one.
-";
-
-        let (_, knots) = read_knots_from_string(content).unwrap();
-        let current_address = Address::from_knot("knot");
-
-        let address =
-            Address::from_target_address("knot.stitch", &current_address, &knots).unwrap();
-        assert_eq!(
-            address,
-            Address::Validated {
-                knot: "knot".into(),
-                stitch: "stitch".into()
-            }
-        );
-    }
-
-    #[test]
     fn address_from_knot_address_returns_knot_with_default_stitch() {
         let content = "
 == knot_one
@@ -332,149 +320,6 @@ Line three.
     }
 
     #[test]
-    fn address_from_internal_address_returns_full_address() {
-        let content = "
-== knot_one
-
-= stitch_one
-Line one.
-
-= stitch_two
-Line two.
-";
-
-        let (_, knots) = read_knots_from_string(content).unwrap();
-        let current_address = Address::from_knot("knot_one");
-
-        let address = Address::from_target_address("stitch_one", &current_address, &knots).unwrap();
-        assert_eq!(
-            address,
-            Address::Validated {
-                knot: "knot_one".into(),
-                stitch: "stitch_one".into()
-            }
-        );
-
-        let address = Address::from_target_address("stitch_two", &current_address, &knots).unwrap();
-        assert_eq!(
-            address,
-            Address::Validated {
-                knot: "knot_one".into(),
-                stitch: "stitch_two".into()
-            }
-        );
-    }
-
-    #[test]
-    fn address_from_internal_address_always_prioritizes_internal_stitches_over_knots() {
-        let content = "
-== paris
-
-= opera
-Line one.
-
-== opera
-Line two.
-
-== hamburg
-
-= opera
-Line three.
-";
-
-        let (_, knots) = read_knots_from_string(content).unwrap();
-        let current_address = Address::from_knot("hamburg");
-
-        let address = Address::from_target_address("opera", &current_address, &knots).unwrap();
-        assert_eq!(
-            address,
-            Address::Validated {
-                knot: "hamburg".into(),
-                stitch: "opera".into()
-            }
-        );
-    }
-
-    #[test]
-    fn constructing_address_returns_error_if_target_does_not_exist() {
-        let content = "
-== paris
-
-= opera
-Line one.
-
-== opera
-Line two.
-
-== hamburg
-
-= opera
-Line three.
-";
-
-        let (_, knots) = read_knots_from_string(content).unwrap();
-        let current_address = Address::from_knot("paris");
-
-        assert!(Address::from_target_address("stockholm", &current_address, &knots).is_err());
-        assert!(Address::from_target_address("hamburg.cinema", &current_address, &knots).is_err());
-    }
-
-    #[test]
-    fn constructing_address_returns_error_if_either_knot_or_stitch_part_is_missing() {
-        let content = "
-== paris
-
-= opera
-Line one.
-";
-
-        let (_, knots) = read_knots_from_string(content).unwrap();
-        let current_address = Address::from_knot("paris");
-
-        assert!(Address::from_target_address(".", &current_address, &knots).is_err());
-        assert!(Address::from_target_address("paris.", &current_address, &knots).is_err());
-        assert!(Address::from_target_address(".opera", &current_address, &knots).is_err());
-    }
-
-    #[test]
-    fn constructing_address_returns_error_if_current_address_is_invalid() {
-        let content = "
-== paris
-
-= opera
-Line one.
-";
-
-        let (_, knots) = read_knots_from_string(content).unwrap();
-        let current_address = Address::from_knot("hamburg");
-
-        assert!(Address::from_target_address("paris", &current_address, &knots).is_err());
-    }
-
-    #[test]
-    fn constructing_address_trims_whitespace() {
-        let content = "
-== paris
-
-= opera
-Line one.
-";
-
-        let (_, knots) = read_knots_from_string(content).unwrap();
-        let current_address = Address::from_knot("hamburg");
-
-        let address =
-            Address::from_target_address(" paris.opera ", &current_address, &knots).unwrap();
-        assert_eq!(
-            address,
-            Address::Validated {
-                knot: "paris".into(),
-                stitch: "opera".into()
-            }
-        );
-    }
-
-    #[test]
     fn raw_addresses_are_validated_if_they_can_parse_into_valid_knots() {
         let content = "
 == tripoli
@@ -491,8 +336,8 @@ Line one.
 
         assert!(address.validate(&current_address, &knots).is_ok());
 
-        assert_eq!(address.get_knot(), "tripoli");
-        assert_eq!(address.get_stitch(), "$ROOT$");
+        assert_eq!(address.get_knot().unwrap(), "tripoli");
+        assert_eq!(address.get_stitch().unwrap(), "$ROOT$");
     }
 
     #[test]
@@ -513,8 +358,8 @@ Line one.
 
         assert!(address.validate(&current_address, &knots).is_ok());
 
-        assert_eq!(address.get_knot(), "tripoli");
-        assert_eq!(address.get_stitch(), "cinema");
+        assert_eq!(address.get_knot().unwrap(), "tripoli");
+        assert_eq!(address.get_stitch().unwrap(), "cinema");
     }
 
     #[test]
@@ -538,8 +383,8 @@ You find yourself in Tripoli, the capital of Libya.
 
         assert!(address.validate(&current_address, &knots).is_ok());
 
-        assert_eq!(address.get_knot(), "tripoli");
-        assert_eq!(address.get_stitch(), "with_family");
+        assert_eq!(address.get_knot().unwrap(), "tripoli");
+        assert_eq!(address.get_stitch().unwrap(), "with_family");
     }
 
     #[test]
@@ -560,8 +405,8 @@ You find yourself in Tripoli, the capital of Libya.
 
         assert!(address.validate(&current_address, &knots).is_ok());
 
-        assert_eq!(address.get_knot(), "tripoli");
-        assert_eq!(address.get_stitch(), "with_family");
+        assert_eq!(address.get_knot().unwrap(), "tripoli");
+        assert_eq!(address.get_stitch().unwrap(), "with_family");
     }
 
     #[test]
