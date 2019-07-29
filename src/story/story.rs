@@ -304,15 +304,11 @@ fn follow_story(
 ) -> Result<(Prompt, Address), InklingError> {
     let (internal_buffer, last_address, result) = follow_knot(current_address, selection, knots)?;
 
-    dbg!(current_address, &last_address);
-
     process_buffer(line_buffer, internal_buffer);
 
     match result {
         EncounteredEvent::BranchingChoice(choice_set) => {
             let user_choice_lines = prepare_choices_for_user(&choice_set, &current_address, knots)?;
-            eprintln!("choiches: {:?}", user_choice_lines);
-
             if !user_choice_lines.is_empty() {
                 Ok((Prompt::Choice(user_choice_lines), last_address))
             } else {
