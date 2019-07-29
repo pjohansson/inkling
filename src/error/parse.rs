@@ -109,10 +109,10 @@ impl fmt::Display for InvalidAddressError {
         match self {
             BadFormat { line } => write!(f, "address was incorrectly formatted ('{}')", line),
             UnknownCurrentAddress { address } => write!(
-                f, 
+                f,
                 "during validation an address '{:?}' that is not in the system was used as 
-                 a current address", 
-                 address
+                 a current address",
+                address
             ),
             UnknownKnot { knot_name } => {
                 write!(f, "no knot with name '{}' in the story", knot_name)
@@ -129,10 +129,10 @@ impl fmt::Display for InvalidAddressError {
                 needle,
                 current_address,
             } => write!(
-                f, 
+                f,
                 "during validating the raw address '{}' an unvalidated address '{:?}' was used",
                 needle, current_address
-            )
+            ),
         }
     }
 }

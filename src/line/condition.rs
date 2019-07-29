@@ -28,9 +28,15 @@ pub enum Condition {
 }
 
 impl ValidateAddresses for Condition {
-    fn validate(&mut self, current_address: &Address, knots: &Knots) -> Result<(), InvalidAddressError> {
+    fn validate(
+        &mut self,
+        current_address: &Address,
+        knots: &Knots,
+    ) -> Result<(), InvalidAddressError> {
         match self {
-            Condition::NumVisits { ref mut address, .. } => address.validate(current_address, knots),
+            Condition::NumVisits {
+                ref mut address, ..
+            } => address.validate(current_address, knots),
         }
     }
 

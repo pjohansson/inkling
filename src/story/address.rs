@@ -429,6 +429,25 @@ You find yourself in Tripoli, the capital of Libya.
     }
 
     #[test]
+    fn if_address_is_poorly_formatted_an_error_is_yielded_from_validation() {
+        let content = "
+== tripoli
+You find yourself in Tripoli, the capital of Libya.
+";
+
+        let (_, knots) = read_knots_from_string(content).unwrap();
+        let current_address = Address::from_knot("tripoli");
+
+        assert!(Address::Raw("tripoli.".to_string())
+            .validate(&current_address, &knots)
+            .is_err());
+
+        assert!(Address::Raw(".tripoli".to_string())
+            .validate(&current_address, &knots)
+            .is_err());
+    }
+
+    #[test]
     fn if_address_exists_as_stitch_but_in_another_knot_an_error_is_yielded() {
         let content = "
 == tripoli

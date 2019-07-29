@@ -100,7 +100,10 @@ pub mod tests {
         match parse_line("- -> world").unwrap() {
             ParsedLineKind::Gather { line, .. } => {
                 assert_eq!(line.chunk.items[0], Content::Empty);
-                assert_eq!(line.chunk.items[1], Content::Divert(Address::Raw("world".to_string())));
+                assert_eq!(
+                    line.chunk.items[1],
+                    Content::Divert(Address::Raw("world".to_string()))
+                );
             }
             other => panic!("expected `ParsedLineKind::Gather` but got {:?}", other),
         }
@@ -110,7 +113,10 @@ pub mod tests {
     fn line_with_beginning_divert_parses_into_line_instead_of_gather() {
         match parse_line("  -> world").unwrap() {
             ParsedLineKind::Line(line) => {
-                assert_eq!(line.chunk.items[1], Content::Divert(Address::Raw("world".to_string())));
+                assert_eq!(
+                    line.chunk.items[1],
+                    Content::Divert(Address::Raw("world".to_string()))
+                );
             }
             other => panic!("expected `ParsedLineKind::Gather` but got {:?}", other),
         }

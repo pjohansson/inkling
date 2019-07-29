@@ -6,10 +6,7 @@ use crate::{
     line::{Condition, InternalLine},
 };
 
-use super::{
-    address::Address,
-    story::{get_stitch, Choice, Knots, Line, LineBuffer},
-};
+use super::story::{get_stitch, Choice, Knots, Line, LineBuffer};
 
 use std::{cell::RefCell, rc::Rc};
 
@@ -36,10 +33,9 @@ pub fn process_buffer(into_buffer: &mut LineBuffer, from_buffer: LineDataBuffer)
 /// based on a set condition (currently: visited or not, unless sticky).
 pub fn prepare_choices_for_user(
     choices: &[ChoiceInfo],
-    current_address: &Address,
     knots: &Knots,
 ) -> Result<Vec<Choice>, InklingError> {
-    get_available_choices(choices, current_address, knots, false)
+    get_available_choices(choices, knots, false)
 }
 
 /// Prepare a list of fallback choices from the given set.
@@ -48,10 +44,9 @@ pub fn prepare_choices_for_user(
 /// however, is the caller's responsibility.
 pub fn get_fallback_choices(
     choices: &[ChoiceInfo],
-    current_address: &Address,
     knots: &Knots,
 ) -> Result<Vec<Choice>, InklingError> {
-    get_available_choices(choices, current_address, knots, true)
+    get_available_choices(choices, knots, true)
 }
 
 /// Return the currently available choices in the set.
@@ -64,12 +59,10 @@ pub fn get_fallback_choices(
 /// the criteria. Otherwise return only non-fallback choices.
 fn get_available_choices(
     choices: &[ChoiceInfo],
-    current_address: &Address,
     knots: &Knots,
     fallback: bool,
 ) -> Result<Vec<Choice>, InklingError> {
-    let choices_with_filter_values =
-        zip_choices_with_filter_values(choices, current_address, knots, fallback)?;
+    let choices_with_filter_values = zip_choices_with_filter_values(choices, knots, fallback)?;
 
     let filtered_choices = choices_with_filter_values
         .into_iter()
@@ -82,11 +75,10 @@ fn get_available_choices(
 /// Pair every choice with whether it fulfils its conditions.
 fn zip_choices_with_filter_values(
     choices: &[ChoiceInfo],
-    current_address: &Address,
     knots: &Knots,
     fallback: bool,
 ) -> Result<Vec<(bool, Choice)>, InklingError> {
-    let checked_choices = check_choices_for_conditions(choices, current_address, knots, fallback)?;
+    let checked_choices = check_choices_for_conditions(choices, knots, fallback)?;
 
     choices
         .iter()
@@ -138,7 +130,6 @@ fn process_choice_text_and_tags(
 /// Return a list of whether choices fulfil their conditions.
 fn check_choices_for_conditions(
     choices: &[ChoiceInfo],
-    current_address: &Address,
     knots: &Knots,
     keep_only_fallback: bool,
 ) -> Result<Vec<bool>, InklingError> {
@@ -152,7 +143,7 @@ fn check_choices_for_conditions(
         let mut keep = true;
 
         for condition in choice_data.conditions.iter() {
-            keep = check_condition(condition, current_address, knots)?;
+            keep = check_condition(condition, knots)?;
 
             if !keep {
                 break;
@@ -199,11 +190,7 @@ fn add_line_ending(line: &mut LineText, next_line: Option<&LineText>) {
 }
 
 /// Check whether a single choice fulfils its conditions.
-fn check_condition(
-    condition: &Condition,
-    current_address: &Address,
-    knots: &Knots,
-) -> Result<bool, InklingError> {
+fn check_condition(condition: &Condition, knots: &Knots) -> Result<bool, InklingError> {
     match condition {
         Condition::NumVisits {
             address,
@@ -236,19 +223,10 @@ mod tests {
             AlternativeBuilder, InternalChoice, InternalChoiceBuilder, InternalLineBuilder,
             LineChunkBuilder,
         },
+        story::Address,
     };
 
     use std::{cmp::Ordering, collections::HashMap, str::FromStr};
-
-    fn get_mock_address_and_knots() -> (Address, Knots) {
-        let empty_hash_map = HashMap::new();
-        let empty_address = Address::Validated {
-            knot: "".to_string(),
-            stitch: "".to_string(),
-        };
-
-        (empty_address, empty_hash_map)
-    }
 
     fn create_choice_extra(num_visited: u32, choice_data: InternalChoice) -> ChoiceInfo {
         ChoiceInfo {
@@ -285,7 +263,7 @@ mod tests {
             not: false,
         };
 
-        assert!(check_condition(&greater_than_condition, &current_address, &knots).unwrap());
+        assert!(check_condition(&greater_than_condition, &knots).unwrap());
 
         let less_than_condition = Condition::NumVisits {
             address: Address::from_target_address(&name, &current_address, &knots).unwrap(),
@@ -294,7 +272,7 @@ mod tests {
             not: false,
         };
 
-        assert!(!check_condition(&less_than_condition, &current_address, &knots).unwrap());
+        assert!(!check_condition(&less_than_condition, &knots).unwrap());
 
         let equal_condition = Condition::NumVisits {
             address: Address::from_target_address(&name, &current_address, &knots).unwrap(),
@@ -303,7 +281,7 @@ mod tests {
             not: false,
         };
 
-        assert!(check_condition(&equal_condition, &current_address, &knots).unwrap());
+        assert!(check_condition(&equal_condition, &knots).unwrap());
 
         let not_equal_condition = Condition::NumVisits {
             address: Address::from_target_address(&name, &current_address, &knots).unwrap(),
@@ -312,7 +290,7 @@ mod tests {
             not: true,
         };
 
-        assert!(!check_condition(&not_equal_condition, &current_address, &knots).unwrap());
+        assert!(!check_condition(&not_equal_condition, &knots).unwrap());
     }
 
     #[test]
@@ -471,9 +449,8 @@ mod tests {
             create_choice_extra(0, choice2),
         ];
 
-        let (empty_address, empty_hash_map) = get_mock_address_and_knots();
-        let displayed_choices =
-            prepare_choices_for_user(&choices, &empty_address, &empty_hash_map).unwrap();
+        let empty_hash_map = HashMap::new();
+        let displayed_choices = prepare_choices_for_user(&choices, &empty_hash_map).unwrap();
 
         assert_eq!(displayed_choices.len(), 2);
         assert_eq!(&displayed_choices[0].text, "Choice 1");
@@ -489,9 +466,8 @@ mod tests {
 
         let choices = vec![create_choice_extra(0, choice)];
 
-        let (empty_address, empty_hash_map) = get_mock_address_and_knots();
-        let displayed_choices =
-            prepare_choices_for_user(&choices, &empty_address, &empty_hash_map).unwrap();
+        let empty_hash_map = HashMap::new();
+        let displayed_choices = prepare_choices_for_user(&choices, &empty_hash_map).unwrap();
 
         assert_eq!(displayed_choices[0].tags, tags);
     }
@@ -547,8 +523,7 @@ mod tests {
             create_choice_extra(0, choice3),
         ];
 
-        let displayed_choices =
-            prepare_choices_for_user(&choices, &current_address, &knots).unwrap();
+        let displayed_choices = prepare_choices_for_user(&choices, &knots).unwrap();
 
         assert_eq!(displayed_choices.len(), 1);
         assert_eq!(&displayed_choices[0].text, "Kept");
@@ -566,9 +541,8 @@ mod tests {
             create_choice_extra(0, choice3),
         ];
 
-        let (empty_address, empty_hash_map) = get_mock_address_and_knots();
-        let displayed_choices =
-            prepare_choices_for_user(&choices, &empty_address, &empty_hash_map).unwrap();
+        let empty_hash_map = HashMap::new();
+        let displayed_choices = prepare_choices_for_user(&choices, &empty_hash_map).unwrap();
 
         assert_eq!(displayed_choices.len(), 2);
         assert_eq!(&displayed_choices[0].text, "Kept");
@@ -589,9 +563,8 @@ mod tests {
             create_choice_extra(1, choice3),
         ];
 
-        let (empty_address, empty_hash_map) = get_mock_address_and_knots();
-        let displayed_choices =
-            prepare_choices_for_user(&choices, &empty_address, &empty_hash_map).unwrap();
+        let empty_hash_map = HashMap::new();
+        let displayed_choices = prepare_choices_for_user(&choices, &empty_hash_map).unwrap();
 
         assert_eq!(displayed_choices.len(), 2);
         assert_eq!(&displayed_choices[0].text, "Kept");
@@ -614,9 +587,8 @@ mod tests {
             create_choice_extra(0, choice3),
         ];
 
-        let (empty_address, empty_hash_map) = get_mock_address_and_knots();
-        let displayed_choices =
-            prepare_choices_for_user(&choices, &empty_address, &empty_hash_map).unwrap();
+        let empty_hash_map = HashMap::new();
+        let displayed_choices = prepare_choices_for_user(&choices, &empty_hash_map).unwrap();
 
         assert_eq!(displayed_choices.len(), 2);
         assert_eq!(&displayed_choices[0].text, "Kept");
@@ -642,9 +614,8 @@ mod tests {
             create_choice_extra(1, choice3),
         ];
 
-        let (empty_address, empty_hash_map) = get_mock_address_and_knots();
-        let fallback_choices =
-            get_fallback_choices(&choices, &empty_address, &empty_hash_map).unwrap();
+        let empty_hash_map = HashMap::new();
+        let fallback_choices = get_fallback_choices(&choices, &empty_hash_map).unwrap();
 
         assert_eq!(fallback_choices.len(), 2);
         assert_eq!(&fallback_choices[0].text, "Kept");
@@ -670,16 +641,14 @@ mod tests {
 
         let choices = vec![create_choice_extra(0, choice)];
 
-        let (empty_address, empty_hash_map) = get_mock_address_and_knots();
+        let empty_hash_map = HashMap::new();
 
-        let presented_choices =
-            prepare_choices_for_user(&choices, &empty_address, &empty_hash_map).unwrap();
+        let presented_choices = prepare_choices_for_user(&choices, &empty_hash_map).unwrap();
 
         assert_eq!(presented_choices.len(), 1);
         assert_eq!(&presented_choices[0].text, "Hello once!");
 
-        let presented_choices =
-            prepare_choices_for_user(&choices, &empty_address, &empty_hash_map).unwrap();
+        let presented_choices = prepare_choices_for_user(&choices, &empty_hash_map).unwrap();
 
         assert_eq!(presented_choices.len(), 1);
         assert_eq!(&presented_choices[0].text, "Hello twice!");

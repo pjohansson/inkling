@@ -166,10 +166,7 @@ fn validate_divert_address(line: &str, backup_line: String) -> Result<String, Li
 mod tests {
     use super::*;
 
-    use crate::{
-        line::process::tests::get_processed_string,
-        story::Address,
-    };
+    use crate::{line::process::tests::get_processed_string, story::Address};
 
     #[test]
     fn simple_text_string_parses_into_chunk_with_single_item() {
@@ -250,7 +247,10 @@ mod tests {
     fn string_with_divert_marker_adds_divert_item_at_end() {
         let chunk = parse_chunk("Hello -> world").unwrap();
 
-        assert_eq!(chunk.items[1], Content::Divert(Address::Raw("world".to_string())));
+        assert_eq!(
+            chunk.items[1],
+            Content::Divert(Address::Raw("world".to_string()))
+        );
     }
 
     #[test]
@@ -259,7 +259,10 @@ mod tests {
 
         assert_eq!(chunk.items.len(), 2);
         assert_eq!(chunk.items[0], Content::Empty);
-        assert_eq!(chunk.items[1], Content::Divert(Address::Raw("hello_world".to_string())));
+        assert_eq!(
+            chunk.items[1],
+            Content::Divert(Address::Raw("hello_world".to_string()))
+        );
     }
 
     #[test]
@@ -354,7 +357,10 @@ mod tests {
     #[test]
     fn diverts_are_parsed_if_there_is_glue() {
         let line = parse_internal_line("Hello <> -> world").unwrap();
-        assert_eq!(line.chunk.items[1], Content::Divert(Address::Raw("world".to_string())));
+        assert_eq!(
+            line.chunk.items[1],
+            Content::Divert(Address::Raw("world".to_string()))
+        );
     }
 
     #[test]

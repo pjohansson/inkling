@@ -172,12 +172,12 @@ mod tests {
 
         match &conditions[0] {
             Condition::NumVisits {
-                name,
+                address,
                 rhs_value,
                 ordering,
                 not,
             } => {
-                assert_eq!(name, &Address::Raw("knot_name".to_string()));
+                assert_eq!(address, &Address::Raw("knot_name".to_string()));
                 assert_eq!(*rhs_value, 0);
                 assert_eq!(*ordering, Ordering::Greater);
                 assert_eq!(*not, false);
@@ -211,12 +211,12 @@ mod tests {
 
         match &conditions[2] {
             Condition::NumVisits {
-                name,
+                address,
                 rhs_value,
                 ordering,
                 not,
             } => {
-                assert_eq!(name, &Address::Raw("third_knot".to_string()));
+                assert_eq!(address, &Address::Raw("third_knot".to_string()));
                 assert_eq!(*rhs_value, 0);
                 assert_eq!(*ordering, Ordering::Greater);
                 assert_eq!(*not, true);
@@ -231,12 +231,12 @@ mod tests {
 
         match &conditions[0] {
             Condition::NumVisits {
-                name,
+                address,
                 rhs_value,
                 ordering,
                 not,
             } => {
-                assert_eq!(name, &Address::Raw("knot_name".to_string()));
+                assert_eq!(address, &Address::Raw("knot_name".to_string()));
                 assert_eq!(*rhs_value, 0);
                 assert_eq!(*ordering, Ordering::Greater);
                 assert_eq!(*not, true);
@@ -251,12 +251,12 @@ mod tests {
 
         match &conditions[0] {
             Condition::NumVisits {
-                name,
+                address,
                 rhs_value,
                 ordering,
                 not,
             } => {
-                assert_eq!(name, &Address::Raw("knot_name".to_string()));
+                assert_eq!(address, &Address::Raw("knot_name".to_string()));
                 assert_eq!(*rhs_value, 2);
                 assert_eq!(*ordering, Ordering::Greater);
                 assert_eq!(*not, false);
@@ -271,12 +271,12 @@ mod tests {
 
         match &conditions[0] {
             Condition::NumVisits {
-                name,
+                address,
                 rhs_value,
                 ordering,
                 not,
             } => {
-                assert_eq!(name, &Address::Raw("knot_name".to_string()));
+                assert_eq!(address, &Address::Raw("knot_name".to_string()));
                 assert_eq!(*rhs_value, 2);
                 assert_eq!(*ordering, Ordering::Greater);
                 assert_eq!(*not, true);
@@ -291,12 +291,12 @@ mod tests {
 
         match &conditions[0] {
             Condition::NumVisits {
-                name,
+                address,
                 rhs_value,
                 ordering,
                 not,
             } => {
-                assert_eq!(name, &Address::Raw("knot_name".to_string()));
+                assert_eq!(address, &Address::Raw("knot_name".to_string()));
                 assert_eq!(*rhs_value, 2);
                 assert_eq!(*ordering, Ordering::Less);
                 assert_eq!(*not, false);
@@ -311,12 +311,12 @@ mod tests {
 
         match &conditions[0] {
             Condition::NumVisits {
-                name,
+                address,
                 rhs_value,
                 ordering,
                 not,
             } => {
-                assert_eq!(name, &Address::Raw("knot_name".to_string()));
+                assert_eq!(address, &Address::Raw("knot_name".to_string()));
                 assert_eq!(*rhs_value, 2);
                 assert_eq!(*ordering, Ordering::Equal);
                 assert_eq!(*not, false);
@@ -331,12 +331,12 @@ mod tests {
 
         match &conditions[0] {
             Condition::NumVisits {
-                name,
+                address,
                 rhs_value,
                 ordering,
                 not,
             } => {
-                assert_eq!(name, &Address::Raw("knot_name".to_string()));
+                assert_eq!(address, &Address::Raw("knot_name".to_string()));
                 assert_eq!(*rhs_value, 1);
                 assert_eq!(*ordering, Ordering::Greater);
                 assert_eq!(*not, false);
@@ -351,12 +351,12 @@ mod tests {
 
         match &conditions[0] {
             Condition::NumVisits {
-                name,
+                address,
                 rhs_value,
                 ordering,
                 not,
             } => {
-                assert_eq!(name, &Address::Raw("knot_name".to_string()));
+                assert_eq!(address, &Address::Raw("knot_name".to_string()));
                 assert_eq!(*rhs_value, 3);
                 assert_eq!(*ordering, Ordering::Less);
                 assert_eq!(*not, false);
