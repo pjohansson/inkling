@@ -32,6 +32,7 @@ pub struct Line {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
 /// Choice presented to the user.
 pub struct Choice {
     /// Line of text to represent the choice with.
@@ -193,37 +194,33 @@ impl Story {
     /// let mut line_buffer = Vec::new();
     ///
     /// if let Prompt::Choice(choices) = story.start(&mut line_buffer).unwrap() {
-    ///     story.resume_with_choice(&choices[0], &mut line_buffer);
+    ///     story.resume_with_choice(0, &mut line_buffer);
     /// }
     ///
     /// assert_eq!(line_buffer.last().unwrap().text, "“Miao!”\n");
     /// ```
     pub fn resume_with_choice(
         &mut self,
-        choice: &Choice,
+        selection: usize,
         line_buffer: &mut LineBuffer,
     ) -> Result<Prompt, InklingError> {
         if !self.in_progress {
             return Err(InklingError::ResumeBeforeStart);
         }
 
-        let index = choice.index;
-
-        let last_choices = self
+        let index = self
             .last_choices
             .as_ref()
-            .ok_or(StackError::NoLastChoices)?;
-
-        if last_choices
-            .iter()
-            .find(|choice| choice.index == index)
-            .is_none()
-        {
-            return Err(InklingError::InvalidChoice {
-                selection: index,
-                presented_choices: last_choices.clone(),
-            });
-        }
+            .ok_or(StackError::NoLastChoices.into())
+            .and_then(|last_choices| {
+                last_choices
+                    .get(selection)
+                    .ok_or(InklingError::InvalidChoice {
+                        selection,
+                        presented_choices: last_choices.clone(),
+                    })
+                    .map(|choice| choice.index)
+            })?;
 
         self.follow_story_wrapper(Some(index), line_buffer)
     }
@@ -254,10 +251,12 @@ impl Story {
         }
     }
 
+    /// Get the current address from the stack.
     fn get_current_address(&self) -> Result<Address, InklingError> {
         self.stack.last().cloned().ok_or(StackError::NoStack.into())
     }
 
+    /// Set the given address as active on the stack.
     fn update_last_stack(&mut self, address: &Address) {
         self.stack.push(address.clone());
     }
@@ -292,10 +291,10 @@ pub fn read_story_from_string(string: &str) -> Result<Story, ParseError> {
     })
 }
 
-/// Follow the nodes in a story with selected branch index if supplied. 
-/// 
-/// When an event that triggers a `Prompt` is encountered it will be returned along with 
-/// the last visited address. Lines that are followed in the story will be processed 
+/// Follow the nodes in a story with selected branch index if supplied.
+///
+/// When an event that triggers a `Prompt` is encountered it will be returned along with
+/// the last visited address. Lines that are followed in the story will be processed
 /// and added to the input buffer.
 fn follow_story(
     current_address: &Address,
@@ -328,11 +327,11 @@ fn follow_story(
 }
 
 /// Follow a knot through diverts.
-/// 
-/// Will [follow][crate::node::Follow] through the story starting from the input address 
-/// and return all encountered lines. Diverts will be automatically moved to. 
-/// 
-/// The function returns when either a branching point is encountered or there is no 
+///
+/// Will [follow][crate::node::Follow] through the story starting from the input address
+/// and return all encountered lines. Diverts will be automatically moved to.
+///
+/// The function returns when either a branching point is encountered or there is no
 /// content left to follow. When it returns it will return with the last visited address.
 fn follow_knot(
     address: &Address,
@@ -417,15 +416,6 @@ fn get_fallback_choice(
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    /// Create a mock choice with the given index
-    fn mock_choice(index: usize) -> Choice {
-        Choice {
-            text: String::new(),
-            tags: Vec::new(),
-            index,
-        }
-    }
 
     #[test]
     fn follow_knot_diverts_to_new_knots_when_encountered() {
@@ -667,6 +657,54 @@ We hurried home to Savile Row as fast as we could.
     }
 
     #[test]
+    fn choice_index_is_used_to_resume_story_with() {
+        let content = "
+== tripoli
+*   Cinema
+    You watched a horror movie in the cinema.
+*   Visit family
+    A visit to your family did you good.
+";
+
+        let mut story = read_story_from_string(content).unwrap();
+        let mut line_buffer = Vec::new();
+
+        story.start(&mut line_buffer).unwrap();
+        story.resume_with_choice(1, &mut line_buffer).unwrap();
+
+        assert_eq!(
+            &line_buffer[1].text,
+            "A visit to your family did you good.\n"
+        );
+    }
+
+    #[test]
+    fn choice_index_is_converted_to_internal_branch_index_to_account_for_filtered_choices() {
+        let content = "
+== tripoli
+*   Cinema
+    You watched a horror movie in the cinema.
+*   {addis_ababa} Call Kinfe.
+*   Visit family
+    A visit to your family did you good.
+
+== addis_ababa
+-> END
+";
+
+        let mut story = read_story_from_string(content).unwrap();
+        let mut line_buffer = Vec::new();
+
+        story.start(&mut line_buffer).unwrap();
+        story.resume_with_choice(1, &mut line_buffer).unwrap();
+
+        assert_eq!(
+            &line_buffer[1].text,
+            "A visit to your family did you good.\n"
+        );
+    }
+
+    #[test]
     fn if_choice_list_returned_to_user_is_empty_follow_fallback_choice() {
         let content = "
 == knot
@@ -682,9 +720,7 @@ We hurried home to Savile Row as fast as we could.
         let choices = story.start(&mut buffer).unwrap().get_choices().unwrap();
         assert_eq!(choices.len(), 1);
 
-        story
-            .resume_with_choice(&mock_choice(0), &mut buffer)
-            .unwrap();
+        story.resume_with_choice(0, &mut buffer).unwrap();
 
         assert_eq!(&buffer[1].text, "Fallback choice\n");
     }
@@ -702,7 +738,7 @@ We hurried home to Savile Row as fast as we could.
 
         story.start(&mut buffer).unwrap();
 
-        match story.resume_with_choice(&mock_choice(0), &mut buffer) {
+        match story.resume_with_choice(0, &mut buffer) {
             Err(InklingError::OutOfChoices { .. }) => (),
             Err(err) => panic!("expected `OutOfChoices` error but got {:?}", err),
             Ok(_) => panic!("expected an error but got an Ok"),
@@ -743,7 +779,7 @@ We hurried home to Savile Row as fast as we could.
 
         story.start(&mut line_buffer).unwrap();
 
-        match story.resume_with_choice(&mock_choice(1), &mut line_buffer) {
+        match story.resume_with_choice(1, &mut line_buffer) {
             Err(InklingError::InvalidChoice {
                 selection,
                 presented_choices,
@@ -774,13 +810,7 @@ We hurried home to Savile Row as fast as we could.
         let mut story = read_story_from_string("* Choice 1").unwrap();
         let mut line_buffer = Vec::new();
 
-        let choice = Choice {
-            index: 0,
-            text: "Choice 1".to_string(),
-            tags: Vec::new(),
-        };
-
-        match story.resume_with_choice(&choice, &mut line_buffer) {
+        match story.resume_with_choice(0, &mut line_buffer) {
             Err(InklingError::ResumeBeforeStart) => (),
             _ => panic!("did not raise `ResumeBeforeStart` error"),
         }

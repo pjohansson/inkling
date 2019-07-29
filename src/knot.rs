@@ -179,7 +179,7 @@ mod tests {
     use super::*;
 
     use crate::{
-        error::{InklingError, LineParsingError, ParseError},
+        error::{LineParsingError, ParseError},
         line::{InternalLine, ParsedLineKind},
     };
 

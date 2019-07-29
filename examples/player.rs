@@ -53,7 +53,7 @@ fn play_story(mut story: Story) -> Result<(), InklingError> {
     Ok(())
 }
 
-fn ask_user_for_choice(choices: &[Choice]) -> Option<&Choice> {
+fn ask_user_for_choice(choices: &[Choice]) -> Option<usize> {
     println!("Choose:");
 
     for (i, choice) in choices.iter().enumerate() {
@@ -65,7 +65,7 @@ fn ask_user_for_choice(choices: &[Choice]) -> Option<&Choice> {
     println!("");
 
     let index = get_choice(choices.len())?;
-    Some(&choices[index])
+    Some(index)
 }
 
 fn get_choice(num_choices: usize) -> Option<usize> {

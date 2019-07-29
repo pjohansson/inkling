@@ -1,7 +1,7 @@
 //! Processing nested story content by following, or walking through, it.
 
 use crate::{
-    error::{IncorrectNodeStackError, InklingError, InternalError},
+    error::{IncorrectNodeStackError, InternalError},
     follow::{ChoiceInfo, EncounteredEvent, FollowResult, LineDataBuffer},
     node::{Branch, NodeItem, RootNode},
 };
@@ -317,7 +317,8 @@ mod tests {
     use super::*;
 
     use crate::{
-        line::*,
+        error::InklingError,
+        line::{InternalChoice, LineChunkBuilder},
         node::builders::{BranchBuilder, BranchingPointBuilder, RootNodeBuilder},
     };
 

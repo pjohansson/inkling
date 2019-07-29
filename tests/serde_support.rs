@@ -37,7 +37,7 @@ You head back.
         let mut story = read_story_from_string(content).unwrap();
         let mut line_buffer = Vec::new();
 
-        let choices = story
+        story
             .start(&mut line_buffer)
             .unwrap()
             .get_choices()
@@ -48,13 +48,13 @@ You head back.
             serde_json::from_str(&serialized_without_torch).unwrap();
 
         let choices_without_torch = state_without_torch
-            .resume_with_choice(&choices[1], &mut line_buffer)
+            .resume_with_choice(1, &mut line_buffer)
             .unwrap()
             .get_choices()
             .unwrap();
 
-        let choices = story
-            .resume_with_choice(&choices[0], &mut line_buffer)
+        story
+            .resume_with_choice(0, &mut line_buffer)
             .unwrap()
             .get_choices()
             .unwrap();
@@ -63,7 +63,7 @@ You head back.
         let mut state_with_torch: Story = serde_json::from_str(&serialized_with_torch).unwrap();
 
         let choices_with_torch = state_with_torch
-            .resume_with_choice(&choices[1], &mut line_buffer)
+            .resume_with_choice(1, &mut line_buffer)
             .unwrap()
             .get_choices()
             .unwrap();

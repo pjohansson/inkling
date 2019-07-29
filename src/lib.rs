@@ -76,14 +76,10 @@
 //! # let story_content = "Hello, World!\n*Hello[ back!] right back at you!";
 //! # let mut story = read_story_from_string(story_content).unwrap();
 //! # let mut line_buffer = Vec::new();
-//! # let result = story.start(&mut line_buffer).unwrap();
-//! # let choice = match result {
-//! #     Prompt::Choice(choices) => choices[0].clone(),
-//! #     _ => unreachable!(),
-//! # };
-//! // Resume by supplying the selected choice
+//! # story.start(&mut line_buffer).unwrap();
+//! // Resume by supplying the selected choice index
 //!
-//! match story.resume_with_choice(&choice, &mut line_buffer).unwrap() {
+//! match story.resume_with_choice(0, &mut line_buffer).unwrap() {
 //!     Prompt::Done => (),
 //!     _ => unreachable!(),
 //! }

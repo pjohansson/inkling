@@ -29,7 +29,7 @@ You enter a dark room.
     assert_eq!(&choices[2].text, "Turn back and leave.");
 
     let choices = story
-        .resume_with_choice(&choices[1], &mut line_buffer)
+        .resume_with_choice(1, &mut line_buffer)
         .unwrap()
         .get_choices()
         .unwrap();
@@ -39,7 +39,7 @@ You enter a dark room.
     assert_eq!(&choices[1].text, "Turn back and leave.");
 
     let choices = story
-        .resume_with_choice(&choices[1], &mut line_buffer)
+        .resume_with_choice(1, &mut line_buffer)
         .unwrap()
         .get_choices()
         .unwrap();
@@ -49,7 +49,7 @@ You enter a dark room.
     assert_eq!(&choices[1].text, "Turn back and leave.");
 
     let choices = story
-        .resume_with_choice(&choices[0], &mut line_buffer)
+        .resume_with_choice(0, &mut line_buffer)
         .unwrap()
         .get_choices()
         .unwrap();
@@ -96,7 +96,7 @@ You head back.
     assert_eq!(&choices[1].text, "Right");
 
     let choices = story
-        .resume_with_choice(&choices[1], &mut line_buffer)
+        .resume_with_choice(1, &mut line_buffer)
         .unwrap()
         .get_choices()
         .unwrap();
@@ -104,7 +104,7 @@ You head back.
     assert_eq!(&choices[0].text, "Head back.");
 
     let choices = story
-        .resume_with_choice(&choices[0], &mut line_buffer)
+        .resume_with_choice(0, &mut line_buffer)
         .unwrap()
         .get_choices()
         .unwrap();
@@ -113,7 +113,7 @@ You head back.
     assert_eq!(&choices[1].text, "Right");
 
     let choices = story
-        .resume_with_choice(&choices[0], &mut line_buffer)
+        .resume_with_choice(0, &mut line_buffer)
         .unwrap()
         .get_choices()
         .unwrap();
@@ -122,7 +122,7 @@ You head back.
     assert_eq!(&choices[1].text, "Right");
 
     let choices = story
-        .resume_with_choice(&choices[1], &mut line_buffer)
+        .resume_with_choice(1, &mut line_buffer)
         .unwrap()
         .get_choices()
         .unwrap();
@@ -171,7 +171,7 @@ You head back.
     assert_eq!(&choices[1].text, "Right");
 
     let choices = story
-        .resume_with_choice(&choices[1], &mut line_buffer)
+        .resume_with_choice(1, &mut line_buffer)
         .unwrap()
         .get_choices()
         .unwrap();
@@ -179,7 +179,7 @@ You head back.
     assert_eq!(&choices[0].text, "Head back.");
 
     let choices = story
-        .resume_with_choice(&choices[0], &mut line_buffer)
+        .resume_with_choice(0, &mut line_buffer)
         .unwrap()
         .get_choices()
         .unwrap();
@@ -188,7 +188,7 @@ You head back.
     assert_eq!(&choices[1].text, "Right");
 
     let choices = story
-        .resume_with_choice(&choices[0], &mut line_buffer)
+        .resume_with_choice(0, &mut line_buffer)
         .unwrap()
         .get_choices()
         .unwrap();
@@ -197,7 +197,7 @@ You head back.
     assert_eq!(&choices[1].text, "Right");
 
     let choices = story
-        .resume_with_choice(&choices[1], &mut line_buffer)
+        .resume_with_choice(1, &mut line_buffer)
         .unwrap()
         .get_choices()
         .unwrap();
@@ -245,7 +245,7 @@ You head back.
     assert_eq!(&choices[1].text, "Right");
 
     let choices = story
-        .resume_with_choice(&choices[1], &mut line_buffer)
+        .resume_with_choice(1, &mut line_buffer)
         .unwrap()
         .get_choices()
         .unwrap();
@@ -253,7 +253,7 @@ You head back.
     assert_eq!(&choices[0].text, "Head back.");
 
     let choices = story
-        .resume_with_choice(&choices[0], &mut line_buffer)
+        .resume_with_choice(0, &mut line_buffer)
         .unwrap()
         .get_choices()
         .unwrap();
@@ -262,7 +262,7 @@ You head back.
     assert_eq!(&choices[1].text, "Right");
 
     let choices = story
-        .resume_with_choice(&choices[0], &mut line_buffer)
+        .resume_with_choice(0, &mut line_buffer)
         .unwrap()
         .get_choices()
         .unwrap();
@@ -271,7 +271,7 @@ You head back.
     assert_eq!(&choices[1].text, "Right");
 
     let choices = story
-        .resume_with_choice(&choices[1], &mut line_buffer)
+        .resume_with_choice(1, &mut line_buffer)
         .unwrap()
         .get_choices()
         .unwrap();

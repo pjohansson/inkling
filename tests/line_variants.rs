@@ -16,18 +16,13 @@ from Nantucket. {|||||We're besties.}
     let mut story = read_story_from_string(content).unwrap();
     let mut line_buffer = Vec::new();
 
-    let choice = story
-        .start(&mut line_buffer)
-        .unwrap()
-        .get_choices()
-        .unwrap()[0]
-        .clone();
+    story.start(&mut line_buffer).unwrap();
 
-    story.resume_with_choice(&choice, &mut line_buffer).unwrap();
-    story.resume_with_choice(&choice, &mut line_buffer).unwrap();
-    story.resume_with_choice(&choice, &mut line_buffer).unwrap();
-    story.resume_with_choice(&choice, &mut line_buffer).unwrap();
-    story.resume_with_choice(&choice, &mut line_buffer).unwrap();
+    story.resume_with_choice(0, &mut line_buffer).unwrap();
+    story.resume_with_choice(0, &mut line_buffer).unwrap();
+    story.resume_with_choice(0, &mut line_buffer).unwrap();
+    story.resume_with_choice(0, &mut line_buffer).unwrap();
+    story.resume_with_choice(0, &mut line_buffer).unwrap();
 
     assert_eq!(
         &line_buffer[0].text,
@@ -79,7 +74,7 @@ You meet with Aaron.
     assert_eq!(&choices[0].text, "Hi!");
 
     let choices = story
-        .resume_with_choice(&choices[0], &mut line_buffer)
+        .resume_with_choice(0, &mut line_buffer)
         .unwrap()
         .get_choices()
         .unwrap();
@@ -89,7 +84,7 @@ You meet with Aaron.
     assert_eq!(&choices[1].text, "Oh, you again");
 
     let choices = story
-        .resume_with_choice(&choices[0], &mut line_buffer)
+        .resume_with_choice(0, &mut line_buffer)
         .unwrap()
         .get_choices()
         .unwrap();
