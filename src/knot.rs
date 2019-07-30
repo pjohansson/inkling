@@ -85,6 +85,7 @@ impl Stitch {
         Ok(result)
     }
 
+    /// Parse a set of input lines into a `Stitch`.
     pub fn from_lines(lines: &[&str]) -> Result<Self, LineParsingError> {
         let parsed_lines = lines
             .into_iter()
@@ -107,6 +108,7 @@ impl Stitch {
         self.root.num_visited
     }
 
+    /// Reset the current stack to the first line of the root node.
     fn reset_stack(&mut self) {
         self.stack = vec![0];
     }
