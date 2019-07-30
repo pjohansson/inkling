@@ -314,9 +314,9 @@ fn follow_story(
             if !user_choice_lines.is_empty() {
                 Ok((Prompt::Choice(user_choice_lines), last_address))
             } else {
-                let choice = get_fallback_choice(&choice_set, &current_address, knots)?;
+                let choice = get_fallback_choice(&choice_set, &last_address, knots)?;
 
-                follow_story(current_address, line_buffer, Some(choice.index), knots)
+                follow_story(&last_address, line_buffer, Some(choice.index), knots)
             }
         }
         EncounteredEvent::Done => Ok((Prompt::Done, last_address)),
@@ -733,6 +733,28 @@ We hurried home to Savile Row as fast as we could.
         story.resume_with_choice(0, &mut buffer).unwrap();
 
         assert_eq!(&buffer[1].text, "Fallback choice\n");
+    }
+
+    #[test]
+    fn fallback_choices_resume_from_the_knot_they_are_encountered_in() {
+        let content = "
+== first
+-> second 
+
+== second 
++   -> 
+    Fallback choice
+";
+
+        let (_, mut knots) = read_knots_from_string(content).unwrap();
+        validate_addresses_in_knots(&mut knots).unwrap();
+        let current_address = Address::from_root_knot("first", &knots).unwrap();
+
+        let mut line_buffer = Vec::new();
+
+        follow_story(&current_address, &mut line_buffer, None, &mut knots).unwrap();
+
+        assert_eq!(&line_buffer[0].text, "Fallback choice\n");
     }
 
     #[test]
