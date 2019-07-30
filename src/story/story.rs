@@ -949,4 +949,42 @@ We arrived into Almaty at 9.45pm exactly.
             "We arrived into Almaty at 9.45pm exactly.\n"
         );
     }
+
+    #[test]
+    fn number_of_visits_in_a_story_is_consistent() {
+        let content = "
+One
+-> root 
+
+== root
+
++   {visit_twice < 2} -> visit_twice
++   {visit_twice >= 2} {visit_thrice < 3} -> visit_thrice
+*   [] -> END
+
+== visit_twice 
+Two
+-> root
+
+== visit_thrice
+Three
+-> root
+
+";
+
+        let mut story = read_story_from_string(content).unwrap();
+        let mut line_buffer = Vec::new();
+
+        story.start(&mut line_buffer).unwrap();
+
+        let knots = &story.knots;
+
+        let address_root = Address::from_root_knot("root", &knots).unwrap();
+        let address_twice = Address::from_root_knot("visit_twice", &knots).unwrap();
+        let address_thrice = Address::from_root_knot("visit_thrice", &knots).unwrap();
+
+        assert_eq!(get_stitch(&address_twice, knots).unwrap().num_visited, 2);
+        assert_eq!(get_stitch(&address_thrice, knots).unwrap().num_visited, 3);
+        assert_eq!(get_stitch(&address_root, knots).unwrap().num_visited, 6);
+    }
 }
