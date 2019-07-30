@@ -6,7 +6,7 @@ use crate::{
     node::{Branch, NodeItem, RootNode},
 };
 
-use std::slice::IterMut;
+use std::{fmt, slice::IterMut};
 
 /// Represents the current stack of choices made from the tree root.
 ///
@@ -158,7 +158,7 @@ impl Follow for Branch {}
 ///
 /// Separated from that trait to simplify the scope of functions that are made available
 /// when importing `Follow`.
-pub trait FollowInternal {
+pub trait FollowInternal: fmt::Debug {
     fn get_next_level_branch(
         &mut self,
         stack_index: usize,
