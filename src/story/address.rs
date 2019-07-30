@@ -239,7 +239,6 @@ fn get_empty_knot_map(knots: &Knots) -> Knots {
                     let empty_stitch = Stitch {
                         root: RootNodeBuilder::new().build(),
                         stack: Vec::new(),
-                        num_visited: 0,
                     };
 
                     (stitch_name.clone(), empty_stitch)

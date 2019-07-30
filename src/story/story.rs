@@ -160,9 +160,6 @@ impl Story {
 
         self.in_progress = true;
 
-        let initial_address = self.get_current_address()?;
-        get_mut_stitch(&initial_address, &mut self.knots)?.num_visited += 1;
-
         self.follow_story_wrapper(None, line_buffer)
     }
 
@@ -351,9 +348,6 @@ fn follow_knot(
             EncounteredEvent::Divert(Address::End) => break EncounteredEvent::Done,
             EncounteredEvent::Divert(to_address) => {
                 current_address = to_address;
-
-                let knot = get_mut_stitch(&current_address, knots)?;
-                knot.num_visited += 1;
             }
             _ => break result,
         }
@@ -555,11 +549,17 @@ We hurried home to Savile Row as fast as we could.
         let current_address = Address::from_root_knot("addis_ababa", &knots).unwrap();
         let divert_address = Address::from_root_knot("tripoli", &knots).unwrap();
 
-        assert_eq!(get_stitch(&divert_address, &knots).unwrap().num_visited, 0);
+        assert_eq!(
+            get_stitch(&divert_address, &knots).unwrap().num_visited(),
+            0
+        );
 
         follow_knot(&current_address, None, &mut knots).unwrap();
 
-        assert_eq!(get_stitch(&divert_address, &knots).unwrap().num_visited, 1);
+        assert_eq!(
+            get_stitch(&divert_address, &knots).unwrap().num_visited(),
+            1
+        );
     }
 
     #[test]
@@ -574,11 +574,17 @@ We hurried home to Savile Row as fast as we could.
         validate_addresses_in_knots(&mut knots).unwrap();
         let current_address = Address::from_root_knot("tripoli", &knots).unwrap();
 
-        assert_eq!(get_stitch(&current_address, &knots).unwrap().num_visited, 0);
+        assert_eq!(
+            get_stitch(&current_address, &knots).unwrap().num_visited(),
+            0
+        );
 
         follow_knot(&current_address, Some(1), &mut knots).unwrap();
 
-        assert_eq!(get_stitch(&current_address, &knots).unwrap().num_visited, 0);
+        assert_eq!(
+            get_stitch(&current_address, &knots).unwrap().num_visited(),
+            0
+        );
     }
 
     #[test]
@@ -894,7 +900,7 @@ Hello, World!
 
         let address = Address::from_root_knot("$ROOT$", &story.knots).unwrap();
 
-        assert_eq!(get_stitch(&address, &story.knots).unwrap().num_visited, 1);
+        assert_eq!(get_stitch(&address, &story.knots).unwrap().num_visited(), 1);
     }
 
     #[test]
@@ -983,8 +989,8 @@ Three
         let address_twice = Address::from_root_knot("visit_twice", &knots).unwrap();
         let address_thrice = Address::from_root_knot("visit_thrice", &knots).unwrap();
 
-        assert_eq!(get_stitch(&address_twice, knots).unwrap().num_visited, 2);
-        assert_eq!(get_stitch(&address_thrice, knots).unwrap().num_visited, 3);
-        assert_eq!(get_stitch(&address_root, knots).unwrap().num_visited, 6);
+        assert_eq!(get_stitch(&address_twice, knots).unwrap().num_visited(), 2);
+        assert_eq!(get_stitch(&address_thrice, knots).unwrap().num_visited(), 3);
+        assert_eq!(get_stitch(&address_root, knots).unwrap().num_visited(), 6);
     }
 }

@@ -52,8 +52,6 @@ pub struct Stitch {
     pub(crate) root: RootNode,
     /// Last recorded position inside the `root` graph of content.
     pub(crate) stack: Stack,
-    /// Number of times this stitch has been diverted to.
-    pub num_visited: u32,
 }
 
 impl Stitch {
@@ -98,8 +96,15 @@ impl Stitch {
         Ok(Stitch {
             root,
             stack: vec![0],
-            num_visited: 0,
         })
+    }
+
+    /// Get the number of times this stitch has been diverted to.
+    /// 
+    /// This will only have been incremented when the stitch has been `follow`ed from 
+    /// the beginning, not when resumed from with a choice or after a gather point.
+    pub fn num_visited(&self) -> u32 {
+        self.root.num_visited
     }
 
     fn reset_stack(&mut self) {
@@ -196,7 +201,6 @@ mod tests {
             Ok(Stitch {
                 root,
                 stack: vec![0],
-                num_visited: 0,
             })
         }
     }
@@ -219,6 +223,51 @@ mod tests {
         assert_eq!(buffer.len(), 2);
         assert_eq!(&buffer[0].text, text);
         assert_eq!(&buffer[1].text, text);
+    }
+
+    #[test]
+    fn following_stitch_increases_the_number_of_visits() {
+        let text = "Hello, World!";
+
+        let mut stitch = Stitch::from_str(text).unwrap();
+
+        let mut buffer = Vec::new();
+
+        stitch.follow(&mut buffer).unwrap();
+        stitch.follow(&mut buffer).unwrap();
+
+        assert_eq!(stitch.num_visited(), 2);
+    }
+
+    #[test]
+    fn following_stitch_with_choice_does_not_increase_the_number_of_visits() {
+        let text = "*   Choice";
+
+        let mut stitch = Stitch::from_str(text).unwrap();
+
+        let mut buffer = Vec::new();
+
+        stitch.follow_with_choice(0, &mut buffer).unwrap();
+
+        assert_eq!(stitch.num_visited(), 0);
+    }
+
+    #[test]
+    fn after_resuming_follow_from_a_gather_point_the_number_of_visits_is_not_increased() {
+        let text = "\
+*   Choice 1
+*   Choice 2
+-   Line
+";
+
+        let mut stitch = Stitch::from_str(text).unwrap();
+
+        let mut buffer = Vec::new();
+
+        stitch.follow_with_choice(0, &mut buffer).unwrap();
+
+        assert_eq!(buffer.last().unwrap().text.trim(), "Line");
+        assert_eq!(stitch.num_visited(), 0);
     }
 
     #[test]

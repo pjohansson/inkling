@@ -198,7 +198,7 @@ fn check_condition(condition: &Condition, knots: &Knots) -> Result<bool, Inkling
             ordering,
             not,
         } => {
-            let num_visits = get_stitch(address, knots)?.num_visited as i32;
+            let num_visits = get_stitch(address, knots)?.num_visited() as i32;
 
             let value = num_visits.cmp(rhs_value) == *ordering;
 
@@ -240,7 +240,7 @@ mod tests {
         let name = "knot_name".to_string();
 
         let mut stitch = Stitch::from_str("").unwrap();
-        stitch.num_visited = 3;
+        stitch.root.num_visited = 3;
 
         let mut stitches = HashMap::new();
         stitches.insert(ROOT_KNOT_NAME.to_string(), stitch);
@@ -477,7 +477,7 @@ mod tests {
         let name = "knot_name".to_string();
 
         let mut stitch = Stitch::from_str("").unwrap();
-        stitch.num_visited = 1;
+        stitch.root.num_visited = 1;
 
         let mut stitches = HashMap::new();
         stitches.insert(ROOT_KNOT_NAME.to_string(), stitch);
