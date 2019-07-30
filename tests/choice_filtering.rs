@@ -358,7 +358,7 @@ A crossing! Which path do you take?
 +   [Left] -> left_tunnel
 
 == left_tunnel ==
-{In a small chamber further in you find a torch.|This chamber used to hold a torch.} <>
+{In a small chamber further in you find a torch.|This chamber used to hold a torch.}
 *   -> torch
 +   [] But there is nothing left so you turn and head back.
     -> passage
@@ -374,17 +374,12 @@ You pick the torch up and head back.
 
     story.start(&mut line_buffer).unwrap();
 
-    assert_eq!(
-        &line_buffer[0].text,
-        "A crossing! Which path do you take?\n"
-    );
-
     line_buffer.clear();
     story.resume_with_choice(0, &mut line_buffer).unwrap();
 
     assert_eq!(
         &line_buffer[0].text,
-        "In a small chamber further in you find a torch. "
+        "In a small chamber further in you find a torch.\n"
     );
     assert_eq!(
         &line_buffer[1].text,
@@ -398,7 +393,7 @@ You pick the torch up and head back.
     line_buffer.clear();
     story.resume_with_choice(0, &mut line_buffer).unwrap();
 
-    assert_eq!(&line_buffer[0].text, "This chamber used to hold a torch. ");
+    assert_eq!(&line_buffer[0].text, "This chamber used to hold a torch.\n");
     assert_eq!(
         &line_buffer[1].text,
         "But there is nothing left so you turn and head back.\n"
@@ -411,7 +406,7 @@ You pick the torch up and head back.
     line_buffer.clear();
     story.resume_with_choice(0, &mut line_buffer).unwrap();
 
-    assert_eq!(&line_buffer[0].text, "This chamber used to hold a torch. ");
+    assert_eq!(&line_buffer[0].text, "This chamber used to hold a torch.\n");
     assert_eq!(
         &line_buffer[1].text,
         "But there is nothing left so you turn and head back.\n"
@@ -420,4 +415,46 @@ You pick the torch up and head back.
         &line_buffer[2].text,
         "A crossing! Which path do you take?\n"
     );
+}
+
+#[test]
+fn glue_binds_across_fallback_choices() {
+    let content = "
+
+== passage
+
+A crossing! Which path do you take?
+
++   [Left] -> left_tunnel
+
+== left_tunnel ==
+{In a small chamber further in you find a torch.|This chamber used to hold a torch.} <>
+*   -> torch
+*   ->
+    But there is nothing left so you turn and head back.
+    -> passage
+
+== torch 
+<> You pick the torch up and head back. 
+-> passage
+
+";
+
+    let mut story = read_story_from_string(content).unwrap();
+    let mut line_buffer = Vec::new();
+
+    story.start(&mut line_buffer).unwrap();
+
+    line_buffer.clear();
+    story.resume_with_choice(0, &mut line_buffer).unwrap();
+
+    assert_eq!(
+        &line_buffer[0].text,
+        "In a small chamber further in you find a torch. "
+    );
+
+    line_buffer.clear();
+    story.resume_with_choice(0, &mut line_buffer).unwrap();
+
+    assert_eq!(&line_buffer[0].text, "This chamber used to hold a torch. ");
 }
