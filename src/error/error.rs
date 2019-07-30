@@ -10,19 +10,19 @@ use crate::{
 
 #[derive(Clone, Debug)]
 /// Errors from running a story.
-/// 
-/// This struct mostly concerns errors which will be encountered due to some mistake 
-/// with the story or user input. 
-/// 
-/// `OutOfChoices` and `OutOfContent` are runtime errors from the story running out 
-/// of content to display. This is likely due to the story returning to a single knot 
-/// or stitch multiple times, consuming all of its choices if no fallback choice has 
-/// been added. These issues should be taken into account when writing the story: 
-/// if content will be returned to it is important to keep track of how many times 
+///
+/// This struct mostly concerns errors which will be encountered due to some mistake
+/// with the story or user input.
+///
+/// `OutOfChoices` and `OutOfContent` are runtime errors from the story running out
+/// of content to display. This is likely due to the story returning to a single knot
+/// or stitch multiple times, consuming all of its choices if no fallback choice has
+/// been added. These issues should be taken into account when writing the story:
+/// if content will be returned to it is important to keep track of how many times
 /// this is allowed to happen, or have a fallback in place.
-/// 
-/// All internal errors are contained in the `Internal` variant. These concern everything 
-/// that went wrong due to some issue within `inkling` itself. If you encounter any, 
+///
+/// All internal errors are contained in the `Internal` variant. These concern everything
+/// that went wrong due to some issue within `inkling` itself. If you encounter any,
 /// please open an issue on Github.
 pub enum InklingError {
     /// Internal errors caused by `inkling`.
@@ -162,9 +162,7 @@ impl fmt::Display for InklingError {
                  or default choices to fall back on (knot: {}, stitch: {})",
                 knot, stitch
             ),
-            OutOfChoices {
-                address
-            } => write!(
+            OutOfChoices { address } => write!(
                 f,
                 "Tried to use a non-validated `Address` ('{:?}') when following a story",
                 address
@@ -195,9 +193,7 @@ impl fmt::Display for InternalError {
                      actually represent a knot in the story",
                     knot, stitch
                 ),
-                BadAddress {
-                    address
-                } => write!(
+                BadAddress { address } => write!(
                     f,
                     "Tried to used a non-validated `Address` ('{:?}') in a function",
                     address

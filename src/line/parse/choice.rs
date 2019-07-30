@@ -65,9 +65,7 @@ fn parse_choice_data(content: &str) -> Result<InternalChoice, LineParsingError> 
 /// Check whether a choice line is a fallback.
 ///
 /// The condition for a fallback choice is that it has no displayed text for the user.
-fn is_choice_fallback(
-    selection_text: &InternalLine,
-) -> bool {
+fn is_choice_fallback(selection_text: &InternalLine) -> bool {
     selection_text
         .chunk
         .items
@@ -292,16 +290,13 @@ pub(crate) mod tests {
 
     #[test]
     fn choices_without_displayed_text_can_have_regular_text() {
-        let choice =  parse_choice_data("[]").unwrap();
+        let choice = parse_choice_data("[]").unwrap();
 
         assert!(choice.is_fallback);
 
-        assert_eq!(
-            choice.display_text,
-            parse_internal_line("").unwrap()
-        );
+        assert_eq!(choice.display_text, parse_internal_line("").unwrap());
 
-        let choice =  parse_choice_data("[] Some text").unwrap();
+        let choice = parse_choice_data("[] Some text").unwrap();
 
         assert!(choice.is_fallback);
 

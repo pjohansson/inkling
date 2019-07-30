@@ -128,10 +128,10 @@
 //!
 //! # De/serializing stories
 //! Enable the `serde_support` feature to derive `Deserialize` and `Serialize` for all
-//! required objects. If you are unfamiliar with `serde`, this corresponds to reading 
-//! and writing finished story files in their current state. In game terms: saving 
-//! and loading. 
-//! 
+//! required objects. If you are unfamiliar with `serde`, this corresponds to reading
+//! and writing finished story files in their current state. In game terms: saving
+//! and loading.
+//!
 //! For more information about `serde` see their [website](https://serde.rs/).
 //!
 //! # Contributions
