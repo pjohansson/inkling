@@ -475,3 +475,36 @@ North no. 2 is standing in the bed room as the old man wakes up from his dream.
         _ => unreachable!("the error should be present and filled with information"),
     }
 }
+
+#[test]
+fn tags_are_included_with_lines_and_choices() {
+    let content = "
+
+SCOTLAND, EURO FEDERATION # location card # europe
+An old castle heaves in front of you. -> gates # description
+
+== gates 
+
+*   Enter it. # action
+
+";
+
+    let mut story = read_story_from_string(content).unwrap();
+    let mut line_buffer = Vec::new();
+
+    let choices = story
+        .start(&mut line_buffer)
+        .unwrap()
+        .get_choices()
+        .unwrap();
+
+    assert_eq!(&line_buffer[0].text, "SCOTLAND, EURO FEDERATION\n");
+    assert_eq!(
+        line_buffer[0].tags,
+        &["location card".to_string(), "europe".to_string()]
+    );
+    assert_eq!(&line_buffer[1].tags, &["description".to_string()]);
+
+    assert_eq!(&choices[0].text, "Enter it.");
+    assert_eq!(&choices[0].tags, &["action".to_string()]);
+}
