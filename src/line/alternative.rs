@@ -113,6 +113,7 @@ impl ValidateAddresses for Alternative {
             .collect()
     }
 
+    #[cfg(test)]
     fn all_addresses_are_valid(&self) -> bool {
         self.items.iter().all(|item| item.all_addresses_are_valid())
     }

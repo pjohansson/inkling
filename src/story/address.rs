@@ -28,6 +28,7 @@ pub trait ValidateAddresses {
         knots: &Knots,
     ) -> Result<(), InvalidAddressError>;
 
+    #[cfg(test)]
     /// Assert that all addresses are valid.
     fn all_addresses_are_valid(&self) -> bool;
 }
@@ -124,6 +125,7 @@ impl ValidateAddresses for Address {
         Ok(())
     }
 
+    #[cfg(test)]
     fn all_addresses_are_valid(&self) -> bool {
         match self {
             Address::Validated { .. } | Address::End => true,

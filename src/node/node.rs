@@ -81,6 +81,7 @@ impl ValidateAddresses for RootNode {
             .collect()
     }
 
+    #[cfg(test)]
     fn all_addresses_are_valid(&self) -> bool {
         self.items.iter().all(|item| item.all_addresses_are_valid())
     }
@@ -104,6 +105,7 @@ impl ValidateAddresses for Branch {
             .collect()
     }
 
+    #[cfg(test)]
     fn all_addresses_are_valid(&self) -> bool {
         self.items.iter().all(|item| item.all_addresses_are_valid())
     }
@@ -124,6 +126,7 @@ impl ValidateAddresses for NodeItem {
         }
     }
 
+    #[cfg(test)]
     fn all_addresses_are_valid(&self) -> bool {
         match self {
             NodeItem::BranchingPoint(branches) => {

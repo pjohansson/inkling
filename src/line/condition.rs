@@ -40,6 +40,7 @@ impl ValidateAddresses for Condition {
         }
     }
 
+    #[cfg(test)]
     fn all_addresses_are_valid(&self) -> bool {
         match self {
             Condition::NumVisits { address, .. } => address.all_addresses_are_valid(),

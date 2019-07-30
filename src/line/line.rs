@@ -117,6 +117,7 @@ impl ValidateAddresses for InternalLine {
         self.chunk.validate(current_address, knots)
     }
 
+    #[cfg(test)]
     fn all_addresses_are_valid(&self) -> bool {
         self.chunk.all_addresses_are_valid()
     }
@@ -139,6 +140,7 @@ impl ValidateAddresses for LineChunk {
             .collect()
     }
 
+    #[cfg(test)]
     fn all_addresses_are_valid(&self) -> bool {
         self.items.iter().all(|item| item.all_addresses_are_valid())
     }
@@ -157,6 +159,7 @@ impl ValidateAddresses for Content {
         }
     }
 
+    #[cfg(test)]
     fn all_addresses_are_valid(&self) -> bool {
         match self {
             Content::Alternative(ref alternative) => alternative.all_addresses_are_valid(),
