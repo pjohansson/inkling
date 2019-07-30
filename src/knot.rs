@@ -206,15 +206,15 @@ mod tests {
     }
 
     #[test]
-    fn knot_restarts_from_their_first_line_when_run_again() {
+    fn stitch_restarts_from_their_first_line_when_run_again() {
         let text = "Hello, World!";
 
-        let mut knot = Stitch::from_str(text).unwrap();
+        let mut stitch = Stitch::from_str(text).unwrap();
 
         let mut buffer = Vec::new();
 
-        knot.follow(&mut buffer).unwrap();
-        knot.follow(&mut buffer).unwrap();
+        stitch.follow(&mut buffer).unwrap();
+        stitch.follow(&mut buffer).unwrap();
 
         assert_eq!(buffer.len(), 2);
         assert_eq!(&buffer[0].text, text);
@@ -222,7 +222,7 @@ mod tests {
     }
 
     #[test]
-    fn knot_with_divert_shortcuts_at_it() {
+    fn stitch_with_divert_shortcuts_at_it() {
         let name = "fool".to_string();
 
         let pre = "Mrs. Bennet was making a fool of herself.";
@@ -237,12 +237,12 @@ mod tests {
             pre, name, after
         );
 
-        let mut knot = Stitch::from_str(&text).unwrap();
+        let mut stitch = Stitch::from_str(&text).unwrap();
 
         let mut buffer = Vec::new();
 
         assert_eq!(
-            knot.follow(&mut buffer).unwrap(),
+            stitch.follow(&mut buffer).unwrap(),
             EncounteredEvent::Divert(Address::Raw(name))
         );
 
@@ -252,7 +252,7 @@ mod tests {
     }
 
     #[test]
-    fn knot_with_choice_returns_it() {
+    fn stitch_with_choice_returns_it() {
         let choice1 = "Choice 1";
         let choice2 = "Choice 2";
 
@@ -268,11 +268,11 @@ mod tests {
             text.push('\n');
         }
 
-        let mut knot = Stitch::from_str(&text).unwrap();
+        let mut stitch = Stitch::from_str(&text).unwrap();
 
         let mut buffer = Vec::new();
 
-        let choices = match knot.follow(&mut buffer).unwrap() {
+        let choices = match stitch.follow(&mut buffer).unwrap() {
             EncounteredEvent::BranchingChoice(choices) => choices,
             _ => panic!("did not get a `BranchingChoice`"),
         };
@@ -294,37 +294,37 @@ mod tests {
         let choice = "Choice 1";
         let text = format!("* {}", choice);
 
-        let mut knot = Stitch::from_str(&text).unwrap();
+        let mut stitch = Stitch::from_str(&text).unwrap();
 
         let mut buffer = LineDataBuffer::new();
 
-        knot.follow(&mut buffer).unwrap();
-        knot.follow_with_choice(0, &mut buffer).unwrap();
+        stitch.follow(&mut buffer).unwrap();
+        stitch.follow_with_choice(0, &mut buffer).unwrap();
 
         assert_eq!(buffer.len(), 1);
         assert_eq!(&buffer[0].text, choice);
     }
 
     #[test]
-    fn when_a_knot_is_finished_the_stack_is_reset() {
+    fn when_a_stitch_is_finished_the_stack_is_reset() {
         let text = "\
 * Choice 1
 * Choice 2
 ";
 
-        let mut knot = Stitch::from_str(text).unwrap();
+        let mut stitch = Stitch::from_str(text).unwrap();
 
         let mut buffer = Vec::new();
 
-        knot.follow(&mut buffer).unwrap();
-        assert_eq!(&knot.stack, &[0]);
+        stitch.follow(&mut buffer).unwrap();
+        assert_eq!(&stitch.stack, &[0]);
 
-        knot.follow_with_choice(0, &mut buffer).unwrap();
-        assert_eq!(&knot.stack, &[0]);
+        stitch.follow_with_choice(0, &mut buffer).unwrap();
+        assert_eq!(&stitch.stack, &[0]);
     }
 
     #[test]
-    fn knot_with_choice_follows_into_choice() {
+    fn stitch_with_choice_follows_into_choice() {
         let line1 = "A Scandal in Bohemia";
         let line2 = "The Scarlet Letter";
         let line_unused = "Moby Dick; Or, the Whale";
@@ -343,12 +343,12 @@ mod tests {
             text.push('\n');
         }
 
-        let mut knot = Stitch::from_str(&text).unwrap();
+        let mut stitch = Stitch::from_str(&text).unwrap();
 
         let mut buffer = LineDataBuffer::new();
 
-        knot.follow(&mut buffer).unwrap();
-        knot.follow_with_choice(1, &mut buffer).unwrap();
+        stitch.follow(&mut buffer).unwrap();
+        stitch.follow_with_choice(1, &mut buffer).unwrap();
 
         assert_eq!(buffer.len(), 3);
         assert_eq!(&buffer[1].text, line1);
@@ -356,7 +356,7 @@ mod tests {
     }
 
     #[test]
-    fn knot_gathers_all_choices_at_requested_level() {
+    fn stitch_gathers_all_choices_at_requested_level() {
         let line1 = "The Thief";
         let line2 = "Sanshirō ";
 
@@ -376,18 +376,18 @@ mod tests {
             text.push('\n');
         }
 
-        let mut knot = Stitch::from_str(&text).unwrap();
+        let mut stitch = Stitch::from_str(&text).unwrap();
 
         let mut results_choice1 = LineDataBuffer::new();
 
-        knot.follow(&mut results_choice1).expect("one");
-        knot.follow_with_choice(0, &mut results_choice1)
+        stitch.follow(&mut results_choice1).expect("one");
+        stitch.follow_with_choice(0, &mut results_choice1)
             .expect("two");
 
         let mut results_choice2 = LineDataBuffer::new();
 
-        knot.follow(&mut results_choice2).expect("three");
-        knot.follow_with_choice(1, &mut results_choice2)
+        stitch.follow(&mut results_choice2).expect("three");
+        stitch.follow_with_choice(1, &mut results_choice2)
             .expect("four");
 
         assert_eq!(results_choice1[3], results_choice2[2]);
@@ -395,7 +395,7 @@ mod tests {
     }
 
     #[test]
-    fn knot_can_follow_multiple_level_choices_and_gathers() {
+    fn stitch_can_follow_multiple_level_choices_and_gathers() {
         let text = "\
 Line 1
 *   Choice 1
@@ -409,14 +409,14 @@ Line 1
 -   Line 5
 Line 6
 ";
-        let mut knot = Stitch::from_str(&text).unwrap();
+        let mut stitch = Stitch::from_str(&text).unwrap();
 
         let mut buffer = LineDataBuffer::new();
 
-        knot.follow(&mut buffer).unwrap();
-        knot.follow_with_choice(0, &mut buffer).unwrap();
-        knot.follow_with_choice(1, &mut buffer).unwrap();
-        knot.follow_with_choice(0, &mut buffer).unwrap();
+        stitch.follow(&mut buffer).unwrap();
+        stitch.follow_with_choice(0, &mut buffer).unwrap();
+        stitch.follow_with_choice(1, &mut buffer).unwrap();
+        stitch.follow_with_choice(0, &mut buffer).unwrap();
 
         // Four lines in choice, three choice lines and two lines after the gather
         assert_eq!(buffer.len(), 4 + 3 + 2);
@@ -428,13 +428,13 @@ Line 6
 *   Choice 1
 *   Choice 2
 ";
-        let mut knot = Stitch::from_str(&text).unwrap();
+        let mut stitch = Stitch::from_str(&text).unwrap();
 
         let mut buffer = LineDataBuffer::new();
 
-        knot.follow(&mut buffer).unwrap();
+        stitch.follow(&mut buffer).unwrap();
 
-        match knot.follow_with_choice(2, &mut buffer) {
+        match stitch.follow_with_choice(2, &mut buffer) {
             Err(_) => (),
             _ => panic!("expected a `InklingError::InvalidChoice` but did not get it"),
         }
