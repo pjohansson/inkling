@@ -100,8 +100,8 @@ impl Stitch {
     }
 
     /// Get the number of times this stitch has been diverted to.
-    /// 
-    /// This will only have been incremented when the stitch has been `follow`ed from 
+    ///
+    /// This will only have been incremented when the stitch has been `follow`ed from
     /// the beginning, not when resumed from with a choice or after a gather point.
     pub fn num_visited(&self) -> u32 {
         self.root.num_visited
@@ -430,13 +430,15 @@ mod tests {
         let mut results_choice1 = LineDataBuffer::new();
 
         stitch.follow(&mut results_choice1).expect("one");
-        stitch.follow_with_choice(0, &mut results_choice1)
+        stitch
+            .follow_with_choice(0, &mut results_choice1)
             .expect("two");
 
         let mut results_choice2 = LineDataBuffer::new();
 
         stitch.follow(&mut results_choice2).expect("three");
-        stitch.follow_with_choice(1, &mut results_choice2)
+        stitch
+            .follow_with_choice(1, &mut results_choice2)
             .expect("four");
 
         assert_eq!(results_choice1[3], results_choice2[2]);
