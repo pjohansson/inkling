@@ -1,6 +1,6 @@
 # 0.11.0
 
-*   Resume stories with index of instead of reference to a choice from the previous result.
+*   Resume stories with index of instead of reference to choice from the previous result.
 
 ## 0.11.1
 
@@ -9,6 +9,12 @@
 ## 0.11.2 
 
 *   Validate knot and stitch addresses after parsing a story.
+
+## 0.11.3
+
+*   Allow fallback choices with output text (`*  [] Text content`)
+*   Fix bug where glue was not respected over fallback choices
+*   Fix bug where fallback choices were not made from the knot or stitch they were found in, leading to inconsistent behavior and runtime errors.
 
 # 0.10.0
 
