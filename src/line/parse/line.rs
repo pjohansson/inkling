@@ -75,15 +75,15 @@ fn add_text_items(content: &str, builder: &mut LineChunkBuilder) -> Result<(), L
 /// Enclosed whitespace within these markers is retained. Markers that are placed further
 /// in are not (currently) removed.
 fn parse_line_glue(line: &mut String, has_divert: bool) -> (bool, bool) {
-    let glue_left = line.starts_with(GLUE_MARKER);
-    let glue_right = line.ends_with(GLUE_MARKER);
+    let glue_left = line.trim_start().starts_with(GLUE_MARKER);
+    let glue_right = line.trim_end().ends_with(GLUE_MARKER);
 
     if glue_left {
-        *line = line.trim_start_matches(GLUE_MARKER).to_string();
+        *line = line.trim_start().trim_start_matches(GLUE_MARKER).to_string();
     }
 
     if glue_right {
-        *line = line.trim_end_matches(GLUE_MARKER).to_string();
+        *line = line.trim_end().trim_end_matches(GLUE_MARKER).to_string();
     }
 
     (glue_left, glue_right || has_divert)

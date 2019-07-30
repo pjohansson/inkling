@@ -477,6 +477,50 @@ North no. 2 is standing in the bed room as the old man wakes up from his dream.
 }
 
 #[test]
+fn glue_binds_lines_together_without_newline_markers() {
+    let content = "
+
+“So she abandoned me ... <>
+she sent me to a boarding school in England ...
+<> and I never heard a thing from her again.”
+
+";
+
+    let mut story = read_story_from_string(content).unwrap();
+    let mut line_buffer = Vec::new();
+
+    story.start(&mut line_buffer).unwrap();
+
+    assert_eq!(&line_buffer[0].text, "“So she abandoned me ... ");
+    assert_eq!(&line_buffer[1].text, "she sent me to a boarding school in England ... ");
+    assert_eq!(&line_buffer[2].text, "and I never heard a thing from her again.”\n");
+}
+
+#[test]
+fn glue_binds_across_diverts() {
+    let content = "
+
+“So she abandoned me ... <> 
+-> flashback 
+
+== flashback
+she sent me to a boarding school in England ...
+<> and I never heard a thing from her again.”
+
+";
+
+    let mut story = read_story_from_string(content).unwrap();
+    let mut line_buffer = Vec::new();
+
+    story.start(&mut line_buffer).unwrap();
+    dbg!(&line_buffer);
+
+    assert_eq!(&line_buffer[0].text, "“So she abandoned me ... ");
+    assert_eq!(&line_buffer[1].text, "she sent me to a boarding school in England ... ");
+    assert_eq!(&line_buffer[2].text, "and I never heard a thing from her again.”\n");
+}
+
+#[test]
 fn tags_are_included_with_lines_and_choices() {
     let content = "
 
