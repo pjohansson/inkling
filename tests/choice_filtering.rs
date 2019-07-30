@@ -294,7 +294,7 @@ A crossing! Which path do you take?
 {In a small chamber further in you find a torch.|This chamber used to hold a torch.}
 *   [Pick up torch.] -> torch
 *   ->
-    But there is nothing left so you turn and head back.
+    <> But there is nothing left so you turn and head back.
     -> passage
 
 == torch 
@@ -336,7 +336,7 @@ You pick the torch up and head back.
     line_buffer.clear();
     story.resume_with_choice(0, &mut line_buffer).unwrap();
 
-    assert_eq!(&line_buffer[0].text, "This chamber used to hold a torch.\n");
+    assert_eq!(&line_buffer[0].text, "This chamber used to hold a torch. ");
     assert_eq!(
         &line_buffer[1].text,
         "But there is nothing left so you turn and head back.\n"
@@ -358,7 +358,7 @@ A crossing! Which path do you take?
 +   [Left] -> left_tunnel
 
 == left_tunnel ==
-{In a small chamber further in you find a torch.|This chamber used to hold a torch.} 
+{In a small chamber further in you find a torch.|This chamber used to hold a torch.} <>
 *   -> torch
 +   [] But there is nothing left so you turn and head back.
     -> passage
@@ -384,7 +384,7 @@ You pick the torch up and head back.
 
     assert_eq!(
         &line_buffer[0].text,
-        "In a small chamber further in you find a torch.\n"
+        "In a small chamber further in you find a torch. "
     );
     assert_eq!(
         &line_buffer[1].text,
@@ -398,7 +398,7 @@ You pick the torch up and head back.
     line_buffer.clear();
     story.resume_with_choice(0, &mut line_buffer).unwrap();
 
-    assert_eq!(&line_buffer[0].text, "This chamber used to hold a torch.\n");
+    assert_eq!(&line_buffer[0].text, "This chamber used to hold a torch. ");
     assert_eq!(
         &line_buffer[1].text,
         "But there is nothing left so you turn and head back.\n"
@@ -411,7 +411,7 @@ You pick the torch up and head back.
     line_buffer.clear();
     story.resume_with_choice(0, &mut line_buffer).unwrap();
 
-    assert_eq!(&line_buffer[0].text, "This chamber used to hold a torch.\n");
+    assert_eq!(&line_buffer[0].text, "This chamber used to hold a torch. ");
     assert_eq!(
         &line_buffer[1].text,
         "But there is nothing left so you turn and head back.\n"
