@@ -1,7 +1,6 @@
 //! Choice which branches the story.
 
 use crate::line::{Condition, InternalLine};
-#[cfg(test)] use crate::line::ConditionKind;
 
 use std::{cell::RefCell, rc::Rc};
 
@@ -100,8 +99,8 @@ impl InternalChoiceBuilder {
     }
 
     /// Set a list of conditions for the choice.
-    pub fn set_conditions(&mut self, conditions: &Condition) {
-        self.condition.replace(conditions.clone());
+    pub fn set_condition(&mut self, condition: &Condition) {
+        self.condition.replace(condition.clone());
     }
 
     #[cfg(test)]
@@ -153,16 +152,9 @@ impl InternalChoiceBuilder {
     }
 
     #[cfg(test)]
-    /// Add a single `ConditionKind` to the choice.
-    ///
-    /// This can be run multiple times to add more conditions.
-    pub fn with_condition(mut self, kind: &ConditionKind) -> Self {
-        if self.condition.is_none() {
-            self.condition.replace(Condition::from(kind.clone()));
-        } else {
-            self.condition.as_mut().map(|condition| condition.clone().and(kind.clone()));
-        }
-
+    /// Set the `display_text` item to the given line.
+    pub fn with_condition(mut self, condition: &Condition) -> Self {
+        self.set_condition(condition);
         self
     }
 

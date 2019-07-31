@@ -102,7 +102,14 @@ impl ValidateAddresses for Condition {
         current_address: &Address,
         knots: &Knots,
     ) -> Result<(), InvalidAddressError> {
-        unimplemented!();
+        self.kind.validate(current_address, knots)?;
+
+        self.items
+            .iter_mut()
+            .map(|item| match item {
+                AndOr::And(kind) | AndOr::Or(kind) => kind.validate(current_address, knots),
+            })
+            .collect()
     }
 
     #[cfg(test)]

@@ -187,26 +187,30 @@ fn add_line_ending(line: &mut LineText, next_line: Option<&LineText>) {
 
 /// Check whether a single choice fulfils its conditions.
 fn check_condition(condition: &Condition, knots: &Knots) -> Result<bool, InklingError> {
-    unimplemented!();
-    // match condition {
-    //     ConditionKind::NumVisits {
-    //         address,
-    //         rhs_value,
-    //         ordering,
-    //         not,
-    //     } => {
-    //         let num_visits = get_stitch(address, knots)?.num_visited() as i32;
-    //
-    //         let value = num_visits.cmp(rhs_value) == *ordering;
-    //
-    //         if *not {
-    //             Ok(!value)
-    //         } else {
-    //             Ok(value)
-    //         }
-    //     }
-    //     _ => unimplemented!(),
-    // }
+    let evaluator = |kind: &ConditionKind| -> Result<bool, InklingError> {
+        match kind {
+            ConditionKind::NumVisits {
+                address,
+                rhs_value,
+                ordering,
+                not,
+            } => {
+                let num_visits = get_stitch(address, knots)?.num_visited() as i32;
+
+                let value = num_visits.cmp(rhs_value) == *ordering;
+
+                if *not {
+                    Ok(!value)
+                } else {
+                    Ok(value)
+                }
+            }
+            ConditionKind::True => Ok(true),
+            ConditionKind::False => Ok(false),
+        }
+    };
+
+    condition.evaluate(evaluator)
 }
 
 #[cfg(test)]
@@ -491,19 +495,19 @@ mod tests {
 
         let current_address = Address::from_root_knot("knot_name", &knots).unwrap();
 
-        let fulfilled_condition = ConditionKind::NumVisits {
+        let fulfilled_condition = Condition::from(ConditionKind::NumVisits {
             address: Address::from_target_address(&name, &current_address, &knots).unwrap(),
             rhs_value: 0,
             ordering: Ordering::Greater,
             not: false,
-        };
+        });
 
-        let unfulfilled_condition = ConditionKind::NumVisits {
+        let unfulfilled_condition = Condition::from(ConditionKind::NumVisits {
             address: Address::from_target_address(&name, &current_address, &knots).unwrap(),
             rhs_value: 2,
             ordering: Ordering::Greater,
             not: false,
-        };
+        });
 
         let choice1 = InternalChoiceBuilder::from_string("Removed")
             .with_condition(&unfulfilled_condition)

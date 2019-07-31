@@ -217,6 +217,8 @@ mod tests {
 
     #[test]
     fn several_choice_conditions_can_be_parsed_and_will_be_and_variants() {
+        use crate::line::condition::AndOr;
+
         let mut line = "{knot_name} {other_knot} {not third_knot} Hello, World!".to_string();
         let condition = parse_choice_condition(&mut line).unwrap().unwrap();
 

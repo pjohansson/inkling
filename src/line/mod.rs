@@ -29,7 +29,7 @@ pub(self) mod process;
 
 pub(crate) use alternative::{Alternative, AlternativeBuilder, AlternativeKind};
 pub(crate) use choice::{InternalChoice, InternalChoiceBuilder};
-pub(crate) use condition::{Condition, ConditionKind};
+pub(crate) use condition::{Condition, ConditionBuilder, ConditionKind};
 pub(crate) use line::{
     builders::{InternalLineBuilder, LineChunkBuilder},
     Content, InternalLine, LineChunk,
