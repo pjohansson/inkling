@@ -81,6 +81,7 @@ pub fn split_line_into_groups_braces<'a>(
     split_line_into_groups(content, '{', '}')
 }
 
+#[allow(dead_code)]
 /// Split a line into parts of pure text and text enclosed in parenthesis.
 ///
 /// Wrapper around `split_line_into_groups` with parenthesis as open and close.
