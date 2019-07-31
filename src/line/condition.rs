@@ -59,12 +59,22 @@ pub enum ConditionKind {
     },
 }
 
+#[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
+/// Container for `and`/`or` variants of conditions.
+pub enum AndOr {
+    And(ConditionKind),
+    Or(ConditionKind),
+}
+
+/// Constructor struct for `Condition`.
 pub struct ConditionBuilder {
     kind: ConditionKind,
     items: Vec<AndOr>,
 }
 
 impl ConditionBuilder {
+    /// Create the constructor with a condition kind.
     pub fn with_kind(kind: &ConditionKind) -> Self {
         ConditionBuilder {
             kind: kind.clone(),
@@ -72,6 +82,7 @@ impl ConditionBuilder {
         }
     }
 
+    /// Finalize the `Condition` and return it.
     pub fn build(self) -> Condition {
         Condition {
             kind: self.kind,
@@ -79,21 +90,15 @@ impl ConditionBuilder {
         }
     }
 
+    /// Add an `and` item to the condition list.
     pub fn and(&mut self, kind: &ConditionKind) {
         self.items.push(AndOr::And(kind.clone()));
     }
 
+    /// Add an `or` item to the condition list.
     pub fn or(&mut self, kind: &ConditionKind) {
         self.items.push(AndOr::Or(kind.clone()));
     }
-}
-
-#[derive(Clone, Debug, PartialEq)]
-#[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
-/// Container for `and`/`or` variants of conditions.
-pub enum AndOr {
-    And(ConditionKind),
-    Or(ConditionKind),
 }
 
 impl ValidateAddresses for Condition {
