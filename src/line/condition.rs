@@ -1,4 +1,34 @@
 //! Conditions for displaying choices, lines or other content.
+//!
+//! The base of this module is the `Condition` struct which is in essence the root
+//! of a set of conditions which must be fulfilled for some content to be displayed.
+//! From this root we can evaluate the entire condition tree linked to it.
+//!
+//! Since `Condition` is the large container for a condition, there are several
+//! smaller pieces working as the glue. `ConditionItem` is a container for each
+//! individual part of a condition.
+//!
+//! For example, if a condition is `(i > 2) and (i < 5)` then the entire string
+//! represents the `Condition` while the individual `i > 2` and `i < 5` parts are
+//! `ConditionItem`. Each individual `ConditionItem` can be negated: `not i > 2`,
+//! and so on.
+//!
+//! `Ink` supports two types of links between conditions: `and` and `or` (no exclusive
+//! or). These are linked to `ConditionItem`s through the `AndOr` struct. So when
+//! the full `Condition` is evaluating it will check this enum along with the item
+//! to assert whether the condition passes.
+//!
+//! Finally comes the representation of single statements. These are contained in
+//! the `ConditionKind` enum which has items for `true` and `false` if a super
+//! simple item is created, `StoryCondition` if the condition has to access the
+//! running story state to be evaluated (this will almost always be the case)
+//! and `Nested` for nested conditions.
+//!
+//! A note about `StoryCondition`: this represents a condition created by the user
+//! in the script. This module is not responsible for evaluating it based on
+//! the story state. The module is responsible for ensuring that conditions and logic
+//! works correctly through nesting and whatnot. See `Condition` and its methods for
+//! more information.
 
 use crate::{
     error::InvalidAddressError,
@@ -27,7 +57,14 @@ pub struct Condition {
 /// Base item in a condition.
 ///
 /// Will evaluate to a single `true` or `false` but may have to evaluate a group
-/// of conditions.
+/// of conditions. This is not done by this module or struct! This struct only
+/// implements the framework through which choices can be created, parsed and
+/// ensured that all items in a condition are true if told.
+///
+/// The evaluation of each individual condition is performed by the `evaluate`
+/// method. This takes a closure for the caller and applies it to the item,
+/// producing the result which is linked to the rest of the conditions to
+/// determine the final true or false value.
 pub struct ConditionItem {
     /// Negate the condition upon evaluation.
     pub negate: bool,
@@ -74,6 +111,9 @@ pub enum AndOr {
 
 impl Condition {
     /// Evaluate the condition with the given evaluator closure.
+    ///
+    /// This closure will be called on every item in the `Condition` as all parts
+    /// are walked through. 
     pub fn evaluate<F, E>(&self, evaluator: &F) -> Result<bool, E>
     where
         F: Fn(&StoryCondition) -> Result<bool, E>,
