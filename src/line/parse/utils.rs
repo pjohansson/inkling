@@ -36,7 +36,7 @@ pub fn split_line_at_separator<'a>(
     let num_bytes = content.as_bytes().len();
 
     let iter_start = once(0).chain(separator_indices.iter().map(|&i| i + separator_size));
-    
+
     let iter_end = separator_indices
         .iter()
         .take(max_splits.unwrap_or(separator_indices.len()))

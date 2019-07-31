@@ -79,7 +79,10 @@ fn parse_line_glue(line: &mut String, has_divert: bool) -> (bool, bool) {
     let glue_right = line.trim_end().ends_with(GLUE_MARKER);
 
     if glue_left {
-        *line = line.trim_start().trim_start_matches(GLUE_MARKER).to_string();
+        *line = line
+            .trim_start()
+            .trim_start_matches(GLUE_MARKER)
+            .to_string();
     }
 
     if glue_right {

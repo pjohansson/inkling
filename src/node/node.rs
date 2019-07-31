@@ -94,7 +94,7 @@ impl ValidateAddresses for Branch {
         knots: &Knots,
     ) -> Result<(), InvalidAddressError> {
         self.choice
-            .conditions
+            .condition
             .iter_mut()
             .map(|item| item.validate(current_address, knots))
             .chain(

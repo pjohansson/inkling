@@ -1,6 +1,7 @@
 //! Choice which branches the story.
 
-use crate::line::{ConditionKind, InternalLine};
+use crate::line::{Condition, InternalLine};
+#[cfg(test)] use crate::line::ConditionKind;
 
 use std::{cell::RefCell, rc::Rc};
 
@@ -38,7 +39,7 @@ pub struct InternalChoice {
     /// Can be empty.
     pub display_text: InternalLine,
     /// ConditionKinds that must be fulfilled for the choice to be displayed.
-    pub conditions: Vec<ConditionKind>,
+    pub condition: Option<Condition>,
     /// By default a choice will be filtered after being visited once. If it is marked
     /// as sticky it will stick around.
     pub is_sticky: bool,
@@ -58,7 +59,7 @@ pub struct InternalChoice {
 pub struct InternalChoiceBuilder {
     selection_text: InternalLine,
     display_text: InternalLine,
-    conditions: Vec<ConditionKind>,
+    condition: Option<Condition>,
     is_fallback: bool,
     is_sticky: bool,
     tags: Option<Vec<String>>,
@@ -72,7 +73,7 @@ impl InternalChoiceBuilder {
         InternalChoiceBuilder {
             selection_text: line.clone(),
             display_text: line,
-            conditions: Vec::new(),
+            condition: None,
             is_sticky: false,
             is_fallback: false,
             tags: None,
@@ -92,15 +93,15 @@ impl InternalChoiceBuilder {
         InternalChoice {
             selection_text: Rc::new(RefCell::new(self.selection_text)),
             display_text: self.display_text,
-            conditions: self.conditions,
+            condition: self.condition,
             is_sticky: self.is_sticky,
             is_fallback: self.is_fallback,
         }
     }
 
     /// Set a list of conditions for the choice.
-    pub fn set_conditions(&mut self, conditions: &[ConditionKind]) {
-        self.conditions = conditions.to_vec();
+    pub fn set_conditions(&mut self, conditions: &Condition) {
+        self.condition.replace(conditions.clone());
     }
 
     #[cfg(test)]
@@ -155,8 +156,13 @@ impl InternalChoiceBuilder {
     /// Add a single `ConditionKind` to the choice.
     ///
     /// This can be run multiple times to add more conditions.
-    pub fn with_condition(mut self, condition: &ConditionKind) -> Self {
-        self.conditions.push(condition.clone());
+    pub fn with_condition(mut self, kind: &ConditionKind) -> Self {
+        if self.condition.is_none() {
+            self.condition.replace(Condition::from(kind.clone()));
+        } else {
+            self.condition.as_mut().map(|condition| condition.clone().and(kind.clone()));
+        }
+
         self
     }
 

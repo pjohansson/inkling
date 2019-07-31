@@ -55,7 +55,10 @@ fn parse_choice_data(content: &str) -> Result<InternalChoice, LineParsingError> 
 
     let mut builder = InternalChoiceBuilder::from_line(display_text);
 
-    builder.set_conditions(&choice_conditions);
+    if let Some(ref condition) = choice_conditions {
+        builder.set_conditions(condition);
+    }
+
     builder.set_is_fallback(is_fallback);
     builder.set_selection_text(selection_text);
 
@@ -309,7 +312,7 @@ pub(crate) mod tests {
     #[test]
     fn choices_can_be_parsed_with_conditions() {
         let choice = parse_choice_data("{knot_name} Hello, World!").unwrap();
-        assert_eq!(choice.conditions.len(), 1);
+        assert!(choice.condition.is_some());
     }
 
     #[test]

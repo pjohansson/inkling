@@ -3,7 +3,7 @@
 use crate::{
     error::{InklingError, InternalError},
     follow::{ChoiceInfo, LineDataBuffer, LineText},
-    line::{ConditionKind, InternalLine},
+    line::{Condition, ConditionKind, InternalLine},
 };
 
 use super::story::{get_stitch, Choice, Knots, Line, LineBuffer};
@@ -140,15 +140,11 @@ fn check_choices_for_conditions(
         choice_data,
     } in choices.iter()
     {
-        let mut keep = true;
-
-        for condition in choice_data.conditions.iter() {
-            keep = check_condition(condition, knots)?;
-
-            if !keep {
-                break;
-            }
-        }
+        let mut keep = choice_data
+            .condition
+            .as_ref()
+            .map(|condition| check_condition(condition, knots).unwrap())
+            .unwrap_or(true);
 
         keep = keep
             && (choice_data.is_sticky || *num_visited == 0)
@@ -190,26 +186,27 @@ fn add_line_ending(line: &mut LineText, next_line: Option<&LineText>) {
 }
 
 /// Check whether a single choice fulfils its conditions.
-fn check_condition(condition: &ConditionKind, knots: &Knots) -> Result<bool, InklingError> {
-    match condition {
-        ConditionKind::NumVisits {
-            address,
-            rhs_value,
-            ordering,
-            not,
-        } => {
-            let num_visits = get_stitch(address, knots)?.num_visited() as i32;
-
-            let value = num_visits.cmp(rhs_value) == *ordering;
-
-            if *not {
-                Ok(!value)
-            } else {
-                Ok(value)
-            }
-        }
-        _ => unimplemented!(),
-    }
+fn check_condition(condition: &Condition, knots: &Knots) -> Result<bool, InklingError> {
+    unimplemented!();
+    // match condition {
+    //     ConditionKind::NumVisits {
+    //         address,
+    //         rhs_value,
+    //         ordering,
+    //         not,
+    //     } => {
+    //         let num_visits = get_stitch(address, knots)?.num_visited() as i32;
+    //
+    //         let value = num_visits.cmp(rhs_value) == *ordering;
+    //
+    //         if *not {
+    //             Ok(!value)
+    //         } else {
+    //             Ok(value)
+    //         }
+    //     }
+    //     _ => unimplemented!(),
+    // }
 }
 
 #[cfg(test)]
@@ -264,7 +261,7 @@ mod tests {
             not: false,
         };
 
-        assert!(check_condition(&greater_than_condition, &knots).unwrap());
+        assert!(check_condition(&Condition::from(greater_than_condition), &knots).unwrap());
 
         let less_than_condition = ConditionKind::NumVisits {
             address: Address::from_target_address(&name, &current_address, &knots).unwrap(),
@@ -273,7 +270,7 @@ mod tests {
             not: false,
         };
 
-        assert!(!check_condition(&less_than_condition, &knots).unwrap());
+        assert!(!check_condition(&Condition::from(less_than_condition), &knots).unwrap());
 
         let equal_condition = ConditionKind::NumVisits {
             address: Address::from_target_address(&name, &current_address, &knots).unwrap(),
@@ -282,7 +279,7 @@ mod tests {
             not: false,
         };
 
-        assert!(check_condition(&equal_condition, &knots).unwrap());
+        assert!(check_condition(&Condition::from(equal_condition), &knots).unwrap());
 
         let not_equal_condition = ConditionKind::NumVisits {
             address: Address::from_target_address(&name, &current_address, &knots).unwrap(),
@@ -291,7 +288,7 @@ mod tests {
             not: true,
         };
 
-        assert!(!check_condition(&not_equal_condition, &knots).unwrap());
+        assert!(!check_condition(&Condition::from(not_equal_condition), &knots).unwrap());
     }
 
     #[test]

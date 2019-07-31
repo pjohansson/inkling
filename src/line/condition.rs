@@ -12,25 +12,28 @@ use crate::utils::OrderingDerive;
 #[cfg(feature = "serde_support")]
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
 /// Condition for displaying some content or choice in the story.
-struct Condition {
+pub struct Condition {
     /// First condition to evaluate.
-    kind: ConditionKind,
+    pub kind: ConditionKind,
     /// Ordered set of `and`/`or` conditions to compare the first condition to.
-    items: Vec<AndOr>,
+    pub items: Vec<AndOr>,
 }
 
 impl Condition {
     /// Evaluate the condition with the given evaluator closure.
-    fn evaluate<F>(&self, evaluator: F) -> bool where F: Fn(&ConditionKind) -> bool {
-        self.items.iter().fold(evaluator(&self.kind), |acc, next| {
-            match next {
+    pub fn evaluate<F>(&self, evaluator: F) -> bool
+    where
+        F: Fn(&ConditionKind) -> bool,
+    {
+        self.items
+            .iter()
+            .fold(evaluator(&self.kind), |acc, next| match next {
                 AndOr::And(ref condition) => acc && evaluator(condition),
                 AndOr::Or(ref condition) => acc || evaluator(condition),
-            }
-        })
+            })
     }
 }
 
@@ -56,9 +59,24 @@ pub enum ConditionKind {
 #[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
 /// Container for `and`/`or` variants of conditions.
-enum AndOr {
+pub enum AndOr {
     And(ConditionKind),
     Or(ConditionKind),
+}
+
+impl ValidateAddresses for Condition {
+    fn validate(
+        &mut self,
+        current_address: &Address,
+        knots: &Knots,
+    ) -> Result<(), InvalidAddressError> {
+        unimplemented!();
+    }
+
+    #[cfg(test)]
+    fn all_addresses_are_valid(&self) -> bool {
+        unimplemented!();
+    }
 }
 
 impl ValidateAddresses for ConditionKind {
@@ -88,15 +106,15 @@ impl ValidateAddresses for ConditionKind {
 mod tests {
     use super::*;
 
-    use ConditionKind::{True, False};
+    use ConditionKind::{False, True};
 
     impl Condition {
-        fn and(mut self, kind: ConditionKind) -> Self {
+        pub fn and(mut self, kind: ConditionKind) -> Self {
             self.items.push(AndOr::And(kind));
             self
         }
 
-        fn or(mut self, kind: ConditionKind) -> Self {
+        pub fn or(mut self, kind: ConditionKind) -> Self {
             self.items.push(AndOr::Or(kind));
             self
         }
@@ -126,7 +144,11 @@ mod tests {
         assert!(!Condition::from(True).and(False).evaluate(f));
 
         assert!(Condition::from(False).and(False).or(True).evaluate(f));
-        assert!(!Condition::from(False).and(False).or(True).and(False).evaluate(f));
+        assert!(!Condition::from(False)
+            .and(False)
+            .or(True)
+            .and(False)
+            .evaluate(f));
     }
 
     #[test]

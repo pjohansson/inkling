@@ -178,7 +178,9 @@ fn read_name_with_marker(line: &str) -> Result<String, KnotError> {
         })
     } else if RESERVED_KEYWORDS.contains(&trimmed_name.to_uppercase().as_str()) {
         Err(KnotError::InvalidName {
-            kind: KnotNameError::ReservedKeyword { keyword: trimmed_name.to_string() },
+            kind: KnotNameError::ReservedKeyword {
+                keyword: trimmed_name.to_string(),
+            },
             line: line.to_string(),
         })
     } else {
