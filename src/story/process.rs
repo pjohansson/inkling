@@ -205,12 +205,10 @@ fn check_condition(condition: &Condition, knots: &Knots) -> Result<bool, Inkling
                     Ok(value)
                 }
             }
-            ConditionKind::True => Ok(true),
-            ConditionKind::False => Ok(false),
         }
     };
 
-    condition.evaluate(evaluator)
+    condition.evaluate(&evaluator)
 }
 
 #[cfg(test)]

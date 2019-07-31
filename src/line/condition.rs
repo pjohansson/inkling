@@ -17,37 +17,31 @@ use serde::{Deserialize, Serialize};
 /// Condition for displaying some content or choice in the story.
 pub struct Condition {
     /// First condition to evaluate.
-    pub kind: ConditionKind,
+    pub root: ConditionItem,
     /// Ordered set of `and`/`or` conditions to compare the first condition to.
     pub items: Vec<AndOr>,
 }
 
-impl Condition {
-    /// Evaluate the condition with the given evaluator closure.
-    pub fn evaluate<F, E>(&self, evaluator: F) -> Result<bool, E>
-    where
-        F: Fn(&ConditionKind) -> Result<bool, E>,
-        E: Error,
-    {
-        self.items
-            .iter()
-            .fold(evaluator(&self.kind), |acc, next_condition| {
-                acc.and_then(|current| match next_condition {
-                    AndOr::And(ref condition) => evaluator(condition).map(|next| current && next),
-                    AndOr::Or(ref condition) => evaluator(condition).map(|next| current || next),
-                })
-            })
-    }
+#[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
+/// Base item in a condition.
+///
+/// Will evaluate to a single `true` or `false` but
+pub enum ConditionItem {
+    /// Always `true`.
+    True,
+    /// Always `false`.
+    False,
+    /// Nested `Condition` which has to be evaluated as a group.
+    Nested(Box<Condition>),
+    /// Single condition to evaluate.
+    Single(ConditionKind),
 }
 
 #[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
-/// ConditionKind to show choice (or maybe part of line, in the future)
+/// Condition to show some content in a story.
 pub enum ConditionKind {
-    /// Condition is `true`.
-    True,
-    /// Condition is `false`.
-    False,
     /// Use a knot (or maybe other string-like variable) to check whether its value
     /// compares to the set condition.
     NumVisits {
@@ -61,23 +55,55 @@ pub enum ConditionKind {
 
 #[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
-/// Container for `and`/`or` variants of conditions.
+/// Container for `and`/`or` variants of conditions to evaluate in a list.
 pub enum AndOr {
-    And(ConditionKind),
-    Or(ConditionKind),
+    And(ConditionItem),
+    Or(ConditionItem),
+}
+
+impl Condition {
+    /// Evaluate the condition with the given evaluator closure.
+    pub fn evaluate<F, E>(&self, evaluator: &F) -> Result<bool, E>
+    where
+        F: Fn(&ConditionKind) -> Result<bool, E>,
+        E: Error,
+    {
+        self.items
+            .iter()
+            .fold(inner_eval(&self.root, evaluator), |acc, next_condition| {
+                acc.and_then(|current| match next_condition {
+                    AndOr::And(ref item) => inner_eval(item, evaluator).map(|next| current && next),
+                    AndOr::Or(ref item) => inner_eval(item, evaluator).map(|next| current || next),
+                })
+            })
+    }
+}
+
+/// Match against and evaluate the items.
+fn inner_eval<F, E>(item: &ConditionItem, evaluator: &F) -> Result<bool, E>
+where
+    F: Fn(&ConditionKind) -> Result<bool, E>,
+    E: Error,
+{
+    match item {
+        ConditionItem::True => Ok(true),
+        ConditionItem::False => Ok(false),
+        ConditionItem::Nested(condition) => condition.evaluate(evaluator),
+        ConditionItem::Single(kind) => evaluator(kind),
+    }
 }
 
 /// Constructor struct for `Condition`.
 pub struct ConditionBuilder {
-    kind: ConditionKind,
+    root: ConditionItem,
     items: Vec<AndOr>,
 }
 
 impl ConditionBuilder {
     /// Create the constructor with a condition kind.
-    pub fn with_kind(kind: &ConditionKind) -> Self {
+    pub fn from_item(item: &ConditionItem) -> Self {
         ConditionBuilder {
-            kind: kind.clone(),
+            root: item.clone(),
             items: Vec::new(),
         }
     }
@@ -85,19 +111,31 @@ impl ConditionBuilder {
     /// Finalize the `Condition` and return it.
     pub fn build(self) -> Condition {
         Condition {
-            kind: self.kind,
+            root: self.root,
             items: self.items,
         }
     }
 
     /// Add an `and` item to the condition list.
-    pub fn and(&mut self, kind: &ConditionKind) {
-        self.items.push(AndOr::And(kind.clone()));
+    pub fn and(&mut self, item: &ConditionItem) {
+        self.items.push(AndOr::And(item.clone()));
     }
 
     /// Add an `or` item to the condition list.
-    pub fn or(&mut self, kind: &ConditionKind) {
-        self.items.push(AndOr::Or(kind.clone()));
+    pub fn or(&mut self, item: &ConditionItem) {
+        self.items.push(AndOr::Or(item.clone()));
+    }
+}
+
+impl From<ConditionKind> for ConditionItem {
+    fn from(kind: ConditionKind) -> Self {
+        ConditionItem::Single(kind)
+    }
+}
+
+impl From<&ConditionKind> for ConditionItem {
+    fn from(kind: &ConditionKind) -> Self {
+        ConditionItem::Single(kind.clone())
     }
 }
 
@@ -107,19 +145,40 @@ impl ValidateAddresses for Condition {
         current_address: &Address,
         knots: &Knots,
     ) -> Result<(), InvalidAddressError> {
-        self.kind.validate(current_address, knots)?;
+        self.root.validate(current_address, knots)?;
 
-        self.items
-            .iter_mut()
-            .map(|item| match item {
-                AndOr::And(kind) | AndOr::Or(kind) => kind.validate(current_address, knots),
-            })
-            .collect()
+        self.items.iter_mut().map(|item| match item {
+            AndOr::And(item) | AndOr::Or(item) => item.validate(current_address, knots),
+        })
+        .collect()
     }
 
     #[cfg(test)]
     fn all_addresses_are_valid(&self) -> bool {
         unimplemented!();
+    }
+}
+
+impl ValidateAddresses for ConditionItem {
+    fn validate(
+        &mut self,
+        current_address: &Address,
+        knots: &Knots,
+    ) -> Result<(), InvalidAddressError> {
+        match self {
+            ConditionItem::True | ConditionItem::False => Ok(()),
+            ConditionItem::Nested(condition) => condition.validate(current_address, knots),
+            ConditionItem::Single(kind) => kind.validate(current_address, knots),
+        }
+    }
+
+    #[cfg(test)]
+    fn all_addresses_are_valid(&self) -> bool {
+        match self {
+            ConditionItem::True | ConditionItem::False => true,
+            ConditionItem::Nested(condition) => condition.all_addresses_are_valid(),
+            ConditionItem::Single(kind) => kind.all_addresses_are_valid()
+        }
     }
 }
 
@@ -133,7 +192,6 @@ impl ValidateAddresses for ConditionKind {
             ConditionKind::NumVisits {
                 ref mut address, ..
             } => address.validate(current_address, knots),
-            ConditionKind::True | ConditionKind::False => Ok(()),
         }
     }
 
@@ -141,7 +199,6 @@ impl ValidateAddresses for ConditionKind {
     fn all_addresses_are_valid(&self) -> bool {
         match self {
             ConditionKind::NumVisits { address, .. } => address.all_addresses_are_valid(),
-            ConditionKind::True | ConditionKind::False => true,
         }
     }
 }
@@ -152,25 +209,43 @@ mod tests {
 
     use std::fmt;
 
-    use ConditionKind::{False, True};
+    use ConditionItem::{False, True};
+
+    impl From<ConditionKind> for Condition {
+        fn from(kind: ConditionKind) -> Self {
+            ConditionBuilder::from_item(&kind.into()).build()
+        }
+    }
 
     impl Condition {
-        pub fn and(mut self, kind: ConditionKind) -> Self {
-            self.items.push(AndOr::And(kind));
+        pub fn kind(&self) -> &ConditionKind {
+            self.root.kind()
+        }
+
+        pub fn with_and(mut self, item: ConditionItem) -> Self {
+            self.items.push(AndOr::And(item));
             self
         }
 
-        pub fn or(mut self, kind: ConditionKind) -> Self {
-            self.items.push(AndOr::Or(kind));
+        pub fn with_or(mut self, item: ConditionItem) -> Self {
+            self.items.push(AndOr::Or(item));
             self
         }
     }
 
-    impl From<ConditionKind> for Condition {
-        fn from(kind: ConditionKind) -> Self {
-            Condition {
-                kind,
-                items: Vec::new(),
+    impl ConditionItem {
+        pub fn kind(&self) -> &ConditionKind {
+            match self {
+                ConditionItem::Single(kind) => kind,
+                other => panic!("tried to extract `ConditionKind`, but item was not `ConditionItem::Single` (was: {:?})", other),
+            }
+        }
+    }
+
+    impl AndOr {
+        pub fn kind(&self) -> &ConditionKind {
+            match self {
+                AndOr::And(item) | AndOr::Or(item) => item.kind(),
             }
         }
     }
@@ -189,37 +264,44 @@ mod tests {
     #[test]
     fn condition_links_from_left_to_right() {
         let f = |kind: &ConditionKind| match kind {
-            ConditionKind::True => Ok(true),
-            ConditionKind::False => Ok(false),
             _ => Err(MockError),
         };
 
-        assert!(Condition::from(True).evaluate(f).unwrap());
-        assert!(!Condition::from(False).evaluate(f).unwrap());
-
-        assert!(Condition::from(True).and(True).evaluate(f).unwrap());
-        assert!(!Condition::from(True).and(False).evaluate(f).unwrap());
-
-        assert!(Condition::from(False)
-            .and(False)
-            .or(True)
-            .evaluate(f)
+        assert!(ConditionBuilder::from_item(&True.into())
+            .build()
+            .evaluate(&f)
             .unwrap());
-        assert!(!Condition::from(False)
-            .and(False)
-            .or(True)
-            .and(False)
-            .evaluate(f)
+
+        assert!(!ConditionBuilder::from_item(&False.into())
+            .build()
+            .evaluate(&f)
             .unwrap());
-    }
 
-    #[test]
-    fn evaluator_function_can_use_local_variables() {
-        let needle = ConditionKind::False;
+        assert!(ConditionBuilder::from_item(&True.into())
+            .build()
+            .with_and(True.into())
+            .evaluate(&f)
+            .unwrap());
 
-        let f = |kind: &ConditionKind| -> Result<bool, MockError> { Ok(kind == &needle) };
+        assert!(!ConditionBuilder::from_item(&True.into())
+            .build()
+            .with_and(False.into())
+            .evaluate(&f)
+            .unwrap());
 
-        assert!(Condition::from(False).evaluate(f).unwrap());
-        assert!(!Condition::from(True).evaluate(f).unwrap());
+        assert!(ConditionBuilder::from_item(&False.into())
+            .build()
+            .with_and(False.into())
+            .with_or(True)
+            .evaluate(&f)
+            .unwrap());
+
+        assert!(!ConditionBuilder::from_item(&False.into())
+            .build()
+            .with_and(False)
+            .with_or(True)
+            .with_and(False)
+            .evaluate(&f)
+            .unwrap());
     }
 }

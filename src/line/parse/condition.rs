@@ -60,10 +60,10 @@ pub fn parse_choice_condition(line: &mut String) -> Result<Option<Condition>, Li
         .collect::<Result<Vec<_>, _>>()?;
 
     let condition = conditions.split_first().map(|(first, rest)| {
-        let mut builder = ConditionBuilder::with_kind(first);
+        let mut builder = ConditionBuilder::from_item(&first.into());
 
         for kind in rest {
-            builder.and(kind);
+            builder.and(&kind.into());
         }
 
         builder.build()
@@ -244,7 +244,7 @@ mod tests {
         let mut line = "{knot_name} Hello, World!".to_string();
         let condition = parse_choice_condition(&mut line).unwrap().unwrap();
 
-        match &condition.kind {
+        match &condition.kind() {
             ConditionKind::NumVisits {
                 address,
                 rhs_value,
@@ -279,20 +279,18 @@ mod tests {
 
     #[test]
     fn several_choice_conditions_can_be_parsed_and_will_be_and_variants() {
-        use crate::line::condition::AndOr;
-
         let mut line = "{knot_name} {other_knot} {not third_knot} Hello, World!".to_string();
         let condition = parse_choice_condition(&mut line).unwrap().unwrap();
 
         assert_eq!(condition.items.len(), 2);
 
-        match &condition.items[1] {
-            AndOr::And(ConditionKind::NumVisits {
+        match &condition.items[1].kind() {
+            ConditionKind::NumVisits {
                 address,
                 rhs_value,
                 ordering,
                 not,
-            }) => {
+            } => {
                 assert_eq!(address, &Address::Raw("third_knot".to_string()));
                 assert_eq!(*rhs_value, 0);
                 assert_eq!(*ordering, Ordering::Greater);
@@ -307,7 +305,7 @@ mod tests {
         let mut line = "{not knot_name} Hello, World!".to_string();
         let condition = parse_choice_condition(&mut line).unwrap().unwrap();
 
-        match &condition.kind {
+        match &condition.kind() {
             ConditionKind::NumVisits {
                 address,
                 rhs_value,
@@ -328,7 +326,7 @@ mod tests {
         let mut line = "{knot_name > 2} Hello, World!".to_string();
         let condition = parse_choice_condition(&mut line).unwrap().unwrap();
 
-        match &condition.kind {
+        match &condition.kind() {
             ConditionKind::NumVisits {
                 address,
                 rhs_value,
@@ -349,7 +347,7 @@ mod tests {
         let mut line = "{not knot_name > 2} Hello, World!".to_string();
         let condition = parse_choice_condition(&mut line).unwrap().unwrap();
 
-        match &condition.kind {
+        match &condition.kind() {
             ConditionKind::NumVisits {
                 address,
                 rhs_value,
@@ -370,7 +368,7 @@ mod tests {
         let mut line = "{knot_name < 2} Hello, World!".to_string();
         let condition = parse_choice_condition(&mut line).unwrap().unwrap();
 
-        match &condition.kind {
+        match &condition.kind() {
             ConditionKind::NumVisits {
                 address,
                 rhs_value,
@@ -391,7 +389,7 @@ mod tests {
         let mut line = "{knot_name == 2} Hello, World!".to_string();
         let condition = parse_choice_condition(&mut line).unwrap().unwrap();
 
-        match &condition.kind {
+        match &condition.kind() {
             ConditionKind::NumVisits {
                 address,
                 rhs_value,
@@ -412,7 +410,7 @@ mod tests {
         let mut line = "{knot_name >= 2} Hello, World!".to_string();
         let condition = parse_choice_condition(&mut line).unwrap().unwrap();
 
-        match &condition.kind {
+        match &condition.kind() {
             ConditionKind::NumVisits {
                 address,
                 rhs_value,
@@ -433,7 +431,7 @@ mod tests {
         let mut line = "{knot_name <= 2} Hello, World!".to_string();
         let condition = parse_choice_condition(&mut line).unwrap().unwrap();
 
-        match &condition.kind {
+        match &condition.kind() {
             ConditionKind::NumVisits {
                 address,
                 rhs_value,
