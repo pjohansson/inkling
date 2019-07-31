@@ -33,7 +33,7 @@ He befriended thousands of climbers and children sightseeing in Switzerland.
 == dream ==
 GESICHT'S BEDROOM, MORNING
 
-Gesicht is lying in his bed, eyes wide open and staring at the ceiling. 
+Gesicht is lying in his bed, eyes wide open and staring at the ceiling.
 He just woke from a nightmare.
 
 ";
@@ -57,7 +57,7 @@ fn story_can_start_with_named_knot() {
 == dream ==
 GESICHT'S BEDROOM (MORNING)
 
-Gesicht is lying in his bed, eyes wide open and staring at the ceiling. 
+Gesicht is lying in his bed, eyes wide open and staring at the ceiling.
 He just woke from a nightmare.
 
 ";
@@ -86,7 +86,7 @@ Gesicht arrives at a grotesque murder scene.
 -> cops_hold_him
 
 == investigate_body ==
-The body is lying face down in a pool of blood. 
+The body is lying face down in a pool of blood.
 A desk lamp and piece of broken wood have been stuck to his head.
 They mimic the appearance of antlers.
 
@@ -128,7 +128,7 @@ He befriended thousands of climbers and children sightseeing in Switzerland.
 GESICHT'S BEDROOM, MORNING
 
 = wake
-Gesicht is lying in his bed, eyes wide open and staring at the ceiling. 
+Gesicht is lying in his bed, eyes wide open and staring at the ceiling.
 He just woke from a nightmare.
 
 ";
@@ -164,7 +164,7 @@ Before he's had the time to eat breakfast a call about a murder comes in.
 As Helena probes him about leaving he suggests that they take a vacation.
 
 = wake
-Gesicht is lying in his bed, eyes wide open and staring at the ceiling. 
+Gesicht is lying in his bed, eyes wide open and staring at the ceiling.
 He just woke from a nightmare.
 -> breakfast
 
@@ -192,7 +192,7 @@ fn story_follows_choices_by_the_user() {
     let content = "
 
 Gesicht corners the fugitive and slams him to the ground.
--> cornered 
+-> cornered
 
 == cornered ==
 He points his gun hand in the fugitive's face point blank.
@@ -256,7 +256,7 @@ fn following_a_choice_adds_a_copy_of_the_choice_line_to_the_buffer() {
 fn choices_can_nest_into_multiple_levels() {
     let content = "
 
-Gesicht knocks on the door. 
+Gesicht knocks on the door.
 A robot in a frilly apron welcomes him in.
 
 *   He steps in and informs the widow about her husband's death<>
@@ -354,7 +354,7 @@ The elevator doors swung open.
 *   [Enter]He entered the storage where Brau 1589 was kept.
     Further in he encountered the robot.
     * *    “Brau 1589[...”],” he said.
-    
+
 ";
     let mut story = read_story_from_string(content).unwrap();
     let mut line_buffer = Vec::new();
@@ -390,8 +390,8 @@ The elevator doors swung open.
 #[test]
 fn gathers_collect_nested_choices_in_story() {
     let content = "
-    
-Gesicht met with Brando. 
+
+Gesicht met with Brando.
 They travelled to his apartment by car.
 *   “That was an impressive match, Brando.”
     “It's getting tougher and tougher these days,” he replied.
@@ -402,7 +402,7 @@ They travelled to his apartment by car.
             “The rest is all luck,” he continued with a wry smile.
     * *     Gesicht thought it best to wait until they were there to have a talk.
     - -     Brando turned the radio on and <>
-*   Gesicht said nothing and <> 
+*   Gesicht said nothing and <>
 - they stayed silent during the rest of the ride.
 - -> END
 
@@ -492,16 +492,22 @@ she sent me to a boarding school in England ...
     story.start(&mut line_buffer).unwrap();
 
     assert_eq!(&line_buffer[0].text, "“So she abandoned me ... ");
-    assert_eq!(&line_buffer[1].text, "she sent me to a boarding school in England ... ");
-    assert_eq!(&line_buffer[2].text, "and I never heard a thing from her again.”\n");
+    assert_eq!(
+        &line_buffer[1].text,
+        "she sent me to a boarding school in England ... "
+    );
+    assert_eq!(
+        &line_buffer[2].text,
+        "and I never heard a thing from her again.”\n"
+    );
 }
 
 #[test]
 fn glue_binds_across_diverts() {
     let content = "
 
-“So she abandoned me ... <> 
--> flashback 
+“So she abandoned me ... <>
+-> flashback
 
 == flashback
 she sent me to a boarding school in England ...
@@ -513,11 +519,16 @@ she sent me to a boarding school in England ...
     let mut line_buffer = Vec::new();
 
     story.start(&mut line_buffer).unwrap();
-    dbg!(&line_buffer);
 
     assert_eq!(&line_buffer[0].text, "“So she abandoned me ... ");
-    assert_eq!(&line_buffer[1].text, "she sent me to a boarding school in England ... ");
-    assert_eq!(&line_buffer[2].text, "and I never heard a thing from her again.”\n");
+    assert_eq!(
+        &line_buffer[1].text,
+        "she sent me to a boarding school in England ... "
+    );
+    assert_eq!(
+        &line_buffer[2].text,
+        "and I never heard a thing from her again.”\n"
+    );
 }
 
 #[test]
@@ -527,7 +538,7 @@ fn tags_are_included_with_lines_and_choices() {
 SCOTLAND, EURO FEDERATION # location card # europe
 An old castle heaves in front of you. -> gates # description
 
-== gates 
+== gates
 
 *   Enter it. # action
 

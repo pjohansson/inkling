@@ -235,8 +235,12 @@ impl Story {
 
         let mut internal_buffer = Vec::new();
 
-        let (result, last_address) =
-            follow_story(&current_address, &mut internal_buffer, selection, &mut self.knots)?;
+        let (result, last_address) = follow_story(
+            &current_address,
+            &mut internal_buffer,
+            selection,
+            &mut self.knots,
+        )?;
 
         process_buffer(line_buffer, internal_buffer);
 
@@ -428,7 +432,7 @@ We hurried home to Savile Row as fast as we could.
         let (_, mut knots) = read_knots_from_string(content).unwrap();
         validate_addresses_in_knots(&mut knots).unwrap();
         let root_address = Address::from_root_knot("back_in_london", &knots).unwrap();
-        
+
         let mut buffer = Vec::new();
         follow_knot(&root_address, &mut buffer, None, &mut knots).unwrap();
 
