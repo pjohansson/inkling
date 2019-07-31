@@ -19,16 +19,29 @@ use super::super::condition::AndOr;
 /// `{}` bracket pairs and may be whitespace separated. This function reads all conditions
 /// until no bracket pairs are left in the leading part of the line.
 pub fn parse_choice_conditions(line: &mut String) -> Result<Option<Condition>, LineParsingError> {
-    unimplemented!();
-    // let full_line = line.clone();
-    //
-    // split_choice_conditions_off_string(line)?
-    //     .into_iter()
-    //     .map(|content| {
-    //         parse_condition(&content)
-    //             .map_err(|err| LineParsingError::from_kind(&full_line, err.kind))
-    //     })
-    //     .collect()
+    let full_line = line.clone();
+
+    let conditions = split_choice_conditions_off_string(line)?
+        .into_iter()
+        .map(|content| {
+            parse_condition(&content)
+                .map_err(|err| LineParsingError::from_kind(&full_line, err.kind))
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+
+    let condition = conditions
+        .split_first()
+        .map(|(first, rest)| {
+            let kind = first.clone();
+            let items = rest.into_iter().cloned().map(|kind| AndOr::And(kind)).collect();
+
+            Condition {
+                kind,
+                items
+            }
+        });
+
+    Ok(condition)
 }
 
 /// Split conditions from the string and return them separately.
@@ -207,7 +220,7 @@ mod tests {
     }
 
     #[test]
-    fn several_conditions_can_be_parsed() {
+    fn several_choice_conditions_can_be_parsed_and_will_be_and_variants() {
         let mut line = "{knot_name} {other_knot} {not third_knot} Hello, World!".to_string();
         let condition = parse_choice_conditions(&mut line).unwrap().unwrap();
 
