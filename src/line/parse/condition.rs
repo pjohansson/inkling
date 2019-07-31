@@ -3,13 +3,45 @@
 use std::cmp::Ordering;
 
 use crate::{
-    error::{LineErrorKind, LineParsingError},
+    error::{BadCondition, BadConditionKind, LineErrorKind, LineParsingError},
     line::{
-        parse::{split_line_into_variants, LinePart},
+        parse::{split_line_at_separator, split_line_into_variants, LinePart},
         Condition, ConditionBuilder, ConditionKind,
     },
     story::Address,
 };
+
+/// Parse conditions from a line of content.
+///
+/// Returns the conditions along with the string to process if the condition is fulfilled
+/// and, if present, the string to process if the condition is false.
+///
+/// Conditional content is marked by being off the format {condition: if true | else}.
+/// This is then how we parse conditions.
+///
+/// # Notes
+/// *   Choices have a separate way of marking conditions for them to be presented. See
+///     `parse_choice_conditions` for such parsing. Of course, line content within a choice
+///     may be marked up using conditions that will use this format.
+pub fn parse_line_condition(
+    line: &str,
+) -> Result<(Condition, &str, Option<&str>), LineParsingError> {
+    let (condition_content, true_content, false_content) = split_line_condition_content(line)?;
+
+    let false_line = if !false_content.trim().is_empty() {
+        Some(false_content)
+    } else {
+        None
+    };
+
+    // Ok((
+    //     parse_conditions(condition_content)?,
+    //     true_content,
+    //     false_line,
+    // ))
+
+    unimplemented!();
+}
 
 /// Parse conditions for a choice and trim them from the line.
 ///
@@ -22,7 +54,7 @@ pub fn parse_choice_condition(line: &mut String) -> Result<Option<Condition>, Li
     let conditions = split_choice_conditions_off_string(line)?
         .into_iter()
         .map(|content| {
-            parse_condition(&content)
+            parse_single_condition(&content)
                 .map_err(|err| LineParsingError::from_kind(&full_line, err.kind))
         })
         .collect::<Result<Vec<_>, _>>()?;
@@ -90,8 +122,13 @@ fn split_choice_conditions_off_string(
     Ok(conditions)
 }
 
+/// Parse all conditions present in a line.
+fn parse_condition(content: &str) -> Result<Condition, LineParsingError> {
+    unimplemented!();
+}
+
 /// Parse a condition from a line.
-fn parse_condition(line: &str) -> Result<ConditionKind, LineParsingError> {
+fn parse_single_condition(line: &str) -> Result<ConditionKind, LineParsingError> {
     let ordering_search = line
         .find("==")
         .map(|i| (i, Ordering::Equal, 0, 2))
@@ -135,6 +172,31 @@ fn parse_condition(line: &str) -> Result<ConditionKind, LineParsingError> {
     }
 }
 
+/// Split a line into conditional, true and false parts.
+fn split_line_condition_content(content: &str) -> Result<(&str, &str, &str), LineParsingError> {
+    let parts = split_line_at_separator(content, ":", Some(1))?;
+
+    let (head, tail) = match parts.len() {
+        1 => Err(LineParsingError::from_kind(
+            content,
+            BadCondition::from_kind(content, BadConditionKind::NoCondition).into(),
+        )),
+        2 => Ok((parts[0], parts[1])),
+        _ => unreachable!(),
+    }?;
+
+    let variational_parts = split_line_at_separator(tail, "|", Some(2))?;
+
+    match variational_parts.len() {
+        1 => Ok((head, variational_parts[0], "")),
+        2 => Ok((head, variational_parts[0], variational_parts[1])),
+        _ => Err(LineParsingError::from_kind(
+            content,
+            BadCondition::from_kind(content, BadConditionKind::MultipleElseStatements).into(),
+        )),
+    }
+}
+
 /// Parse the condition `name` and whether the condition is negated.
 ///
 /// ConditionKinds are of the form {(not) name (op value)} and this function treats
@@ -169,12 +231,12 @@ mod tests {
 
     #[test]
     fn parsing_bad_conditions_give_error() {
-        assert!(parse_condition("not too many names").is_err());
-        assert!(parse_condition("not too many > 3").is_err());
-        assert!(parse_condition("no_value >").is_err());
-        assert!(parse_condition("too_many_values > 3 2").is_err());
-        assert!(parse_condition("bad_value > s").is_err());
-        assert!(parse_condition("").is_err());
+        assert!(parse_single_condition("not too many names").is_err());
+        assert!(parse_single_condition("not too many > 3").is_err());
+        assert!(parse_single_condition("no_value >").is_err());
+        assert!(parse_single_condition("too_many_values > 3 2").is_err());
+        assert!(parse_single_condition("bad_value > s").is_err());
+        assert!(parse_single_condition("").is_err());
     }
 
     #[test]
@@ -421,5 +483,50 @@ mod tests {
         assert_eq!(conditions.len(), 2);
         assert_eq!(&conditions[0], "condition_one");
         assert_eq!(&conditions[1], "condition_two");
+    }
+
+    #[test]
+    fn condition_strings_with_just_condition_and_content_splits_at_colon() {
+        assert_eq!(
+            split_line_condition_content("condition :").unwrap(),
+            ("condition ", "", "")
+        );
+
+        assert_eq!(
+            split_line_condition_content("condition : content").unwrap(),
+            ("condition ", " content", "")
+        );
+    }
+
+    #[test]
+    fn condition_string_with_vertical_line_after_colon_separates_that_into_tail() {
+        assert_eq!(
+            split_line_condition_content("condition : true |").unwrap(),
+            ("condition ", " true ", "")
+        );
+
+        assert_eq!(
+            split_line_condition_content("condition : true | false").unwrap(),
+            ("condition ", " true ", " false")
+        );
+    }
+
+    #[test]
+    fn vertical_line_before_colon_in_condition_line_still_splits_colon_first() {
+        assert_eq!(
+            split_line_condition_content("cond | ition : true | false").unwrap(),
+            ("cond | ition ", " true ", " false")
+        );
+    }
+
+    #[test]
+    fn no_colon_separator_in_condition_content_yields_error() {
+        assert!(split_line_condition_content("content without condition").is_err());
+        assert!(split_line_condition_content("content | condition").is_err());
+    }
+
+    #[test]
+    fn multiple_vertical_lines_in_condition_content_yields_error() {
+        assert!(split_line_condition_content("condition : true | false | again").is_err());
     }
 }

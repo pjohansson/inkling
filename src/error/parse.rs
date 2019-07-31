@@ -88,6 +88,11 @@ impl_from_error![
     [LineError, LineParsingError]
 ];
 
+impl_from_error![
+    LineErrorKind;
+    [BadCondition, BadCondition]
+];
+
 impl fmt::Display for ParseError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         use ParseError::*;
@@ -111,7 +116,7 @@ impl fmt::Display for InvalidAddressError {
             BadFormat { line } => write!(f, "address was incorrectly formatted ('{}')", line),
             UnknownCurrentAddress { address } => write!(
                 f,
-                "during validation an address '{:?}' that is not in the system was used as 
+                "during validation an address '{:?}' that is not in the system was used as
                  a current address",
                 address
             ),
@@ -195,7 +200,9 @@ impl fmt::Display for LineParsingError {
         use LineErrorKind::*;
 
         match self.kind {
+            BadCondition(..) => unimplemented!(),
             EmptyDivert => write!(f, "Encountered a divert statement with no address",),
+            EmptyExpression => write!(f, "Found an empty embraced expression ({{}})"),
             ExpectedEndOfLine { ref tail } => write!(
                 f,
                 "Expected no more content after a divert statement address but found '{}'",
@@ -251,8 +258,12 @@ pub enum KnotNameError {
 #[derive(Clone, Debug)]
 /// Variants of line errors.
 pub enum LineErrorKind {
+    /// Condition was invalid.
+    BadCondition(BadCondition),
     /// Found a divert marker but no address.
     EmptyDivert,
+    /// Found an empty expression (embraced part of line)
+    EmptyExpression,
     /// Line did not end after a divert statement.
     ExpectedEndOfLine { tail: String },
     /// Could not parse the logic in a conditional statement.
@@ -269,4 +280,27 @@ pub enum LineErrorKind {
     UnmatchedBraces,
     /// Found unmatched square brackets.
     UnmatchedBrackets,
+}
+
+#[derive(Clone, Debug)]
+pub struct BadCondition {
+    content: String,
+    kind: BadConditionKind,
+}
+
+impl BadCondition {
+    pub fn from_kind<T: Into<String>>(content: T, kind: BadConditionKind) -> Self {
+        BadCondition {
+            content: content.into(),
+            kind,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+pub enum BadConditionKind {
+    /// The line had multiple else statements.
+    MultipleElseStatements,
+    /// There was no condition in the line.
+    NoCondition,
 }

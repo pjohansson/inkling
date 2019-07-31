@@ -2,9 +2,12 @@
 
 use crate::{
     consts::{DIVERT_MARKER, GLUE_MARKER, TAG_MARKER},
-    error::{LineErrorKind, LineParsingError},
+    error::{BadCondition, BadConditionKind, LineErrorKind, LineParsingError},
     line::{
-        parse::{parse_alternative, split_line_at_separator, split_line_into_variants, LinePart},
+        parse::{
+            parse_alternative, parse_line_conditions, split_line_at_separator,
+            split_line_into_variants, LinePart,
+        },
         Content, InternalLine, InternalLineBuilder, LineChunk, LineChunkBuilder,
     },
 };
@@ -50,6 +53,29 @@ pub fn parse_chunk(content: &str) -> Result<LineChunk, LineParsingError> {
     }
 
     Ok(builder.build())
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+/// Kinds of expressions which will evaluate to strings when processed.
+enum ExpressionKind {
+    Alternative,
+    Conditional,
+    Variable,
+}
+
+fn determine_kind(content: &str) -> Result<ExpressionKind, LineParsingError> {
+    if content.trim().is_empty() {
+        Err(LineParsingError::from_kind(
+            content,
+            LineErrorKind::EmptyExpression,
+        ))
+    } else if split_line_at_separator(content, ":", Some(1))?.len() > 1 {
+        Ok(ExpressionKind::Conditional)
+    } else if split_line_at_separator(content, "|", Some(1))?.len() > 1 {
+        Ok(ExpressionKind::Alternative)
+    } else {
+        Ok(ExpressionKind::Variable)
+    }
 }
 
 /// Parse and add text and divert items to a `LineChunkBuilder`.
@@ -385,5 +411,53 @@ mod tests {
             line.chunk.items[0],
             Content::Text("Hello, World! ".to_string())
         );
+    }
+
+    #[test]
+    fn expression_with_colon_separator_is_condition() {
+        assert_eq!(
+            determine_kind("knot: item").unwrap(),
+            ExpressionKind::Conditional
+        );
+        assert_eq!(
+            determine_kind("knot: item | item 2").unwrap(),
+            ExpressionKind::Conditional
+        );
+        assert_eq!(
+            determine_kind("not knot : item").unwrap(),
+            ExpressionKind::Conditional
+        );
+        assert_eq!(
+            determine_kind("not knot > 2 : item").unwrap(),
+            ExpressionKind::Conditional
+        );
+        assert_eq!(
+            determine_kind("not knot > 2 : rest of line | another line").unwrap(),
+            ExpressionKind::Conditional
+        );
+    }
+
+    #[test]
+    fn expression_with_only_vertical_separators_is_alternative() {
+        assert_eq!(
+            determine_kind("one | two").unwrap(),
+            ExpressionKind::Alternative
+        );
+        assert_eq!(
+            determine_kind("one|two").unwrap(),
+            ExpressionKind::Alternative
+        );
+    }
+
+    #[test]
+    fn expression_which_is_neither_alternative_or_condition_is_variable() {
+        assert_eq!(determine_kind("one").unwrap(), ExpressionKind::Variable);
+        assert_eq!(determine_kind("one.two").unwrap(), ExpressionKind::Variable);
+        assert_eq!(determine_kind("one.two").unwrap(), ExpressionKind::Variable);
+    }
+
+    #[test]
+    fn empty_expression_will_yield_error() {
+        assert!(determine_kind("").is_err());
     }
 }
