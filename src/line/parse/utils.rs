@@ -7,28 +7,52 @@ use std::{iter::once, ops::Range};
 #[derive(Clone, Debug, PartialEq)]
 /// Text and embraced parts of a line.
 ///
-/// Lines can be split into pure text and text that is enclosed by '{}' braces, which
+/// Lines can be split into pure text and text that is enclosed by braces, which
 /// indicate that the internal content should be processed.
 pub enum LinePart<'a> {
     /// Pure text part of the line.
     Text(&'a str),
-    /// Text part which was enclosed in '{}' braces.
+    /// Text part which was enclosed in braces.
     Embraced(&'a str),
 }
 
 /// Return line split at a separator, ignoring separators inside curly braces.
+///
+/// Wrapper around `split_line_at_separator` with curly braces as open and close.
+pub fn split_line_at_separator_braces<'a>(
+    content: &'a str,
+    separator: &str,
+    max_splits: Option<usize>,
+) -> Result<Vec<&'a str>, LineParsingError> {
+    split_line_at_separator(content, separator, max_splits, '{', '}')
+}
+
+/// Return line split at a separator, ignoring separators inside parenthesis.
+///
+/// Wrapper around `split_line_at_separator` with parenthesis as open and close.
+pub fn split_line_at_separator_parenthesis<'a>(
+    content: &'a str,
+    separator: &str,
+    max_splits: Option<usize>,
+) -> Result<Vec<&'a str>, LineParsingError> {
+    split_line_at_separator(content, separator, max_splits, '(', ')')
+}
+
+/// Return line split at a separator.
 ///
 /// # Notes
 /// *   Should work for strings with multibyte characters, since we search for braces
 ///     based on their byte indices, not char index position.
 /// *   Will not work if the separator itself includes curly '{}' braces.
 /// *   Separators can be escaped with a leading backslash '\' (has to be removed later).
-pub fn split_line_at_separator<'a>(
+fn split_line_at_separator<'a>(
     content: &'a str,
     separator: &str,
     max_splits: Option<usize>,
+    open: char,
+    close: char
 ) -> Result<Vec<&'a str>, LineParsingError> {
-    let outside_brace_ranges = get_brace_level_zero_ranges(content, '{', '}')?;
+    let outside_brace_ranges = get_brace_level_zero_ranges(content, open, close)?;
 
     let separator_indices = get_separator_indices(content, &outside_brace_ranges, separator);
 
@@ -47,7 +71,10 @@ pub fn split_line_at_separator<'a>(
         .map(|(start, &end)| content.get(start..end).unwrap())
         .collect())
 }
+
 /// Split a line into parts of pure text and text enclosed in braces.
+///
+/// Wrapper around `split_line_into_groups` with curly braces as open and close.
 pub fn split_line_into_groups_braces<'a>(
     content: &'a str,
 ) -> Result<Vec<LinePart<'a>>, LineParsingError> {
@@ -55,6 +82,8 @@ pub fn split_line_into_groups_braces<'a>(
 }
 
 /// Split a line into parts of pure text and text enclosed in parenthesis.
+///
+/// Wrapper around `split_line_into_groups` with parenthesis as open and close.
 pub fn split_line_into_groups_parenthesis<'a>(
     content: &'a str,
 ) -> Result<Vec<LinePart<'a>>, LineParsingError> {
@@ -236,13 +265,13 @@ mod tests {
 
     #[test]
     fn split_empty_string_at_separator_returns_empty_string() {
-        assert_eq!(split_line_at_separator("", "|", None).unwrap(), &[""]);
+        assert_eq!(split_line_at_separator("", "|", None, '{', '}').unwrap(), &[""]);
     }
 
     #[test]
     fn split_empty_string_with_separators_return_multiple_empty_strings() {
         assert_eq!(
-            split_line_at_separator("||", "|", None).unwrap(),
+            split_line_at_separator("||", "|", None, '{', '}').unwrap(),
             &["", "", ""]
         );
     }
@@ -250,7 +279,7 @@ mod tests {
     #[test]
     fn splitting_string_at_separators_returns_content() {
         assert_eq!(
-            split_line_at_separator("Hello|World!", "|", None).unwrap(),
+            split_line_at_separator("Hello|World!", "|", None, '{', '}').unwrap(),
             &["Hello", "World!"]
         );
     }
@@ -258,22 +287,22 @@ mod tests {
     #[test]
     fn maximum_number_of_splits_can_be_supplied() {
         assert_eq!(
-            split_line_at_separator("One|Two|Three", "|", Some(0)).unwrap(),
+            split_line_at_separator("One|Two|Three", "|", Some(0), '{', '}').unwrap(),
             &["One|Two|Three"]
         );
 
         assert_eq!(
-            split_line_at_separator("One|Two|Three", "|", Some(1)).unwrap(),
+            split_line_at_separator("One|Two|Three", "|", Some(1), '{', '}').unwrap(),
             &["One", "Two|Three"]
         );
 
         assert_eq!(
-            split_line_at_separator("One|Two|Three", "|", Some(2)).unwrap(),
+            split_line_at_separator("One|Two|Three", "|", Some(2), '{', '}').unwrap(),
             &["One", "Two", "Three"]
         );
 
         assert_eq!(
-            split_line_at_separator("One|Two|Three", "|", Some(3)).unwrap(),
+            split_line_at_separator("One|Two|Three", "|", Some(3), '{', '}').unwrap(),
             &["One", "Two", "Three"]
         );
     }
@@ -281,17 +310,17 @@ mod tests {
     #[test]
     fn any_separator_can_be_used() {
         assert_eq!(
-            split_line_at_separator("One|Two", "|", None).unwrap(),
+            split_line_at_separator("One|Two", "|", None, '{', '}').unwrap(),
             &["One", "Two"]
         );
 
         assert_eq!(
-            split_line_at_separator("One,Two", ",", None).unwrap(),
+            split_line_at_separator("One,Two", ",", None, '{', '}').unwrap(),
             &["One", "Two"]
         );
 
         assert_eq!(
-            split_line_at_separator("One$Two", "$", None).unwrap(),
+            split_line_at_separator("One$Two", "$", None, '{', '}').unwrap(),
             &["One", "Two"]
         );
     }
@@ -299,7 +328,7 @@ mod tests {
     #[test]
     fn separators_are_ignored_with_preceeding_backslash() {
         assert_eq!(
-            split_line_at_separator("One \\| Still One | Two", "|", None).unwrap(),
+            split_line_at_separator("One \\| Still One | Two", "|", None, '{', '}').unwrap(),
             &["One \\| Still One ", " Two"],
         );
     }
@@ -307,7 +336,7 @@ mod tests {
     #[test]
     fn splitting_string_with_separator_inside_curly_braces_returns_one_item() {
         assert_eq!(
-            split_line_at_separator("{Hello|World!}", "|", None).unwrap(),
+            split_line_at_separator("{Hello|World!}", "|", None, '{', '}').unwrap(),
             &["{Hello|World!}"]
         );
     }
@@ -315,7 +344,7 @@ mod tests {
     #[test]
     fn splitting_string_with_multichar_separator_works() {
         assert_eq!(
-            split_line_at_separator("Hello$!$World!", "$!$", None).unwrap(),
+            split_line_at_separator("Hello$!$World!", "$!$", None, '{', '}').unwrap(),
             &["Hello", "World!"]
         );
     }
@@ -323,12 +352,12 @@ mod tests {
     #[test]
     fn splitting_string_with_multibyte_separator_works() {
         assert_eq!(
-            split_line_at_separator("Hello택World!", "택", None).unwrap(),
+            split_line_at_separator("Hello택World!", "택", None, '{', '}').unwrap(),
             &["Hello", "World!"]
         );
 
         assert_eq!(
-            split_line_at_separator("He택l{lo택Wo}rl택d!", "택", None).unwrap(),
+            split_line_at_separator("He택l{lo택Wo}rl택d!", "택", None, '{', '}').unwrap(),
             &["He", "l{lo택Wo}rl", "d!"]
         );
     }
@@ -336,16 +365,16 @@ mod tests {
     #[test]
     fn splitting_string_with_mixed_braces_and_separators_return_correct_items() {
         assert_eq!(
-            split_line_at_separator("Hello, {World|!}|Again!", "|", None).unwrap(),
+            split_line_at_separator("Hello, {World|!}|Again!", "|", None, '{', '}').unwrap(),
             &["Hello, {World|!}", "Again!"]
         );
     }
 
     #[test]
     fn splitting_string_with_unmatched_braces_returns_error() {
-        assert!(split_line_at_separator("}Hello, World!", "|", None).is_err());
-        assert!(split_line_at_separator("{Hello, World!", "|", None).is_err());
-        assert!(split_line_at_separator("Hello, {World{}!", "|", None).is_err());
+        assert!(split_line_at_separator("}Hello, World!", "|", None, '{', '}').is_err());
+        assert!(split_line_at_separator("{Hello, World!", "|", None, '{', '}').is_err());
+        assert!(split_line_at_separator("Hello, {World{}!", "|", None, '{', '}').is_err());
     }
 
     #[test]
