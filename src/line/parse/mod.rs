@@ -21,7 +21,7 @@ mod utils;
 
 pub(self) use alternative::parse_alternative;
 pub(self) use choice::parse_choice;
-pub(self) use condition::parse_choice_conditions;
+pub(self) use condition::parse_choice_condition;
 pub(self) use gather::parse_gather;
 pub use kind::{parse_line, ParsedLineKind};
 pub(self) use kind::{parse_markers_and_text, split_at_divert_marker};

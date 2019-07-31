@@ -5,7 +5,7 @@ use crate::{
     error::{LineErrorKind, LineParsingError},
     line::{
         parse::{
-            parse_choice_conditions, parse_internal_line, parse_markers_and_text,
+            parse_choice_condition, parse_internal_line, parse_markers_and_text,
             split_at_divert_marker,
         },
         Content, InternalChoice, InternalChoiceBuilder, InternalLine, ParsedLineKind,
@@ -33,7 +33,7 @@ pub fn parse_choice(content: &str) -> Result<Option<ParsedLineKind>, LineParsing
 /// the choice text.
 fn parse_choice_data(content: &str) -> Result<InternalChoice, LineParsingError> {
     let mut buffer = content.to_string();
-    let choice_conditions = parse_choice_conditions(&mut buffer)?;
+    let choice_conditions = parse_choice_condition(&mut buffer)?;
 
     let (selection_text_line, display_text_line) = parse_choice_line_variants(&buffer)?;
 

@@ -18,7 +18,7 @@ use super::super::condition::AndOr;
 /// Choices can lead with multiple conditions. Every condition is contained inside
 /// `{}` bracket pairs and may be whitespace separated. This function reads all conditions
 /// until no bracket pairs are left in the leading part of the line.
-pub fn parse_choice_conditions(line: &mut String) -> Result<Option<Condition>, LineParsingError> {
+pub fn parse_choice_condition(line: &mut String) -> Result<Option<Condition>, LineParsingError> {
     let full_line = line.clone();
 
     let conditions = split_choice_conditions_off_string(line)?
@@ -168,7 +168,7 @@ mod tests {
     #[test]
     fn parsing_condition_without_brackets_return_none_and_leaves_string_unchanged() {
         let mut line = "Hello, World!".to_string();
-        assert!(parse_choice_conditions(&mut line).unwrap().is_none());
+        assert!(parse_choice_condition(&mut line).unwrap().is_none());
     }
 
     #[test]
@@ -184,7 +184,7 @@ mod tests {
     #[test]
     fn parsing_condition_with_just_name_gives_larger_than_zero_visits_condition() {
         let mut line = "{knot_name} Hello, World!".to_string();
-        let condition = parse_choice_conditions(&mut line).unwrap().unwrap();
+        let condition = parse_choice_condition(&mut line).unwrap().unwrap();
 
         match &condition.kind {
             ConditionKind::NumVisits {
@@ -205,7 +205,7 @@ mod tests {
     #[test]
     fn choice_conditions_are_only_parsed_for_braces_before_text_content() {
         let mut line = "Hello, World! {knot_name}".to_string();
-        let conditions = parse_choice_conditions(&mut line).unwrap();
+        let conditions = parse_choice_condition(&mut line).unwrap();
 
         assert!(conditions.is_none());
     }
@@ -213,7 +213,7 @@ mod tests {
     #[test]
     fn braces_starting_with_backslash_are_not_conditions_when_parsing_choices() {
         let mut line = "\\{knot_name} Hello, World!".to_string();
-        let conditions = parse_choice_conditions(&mut line).unwrap();
+        let conditions = parse_choice_condition(&mut line).unwrap();
 
         assert_eq!(&line, "{knot_name} Hello, World!");
         assert!(conditions.is_none());
@@ -222,7 +222,7 @@ mod tests {
     #[test]
     fn several_choice_conditions_can_be_parsed_and_will_be_and_variants() {
         let mut line = "{knot_name} {other_knot} {not third_knot} Hello, World!".to_string();
-        let condition = parse_choice_conditions(&mut line).unwrap().unwrap();
+        let condition = parse_choice_condition(&mut line).unwrap().unwrap();
 
         assert_eq!(condition.items.len(), 2);
 
@@ -245,7 +245,7 @@ mod tests {
     #[test]
     fn parsing_condition_with_not_sets_reverse_condition() {
         let mut line = "{not knot_name} Hello, World!".to_string();
-        let condition = parse_choice_conditions(&mut line).unwrap().unwrap();
+        let condition = parse_choice_condition(&mut line).unwrap().unwrap();
 
         match &condition.kind {
             ConditionKind::NumVisits {
@@ -266,7 +266,7 @@ mod tests {
     #[test]
     fn parsing_single_larger_than_condition() {
         let mut line = "{knot_name > 2} Hello, World!".to_string();
-        let condition = parse_choice_conditions(&mut line).unwrap().unwrap();
+        let condition = parse_choice_condition(&mut line).unwrap().unwrap();
 
         match &condition.kind {
             ConditionKind::NumVisits {
@@ -287,7 +287,7 @@ mod tests {
     #[test]
     fn parsing_single_not_larger_than_condition() {
         let mut line = "{not knot_name > 2} Hello, World!".to_string();
-        let condition = parse_choice_conditions(&mut line).unwrap().unwrap();
+        let condition = parse_choice_condition(&mut line).unwrap().unwrap();
 
         match &condition.kind {
             ConditionKind::NumVisits {
@@ -308,7 +308,7 @@ mod tests {
     #[test]
     fn parsing_single_less_than_condition() {
         let mut line = "{knot_name < 2} Hello, World!".to_string();
-        let condition = parse_choice_conditions(&mut line).unwrap().unwrap();
+        let condition = parse_choice_condition(&mut line).unwrap().unwrap();
 
         match &condition.kind {
             ConditionKind::NumVisits {
@@ -329,7 +329,7 @@ mod tests {
     #[test]
     fn parsing_single_equal_than_condition() {
         let mut line = "{knot_name == 2} Hello, World!".to_string();
-        let condition = parse_choice_conditions(&mut line).unwrap().unwrap();
+        let condition = parse_choice_condition(&mut line).unwrap().unwrap();
 
         match &condition.kind {
             ConditionKind::NumVisits {
@@ -350,7 +350,7 @@ mod tests {
     #[test]
     fn parsing_single_equal_to_or_greater_than_condition() {
         let mut line = "{knot_name >= 2} Hello, World!".to_string();
-        let condition = parse_choice_conditions(&mut line).unwrap().unwrap();
+        let condition = parse_choice_condition(&mut line).unwrap().unwrap();
 
         match &condition.kind {
             ConditionKind::NumVisits {
@@ -371,7 +371,7 @@ mod tests {
     #[test]
     fn parsing_single_equal_to_or_less_than_condition() {
         let mut line = "{knot_name <= 2} Hello, World!".to_string();
-        let condition = parse_choice_conditions(&mut line).unwrap().unwrap();
+        let condition = parse_choice_condition(&mut line).unwrap().unwrap();
 
         match &condition.kind {
             ConditionKind::NumVisits {
