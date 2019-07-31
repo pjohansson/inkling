@@ -5,7 +5,7 @@ use crate::{
     story::{Address, Knots, ValidateAddresses},
 };
 
-use std::cmp::Ordering;
+use std::{cmp::Ordering, error::Error};
 
 #[cfg(feature = "serde_support")]
 use crate::utils::OrderingDerive;
@@ -24,15 +24,18 @@ pub struct Condition {
 
 impl Condition {
     /// Evaluate the condition with the given evaluator closure.
-    pub fn evaluate<F>(&self, evaluator: F) -> bool
+    pub fn evaluate<F, E>(&self, evaluator: F) -> Result<bool, E>
     where
-        F: Fn(&ConditionKind) -> bool,
+        F: Fn(&ConditionKind) -> Result<bool, E>,
+        E: Error,
     {
         self.items
             .iter()
-            .fold(evaluator(&self.kind), |acc, next| match next {
-                AndOr::And(ref condition) => acc && evaluator(condition),
-                AndOr::Or(ref condition) => acc || evaluator(condition),
+            .fold(evaluator(&self.kind), |acc, next_condition| {
+                acc.and_then(|current| match next_condition {
+                    AndOr::And(ref condition) => evaluator(condition).map(|next| current && next),
+                    AndOr::Or(ref condition) => evaluator(condition).map(|next| current || next),
+                })
             })
     }
 }
@@ -106,6 +109,8 @@ impl ValidateAddresses for ConditionKind {
 mod tests {
     use super::*;
 
+    use std::fmt;
+
     use ConditionKind::{False, True};
 
     impl Condition {
@@ -129,35 +134,51 @@ mod tests {
         }
     }
 
+    #[derive(Debug)]
+    struct MockError;
+
+    impl fmt::Display for MockError {
+        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+            unreachable!();
+        }
+    }
+
+    impl Error for MockError {}
+
     #[test]
     fn condition_links_from_left_to_right() {
         let f = |kind: &ConditionKind| match kind {
-            ConditionKind::True => true,
-            ConditionKind::False => false,
-            _ => unreachable!(),
+            ConditionKind::True => Ok(true),
+            ConditionKind::False => Ok(false),
+            _ => Err(MockError),
         };
 
-        assert!(Condition::from(True).evaluate(f));
-        assert!(!Condition::from(False).evaluate(f));
+        assert!(Condition::from(True).evaluate(f).unwrap());
+        assert!(!Condition::from(False).evaluate(f).unwrap());
 
-        assert!(Condition::from(True).and(True).evaluate(f));
-        assert!(!Condition::from(True).and(False).evaluate(f));
+        assert!(Condition::from(True).and(True).evaluate(f).unwrap());
+        assert!(!Condition::from(True).and(False).evaluate(f).unwrap());
 
-        assert!(Condition::from(False).and(False).or(True).evaluate(f));
+        assert!(Condition::from(False)
+            .and(False)
+            .or(True)
+            .evaluate(f)
+            .unwrap());
         assert!(!Condition::from(False)
             .and(False)
             .or(True)
             .and(False)
-            .evaluate(f));
+            .evaluate(f)
+            .unwrap());
     }
 
     #[test]
     fn evaluator_function_can_use_local_variables() {
         let needle = ConditionKind::False;
 
-        let f = |kind: &ConditionKind| kind == &needle;
+        let f = |kind: &ConditionKind| -> Result<bool, MockError> { Ok(kind == &needle) };
 
-        assert!(Condition::from(False).evaluate(f));
-        assert!(!Condition::from(True).evaluate(f));
+        assert!(Condition::from(False).evaluate(f).unwrap());
+        assert!(!Condition::from(True).evaluate(f).unwrap());
     }
 }
