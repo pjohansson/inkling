@@ -96,12 +96,18 @@ where
     F: Fn(&StoryCondition) -> Result<bool, E>,
     E: Error,
 {
-    match &item.kind {
+    let mut result = match &item.kind {
         ConditionKind::True => Ok(true),
         ConditionKind::False => Ok(false),
         ConditionKind::Nested(condition) => condition.evaluate(evaluator),
         ConditionKind::Single(ref kind) => evaluator(kind),
+    }?;
+
+    if item.negate {
+        result = !result;
     }
+
+    Ok(result)
 }
 
 /// Constructor struct for `Condition`.
@@ -112,8 +118,11 @@ pub struct ConditionBuilder {
 
 impl ConditionBuilder {
     /// Create the constructor with a condition kind.
-    pub fn from_kind(kind: &ConditionKind) -> Self {
-        let root = ConditionItem { kind: kind.clone(), negate: false };
+    pub fn from_kind(kind: &ConditionKind, negate: bool) -> Self {
+        let root = ConditionItem {
+            kind: kind.clone(),
+            negate,
+        };
 
         ConditionBuilder {
             root,
@@ -130,13 +139,19 @@ impl ConditionBuilder {
     }
 
     /// Add an `and` item to the condition list.
-    pub fn and(&mut self, kind: &ConditionKind) {
-        self.items.push(AndOr::And(ConditionItem { kind: kind.clone(), negate: false }));
+    pub fn and(&mut self, kind: &ConditionKind, negate: bool) {
+        self.items.push(AndOr::And(ConditionItem {
+            kind: kind.clone(),
+            negate,
+        }));
     }
 
     /// Add an `or` item to the condition list.
-    pub fn or(&mut self, kind: &ConditionKind) {
-        self.items.push(AndOr::Or(ConditionItem { kind: kind.clone(), negate: false }));
+    pub fn or(&mut self, kind: &ConditionKind, negate: bool) {
+        self.items.push(AndOr::Or(ConditionItem {
+            kind: kind.clone(),
+            negate,
+        }));
     }
 }
 
@@ -228,7 +243,7 @@ mod tests {
 
     impl From<StoryCondition> for Condition {
         fn from(kind: StoryCondition) -> Self {
-            ConditionBuilder::from_kind(&kind.into()).build()
+            ConditionBuilder::from_kind(&kind.into(), false).build()
         }
     }
 
@@ -238,14 +253,20 @@ mod tests {
         }
 
         pub fn with_and(mut self, kind: ConditionKind) -> Self {
-            let item = ConditionItem { kind, negate: false };
+            let item = ConditionItem {
+                kind,
+                negate: false,
+            };
 
             self.items.push(AndOr::And(item));
             self
         }
 
         pub fn with_or(mut self, kind: ConditionKind) -> Self {
-            let item = ConditionItem { kind, negate: false };
+            let item = ConditionItem {
+                kind,
+                negate: false,
+            };
 
             self.items.push(AndOr::Or(item));
             self
@@ -286,40 +307,52 @@ mod tests {
             _ => Err(MockError),
         };
 
-        assert!(ConditionBuilder::from_kind(&True.into())
+        assert!(ConditionBuilder::from_kind(&True.into(), false)
             .build()
             .evaluate(&f)
             .unwrap());
 
-        assert!(!ConditionBuilder::from_kind(&False.into())
+        assert!(!ConditionBuilder::from_kind(&False.into(), false)
             .build()
             .evaluate(&f)
             .unwrap());
 
-        assert!(ConditionBuilder::from_kind(&True.into())
+        assert!(ConditionBuilder::from_kind(&True.into(), false)
             .build()
             .with_and(True.into())
             .evaluate(&f)
             .unwrap());
 
-        assert!(!ConditionBuilder::from_kind(&True.into())
+        assert!(!ConditionBuilder::from_kind(&True.into(), false)
             .build()
             .with_and(False.into())
             .evaluate(&f)
             .unwrap());
 
-        assert!(ConditionBuilder::from_kind(&False.into())
+        assert!(ConditionBuilder::from_kind(&False.into(), false)
             .build()
             .with_and(False.into())
             .with_or(True)
             .evaluate(&f)
             .unwrap());
 
-        assert!(!ConditionBuilder::from_kind(&False.into())
+        assert!(!ConditionBuilder::from_kind(&False.into(), false)
             .build()
             .with_and(False)
             .with_or(True)
             .with_and(False)
+            .evaluate(&f)
+            .unwrap());
+    }
+
+    #[test]
+    fn conditions_can_be_negated() {
+        let f = |kind: &StoryCondition| match kind {
+            _ => Err(MockError),
+        };
+
+        assert!(ConditionBuilder::from_kind(&False.into(), true)
+            .build()
             .evaluate(&f)
             .unwrap());
     }
