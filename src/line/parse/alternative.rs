@@ -17,7 +17,7 @@ use crate::{
 pub fn parse_alternative(content: &str) -> Result<Alternative, LineParsingError> {
     let (tail, kind) = get_alternative_kind_and_cut_marker(content.trim_start());
 
-    let items = split_line_at_separator(tail, SEQUENCE_SEPARATOR)?
+    let items = split_line_at_separator(tail, SEQUENCE_SEPARATOR, None)?
         .into_iter()
         .map(|text| parse_chunk(text))
         .collect::<Result<Vec<_>, _>>()?;

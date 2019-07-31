@@ -108,7 +108,7 @@ fn parse_tags(line: &mut String) -> Vec<String> {
 fn split_off_end_divert(line: &mut String) -> Result<Option<String>, LineParsingError> {
     let backup_line = line.clone();
 
-    let splits = split_line_at_separator(&line, DIVERT_MARKER)?;
+    let splits = split_line_at_separator(&line, DIVERT_MARKER, None)?;
 
     match splits.len() {
         0 | 1 => Ok(None),
