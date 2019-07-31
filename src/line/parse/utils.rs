@@ -47,12 +47,27 @@ pub fn split_line_at_separator<'a>(
         .map(|(start, &end)| content.get(start..end).unwrap())
         .collect())
 }
-
-/// Split a line into parts of pure text and text enclosed in curly braces.
-pub fn split_line_into_variants<'a>(
+/// Split a line into parts of pure text and text enclosed in braces.
+pub fn split_line_into_groups_braces<'a>(
     content: &'a str,
 ) -> Result<Vec<LinePart<'a>>, LineParsingError> {
-    let outside_brace_ranges = get_brace_level_zero_ranges(content, '{', '}')?;
+    split_line_into_groups(content, '{', '}')
+}
+
+/// Split a line into parts of pure text and text enclosed in parenthesis.
+pub fn split_line_into_groups_parenthesis<'a>(
+    content: &'a str,
+) -> Result<Vec<LinePart<'a>>, LineParsingError> {
+    split_line_into_groups(content, '(', ')')
+}
+
+/// Split a line into parts of pure text and text enclosed between a pair of characters.
+fn split_line_into_groups<'a>(
+    content: &'a str,
+    open: char,
+    close: char,
+) -> Result<Vec<LinePart<'a>>, LineParsingError> {
+    let outside_brace_ranges = get_brace_level_zero_ranges(content, open, close)?;
     let num_bytes = content.as_bytes().len();
 
     let mut iter = outside_brace_ranges.iter().peekable();
@@ -335,13 +350,13 @@ mod tests {
 
     #[test]
     fn split_string_on_simple_text_line_gives_single_text_item() {
-        let parts = split_line_into_variants("Hello, World!").unwrap();
+        let parts = split_line_into_groups("Hello, World!", '{', '}').unwrap();
         assert_eq!(&parts, &[LinePart::Text("Hello, World!")]);
     }
 
     #[test]
     fn split_string_into_parts_where_curly_braces_are_found() {
-        let parts = split_line_into_variants("Hello, {World}!").unwrap();
+        let parts = split_line_into_groups("Hello, {World}!", '{', '}').unwrap();
 
         assert_eq!(parts[0], LinePart::Text("Hello, "));
         assert_eq!(parts[1], LinePart::Embraced("World"));
@@ -350,24 +365,24 @@ mod tests {
 
     #[test]
     fn empty_strings_are_split_into_zero_parts() {
-        assert!(split_line_into_variants("").unwrap().is_empty());
+        assert!(split_line_into_groups("", '{', '}').unwrap().is_empty());
     }
 
     #[test]
     fn beginning_with_braced_content_adds_it_as_embraced() {
-        let parts = split_line_into_variants("{Hello}, World!").unwrap();
+        let parts = split_line_into_groups("{Hello}, World!", '{', '}').unwrap();
         assert_eq!(&parts[0], &LinePart::Embraced("Hello"));
     }
 
     #[test]
     fn ending_with_braced_content_adds_it_as_embraced() {
-        let parts = split_line_into_variants("Hello, {World!}").unwrap();
+        let parts = split_line_into_groups("Hello, {World!}", '{', '}').unwrap();
         assert_eq!(&parts[1], &LinePart::Embraced("World!"));
     }
 
     #[test]
     fn multiple_brace_variants_can_exist_in_the_same_level() {
-        let parts = split_line_into_variants("{Hello}, {World}!").unwrap();
+        let parts = split_line_into_groups("{Hello}, {World}!", '{', '}').unwrap();
 
         assert_eq!(parts[0], LinePart::Embraced("Hello"));
         assert_eq!(parts[1], LinePart::Text(", "));
@@ -377,23 +392,23 @@ mod tests {
 
     #[test]
     fn nested_braces_give_string_with_the_braces_intact() {
-        let parts = split_line_into_variants("{Hello, {World}!}").unwrap();
+        let parts = split_line_into_groups("{Hello, {World}!}", '{', '}').unwrap();
 
         assert_eq!(&parts, &[LinePart::Embraced("Hello, {World}!")]);
     }
 
     #[test]
     fn multiple_nested_braces_split_correctly() {
-        let parts = split_line_into_variants("Hello, {World{!}}").unwrap();
+        let parts = split_line_into_groups("Hello, {World{!}}", '{', '}').unwrap();
 
         assert_eq!(&parts[1], &LinePart::Embraced("World{!}"));
     }
 
     #[test]
     fn unmatched_left_and_right_braces_give_error() {
-        assert!(split_line_into_variants("Hello, World!}").is_err());
-        assert!(split_line_into_variants("{Hello, World!").is_err());
-        assert!(split_line_into_variants("{Hello}, {World!").is_err());
+        assert!(split_line_into_groups("Hello, World!}", '{', '}').is_err());
+        assert!(split_line_into_groups("{Hello, World!", '{', '}').is_err());
+        assert!(split_line_into_groups("{Hello}, {World!", '{', '}').is_err());
     }
 
     #[test]

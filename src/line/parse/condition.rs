@@ -5,7 +5,7 @@ use std::cmp::Ordering;
 use crate::{
     error::{BadCondition, BadConditionKind, LineErrorKind, LineParsingError},
     line::{
-        parse::{split_line_at_separator, split_line_into_variants, LinePart},
+        parse::{split_line_at_separator, split_line_into_groups_braces, LinePart},
         Condition, ConditionBuilder, ConditionKind,
     },
     story::Address,
@@ -95,7 +95,7 @@ fn split_choice_conditions_off_string(
         .map(|s| (s, 1))
         .unwrap_or((content.as_str(), 0));
 
-    let parts = split_line_into_variants(head)?;
+    let parts = split_line_into_groups_braces(head)?;
 
     let iter = parts.into_iter().take_while(|part| match part {
         LinePart::Embraced(..) => true,

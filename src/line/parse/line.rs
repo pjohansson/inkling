@@ -6,7 +6,7 @@ use crate::{
     line::{
         parse::{
             parse_alternative, parse_line_condition, split_line_at_separator,
-            split_line_into_variants, LinePart,
+            split_line_into_groups_braces, LinePart,
         },
         Content, InternalLine, InternalLineBuilder, LineChunk, LineChunkBuilder,
     },
@@ -40,7 +40,7 @@ pub fn parse_internal_line(content: &str) -> Result<InternalLine, LineParsingErr
 pub fn parse_chunk(content: &str) -> Result<LineChunk, LineParsingError> {
     let mut builder = LineChunkBuilder::new();
 
-    for part in split_line_into_variants(content)? {
+    for part in split_line_into_groups_braces(content)? {
         match part {
             LinePart::Text(part) => {
                 add_text_items(part, &mut builder)?;
