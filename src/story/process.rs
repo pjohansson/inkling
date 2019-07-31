@@ -3,7 +3,7 @@
 use crate::{
     error::{InklingError, InternalError},
     follow::{ChoiceInfo, LineDataBuffer, LineText},
-    line::{Condition, ConditionKind, InternalLine},
+    line::{Condition, StoryCondition, InternalLine},
 };
 
 use super::story::{get_stitch, Choice, Knots, Line, LineBuffer};
@@ -187,9 +187,9 @@ fn add_line_ending(line: &mut LineText, next_line: Option<&LineText>) {
 
 /// Check whether a single choice fulfils its conditions.
 fn check_condition(condition: &Condition, knots: &Knots) -> Result<bool, InklingError> {
-    let evaluator = |kind: &ConditionKind| -> Result<bool, InklingError> {
+    let evaluator = |kind: &StoryCondition| -> Result<bool, InklingError> {
         match kind {
-            ConditionKind::NumVisits {
+            StoryCondition::NumVisits {
                 address,
                 rhs_value,
                 ordering,
@@ -256,7 +256,7 @@ mod tests {
 
         let current_address = Address::from_root_knot("knot_name", &knots).unwrap();
 
-        let greater_than_condition = ConditionKind::NumVisits {
+        let greater_than_condition = StoryCondition::NumVisits {
             address: Address::from_target_address(&name, &current_address, &knots).unwrap(),
             rhs_value: 2,
             ordering: Ordering::Greater,
@@ -265,7 +265,7 @@ mod tests {
 
         assert!(check_condition(&Condition::from(greater_than_condition), &knots).unwrap());
 
-        let less_than_condition = ConditionKind::NumVisits {
+        let less_than_condition = StoryCondition::NumVisits {
             address: Address::from_target_address(&name, &current_address, &knots).unwrap(),
             rhs_value: 2,
             ordering: Ordering::Less,
@@ -274,7 +274,7 @@ mod tests {
 
         assert!(!check_condition(&Condition::from(less_than_condition), &knots).unwrap());
 
-        let equal_condition = ConditionKind::NumVisits {
+        let equal_condition = StoryCondition::NumVisits {
             address: Address::from_target_address(&name, &current_address, &knots).unwrap(),
             rhs_value: 3,
             ordering: Ordering::Equal,
@@ -283,7 +283,7 @@ mod tests {
 
         assert!(check_condition(&Condition::from(equal_condition), &knots).unwrap());
 
-        let not_equal_condition = ConditionKind::NumVisits {
+        let not_equal_condition = StoryCondition::NumVisits {
             address: Address::from_target_address(&name, &current_address, &knots).unwrap(),
             rhs_value: 3,
             ordering: Ordering::Equal,
@@ -493,14 +493,14 @@ mod tests {
 
         let current_address = Address::from_root_knot("knot_name", &knots).unwrap();
 
-        let fulfilled_condition = Condition::from(ConditionKind::NumVisits {
+        let fulfilled_condition = Condition::from(StoryCondition::NumVisits {
             address: Address::from_target_address(&name, &current_address, &knots).unwrap(),
             rhs_value: 0,
             ordering: Ordering::Greater,
             not: false,
         });
 
-        let unfulfilled_condition = Condition::from(ConditionKind::NumVisits {
+        let unfulfilled_condition = Condition::from(StoryCondition::NumVisits {
             address: Address::from_target_address(&name, &current_address, &knots).unwrap(),
             rhs_value: 2,
             ordering: Ordering::Greater,

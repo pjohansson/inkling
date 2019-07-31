@@ -36,13 +36,13 @@ pub enum ConditionItem {
     /// Nested `Condition` which has to be evaluated as a group.
     Nested(Box<Condition>),
     /// Single condition to evaluate.
-    Single(ConditionKind),
+    Single(StoryCondition),
 }
 
 #[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
 /// Condition to show some content in a story.
-pub enum ConditionKind {
+pub enum StoryCondition {
     /// Use a knot (or maybe other string-like variable) to check whether its value
     /// compares to the set condition.
     NumVisits {
@@ -66,7 +66,7 @@ impl Condition {
     /// Evaluate the condition with the given evaluator closure.
     pub fn evaluate<F, E>(&self, evaluator: &F) -> Result<bool, E>
     where
-        F: Fn(&ConditionKind) -> Result<bool, E>,
+        F: Fn(&StoryCondition) -> Result<bool, E>,
         E: Error,
     {
         self.items
@@ -83,7 +83,7 @@ impl Condition {
 /// Match against and evaluate the items.
 fn inner_eval<F, E>(item: &ConditionItem, evaluator: &F) -> Result<bool, E>
 where
-    F: Fn(&ConditionKind) -> Result<bool, E>,
+    F: Fn(&StoryCondition) -> Result<bool, E>,
     E: Error,
 {
     match item {
@@ -128,14 +128,14 @@ impl ConditionBuilder {
     }
 }
 
-impl From<ConditionKind> for ConditionItem {
-    fn from(kind: ConditionKind) -> Self {
+impl From<StoryCondition> for ConditionItem {
+    fn from(kind: StoryCondition) -> Self {
         ConditionItem::Single(kind)
     }
 }
 
-impl From<&ConditionKind> for ConditionItem {
-    fn from(kind: &ConditionKind) -> Self {
+impl From<&StoryCondition> for ConditionItem {
+    fn from(kind: &StoryCondition) -> Self {
         ConditionItem::Single(kind.clone())
     }
 }
@@ -185,14 +185,14 @@ impl ValidateAddresses for ConditionItem {
     }
 }
 
-impl ValidateAddresses for ConditionKind {
+impl ValidateAddresses for StoryCondition {
     fn validate(
         &mut self,
         current_address: &Address,
         knots: &Knots,
     ) -> Result<(), InvalidAddressError> {
         match self {
-            ConditionKind::NumVisits {
+            StoryCondition::NumVisits {
                 ref mut address, ..
             } => address.validate(current_address, knots),
         }
@@ -201,7 +201,7 @@ impl ValidateAddresses for ConditionKind {
     #[cfg(test)]
     fn all_addresses_are_valid(&self) -> bool {
         match self {
-            ConditionKind::NumVisits { address, .. } => address.all_addresses_are_valid(),
+            StoryCondition::NumVisits { address, .. } => address.all_addresses_are_valid(),
         }
     }
 }
@@ -214,14 +214,14 @@ mod tests {
 
     use ConditionItem::{False, True};
 
-    impl From<ConditionKind> for Condition {
-        fn from(kind: ConditionKind) -> Self {
+    impl From<StoryCondition> for Condition {
+        fn from(kind: StoryCondition) -> Self {
             ConditionBuilder::from_item(&kind.into()).build()
         }
     }
 
     impl Condition {
-        pub fn kind(&self) -> &ConditionKind {
+        pub fn kind(&self) -> &StoryCondition {
             self.root.kind()
         }
 
@@ -237,16 +237,16 @@ mod tests {
     }
 
     impl ConditionItem {
-        pub fn kind(&self) -> &ConditionKind {
+        pub fn kind(&self) -> &StoryCondition {
             match self {
                 ConditionItem::Single(kind) => kind,
-                other => panic!("tried to extract `ConditionKind`, but item was not `ConditionItem::Single` (was: {:?})", other),
+                other => panic!("tried to extract `StoryCondition`, but item was not `ConditionItem::Single` (was: {:?})", other),
             }
         }
     }
 
     impl AndOr {
-        pub fn kind(&self) -> &ConditionKind {
+        pub fn kind(&self) -> &StoryCondition {
             match self {
                 AndOr::And(item) | AndOr::Or(item) => item.kind(),
             }
@@ -266,7 +266,7 @@ mod tests {
 
     #[test]
     fn condition_links_from_left_to_right() {
-        let f = |kind: &ConditionKind| match kind {
+        let f = |kind: &StoryCondition| match kind {
             _ => Err(MockError),
         };
 

@@ -1,4 +1,4 @@
-//! Parse `ConditionKind` objects.
+//! Parse `StoryCondition` objects.
 
 use std::cmp::Ordering;
 
@@ -9,7 +9,7 @@ use crate::{
             split_line_at_separator_braces, split_line_at_separator_parenthesis,
             split_line_into_groups_braces, split_line_into_groups_parenthesis, LinePart,
         },
-        Condition, ConditionBuilder, ConditionItem, ConditionKind,
+        Condition, ConditionBuilder, ConditionItem, StoryCondition,
     },
     story::Address,
 };
@@ -235,7 +235,7 @@ fn parse_conditions_from_line(content: &str) -> Result<Vec<(Link, ConditionItem)
 }
 
 /// Parse a condition from a line.
-fn parse_single_condition(line: &str) -> Result<ConditionKind, LineParsingError> {
+fn parse_single_condition(line: &str) -> Result<StoryCondition, LineParsingError> {
     let ordering_search = line
         .find("==")
         .map(|i| (i, Ordering::Equal, 0, 2))
@@ -259,7 +259,7 @@ fn parse_single_condition(line: &str) -> Result<ConditionKind, LineParsingError>
                 )
             })? + adjustment;
 
-            Ok(ConditionKind::NumVisits {
+            Ok(StoryCondition::NumVisits {
                 address: Address::Raw(name.to_string()),
                 rhs_value,
                 ordering,
@@ -269,7 +269,7 @@ fn parse_single_condition(line: &str) -> Result<ConditionKind, LineParsingError>
         None => {
             let (name, not) = get_name_and_if_not_condition(line)?;
 
-            Ok(ConditionKind::NumVisits {
+            Ok(StoryCondition::NumVisits {
                 address: Address::Raw(name.to_string()),
                 rhs_value: 0,
                 ordering: Ordering::Greater,
@@ -352,7 +352,7 @@ mod tests {
         let condition = parse_choice_condition(&mut line).unwrap().unwrap();
 
         match &condition.kind() {
-            ConditionKind::NumVisits {
+            StoryCondition::NumVisits {
                 address,
                 rhs_value,
                 ordering,
@@ -392,7 +392,7 @@ mod tests {
         assert_eq!(condition.items.len(), 2);
 
         match &condition.items[1].kind() {
-            ConditionKind::NumVisits {
+            StoryCondition::NumVisits {
                 address,
                 rhs_value,
                 ordering,
@@ -413,7 +413,7 @@ mod tests {
         let condition = parse_choice_condition(&mut line).unwrap().unwrap();
 
         match &condition.kind() {
-            ConditionKind::NumVisits {
+            StoryCondition::NumVisits {
                 address,
                 rhs_value,
                 ordering,
@@ -434,7 +434,7 @@ mod tests {
         let condition = parse_choice_condition(&mut line).unwrap().unwrap();
 
         match &condition.kind() {
-            ConditionKind::NumVisits {
+            StoryCondition::NumVisits {
                 address,
                 rhs_value,
                 ordering,
@@ -455,7 +455,7 @@ mod tests {
         let condition = parse_choice_condition(&mut line).unwrap().unwrap();
 
         match &condition.kind() {
-            ConditionKind::NumVisits {
+            StoryCondition::NumVisits {
                 address,
                 rhs_value,
                 ordering,
@@ -476,7 +476,7 @@ mod tests {
         let condition = parse_choice_condition(&mut line).unwrap().unwrap();
 
         match &condition.kind() {
-            ConditionKind::NumVisits {
+            StoryCondition::NumVisits {
                 address,
                 rhs_value,
                 ordering,
@@ -497,7 +497,7 @@ mod tests {
         let condition = parse_choice_condition(&mut line).unwrap().unwrap();
 
         match &condition.kind() {
-            ConditionKind::NumVisits {
+            StoryCondition::NumVisits {
                 address,
                 rhs_value,
                 ordering,
@@ -518,7 +518,7 @@ mod tests {
         let condition = parse_choice_condition(&mut line).unwrap().unwrap();
 
         match &condition.kind() {
-            ConditionKind::NumVisits {
+            StoryCondition::NumVisits {
                 address,
                 rhs_value,
                 ordering,
@@ -539,7 +539,7 @@ mod tests {
         let condition = parse_choice_condition(&mut line).unwrap().unwrap();
 
         match &condition.kind() {
-            ConditionKind::NumVisits {
+            StoryCondition::NumVisits {
                 address,
                 rhs_value,
                 ordering,
