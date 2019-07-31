@@ -28,5 +28,5 @@ pub(self) use kind::{parse_markers_and_text, split_at_divert_marker};
 pub use line::{parse_chunk, parse_internal_line};
 pub(self) use utils::{
     split_line_at_separator_braces, split_line_at_separator_parenthesis,
-    split_line_into_groups_braces, split_line_into_groups_parenthesis, LinePart,
+    split_line_into_groups_braces, LinePart,
 };

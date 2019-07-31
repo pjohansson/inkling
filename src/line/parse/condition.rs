@@ -62,8 +62,6 @@ pub fn parse_line_condition(
 /// `{}` bracket pairs and may be whitespace separated. This function reads all conditions
 /// until no bracket pairs are left in the leading part of the line.
 pub fn parse_choice_condition(line: &mut String) -> Result<Option<Condition>, LineParsingError> {
-    let full_line = line.clone();
-
     let conditions = split_choice_conditions_off_string(line)?
         .into_iter()
         .map(|content| {
@@ -259,12 +257,13 @@ fn split_off_negation(content: &mut String) -> bool {
 /// *   Will not split when `and` or `or` appear inside words.
 fn read_next_condition_string(buffer: &mut String) -> Result<String, BadCondition> {
     let (head, tail) = get_without_starting_match(&buffer);
+    let head_size = head.len();
 
     let index = get_closest_split_index(tail).map_err(|_| {
         BadCondition::from_kind(buffer.as_str(), BadConditionKind::UnmatchedParenthesis)
     })?;
 
-    Ok(buffer.drain(..index + head.len()).collect())
+    Ok(buffer.drain(..index + head_size).collect())
 }
 
 /// Trim leading keywords from line.
@@ -430,7 +429,6 @@ mod tests {
                 assert_eq!(*ordering, Ordering::Greater);
                 assert_eq!(*not, false);
             }
-            _ => unreachable!(),
         }
     }
 
@@ -470,7 +468,6 @@ mod tests {
                 assert_eq!(*ordering, Ordering::Greater);
                 assert_eq!(*not, false);
             }
-            _ => unreachable!(),
         }
     }
 
@@ -499,7 +496,6 @@ mod tests {
                 assert_eq!(*ordering, Ordering::Greater);
                 assert_eq!(*not, false);
             }
-            _ => unreachable!(),
         }
     }
 
@@ -522,7 +518,6 @@ mod tests {
                 assert_eq!(*ordering, Ordering::Greater);
                 assert_eq!(*not, false);
             }
-            _ => unreachable!(),
         }
     }
 
@@ -543,7 +538,6 @@ mod tests {
                 assert_eq!(*ordering, Ordering::Less);
                 assert_eq!(*not, false);
             }
-            _ => unreachable!(),
         }
     }
 
@@ -564,7 +558,6 @@ mod tests {
                 assert_eq!(*ordering, Ordering::Equal);
                 assert_eq!(*not, false);
             }
-            _ => unreachable!(),
         }
     }
 
@@ -585,7 +578,6 @@ mod tests {
                 assert_eq!(*ordering, Ordering::Greater);
                 assert_eq!(*not, false);
             }
-            _ => unreachable!(),
         }
     }
 
@@ -606,7 +598,6 @@ mod tests {
                 assert_eq!(*ordering, Ordering::Less);
                 assert_eq!(*not, false);
             }
-            _ => unreachable!(),
         }
     }
 
