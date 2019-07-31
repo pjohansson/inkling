@@ -5,7 +5,7 @@ use crate::{
     error::{BadCondition, BadConditionKind, LineErrorKind, LineParsingError},
     line::{
         parse::{
-            parse_alternative, parse_line_conditions, split_line_at_separator,
+            parse_alternative, parse_line_condition, split_line_at_separator,
             split_line_into_variants, LinePart,
         },
         Content, InternalLine, InternalLineBuilder, LineChunk, LineChunkBuilder,
