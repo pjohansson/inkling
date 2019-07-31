@@ -28,7 +28,7 @@ pub fn split_line_at_separator<'a>(
     separator: &str,
     max_splits: Option<usize>,
 ) -> Result<Vec<&'a str>, LineParsingError> {
-    let outside_brace_ranges = get_brace_level_zero_ranges(content)?;
+    let outside_brace_ranges = get_brace_level_zero_ranges(content, '{', '}')?;
 
     let separator_indices = get_separator_indices(content, &outside_brace_ranges, separator);
 
@@ -52,7 +52,7 @@ pub fn split_line_at_separator<'a>(
 pub fn split_line_into_variants<'a>(
     content: &'a str,
 ) -> Result<Vec<LinePart<'a>>, LineParsingError> {
-    let outside_brace_ranges = get_brace_level_zero_ranges(content)?;
+    let outside_brace_ranges = get_brace_level_zero_ranges(content, '{', '}')?;
     let num_bytes = content.as_bytes().len();
 
     let mut iter = outside_brace_ranges.iter().peekable();
@@ -111,6 +111,8 @@ fn get_separator_indices(
 
 /// Find the `Range`s of bytes in a string which are not enclosed by curly braces.
 ///
+/// Any given variant of opening and closing characters can be used.
+///
 /// Since content withing braces should be kept together we often will not want to split
 /// lines in the middle of them. So we need a way to identify where in a string these braces
 /// are before operating on it.
@@ -120,8 +122,13 @@ fn get_separator_indices(
 ///
 /// # Notes
 /// *   Yes, the returned ranges are byte ranges instead of character index ranges.
-fn get_brace_level_zero_ranges(content: &str) -> Result<Vec<Range<usize>>, LineParsingError> {
-    let brace_levels = get_brace_level_of_line(content)?;
+/// *   Opening and closing characters must be single-byte characters.
+fn get_brace_level_zero_ranges(
+    content: &str,
+    open: char,
+    close: char,
+) -> Result<Vec<Range<usize>>, LineParsingError> {
+    let brace_levels = get_brace_level_of_line(content, open, close)?;
     let num_bytes = brace_levels.len();
 
     let mut iter = brace_levels.into_iter().enumerate().peekable();
@@ -154,26 +161,33 @@ fn get_brace_level_zero_ranges(content: &str) -> Result<Vec<Range<usize>>, LineP
         .collect())
 }
 
-/// Map every byte in a string to how many curly braces are nested for it.
+/// Map every byte in a string to how many braces are nested for it.
+///
+/// Any given variant of opening and closing characters can be used.
 ///
 /// # Notes
 /// *   Braces can be preceeded with backslashes ('\') in which case they do not
 ///     count as nesting braces.
+/// *   Opening and closing characters must be single-byte characters.
 ///
 /// # Example
 /// ```ignore
 /// assert_eq!(
-///     &get_brace_level_of_line("0{}{{2}}{}0").unwrap(),
+///     &get_brace_level_of_line("0{}{{2}}{}0", '{', '}').unwrap(),
 ///     &[0, 1, 0, 1, 2, 2, 1, 0, 1, 0, 0]
 /// );
 /// ```
-fn get_brace_level_of_line(content: &str) -> Result<Vec<u8>, LineParsingError> {
+fn get_brace_level_of_line(
+    content: &str,
+    open: char,
+    close: char,
+) -> Result<Vec<u8>, LineParsingError> {
     content
         .bytes()
         .scan((None, 0), |(prev, brace_level), byte| {
-            if byte == b'{' && prev.map(|c| c != b'\\').unwrap_or(true) {
+            if byte == open as u8 && prev.map(|c| c != b'\\').unwrap_or(true) {
                 *brace_level += 1;
-            } else if byte == b'}' && prev.map(|c| c != b'\\').unwrap_or(true) {
+            } else if byte == close as u8 && prev.map(|c| c != b'\\').unwrap_or(true) {
                 if *brace_level > 0 {
                     *brace_level -= 1;
                 } else {
@@ -384,9 +398,9 @@ mod tests {
 
     #[test]
     fn string_with_no_braces_give_single_full_range() {
-        assert_eq!(get_brace_level_zero_ranges("").unwrap(), &[]);
+        assert_eq!(get_brace_level_zero_ranges("", '{', '}').unwrap(), &[]);
         assert_eq!(
-            get_brace_level_zero_ranges("Hello, World!").unwrap(),
+            get_brace_level_zero_ranges("Hello, World!", '{', '}').unwrap(),
             &[Range { start: 0, end: 13 }]
         );
     }
@@ -394,11 +408,11 @@ mod tests {
     #[test]
     fn string_with_braces_in_the_middle_get_surrounding_ranges() {
         assert_eq!(
-            get_brace_level_zero_ranges("Hello,{} World!").unwrap(),
+            get_brace_level_zero_ranges("Hello,{} World!", '{', '}').unwrap(),
             &[Range { start: 0, end: 6 }, Range { start: 8, end: 15 }]
         );
         assert_eq!(
-            get_brace_level_zero_ranges("Hello, {World}!").unwrap(),
+            get_brace_level_zero_ranges("Hello, {World}!", '{', '}').unwrap(),
             &[Range { start: 0, end: 7 }, Range { start: 14, end: 15 }]
         );
     }
@@ -406,7 +420,7 @@ mod tests {
     #[test]
     fn braces_can_be_next_to_each_other_yielding_empty_ranges() {
         assert_eq!(
-            get_brace_level_zero_ranges("Hello,{}{}World!").unwrap(),
+            get_brace_level_zero_ranges("Hello,{}{}World!", '{', '}').unwrap(),
             &[
                 Range { start: 0, end: 6 },
                 Range { start: 8, end: 8 },
@@ -418,7 +432,7 @@ mod tests {
     #[test]
     fn braces_can_be_at_beginning_or_end_and_will_not_be_included_in_ranges() {
         assert_eq!(
-            get_brace_level_zero_ranges("{}Hello, World!{}").unwrap(),
+            get_brace_level_zero_ranges("{}Hello, World!{}", '{', '}').unwrap(),
             &[Range { start: 2, end: 15 }]
         );
     }
@@ -426,25 +440,28 @@ mod tests {
     #[test]
     fn single_character_before_brace_gives_single_item_range() {
         assert_eq!(
-            get_brace_level_zero_ranges("a{}").unwrap(),
+            get_brace_level_zero_ranges("a{}", '{', '}').unwrap(),
             &[Range { start: 0, end: 1 }]
         );
     }
 
     #[test]
     fn brace_level_counting_works_for_empty_line() {
-        assert_eq!(get_brace_level_of_line("").unwrap(), &[]);
+        assert_eq!(get_brace_level_of_line("", '{', '}').unwrap(), &[]);
     }
 
     #[test]
     fn brace_level_of_line_with_no_braces_is_zero() {
-        assert_eq!(get_brace_level_of_line("Hello").unwrap(), &[0, 0, 0, 0, 0]);
+        assert_eq!(
+            get_brace_level_of_line("Hello", '{', '}').unwrap(),
+            &[0, 0, 0, 0, 0]
+        );
     }
 
     #[test]
     fn brace_level_counting_works_for_wider_chars() {
         assert_eq!(
-            get_brace_level_of_line("김{택}용").unwrap(),
+            get_brace_level_of_line("김{택}용", '{', '}').unwrap(),
             &[0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0]
         );
     }
@@ -452,7 +469,15 @@ mod tests {
     #[test]
     fn single_brace_pair_in_middle_sets_brace_level_one_exclusive_end() {
         assert_eq!(
-            get_brace_level_of_line("He{ll}o").unwrap(),
+            get_brace_level_of_line("He{ll}o", '{', '}').unwrap(),
+            &[0, 0, 1, 1, 1, 0, 0]
+        );
+    }
+
+    #[test]
+    fn other_open_and_close_characters_can_be_used() {
+        assert_eq!(
+            get_brace_level_of_line("He(ll)o", '(', ')').unwrap(),
             &[0, 0, 1, 1, 1, 0, 0]
         );
     }
@@ -460,7 +485,7 @@ mod tests {
     #[test]
     fn nested_brace_pairs_sets_higher_brace_levels() {
         assert_eq!(
-            get_brace_level_of_line("He{l{l}}o").unwrap(),
+            get_brace_level_of_line("He{l{l}}o", '{', '}').unwrap(),
             &[0, 0, 1, 1, 2, 2, 1, 0, 0]
         );
     }
@@ -468,38 +493,38 @@ mod tests {
     #[test]
     fn verify_get_brace_level_of_line_doctest_example() {
         assert_eq!(
-            &get_brace_level_of_line("0{}{{2}}{}0").unwrap(),
+            &get_brace_level_of_line("0{}{{2}}{}0", '{', '}').unwrap(),
             &[0, 1, 0, 1, 2, 2, 1, 0, 1, 0, 0]
         );
     }
 
     #[test]
     fn unmatched_braces_yield_error_from_brace_level_counting() {
-        assert!(get_brace_level_of_line("{Hello").is_err());
-        assert!(get_brace_level_of_line("}Hello").is_err());
-        assert!(get_brace_level_of_line("Hel{{}lo").is_err());
-        assert!(get_brace_level_of_line("Hel{}}lo").is_err());
+        assert!(get_brace_level_of_line("{Hello", '{', '}').is_err());
+        assert!(get_brace_level_of_line("}Hello", '{', '}').is_err());
+        assert!(get_brace_level_of_line("Hel{{}lo", '{', '}').is_err());
+        assert!(get_brace_level_of_line("Hel{}}lo", '{', '}').is_err());
     }
 
     #[test]
     fn braces_with_leading_backslashes_do_not_increase_or_decrease_the_level() {
         assert_eq!(
-            &get_brace_level_of_line("Hello, World!").unwrap(),
+            &get_brace_level_of_line("Hello, World!", '{', '}').unwrap(),
             &vec![0; 13],
         );
 
         assert_eq!(
-            &get_brace_level_of_line("\\{Hello, World!").unwrap(),
+            &get_brace_level_of_line("\\{Hello, World!", '{', '}').unwrap(),
             &vec![0; 15],
         );
 
         assert_eq!(
-            &get_brace_level_of_line("\\}Hello, World!").unwrap(),
+            &get_brace_level_of_line("\\}Hello, World!", '{', '}').unwrap(),
             &vec![0; 15],
         );
 
         assert_eq!(
-            &get_brace_level_of_line("Hello\\{, \\}World!").unwrap(),
+            &get_brace_level_of_line("Hello\\{, \\}World!", '{', '}').unwrap(),
             &vec![0; 17],
         );
     }
