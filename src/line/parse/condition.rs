@@ -6,12 +6,10 @@ use crate::{
     error::{LineErrorKind, LineParsingError},
     line::{
         parse::{split_line_into_variants, LinePart},
-        Condition, ConditionKind,
+        Condition, ConditionBuilder, ConditionKind,
     },
     story::Address,
 };
-
-use super::super::condition::AndOr;
 
 /// Parse conditions for a choice and trim them from the line.
 ///
@@ -29,17 +27,15 @@ pub fn parse_choice_condition(line: &mut String) -> Result<Option<Condition>, Li
         })
         .collect::<Result<Vec<_>, _>>()?;
 
-    let condition = conditions
-        .split_first()
-        .map(|(first, rest)| {
-            let kind = first.clone();
-            let items = rest.into_iter().cloned().map(|kind| AndOr::And(kind)).collect();
+    let condition = conditions.split_first().map(|(first, rest)| {
+        let mut builder = ConditionBuilder::with_kind(first);
 
-            Condition {
-                kind,
-                items
-            }
-        });
+        for kind in rest {
+            builder.and(kind);
+        }
+
+        builder.build()
+    });
 
     Ok(condition)
 }

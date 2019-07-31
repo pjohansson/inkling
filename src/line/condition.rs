@@ -59,6 +59,35 @@ pub enum ConditionKind {
     },
 }
 
+pub struct ConditionBuilder {
+    kind: ConditionKind,
+    items: Vec<AndOr>,
+}
+
+impl ConditionBuilder {
+    pub fn with_kind(kind: &ConditionKind) -> Self {
+        ConditionBuilder {
+            kind: kind.clone(),
+            items: Vec::new(),
+        }
+    }
+
+    pub fn build(self) -> Condition {
+        Condition {
+            kind: self.kind,
+            items: self.items,
+        }
+    }
+
+    pub fn and(&mut self, kind: &ConditionKind) {
+        self.items.push(AndOr::And(kind.clone()));
+    }
+
+    pub fn or(&mut self, kind: &ConditionKind) {
+        self.items.push(AndOr::Or(kind.clone()));
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
 /// Container for `and`/`or` variants of conditions.
@@ -138,7 +167,7 @@ mod tests {
     struct MockError;
 
     impl fmt::Display for MockError {
-        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        fn fmt(&self, _f: &mut fmt::Formatter) -> fmt::Result {
             unreachable!();
         }
     }
