@@ -3,7 +3,7 @@
 use crate::{
     error::{InklingError, InternalError},
     follow::{ChoiceInfo, LineDataBuffer, LineText},
-    line::{Condition, StoryCondition, InternalLine},
+    line::{Condition, InternalLine, StoryCondition},
 };
 
 use super::story::{get_stitch, Choice, Knots, Line, LineBuffer};

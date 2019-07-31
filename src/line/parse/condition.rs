@@ -9,7 +9,7 @@ use crate::{
             split_line_at_separator_braces, split_line_at_separator_parenthesis,
             split_line_into_groups_braces, split_line_into_groups_parenthesis, LinePart,
         },
-        Condition, ConditionBuilder, ConditionKind, StoryCondition,
+        Condition, ConditionBuilder, ConditionItem, ConditionKind, StoryCondition,
     },
     story::Address,
 };
@@ -57,16 +57,16 @@ pub fn parse_choice_condition(line: &mut String) -> Result<Option<Condition>, Li
     let conditions = split_choice_conditions_off_string(line)?
         .into_iter()
         .map(|content| {
-            parse_single_condition(&content)
+            parse_story_condition(&content)
                 .map_err(|err| LineParsingError::from_kind(&full_line, err.kind))
         })
         .collect::<Result<Vec<_>, _>>()?;
 
     let condition = conditions.split_first().map(|(first, rest)| {
-        let mut builder = ConditionBuilder::from_kind(&first.into());
+        let mut builder = ConditionBuilder::from_kind(&first.into(), false);
 
         for kind in rest {
-            builder.and(&kind.into());
+            builder.and(&kind.into(), false);
         }
 
         builder.build()
@@ -125,7 +125,7 @@ fn split_choice_conditions_off_string(
     Ok(conditions)
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 enum Link {
     And,
     Or,
@@ -136,15 +136,92 @@ enum Link {
 fn parse_condition(content: &str) -> Result<Condition, BadCondition> {
     let mut buffer = content.to_string();
 
+    let mut items: Vec<(Link, ConditionItem)> = Vec::new();
 
-    unimplemented!();
+    while !buffer.trim().is_empty() {
+        let mut condition_string = read_next_condition_string(&mut buffer)?;
+
+        let link = split_off_condition_link(&mut condition_string);
+        let negate = split_off_negation(&mut condition_string);
+
+        let condition_kind = parse_condition_kind(&condition_string)?;
+        let item = ConditionItem {
+            kind: condition_kind,
+            negate,
+        };
+
+        items.push((link, item));
+    }
+
+    items
+        .split_first()
+        .map(|((_, first), tail)| {
+            let mut builder = ConditionBuilder::from_kind(&first.kind, first.negate);
+
+            for (link, item) in tail {
+                match link {
+                    Link::And => builder.and(&item.kind, item.negate),
+                    Link::Or => builder.or(&item.kind, item.negate),
+                    Link::Blank => unimplemented!(),
+                }
+            }
+
+            builder.build()
+        })
+        .ok_or(BadCondition::from_kind(
+            content,
+            BadConditionKind::NoCondition,
+        ))
 }
 
-fn get_condition_link(head: &str) -> Link {
-    match head.to_lowercase().as_str() {
-        "and" | "&&" => Link::And,
-        "or" | "||" => Link::Or,
-        _ => Link::Blank,
+fn parse_condition_kind(content: &str) -> Result<ConditionKind, BadCondition> {
+    if &content.trim().to_lowercase() == "true" {
+        Ok(ConditionKind::True)
+    } else if &content.trim().to_lowercase() == "false" {
+        Ok(ConditionKind::False)
+    } else if content.trim().starts_with('(') && content.trim().ends_with(')') {
+        let i = content.find('(').unwrap();
+        let j = content.find(')').unwrap();
+
+        let inner_block = content.get(i + 1..j).unwrap();
+
+        let condition = parse_condition(inner_block)?;
+
+        Ok(ConditionKind::Nested(Box::new(condition)))
+    } else {
+        let condition = parse_story_condition(content)
+            .map_err(|_| BadCondition::from_kind(content, BadConditionKind::CouldNotParse))?;
+
+        Ok(ConditionKind::Single(condition))
+    }
+}
+
+fn split_off_condition_link(content: &mut String) -> Link {
+    let buffer = content.to_lowercase();
+
+    let (link, len) = if buffer.starts_with("and") {
+        (Link::And, 3)
+    } else if buffer.starts_with("&&") {
+        (Link::And, 2)
+    } else if buffer.starts_with("or") || buffer.starts_with("||") {
+        (Link::Or, 2)
+    } else {
+        (Link::Blank, 0)
+    };
+
+    content.drain(..len);
+
+    link
+}
+
+fn split_off_negation(content: &mut String) -> bool {
+    if content.to_lowercase().trim_start().starts_with("not ") {
+        let index = content.to_lowercase().find("not").unwrap();
+        content.drain(..index + 3);
+
+        true
+    } else {
+        false
     }
 }
 
@@ -186,56 +263,8 @@ fn get_split_index(content: &str, separator: &str) -> Result<usize, LineParsingE
         .map(|parts| parts[0].as_bytes().len())
 }
 
-#[test]
-fn closest_split_index_works_for_all_variants() {
-    assert_eq!(get_closest_split_index("1 and 2 or 3").unwrap(), 2);
-    assert_eq!(get_closest_split_index("1 or 2 and 3").unwrap(), 2);
-    assert_eq!(get_closest_split_index("1 || 2 or 3").unwrap(), 2);
-    assert_eq!(get_closest_split_index("1 && 2 || 3").unwrap(), 2);
-}
-
-#[test]
-fn next_condition_starts_when_and_or_or_is_encountered_after_address() {
-    let mut buffer = "knot or knot and knot".to_string();
-
-    assert_eq!(&read_next_condition_string(&mut buffer).unwrap(), "knot ");
-    assert_eq!(&buffer, "or knot and knot");
-
-    assert_eq!(&read_next_condition_string(&mut buffer).unwrap(), "or knot ");
-    assert_eq!(&buffer, "and knot");
-
-    assert_eq!(&read_next_condition_string(&mut buffer).unwrap(), "and knot");
-    assert_eq!(&buffer, "");
-}
-
-#[test]
-fn separators_inside_parenthesis_are_ignored() {
-    let mut buffer = "knot or (knot and knot) and knot".to_string();
-
-    assert_eq!(&read_next_condition_string(&mut buffer).unwrap(), "knot ");
-    assert_eq!(&read_next_condition_string(&mut buffer).unwrap(), "or (knot and knot) ");
-    assert_eq!(&read_next_condition_string(&mut buffer).unwrap(), "and knot");
-}
-
-#[test]
-fn and_may_be_ampersands_and_or_may_be_vertical_lines() {
-    let mut buffer = "knot || knot && knot".to_string();
-
-    assert_eq!(&read_next_condition_string(&mut buffer).unwrap(), "knot ");
-    assert_eq!(&read_next_condition_string(&mut buffer).unwrap(), "|| knot ");
-    assert_eq!(&read_next_condition_string(&mut buffer).unwrap(), "&& knot");
-}
-
-fn find_and_or_modifiers_for_groups(groups: &[LinePart]) -> Vec<Link> {
-    unimplemented!();
-}
-
-fn parse_conditions_from_line(content: &str) -> Result<Vec<(Link, ConditionKind)>, BadCondition> {
-    unimplemented!();
-}
-
 /// Parse a condition from a line.
-fn parse_single_condition(line: &str) -> Result<StoryCondition, LineParsingError> {
+fn parse_story_condition(line: &str) -> Result<StoryCondition, LineParsingError> {
     let ordering_search = line
         .find("==")
         .map(|i| (i, Ordering::Equal, 0, 2))
@@ -338,12 +367,12 @@ mod tests {
 
     #[test]
     fn parsing_bad_conditions_give_error() {
-        assert!(parse_single_condition("not too many names").is_err());
-        assert!(parse_single_condition("not too many > 3").is_err());
-        assert!(parse_single_condition("no_value >").is_err());
-        assert!(parse_single_condition("too_many_values > 3 2").is_err());
-        assert!(parse_single_condition("bad_value > s").is_err());
-        assert!(parse_single_condition("").is_err());
+        assert!(parse_story_condition("not too many names").is_err());
+        assert!(parse_story_condition("not too many > 3").is_err());
+        assert!(parse_story_condition("no_value >").is_err());
+        assert!(parse_story_condition("too_many_values > 3 2").is_err());
+        assert!(parse_story_condition("bad_value > s").is_err());
+        assert!(parse_story_condition("").is_err());
     }
 
     #[test]
@@ -555,6 +584,57 @@ mod tests {
     }
 
     #[test]
+    fn parsing_condition_kind_returns_true_or_false_for_those_strings() {
+        assert_eq!(
+            parse_condition_kind("  true  ").unwrap(),
+            ConditionKind::True
+        );
+        assert_eq!(
+            parse_condition_kind("  TRUE  ").unwrap(),
+            ConditionKind::True
+        );
+        assert_eq!(
+            parse_condition_kind("  false  ").unwrap(),
+            ConditionKind::False
+        );
+        assert_eq!(
+            parse_condition_kind("  FALSE  ").unwrap(),
+            ConditionKind::False
+        );
+    }
+
+    #[test]
+    fn parsing_simple_condition_returns_a_story_condition() {
+        match parse_condition_kind("root").unwrap() {
+            ConditionKind::Single(..) => (),
+            other => panic!("expected `ConditionKind::Single` but got {:?}", other),
+        }
+
+        match parse_condition_kind("root > 1").unwrap() {
+            ConditionKind::Single(..) => (),
+            other => panic!("expected `ConditionKind::Single` but got {:?}", other),
+        }
+
+        match parse_condition_kind("  root<=1   ").unwrap() {
+            ConditionKind::Single(..) => (),
+            other => panic!("expected `ConditionKind::Single` but got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn parsing_condition_with_surrounding_parenthesis_returns_nested_condition() {
+        match parse_condition_kind("(root)").unwrap() {
+            ConditionKind::Nested(..) => (),
+            other => panic!("expected `ConditionKind::Nested` but got {:?}", other),
+        }
+
+        match parse_condition_kind("(root or root)").unwrap() {
+            ConditionKind::Nested(..) => (),
+            other => panic!("expected `ConditionKind::Nested` but got {:?}", other),
+        }
+    }
+
+    #[test]
     fn splitting_choice_conditions_removes_initial_braces_from_line() {
         let mut line = "{condition} {condition} Hello, World!".to_string();
         split_choice_conditions_off_string(&mut line).unwrap();
@@ -633,5 +713,91 @@ mod tests {
     #[test]
     fn multiple_vertical_lines_in_condition_content_yields_error() {
         assert!(split_line_condition_content("condition : true | false | again").is_err());
+    }
+
+    #[test]
+    fn splitting_off_condition_link_splits_off_exactly_those_chars() {
+        let mut buffer = "and or || && rest".to_string();
+
+        assert_eq!(split_off_condition_link(&mut buffer), Link::And);
+        assert_eq!(&buffer, " or || && rest");
+
+        buffer = buffer.trim_start().to_string();
+        assert_eq!(split_off_condition_link(&mut buffer), Link::Or);
+        assert_eq!(&buffer, " || && rest");
+
+        buffer = buffer.trim_start().to_string();
+        assert_eq!(split_off_condition_link(&mut buffer), Link::Or);
+        assert_eq!(&buffer, " && rest");
+
+        buffer = buffer.trim_start().to_string();
+        assert_eq!(split_off_condition_link(&mut buffer), Link::And);
+        assert_eq!(&buffer, " rest");
+    }
+
+    #[test]
+    fn splitting_off_negation_removes_beginning_not() {
+        let mut buffer = "  not rest".to_string();
+
+        assert!(split_off_negation(&mut buffer));
+        assert_eq!(&buffer, " rest");
+
+        assert!(!split_off_negation(&mut buffer));
+        assert_eq!(&buffer, " rest");
+    }
+
+    #[test]
+    fn closest_split_index_works_for_all_variants() {
+        assert_eq!(get_closest_split_index("1 and 2 or 3").unwrap(), 2);
+        assert_eq!(get_closest_split_index("1 or 2 and 3").unwrap(), 2);
+        assert_eq!(get_closest_split_index("1 || 2 or 3").unwrap(), 2);
+        assert_eq!(get_closest_split_index("1 && 2 || 3").unwrap(), 2);
+    }
+
+    #[test]
+    fn next_condition_starts_when_and_or_or_is_encountered_after_address() {
+        let mut buffer = "knot or knot and knot".to_string();
+
+        assert_eq!(&read_next_condition_string(&mut buffer).unwrap(), "knot ");
+        assert_eq!(&buffer, "or knot and knot");
+
+        assert_eq!(
+            &read_next_condition_string(&mut buffer).unwrap(),
+            "or knot "
+        );
+        assert_eq!(&buffer, "and knot");
+
+        assert_eq!(
+            &read_next_condition_string(&mut buffer).unwrap(),
+            "and knot"
+        );
+        assert_eq!(&buffer, "");
+    }
+
+    #[test]
+    fn separators_inside_parenthesis_are_ignored() {
+        let mut buffer = "knot or (knot and knot) and knot".to_string();
+
+        assert_eq!(&read_next_condition_string(&mut buffer).unwrap(), "knot ");
+        assert_eq!(
+            &read_next_condition_string(&mut buffer).unwrap(),
+            "or (knot and knot) "
+        );
+        assert_eq!(
+            &read_next_condition_string(&mut buffer).unwrap(),
+            "and knot"
+        );
+    }
+
+    #[test]
+    fn and_may_be_ampersands_and_or_may_be_vertical_lines() {
+        let mut buffer = "knot || knot && knot".to_string();
+
+        assert_eq!(&read_next_condition_string(&mut buffer).unwrap(), "knot ");
+        assert_eq!(
+            &read_next_condition_string(&mut buffer).unwrap(),
+            "|| knot "
+        );
+        assert_eq!(&read_next_condition_string(&mut buffer).unwrap(), "&& knot");
     }
 }

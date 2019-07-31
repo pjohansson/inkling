@@ -78,4 +78,4 @@ pub const DONE_KNOT: &'static str = "DONE";
 pub const END_KNOT: &'static str = "END";
 
 /// Names which cannot be used by variables, knots or stitches.
-pub const RESERVED_KEYWORDS: &[&'static str] = &["ELSE", "NOT", "TRUE", "FALSE"];
+pub const RESERVED_KEYWORDS: &[&'static str] = &["ELSE", "NOT", "TRUE", "FALSE", "AND", "OR"];
