@@ -17,7 +17,7 @@ use serde::{Deserialize, Serialize};
 /// Condition for displaying some content or choice in the story.
 pub struct Condition {
     /// First condition to evaluate.
-    pub root: ConditionKind,
+    pub root: ConditionItem,
     /// Ordered set of `and`/`or` conditions to compare the first condition to.
     pub items: Vec<AndOr>,
 }
@@ -28,6 +28,16 @@ pub struct Condition {
 ///
 /// Will evaluate to a single `true` or `false` but may have to evaluate a group
 /// of conditions.
+pub struct ConditionItem {
+    /// Negate the condition upon evaluation.
+    pub negate: bool,
+    /// Kind of condition.
+    pub kind: ConditionKind,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
+/// Condition variants.
 pub enum ConditionKind {
     /// Always `true`.
     True,
@@ -58,8 +68,8 @@ pub enum StoryCondition {
 #[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
 /// Container for `and`/`or` variants of conditions to evaluate in a list.
 pub enum AndOr {
-    And(ConditionKind),
-    Or(ConditionKind),
+    And(ConditionItem),
+    Or(ConditionItem),
 }
 
 impl Condition {
@@ -73,38 +83,40 @@ impl Condition {
             .iter()
             .fold(inner_eval(&self.root, evaluator), |acc, next_condition| {
                 acc.and_then(|current| match next_condition {
-                    AndOr::And(ref item) => inner_eval(item, evaluator).map(|next| current && next),
-                    AndOr::Or(ref item) => inner_eval(item, evaluator).map(|next| current || next),
+                    AndOr::And(item) => inner_eval(item, evaluator).map(|next| current && next),
+                    AndOr::Or(item) => inner_eval(item, evaluator).map(|next| current || next),
                 })
             })
     }
 }
 
 /// Match against and evaluate the items.
-fn inner_eval<F, E>(item: &ConditionKind, evaluator: &F) -> Result<bool, E>
+fn inner_eval<F, E>(item: &ConditionItem, evaluator: &F) -> Result<bool, E>
 where
     F: Fn(&StoryCondition) -> Result<bool, E>,
     E: Error,
 {
-    match item {
+    match &item.kind {
         ConditionKind::True => Ok(true),
         ConditionKind::False => Ok(false),
         ConditionKind::Nested(condition) => condition.evaluate(evaluator),
-        ConditionKind::Single(kind) => evaluator(kind),
+        ConditionKind::Single(ref kind) => evaluator(kind),
     }
 }
 
 /// Constructor struct for `Condition`.
 pub struct ConditionBuilder {
-    root: ConditionKind,
+    root: ConditionItem,
     items: Vec<AndOr>,
 }
 
 impl ConditionBuilder {
     /// Create the constructor with a condition kind.
-    pub fn from_item(item: &ConditionKind) -> Self {
+    pub fn from_kind(kind: &ConditionKind) -> Self {
+        let root = ConditionItem { kind: kind.clone(), negate: false };
+
         ConditionBuilder {
-            root: item.clone(),
+            root,
             items: Vec::new(),
         }
     }
@@ -118,13 +130,13 @@ impl ConditionBuilder {
     }
 
     /// Add an `and` item to the condition list.
-    pub fn and(&mut self, item: &ConditionKind) {
-        self.items.push(AndOr::And(item.clone()));
+    pub fn and(&mut self, kind: &ConditionKind) {
+        self.items.push(AndOr::And(ConditionItem { kind: kind.clone(), negate: false }));
     }
 
     /// Add an `or` item to the condition list.
-    pub fn or(&mut self, item: &ConditionKind) {
-        self.items.push(AndOr::Or(item.clone()));
+    pub fn or(&mut self, kind: &ConditionKind) {
+        self.items.push(AndOr::Or(ConditionItem { kind: kind.clone(), negate: false }));
     }
 }
 
@@ -146,12 +158,12 @@ impl ValidateAddresses for Condition {
         current_address: &Address,
         knots: &Knots,
     ) -> Result<(), InvalidAddressError> {
-        self.root.validate(current_address, knots)?;
+        self.root.kind.validate(current_address, knots)?;
 
         self.items
             .iter_mut()
             .map(|item| match item {
-                AndOr::And(item) | AndOr::Or(item) => item.validate(current_address, knots),
+                AndOr::And(item) | AndOr::Or(item) => item.kind.validate(current_address, knots),
             })
             .collect()
     }
@@ -216,39 +228,43 @@ mod tests {
 
     impl From<StoryCondition> for Condition {
         fn from(kind: StoryCondition) -> Self {
-            ConditionBuilder::from_item(&kind.into()).build()
+            ConditionBuilder::from_kind(&kind.into()).build()
         }
     }
 
     impl Condition {
-        pub fn kind(&self) -> &StoryCondition {
-            self.root.kind()
+        pub fn story_condition(&self) -> &StoryCondition {
+            &self.root.kind.story_condition()
         }
 
-        pub fn with_and(mut self, item: ConditionKind) -> Self {
+        pub fn with_and(mut self, kind: ConditionKind) -> Self {
+            let item = ConditionItem { kind, negate: false };
+
             self.items.push(AndOr::And(item));
             self
         }
 
-        pub fn with_or(mut self, item: ConditionKind) -> Self {
+        pub fn with_or(mut self, kind: ConditionKind) -> Self {
+            let item = ConditionItem { kind, negate: false };
+
             self.items.push(AndOr::Or(item));
             self
         }
     }
 
     impl ConditionKind {
-        pub fn kind(&self) -> &StoryCondition {
+        pub fn story_condition(&self) -> &StoryCondition {
             match self {
-                ConditionKind::Single(kind) => kind,
+                ConditionKind::Single(story_condition) => story_condition,
                 other => panic!("tried to extract `StoryCondition`, but item was not `ConditionKind::Single` (was: {:?})", other),
             }
         }
     }
 
     impl AndOr {
-        pub fn kind(&self) -> &StoryCondition {
+        pub fn story_condition(&self) -> &StoryCondition {
             match self {
-                AndOr::And(item) | AndOr::Or(item) => item.kind(),
+                AndOr::And(item) | AndOr::Or(item) => item.kind.story_condition(),
             }
         }
     }
@@ -270,36 +286,36 @@ mod tests {
             _ => Err(MockError),
         };
 
-        assert!(ConditionBuilder::from_item(&True.into())
+        assert!(ConditionBuilder::from_kind(&True.into())
             .build()
             .evaluate(&f)
             .unwrap());
 
-        assert!(!ConditionBuilder::from_item(&False.into())
+        assert!(!ConditionBuilder::from_kind(&False.into())
             .build()
             .evaluate(&f)
             .unwrap());
 
-        assert!(ConditionBuilder::from_item(&True.into())
+        assert!(ConditionBuilder::from_kind(&True.into())
             .build()
             .with_and(True.into())
             .evaluate(&f)
             .unwrap());
 
-        assert!(!ConditionBuilder::from_item(&True.into())
+        assert!(!ConditionBuilder::from_kind(&True.into())
             .build()
             .with_and(False.into())
             .evaluate(&f)
             .unwrap());
 
-        assert!(ConditionBuilder::from_item(&False.into())
+        assert!(ConditionBuilder::from_kind(&False.into())
             .build()
             .with_and(False.into())
             .with_or(True)
             .evaluate(&f)
             .unwrap());
 
-        assert!(!ConditionBuilder::from_item(&False.into())
+        assert!(!ConditionBuilder::from_kind(&False.into())
             .build()
             .with_and(False)
             .with_or(True)

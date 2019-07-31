@@ -63,7 +63,7 @@ pub fn parse_choice_condition(line: &mut String) -> Result<Option<Condition>, Li
         .collect::<Result<Vec<_>, _>>()?;
 
     let condition = conditions.split_first().map(|(first, rest)| {
-        let mut builder = ConditionBuilder::from_item(&first.into());
+        let mut builder = ConditionBuilder::from_kind(&first.into());
 
         for kind in rest {
             builder.and(&kind.into());
@@ -351,7 +351,7 @@ mod tests {
         let mut line = "{knot_name} Hello, World!".to_string();
         let condition = parse_choice_condition(&mut line).unwrap().unwrap();
 
-        match &condition.kind() {
+        match &condition.story_condition() {
             StoryCondition::NumVisits {
                 address,
                 rhs_value,
@@ -391,7 +391,7 @@ mod tests {
 
         assert_eq!(condition.items.len(), 2);
 
-        match &condition.items[1].kind() {
+        match &condition.items[1].story_condition() {
             StoryCondition::NumVisits {
                 address,
                 rhs_value,
@@ -412,7 +412,7 @@ mod tests {
         let mut line = "{not knot_name} Hello, World!".to_string();
         let condition = parse_choice_condition(&mut line).unwrap().unwrap();
 
-        match &condition.kind() {
+        match &condition.story_condition() {
             StoryCondition::NumVisits {
                 address,
                 rhs_value,
@@ -433,7 +433,7 @@ mod tests {
         let mut line = "{knot_name > 2} Hello, World!".to_string();
         let condition = parse_choice_condition(&mut line).unwrap().unwrap();
 
-        match &condition.kind() {
+        match &condition.story_condition() {
             StoryCondition::NumVisits {
                 address,
                 rhs_value,
@@ -454,7 +454,7 @@ mod tests {
         let mut line = "{not knot_name > 2} Hello, World!".to_string();
         let condition = parse_choice_condition(&mut line).unwrap().unwrap();
 
-        match &condition.kind() {
+        match &condition.story_condition() {
             StoryCondition::NumVisits {
                 address,
                 rhs_value,
@@ -475,7 +475,7 @@ mod tests {
         let mut line = "{knot_name < 2} Hello, World!".to_string();
         let condition = parse_choice_condition(&mut line).unwrap().unwrap();
 
-        match &condition.kind() {
+        match &condition.story_condition() {
             StoryCondition::NumVisits {
                 address,
                 rhs_value,
@@ -496,7 +496,7 @@ mod tests {
         let mut line = "{knot_name == 2} Hello, World!".to_string();
         let condition = parse_choice_condition(&mut line).unwrap().unwrap();
 
-        match &condition.kind() {
+        match &condition.story_condition() {
             StoryCondition::NumVisits {
                 address,
                 rhs_value,
@@ -517,7 +517,7 @@ mod tests {
         let mut line = "{knot_name >= 2} Hello, World!".to_string();
         let condition = parse_choice_condition(&mut line).unwrap().unwrap();
 
-        match &condition.kind() {
+        match &condition.story_condition() {
             StoryCondition::NumVisits {
                 address,
                 rhs_value,
@@ -538,7 +538,7 @@ mod tests {
         let mut line = "{knot_name <= 2} Hello, World!".to_string();
         let condition = parse_choice_condition(&mut line).unwrap().unwrap();
 
-        match &condition.kind() {
+        match &condition.story_condition() {
             StoryCondition::NumVisits {
                 address,
                 rhs_value,
