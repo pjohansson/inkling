@@ -1,6 +1,6 @@
 //! Choice which branches the story.
 
-use crate::line::{Condition, InternalLine};
+use crate::line::{ConditionKind, InternalLine};
 
 use std::{cell::RefCell, rc::Rc};
 
@@ -37,8 +37,8 @@ pub struct InternalChoice {
     ///
     /// Can be empty.
     pub display_text: InternalLine,
-    /// Conditions that must be fulfilled for the choice to be displayed.
-    pub conditions: Vec<Condition>,
+    /// ConditionKinds that must be fulfilled for the choice to be displayed.
+    pub conditions: Vec<ConditionKind>,
     /// By default a choice will be filtered after being visited once. If it is marked
     /// as sticky it will stick around.
     pub is_sticky: bool,
@@ -58,7 +58,7 @@ pub struct InternalChoice {
 pub struct InternalChoiceBuilder {
     selection_text: InternalLine,
     display_text: InternalLine,
-    conditions: Vec<Condition>,
+    conditions: Vec<ConditionKind>,
     is_fallback: bool,
     is_sticky: bool,
     tags: Option<Vec<String>>,
@@ -99,7 +99,7 @@ impl InternalChoiceBuilder {
     }
 
     /// Set a list of conditions for the choice.
-    pub fn set_conditions(&mut self, conditions: &[Condition]) {
+    pub fn set_conditions(&mut self, conditions: &[ConditionKind]) {
         self.conditions = conditions.to_vec();
     }
 
@@ -152,10 +152,10 @@ impl InternalChoiceBuilder {
     }
 
     #[cfg(test)]
-    /// Add a single `Condition` to the choice.
+    /// Add a single `ConditionKind` to the choice.
     ///
     /// This can be run multiple times to add more conditions.
-    pub fn with_condition(mut self, condition: &Condition) -> Self {
+    pub fn with_condition(mut self, condition: &ConditionKind) -> Self {
         self.conditions.push(condition.clone());
         self
     }

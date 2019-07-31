@@ -1,4 +1,4 @@
-//! Parse `Condition` objects.
+//! Parse `ConditionKind` objects.
 
 use std::cmp::Ordering;
 
@@ -6,7 +6,7 @@ use crate::{
     error::{LineErrorKind, LineParsingError},
     line::{
         parse::{split_line_into_variants, LinePart},
-        Condition,
+        ConditionKind,
     },
     story::Address,
 };
@@ -16,7 +16,7 @@ use crate::{
 /// Choices can lead with multiple conditions. Every condition is contained inside
 /// `{}` bracket pairs and may be whitespace separated. This function reads all conditions
 /// until no bracket pairs are left in the leading part of the line.
-pub fn parse_choice_conditions(line: &mut String) -> Result<Vec<Condition>, LineParsingError> {
+pub fn parse_choice_conditions(line: &mut String) -> Result<Vec<ConditionKind>, LineParsingError> {
     let full_line = line.clone();
 
     split_choice_conditions_off_string(line)?
@@ -35,7 +35,7 @@ pub fn parse_choice_conditions(line: &mut String) -> Result<Vec<Condition>, Line
 /// that point is split into string expressions of the conditions contained within them.
 ///
 /// # Notes
-/// *   Conditions are marked by being contained within curly '{}' braces. This is unique
+/// *   ConditionKinds are marked by being contained within curly '{}' braces. This is unique
 ///     to parsing conditions for choices. Other conditional lines require separate markup.
 /// *   As soon as text which is not enclosed by braces appear the condition parsing
 ///     ends.
@@ -79,7 +79,7 @@ fn split_choice_conditions_off_string(
 }
 
 /// Parse a condition from a line.
-fn parse_condition(line: &str) -> Result<Condition, LineParsingError> {
+fn parse_condition(line: &str) -> Result<ConditionKind, LineParsingError> {
     let ordering_search = line
         .find("==")
         .map(|i| (i, Ordering::Equal, 0, 2))
@@ -103,7 +103,7 @@ fn parse_condition(line: &str) -> Result<Condition, LineParsingError> {
                 )
             })? + adjustment;
 
-            Ok(Condition::NumVisits {
+            Ok(ConditionKind::NumVisits {
                 address: Address::Raw(name.to_string()),
                 rhs_value,
                 ordering,
@@ -113,7 +113,7 @@ fn parse_condition(line: &str) -> Result<Condition, LineParsingError> {
         None => {
             let (name, not) = get_name_and_if_not_condition(line)?;
 
-            Ok(Condition::NumVisits {
+            Ok(ConditionKind::NumVisits {
                 address: Address::Raw(name.to_string()),
                 rhs_value: 0,
                 ordering: Ordering::Greater,
@@ -125,7 +125,7 @@ fn parse_condition(line: &str) -> Result<Condition, LineParsingError> {
 
 /// Parse the condition `name` and whether the condition is negated.
 ///
-/// Conditions are of the form {(not) name (op value)} and this function treats
+/// ConditionKinds are of the form {(not) name (op value)} and this function treats
 /// the line that is left after trimming the (op value) part from it. Thus, we want
 /// to get the name and whether a `not` statement preceedes it.
 fn get_name_and_if_not_condition(line: &str) -> Result<(String, bool), LineParsingError> {
@@ -171,7 +171,7 @@ mod tests {
         let conditions = parse_choice_conditions(&mut line).unwrap();
 
         match &conditions[0] {
-            Condition::NumVisits {
+            ConditionKind::NumVisits {
                 address,
                 rhs_value,
                 ordering,
@@ -210,7 +210,7 @@ mod tests {
         assert_eq!(conditions.len(), 3);
 
         match &conditions[2] {
-            Condition::NumVisits {
+            ConditionKind::NumVisits {
                 address,
                 rhs_value,
                 ordering,
@@ -230,7 +230,7 @@ mod tests {
         let conditions = parse_choice_conditions(&mut line).unwrap();
 
         match &conditions[0] {
-            Condition::NumVisits {
+            ConditionKind::NumVisits {
                 address,
                 rhs_value,
                 ordering,
@@ -250,7 +250,7 @@ mod tests {
         let conditions = parse_choice_conditions(&mut line).unwrap();
 
         match &conditions[0] {
-            Condition::NumVisits {
+            ConditionKind::NumVisits {
                 address,
                 rhs_value,
                 ordering,
@@ -270,7 +270,7 @@ mod tests {
         let conditions = parse_choice_conditions(&mut line).unwrap();
 
         match &conditions[0] {
-            Condition::NumVisits {
+            ConditionKind::NumVisits {
                 address,
                 rhs_value,
                 ordering,
@@ -290,7 +290,7 @@ mod tests {
         let conditions = parse_choice_conditions(&mut line).unwrap();
 
         match &conditions[0] {
-            Condition::NumVisits {
+            ConditionKind::NumVisits {
                 address,
                 rhs_value,
                 ordering,
@@ -310,7 +310,7 @@ mod tests {
         let conditions = parse_choice_conditions(&mut line).unwrap();
 
         match &conditions[0] {
-            Condition::NumVisits {
+            ConditionKind::NumVisits {
                 address,
                 rhs_value,
                 ordering,
@@ -330,7 +330,7 @@ mod tests {
         let conditions = parse_choice_conditions(&mut line).unwrap();
 
         match &conditions[0] {
-            Condition::NumVisits {
+            ConditionKind::NumVisits {
                 address,
                 rhs_value,
                 ordering,
@@ -350,7 +350,7 @@ mod tests {
         let conditions = parse_choice_conditions(&mut line).unwrap();
 
         match &conditions[0] {
-            Condition::NumVisits {
+            ConditionKind::NumVisits {
                 address,
                 rhs_value,
                 ordering,

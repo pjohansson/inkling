@@ -1,4 +1,4 @@
-//! Conditions for displaying choices, lines or other content.
+//! ConditionKinds for displaying choices, lines or other content.
 
 use crate::{
     error::InvalidAddressError,
@@ -14,8 +14,8 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
-/// Condition to show choice (or maybe part of line, in the future)
-pub enum Condition {
+/// ConditionKind to show choice (or maybe part of line, in the future)
+pub enum ConditionKind {
     /// Use a knot (or maybe other string-like variable) to check whether its value
     /// compares to the set condition.
     NumVisits {
@@ -27,14 +27,14 @@ pub enum Condition {
     },
 }
 
-impl ValidateAddresses for Condition {
+impl ValidateAddresses for ConditionKind {
     fn validate(
         &mut self,
         current_address: &Address,
         knots: &Knots,
     ) -> Result<(), InvalidAddressError> {
         match self {
-            Condition::NumVisits {
+            ConditionKind::NumVisits {
                 ref mut address, ..
             } => address.validate(current_address, knots),
         }
@@ -43,7 +43,7 @@ impl ValidateAddresses for Condition {
     #[cfg(test)]
     fn all_addresses_are_valid(&self) -> bool {
         match self {
-            Condition::NumVisits { address, .. } => address.all_addresses_are_valid(),
+            ConditionKind::NumVisits { address, .. } => address.all_addresses_are_valid(),
         }
     }
 }

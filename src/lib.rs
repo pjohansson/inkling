@@ -114,7 +114,7 @@
 //!
 //! Hopefully coming:
 //!
-//! *   Lines:      Conditions
+//! *   Lines:      ConditionKinds
 //! *   Variables:  Use in lines, ability to modify from the calling program
 //! *   Reading:    Include statements in files
 //! *   Logic:      Nested conditions with brackets, `and`/`or` statements

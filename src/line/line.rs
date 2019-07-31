@@ -2,7 +2,7 @@
 
 use crate::{
     error::InvalidAddressError,
-    line::{Alternative, Condition},
+    line::{Alternative, ConditionKind},
     story::{Address, Knots, ValidateAddresses},
 };
 
@@ -45,11 +45,11 @@ pub struct InternalLine {
 /// Chunks possibly come with conditions for when the content will be visited
 /// and displayed to the user.
 pub struct LineChunk {
-    /// Conditions that must be fulfilled for the content to be processed.
+    /// ConditionKinds that must be fulfilled for the content to be processed.
     ///
     /// The conditions represent the entire chunk of items. If they are fulfilled, all items
     /// will be processed. If not, the chunk will be skipped during processing.
-    pub conditions: Vec<Condition>,
+    pub conditions: Vec<ConditionKind>,
     /// Set of line content which will be processed in order.
     pub items: Vec<Content>,
 }
