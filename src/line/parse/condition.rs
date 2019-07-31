@@ -7,12 +7,23 @@ use crate::{
     line::{
         parse::{
             split_line_at_separator_braces, split_line_at_separator_parenthesis,
-            split_line_into_groups_braces, split_line_into_groups_parenthesis, LinePart,
+            split_line_into_groups_braces, LinePart,
         },
         Condition, ConditionBuilder, ConditionItem, ConditionKind, StoryCondition,
     },
     story::Address,
 };
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+/// How a condition links to the previous.
+enum Link {
+    /// Format: `prev and current`
+    And,
+    /// Format: `prev or current`
+    Or,
+    /// No linking to previous: only allowed for the first condition in a set.
+    Blank,
+}
 
 /// Parse conditions from a line of content.
 ///
@@ -37,13 +48,12 @@ pub fn parse_line_condition(
         None
     };
 
-    // Ok((
-    //     parse_conditions(condition_content)?,
-    //     true_content,
-    //     false_line,
-    // ))
-
-    unimplemented!();
+    Ok((
+        parse_condition(condition_content)
+            .map_err(|err| LineParsingError::from_kind(line, err.into()))?,
+        true_content,
+        false_line,
+    ))
 }
 
 /// Parse conditions for a choice and trim them from the line.
@@ -57,22 +67,21 @@ pub fn parse_choice_condition(line: &mut String) -> Result<Option<Condition>, Li
     let conditions = split_choice_conditions_off_string(line)?
         .into_iter()
         .map(|content| {
-            parse_story_condition(&content)
-                .map_err(|err| LineParsingError::from_kind(&full_line, err.kind))
+            parse_condition(&content)
+                .map_err(|err| LineParsingError::from_kind(line.as_str(), err.into()))
         })
         .collect::<Result<Vec<_>, _>>()?;
 
-    let condition = conditions.split_first().map(|(first, rest)| {
-        let mut builder = ConditionBuilder::from_kind(&first.into(), false);
+    Ok(conditions.split_first().map(|(first, tail)| {
+        let mut builder = ConditionBuilder::from_kind(&first.root.kind, first.root.negate);
 
-        for kind in rest {
-            builder.and(&kind.into(), false);
+        for condition in tail {
+            let ConditionItem { ref kind, negate } = condition.root;
+            builder.and(kind, negate);
         }
 
         builder.build()
-    });
-
-    Ok(condition)
+    }))
 }
 
 /// Split conditions from the string and return them separately.
@@ -123,13 +132,6 @@ fn split_choice_conditions_off_string(
     content.drain(..num_chars + backslash_adjustor);
 
     Ok(conditions)
-}
-
-#[derive(Clone, Copy, Debug, PartialEq)]
-enum Link {
-    And,
-    Or,
-    Blank,
 }
 
 /// Parse all conditions present in a line.
@@ -255,8 +257,11 @@ fn get_closest_split_index(content: &str) -> Result<usize, LineParsingError> {
     let buffer = content.to_lowercase();
 
     get_split_index(&buffer, " and ")
+        .map(|i| i + 1)
         .and_then(|current_min| get_split_index(&buffer, "&&").map(|next| current_min.min(next)))
-        .and_then(|current_min| get_split_index(&buffer, " or ").map(|next| current_min.min(next)))
+        .and_then(|current_min| {
+            get_split_index(&buffer, " or ").map(|next| current_min.min(next + 1))
+        })
         .and_then(|current_min| get_split_index(&buffer, "||").map(|next| current_min.min(next)))
 }
 
@@ -417,7 +422,7 @@ mod tests {
 
     #[test]
     fn several_choice_conditions_can_be_parsed_and_will_be_and_variants() {
-        let mut line = "{knot_name} {other_knot} {not third_knot} Hello, World!".to_string();
+        let mut line = "{knot_name} {other_knot} {third_knot} Hello, World!".to_string();
         let condition = parse_choice_condition(&mut line).unwrap().unwrap();
 
         assert_eq!(condition.items.len(), 2);
@@ -432,7 +437,7 @@ mod tests {
                 assert_eq!(address, &Address::Raw("third_knot".to_string()));
                 assert_eq!(*rhs_value, 0);
                 assert_eq!(*ordering, Ordering::Greater);
-                assert_eq!(*not, true);
+                assert_eq!(*not, false);
             }
             _ => unreachable!(),
         }
@@ -443,20 +448,7 @@ mod tests {
         let mut line = "{not knot_name} Hello, World!".to_string();
         let condition = parse_choice_condition(&mut line).unwrap().unwrap();
 
-        match &condition.story_condition() {
-            StoryCondition::NumVisits {
-                address,
-                rhs_value,
-                ordering,
-                not,
-            } => {
-                assert_eq!(address, &Address::Raw("knot_name".to_string()));
-                assert_eq!(*rhs_value, 0);
-                assert_eq!(*ordering, Ordering::Greater);
-                assert_eq!(*not, true);
-            }
-            _ => unreachable!(),
-        }
+        assert!(condition.root.negate);
     }
 
     #[test]
@@ -485,6 +477,8 @@ mod tests {
         let mut line = "{not knot_name > 2} Hello, World!".to_string();
         let condition = parse_choice_condition(&mut line).unwrap().unwrap();
 
+        assert!(condition.root.negate);
+
         match &condition.story_condition() {
             StoryCondition::NumVisits {
                 address,
@@ -495,7 +489,7 @@ mod tests {
                 assert_eq!(address, &Address::Raw("knot_name".to_string()));
                 assert_eq!(*rhs_value, 2);
                 assert_eq!(*ordering, Ordering::Greater);
-                assert_eq!(*not, true);
+                assert_eq!(*not, false);
             }
             _ => unreachable!(),
         }
@@ -808,7 +802,10 @@ mod tests {
     fn separators_inside_words_are_ignored() {
         let mut buffer = "knot torch andes".to_string();
 
-        assert_eq!(&read_next_condition_string(&mut buffer).unwrap(), "knot torch andes");
+        assert_eq!(
+            &read_next_condition_string(&mut buffer).unwrap(),
+            "knot torch andes"
+        );
     }
 
     #[test]
