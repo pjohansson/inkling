@@ -15,7 +15,7 @@
 //! so there can be no collisions.
 
 use crate::{
-    consts::{KNOT_MARKER, STITCH_MARKER},
+    consts::{KNOT_MARKER, RESERVED_KEYWORDS, STITCH_MARKER},
     error::{KnotError, KnotNameError, LineParsingError},
     follow::{EncounteredEvent, FollowResult, LineDataBuffer},
     line::parse_line,
@@ -174,6 +174,11 @@ fn read_name_with_marker(line: &str) -> Result<String, KnotError> {
     } else if trimmed_name.is_empty() {
         Err(KnotError::InvalidName {
             kind: KnotNameError::Empty,
+            line: line.to_string(),
+        })
+    } else if RESERVED_KEYWORDS.contains(&trimmed_name.to_uppercase().as_str()) {
+        Err(KnotError::InvalidName {
+            kind: KnotNameError::ReservedKeyword { keyword: trimmed_name.to_string() },
             line: line.to_string(),
         })
     } else {
@@ -586,5 +591,11 @@ Line 6
         assert!(read_knot_name("=Knot name").is_err());
         assert!(read_knot_name(" Knot name ==").is_err());
         assert!(read_knot_name("Knot name==").is_err());
+    }
+
+    #[test]
+    fn knot_and_stitch_names_may_not_be_from_the_reserved_list() {
+        assert!(read_knot_name("== else").is_err());
+        assert!(read_knot_name("== not").is_err());
     }
 }

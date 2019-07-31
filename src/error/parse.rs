@@ -174,6 +174,13 @@ impl fmt::Display for KnotError {
                     NoNamePresent => {
                         write!(f, "knot or stitch has no name where one is expected")?;
                     }
+                    ReservedKeyword { ref keyword } => {
+                        write!(
+                            f,
+                            "Knot or stitch name may not be reserved keyword '{}'",
+                            keyword.to_lowercase()
+                        )?;
+                    }
                 }
 
                 write!(f, " (line: {})", line)
@@ -237,6 +244,8 @@ pub enum KnotNameError {
     Empty,
     /// No name existed to read for the knot.
     NoNamePresent,
+    /// Name was a reserved keyword.
+    ReservedKeyword { keyword: String },
 }
 
 #[derive(Clone, Debug)]
