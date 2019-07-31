@@ -17,7 +17,7 @@ use serde::{Deserialize, Serialize};
 /// Condition for displaying some content or choice in the story.
 pub struct Condition {
     /// First condition to evaluate.
-    pub root: ConditionItem,
+    pub root: ConditionKind,
     /// Ordered set of `and`/`or` conditions to compare the first condition to.
     pub items: Vec<AndOr>,
 }
@@ -28,7 +28,7 @@ pub struct Condition {
 ///
 /// Will evaluate to a single `true` or `false` but may have to evaluate a group
 /// of conditions.
-pub enum ConditionItem {
+pub enum ConditionKind {
     /// Always `true`.
     True,
     /// Always `false`.
@@ -58,8 +58,8 @@ pub enum StoryCondition {
 #[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
 /// Container for `and`/`or` variants of conditions to evaluate in a list.
 pub enum AndOr {
-    And(ConditionItem),
-    Or(ConditionItem),
+    And(ConditionKind),
+    Or(ConditionKind),
 }
 
 impl Condition {
@@ -81,28 +81,28 @@ impl Condition {
 }
 
 /// Match against and evaluate the items.
-fn inner_eval<F, E>(item: &ConditionItem, evaluator: &F) -> Result<bool, E>
+fn inner_eval<F, E>(item: &ConditionKind, evaluator: &F) -> Result<bool, E>
 where
     F: Fn(&StoryCondition) -> Result<bool, E>,
     E: Error,
 {
     match item {
-        ConditionItem::True => Ok(true),
-        ConditionItem::False => Ok(false),
-        ConditionItem::Nested(condition) => condition.evaluate(evaluator),
-        ConditionItem::Single(kind) => evaluator(kind),
+        ConditionKind::True => Ok(true),
+        ConditionKind::False => Ok(false),
+        ConditionKind::Nested(condition) => condition.evaluate(evaluator),
+        ConditionKind::Single(kind) => evaluator(kind),
     }
 }
 
 /// Constructor struct for `Condition`.
 pub struct ConditionBuilder {
-    root: ConditionItem,
+    root: ConditionKind,
     items: Vec<AndOr>,
 }
 
 impl ConditionBuilder {
     /// Create the constructor with a condition kind.
-    pub fn from_item(item: &ConditionItem) -> Self {
+    pub fn from_item(item: &ConditionKind) -> Self {
         ConditionBuilder {
             root: item.clone(),
             items: Vec::new(),
@@ -118,25 +118,25 @@ impl ConditionBuilder {
     }
 
     /// Add an `and` item to the condition list.
-    pub fn and(&mut self, item: &ConditionItem) {
+    pub fn and(&mut self, item: &ConditionKind) {
         self.items.push(AndOr::And(item.clone()));
     }
 
     /// Add an `or` item to the condition list.
-    pub fn or(&mut self, item: &ConditionItem) {
+    pub fn or(&mut self, item: &ConditionKind) {
         self.items.push(AndOr::Or(item.clone()));
     }
 }
 
-impl From<StoryCondition> for ConditionItem {
+impl From<StoryCondition> for ConditionKind {
     fn from(kind: StoryCondition) -> Self {
-        ConditionItem::Single(kind)
+        ConditionKind::Single(kind)
     }
 }
 
-impl From<&StoryCondition> for ConditionItem {
+impl From<&StoryCondition> for ConditionKind {
     fn from(kind: &StoryCondition) -> Self {
-        ConditionItem::Single(kind.clone())
+        ConditionKind::Single(kind.clone())
     }
 }
 
@@ -162,25 +162,25 @@ impl ValidateAddresses for Condition {
     }
 }
 
-impl ValidateAddresses for ConditionItem {
+impl ValidateAddresses for ConditionKind {
     fn validate(
         &mut self,
         current_address: &Address,
         knots: &Knots,
     ) -> Result<(), InvalidAddressError> {
         match self {
-            ConditionItem::True | ConditionItem::False => Ok(()),
-            ConditionItem::Nested(condition) => condition.validate(current_address, knots),
-            ConditionItem::Single(kind) => kind.validate(current_address, knots),
+            ConditionKind::True | ConditionKind::False => Ok(()),
+            ConditionKind::Nested(condition) => condition.validate(current_address, knots),
+            ConditionKind::Single(kind) => kind.validate(current_address, knots),
         }
     }
 
     #[cfg(test)]
     fn all_addresses_are_valid(&self) -> bool {
         match self {
-            ConditionItem::True | ConditionItem::False => true,
-            ConditionItem::Nested(condition) => condition.all_addresses_are_valid(),
-            ConditionItem::Single(kind) => kind.all_addresses_are_valid(),
+            ConditionKind::True | ConditionKind::False => true,
+            ConditionKind::Nested(condition) => condition.all_addresses_are_valid(),
+            ConditionKind::Single(kind) => kind.all_addresses_are_valid(),
         }
     }
 }
@@ -212,7 +212,7 @@ mod tests {
 
     use std::fmt;
 
-    use ConditionItem::{False, True};
+    use ConditionKind::{False, True};
 
     impl From<StoryCondition> for Condition {
         fn from(kind: StoryCondition) -> Self {
@@ -225,22 +225,22 @@ mod tests {
             self.root.kind()
         }
 
-        pub fn with_and(mut self, item: ConditionItem) -> Self {
+        pub fn with_and(mut self, item: ConditionKind) -> Self {
             self.items.push(AndOr::And(item));
             self
         }
 
-        pub fn with_or(mut self, item: ConditionItem) -> Self {
+        pub fn with_or(mut self, item: ConditionKind) -> Self {
             self.items.push(AndOr::Or(item));
             self
         }
     }
 
-    impl ConditionItem {
+    impl ConditionKind {
         pub fn kind(&self) -> &StoryCondition {
             match self {
-                ConditionItem::Single(kind) => kind,
-                other => panic!("tried to extract `StoryCondition`, but item was not `ConditionItem::Single` (was: {:?})", other),
+                ConditionKind::Single(kind) => kind,
+                other => panic!("tried to extract `StoryCondition`, but item was not `ConditionKind::Single` (was: {:?})", other),
             }
         }
     }

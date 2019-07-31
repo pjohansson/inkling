@@ -9,7 +9,7 @@ use crate::{
             split_line_at_separator_braces, split_line_at_separator_parenthesis,
             split_line_into_groups_braces, split_line_into_groups_parenthesis, LinePart,
         },
-        Condition, ConditionBuilder, ConditionItem, StoryCondition,
+        Condition, ConditionBuilder, ConditionKind, StoryCondition,
     },
     story::Address,
 };
@@ -230,7 +230,7 @@ fn find_and_or_modifiers_for_groups(groups: &[LinePart]) -> Vec<Link> {
     unimplemented!();
 }
 
-fn parse_conditions_from_line(content: &str) -> Result<Vec<(Link, ConditionItem)>, BadCondition> {
+fn parse_conditions_from_line(content: &str) -> Result<Vec<(Link, ConditionKind)>, BadCondition> {
     unimplemented!();
 }
 
