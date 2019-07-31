@@ -134,7 +134,13 @@ fn split_choice_conditions_off_string(
     Ok(conditions)
 }
 
-/// Parse all conditions present in a line.
+/// Parse a `Condition` from a line.
+///
+/// This function will split the line into multiple parts, each belonging to a separate
+/// condition. These splits will occur whenever `and`/`or` keywords are found (can also
+/// be `&&` or `||` respectively), since chained conditions need them. These splits will
+/// not be done within enclosed parenthesis: all grouped conditions inside those will be
+/// treated as whole.
 fn parse_condition(content: &str) -> Result<Condition, BadCondition> {
     let mut buffer = content.to_string();
 
@@ -176,6 +182,12 @@ fn parse_condition(content: &str) -> Result<Condition, BadCondition> {
         ))
 }
 
+/// Parse a `ConditionKind` item from a line.
+///
+/// This function evaluates the given string, determines if it's plainly `true` or `false`,
+/// or if it's a proper condition. If the condition is enclosed in parenthesis,
+/// `parse_condition` will be called and the item will be returned as a nested condition.
+/// If not `true`, `false` or nested, it will be parsed as a single condition.
 fn parse_condition_kind(content: &str) -> Result<ConditionKind, BadCondition> {
     if &content.trim().to_lowercase() == "true" {
         Ok(ConditionKind::True)
@@ -198,6 +210,12 @@ fn parse_condition_kind(content: &str) -> Result<ConditionKind, BadCondition> {
     }
 }
 
+/// Split off leading `and`/`or` parts from line and return them as a `Link`.
+///
+/// # Notes
+/// *   Assumes that the keywords will start at index 0 if present.
+/// *   Will ignore words which start with the keyword but are complete words
+///     of their own merit (orca, Andes, etc.).
 fn split_off_condition_link(content: &mut String) -> Link {
     let buffer = content.to_lowercase();
 
@@ -218,6 +236,10 @@ fn split_off_condition_link(content: &mut String) -> Link {
     link
 }
 
+/// Split off leading `not` keyword from line and return whether it was present.
+///
+/// # Notes
+/// *   Will trim leading whitespace if keyword is found.
 fn split_off_negation(content: &mut String) -> bool {
     if content.to_lowercase().trim_start().starts_with("not ") {
         let index = content.to_lowercase().find("not").unwrap();
@@ -229,6 +251,12 @@ fn split_off_negation(content: &mut String) -> bool {
     }
 }
 
+/// Split the string corresponding to the next whole condition from the buffer.
+///
+/// Splits occur when `and`/`or` keywords (or `&&`/`||`) are found.
+///
+/// # Notes
+/// *   Will not split when `and` or `or` appear inside words.
 fn read_next_condition_string(buffer: &mut String) -> Result<String, BadCondition> {
     let (head, tail) = get_without_starting_match(&buffer);
 
@@ -239,6 +267,7 @@ fn read_next_condition_string(buffer: &mut String) -> Result<String, BadConditio
     Ok(buffer.drain(..index + head.len()).collect())
 }
 
+/// Trim leading keywords from line.
 fn get_without_starting_match(content: &str) -> (&str, &str) {
     let buffer = content.to_lowercase();
 
@@ -253,6 +282,7 @@ fn get_without_starting_match(content: &str) -> (&str, &str) {
     content.split_at(index)
 }
 
+/// Return the lowest index for any `and`/`or` keyword in the line.
 fn get_closest_split_index(content: &str) -> Result<usize, LineParsingError> {
     let buffer = content.to_lowercase();
 
@@ -265,6 +295,7 @@ fn get_closest_split_index(content: &str) -> Result<usize, LineParsingError> {
         .and_then(|current_min| get_split_index(&buffer, "||").map(|next| current_min.min(next)))
 }
 
+/// Return the lowest index for the given separator keyword in the line.
 fn get_split_index(content: &str, separator: &str) -> Result<usize, LineParsingError> {
     split_line_at_separator_parenthesis(content, separator, Some(1))
         .map(|parts| parts[0].as_bytes().len())
