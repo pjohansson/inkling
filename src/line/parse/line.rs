@@ -5,7 +5,7 @@ use crate::{
     error::{BadCondition, BadConditionKind, LineErrorKind, LineParsingError},
     line::{
         parse::{
-            parse_alternative, parse_line_condition, split_line_at_separator,
+            parse_alternative, parse_line_condition, split_line_at_separator_braces,
             split_line_into_groups_braces, LinePart,
         },
         Content, InternalLine, InternalLineBuilder, LineChunk, LineChunkBuilder,
@@ -69,9 +69,9 @@ fn determine_kind(content: &str) -> Result<ExpressionKind, LineParsingError> {
             content,
             LineErrorKind::EmptyExpression,
         ))
-    } else if split_line_at_separator(content, ":", Some(1))?.len() > 1 {
+    } else if split_line_at_separator_braces(content, ":", Some(1))?.len() > 1 {
         Ok(ExpressionKind::Conditional)
-    } else if split_line_at_separator(content, "|", Some(1))?.len() > 1 {
+    } else if split_line_at_separator_braces(content, "|", Some(1))?.len() > 1 {
         Ok(ExpressionKind::Alternative)
     } else {
         Ok(ExpressionKind::Variable)
@@ -137,7 +137,7 @@ fn parse_tags(line: &mut String) -> Vec<String> {
 fn split_off_end_divert(line: &mut String) -> Result<Option<String>, LineParsingError> {
     let backup_line = line.clone();
 
-    let splits = split_line_at_separator(&line, DIVERT_MARKER, None)?;
+    let splits = split_line_at_separator_braces(&line, DIVERT_MARKER, None)?;
 
     match splits.len() {
         0 | 1 => Ok(None),

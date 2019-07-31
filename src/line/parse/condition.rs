@@ -5,8 +5,11 @@ use std::cmp::Ordering;
 use crate::{
     error::{BadCondition, BadConditionKind, LineErrorKind, LineParsingError},
     line::{
-        parse::{split_line_at_separator, split_line_into_groups_braces, LinePart},
-        Condition, ConditionBuilder, ConditionKind,
+        parse::{
+            split_line_at_separator_braces, split_line_at_separator_parenthesis,
+            split_line_into_groups_braces, split_line_into_groups_parenthesis, LinePart,
+        },
+        Condition, ConditionBuilder, ConditionItem, ConditionKind,
     },
     story::Address,
 };
@@ -122,8 +125,112 @@ fn split_choice_conditions_off_string(
     Ok(conditions)
 }
 
+#[derive(Clone, Copy, Debug)]
+enum Link {
+    And,
+    Or,
+    Blank,
+}
+
 /// Parse all conditions present in a line.
-fn parse_condition(content: &str) -> Result<Condition, LineParsingError> {
+fn parse_condition(content: &str) -> Result<Condition, BadCondition> {
+    let mut buffer = content.to_string();
+
+
+    unimplemented!();
+}
+
+fn get_condition_link(head: &str) -> Link {
+    match head.to_lowercase().as_str() {
+        "and" | "&&" => Link::And,
+        "or" | "||" => Link::Or,
+        _ => Link::Blank,
+    }
+}
+
+fn read_next_condition_string(buffer: &mut String) -> Result<String, BadCondition> {
+    let (head, tail) = get_without_starting_match(&buffer);
+
+    let index = get_closest_split_index(tail).map_err(|_| {
+        BadCondition::from_kind(buffer.as_str(), BadConditionKind::UnmatchedParenthesis)
+    })?;
+
+    Ok(buffer.drain(..index + head.len()).collect())
+}
+
+fn get_without_starting_match(content: &str) -> (&str, &str) {
+    let buffer = content.to_lowercase();
+
+    let index = if buffer.starts_with("and") {
+        3
+    } else if buffer.starts_with("or") || buffer.starts_with("||") || buffer.starts_with("&&") {
+        2
+    } else {
+        0
+    };
+
+    content.split_at(index)
+}
+
+fn get_closest_split_index(content: &str) -> Result<usize, LineParsingError> {
+    let buffer = content.to_lowercase();
+
+    get_split_index(&buffer, "and")
+        .and_then(|current_min| get_split_index(&buffer, "&&").map(|next| current_min.min(next)))
+        .and_then(|current_min| get_split_index(&buffer, "or").map(|next| current_min.min(next)))
+        .and_then(|current_min| get_split_index(&buffer, "||").map(|next| current_min.min(next)))
+}
+
+fn get_split_index(content: &str, separator: &str) -> Result<usize, LineParsingError> {
+    split_line_at_separator_parenthesis(content, separator, Some(1))
+        .map(|parts| parts[0].as_bytes().len())
+}
+
+#[test]
+fn closest_split_index_works_for_all_variants() {
+    assert_eq!(get_closest_split_index("1 and 2 or 3").unwrap(), 2);
+    assert_eq!(get_closest_split_index("1 or 2 and 3").unwrap(), 2);
+    assert_eq!(get_closest_split_index("1 || 2 or 3").unwrap(), 2);
+    assert_eq!(get_closest_split_index("1 && 2 || 3").unwrap(), 2);
+}
+
+#[test]
+fn next_condition_starts_when_and_or_or_is_encountered_after_address() {
+    let mut buffer = "knot or knot and knot".to_string();
+
+    assert_eq!(&read_next_condition_string(&mut buffer).unwrap(), "knot ");
+    assert_eq!(&buffer, "or knot and knot");
+
+    assert_eq!(&read_next_condition_string(&mut buffer).unwrap(), "or knot ");
+    assert_eq!(&buffer, "and knot");
+
+    assert_eq!(&read_next_condition_string(&mut buffer).unwrap(), "and knot");
+    assert_eq!(&buffer, "");
+}
+
+#[test]
+fn separators_inside_parenthesis_are_ignored() {
+    let mut buffer = "knot or (knot and knot) and knot".to_string();
+
+    assert_eq!(&read_next_condition_string(&mut buffer).unwrap(), "knot ");
+    assert_eq!(&read_next_condition_string(&mut buffer).unwrap(), "or (knot and knot) ");
+    assert_eq!(&read_next_condition_string(&mut buffer).unwrap(), "and knot");
+}
+
+#[test]
+fn and_may_be_ampersands_and_or_may_be_vertical_lines() {
+    let mut buffer = "knot || knot && knot".to_string();
+
+    assert_eq!(&read_next_condition_string(&mut buffer).unwrap(), "knot ");
+    assert_eq!(&read_next_condition_string(&mut buffer).unwrap(), "|| knot ");
+    assert_eq!(&read_next_condition_string(&mut buffer).unwrap(), "&& knot");
+}
+
+fn find_and_or_modifiers_for_groups(groups: &[LinePart]) -> Vec<Link> {
+    unimplemented!();
+}
+
+fn parse_conditions_from_line(content: &str) -> Result<Vec<(Link, ConditionItem)>, BadCondition> {
     unimplemented!();
 }
 
@@ -174,7 +281,7 @@ fn parse_single_condition(line: &str) -> Result<ConditionKind, LineParsingError>
 
 /// Split a line into conditional, true and false parts.
 fn split_line_condition_content(content: &str) -> Result<(&str, &str, &str), LineParsingError> {
-    let parts = split_line_at_separator(content, ":", Some(1))?;
+    let parts = split_line_at_separator_braces(content, ":", Some(1))?;
 
     let (head, tail) = match parts.len() {
         1 => Err(LineParsingError::from_kind(
@@ -185,7 +292,7 @@ fn split_line_condition_content(content: &str) -> Result<(&str, &str, &str), Lin
         _ => unreachable!(),
     }?;
 
-    let variational_parts = split_line_at_separator(tail, "|", Some(2))?;
+    let variational_parts = split_line_at_separator_braces(tail, "|", Some(2))?;
 
     match variational_parts.len() {
         1 => Ok((head, variational_parts[0], "")),

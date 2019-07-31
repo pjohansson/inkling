@@ -303,4 +303,8 @@ pub enum BadConditionKind {
     MultipleElseStatements,
     /// There was no condition in the line.
     NoCondition,
+    /// Generic error.
+    CouldNotParse,
+    /// Found unmatched parenthesis.
+    UnmatchedParenthesis,
 }

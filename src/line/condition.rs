@@ -26,7 +26,8 @@ pub struct Condition {
 #[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
 /// Base item in a condition.
 ///
-/// Will evaluate to a single `true` or `false` but
+/// Will evaluate to a single `true` or `false` but may have to evaluate a group
+/// of conditions.
 pub enum ConditionItem {
     /// Always `true`.
     True,
@@ -147,10 +148,12 @@ impl ValidateAddresses for Condition {
     ) -> Result<(), InvalidAddressError> {
         self.root.validate(current_address, knots)?;
 
-        self.items.iter_mut().map(|item| match item {
-            AndOr::And(item) | AndOr::Or(item) => item.validate(current_address, knots),
-        })
-        .collect()
+        self.items
+            .iter_mut()
+            .map(|item| match item {
+                AndOr::And(item) | AndOr::Or(item) => item.validate(current_address, knots),
+            })
+            .collect()
     }
 
     #[cfg(test)]
@@ -177,7 +180,7 @@ impl ValidateAddresses for ConditionItem {
         match self {
             ConditionItem::True | ConditionItem::False => true,
             ConditionItem::Nested(condition) => condition.all_addresses_are_valid(),
-            ConditionItem::Single(kind) => kind.all_addresses_are_valid()
+            ConditionItem::Single(kind) => kind.all_addresses_are_valid(),
         }
     }
 }

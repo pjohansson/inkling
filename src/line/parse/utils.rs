@@ -50,7 +50,7 @@ fn split_line_at_separator<'a>(
     separator: &str,
     max_splits: Option<usize>,
     open: char,
-    close: char
+    close: char,
 ) -> Result<Vec<&'a str>, LineParsingError> {
     let outside_brace_ranges = get_brace_level_zero_ranges(content, open, close)?;
 
@@ -265,7 +265,10 @@ mod tests {
 
     #[test]
     fn split_empty_string_at_separator_returns_empty_string() {
-        assert_eq!(split_line_at_separator("", "|", None, '{', '}').unwrap(), &[""]);
+        assert_eq!(
+            split_line_at_separator("", "|", None, '{', '}').unwrap(),
+            &[""]
+        );
     }
 
     #[test]
