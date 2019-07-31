@@ -199,11 +199,13 @@ fn parse_condition_kind(content: &str) -> Result<ConditionKind, BadCondition> {
 fn split_off_condition_link(content: &mut String) -> Link {
     let buffer = content.to_lowercase();
 
-    let (link, len) = if buffer.starts_with("and") {
+    let (link, len) = if buffer.starts_with("and ") {
         (Link::And, 3)
     } else if buffer.starts_with("&&") {
         (Link::And, 2)
-    } else if buffer.starts_with("or") || buffer.starts_with("||") {
+    } else if buffer.starts_with("or ") {
+        (Link::Or, 2)
+    } else if buffer.starts_with("||") {
         (Link::Or, 2)
     } else {
         (Link::Blank, 0)
@@ -252,9 +254,9 @@ fn get_without_starting_match(content: &str) -> (&str, &str) {
 fn get_closest_split_index(content: &str) -> Result<usize, LineParsingError> {
     let buffer = content.to_lowercase();
 
-    get_split_index(&buffer, "and")
+    get_split_index(&buffer, " and ")
         .and_then(|current_min| get_split_index(&buffer, "&&").map(|next| current_min.min(next)))
-        .and_then(|current_min| get_split_index(&buffer, "or").map(|next| current_min.min(next)))
+        .and_then(|current_min| get_split_index(&buffer, " or ").map(|next| current_min.min(next)))
         .and_then(|current_min| get_split_index(&buffer, "||").map(|next| current_min.min(next)))
 }
 
@@ -736,6 +738,19 @@ mod tests {
     }
 
     #[test]
+    fn splitting_off_condition_link_does_not_remove_word_beginning_with_but_not_and() {
+        let mut buffer = "andes or || && rest".to_string();
+
+        assert_eq!(split_off_condition_link(&mut buffer), Link::Blank);
+        assert_eq!(&buffer, "andes or || && rest");
+
+        let mut buffer = "orca || && rest".to_string();
+
+        assert_eq!(split_off_condition_link(&mut buffer), Link::Blank);
+        assert_eq!(&buffer, "orca || && rest");
+    }
+
+    #[test]
     fn splitting_off_negation_removes_beginning_not() {
         let mut buffer = "  not rest".to_string();
 
@@ -787,6 +802,13 @@ mod tests {
             &read_next_condition_string(&mut buffer).unwrap(),
             "and knot"
         );
+    }
+
+    #[test]
+    fn separators_inside_words_are_ignored() {
+        let mut buffer = "knot torch andes".to_string();
+
+        assert_eq!(&read_next_condition_string(&mut buffer).unwrap(), "knot torch andes");
     }
 
     #[test]
