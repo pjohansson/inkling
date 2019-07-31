@@ -182,6 +182,7 @@ mod tests {
                 assert_eq!(*ordering, Ordering::Greater);
                 assert_eq!(*not, false);
             }
+            _ => unreachable!(),
         }
     }
 
@@ -221,6 +222,7 @@ mod tests {
                 assert_eq!(*ordering, Ordering::Greater);
                 assert_eq!(*not, true);
             }
+            _ => unreachable!(),
         }
     }
 
@@ -241,6 +243,7 @@ mod tests {
                 assert_eq!(*ordering, Ordering::Greater);
                 assert_eq!(*not, true);
             }
+            _ => unreachable!(),
         }
     }
 
@@ -261,6 +264,7 @@ mod tests {
                 assert_eq!(*ordering, Ordering::Greater);
                 assert_eq!(*not, false);
             }
+            _ => unreachable!(),
         }
     }
 
@@ -281,6 +285,7 @@ mod tests {
                 assert_eq!(*ordering, Ordering::Greater);
                 assert_eq!(*not, true);
             }
+            _ => unreachable!(),
         }
     }
 
@@ -301,6 +306,7 @@ mod tests {
                 assert_eq!(*ordering, Ordering::Less);
                 assert_eq!(*not, false);
             }
+            _ => unreachable!(),
         }
     }
 
@@ -321,6 +327,7 @@ mod tests {
                 assert_eq!(*ordering, Ordering::Equal);
                 assert_eq!(*not, false);
             }
+            _ => unreachable!(),
         }
     }
 
@@ -341,6 +348,7 @@ mod tests {
                 assert_eq!(*ordering, Ordering::Greater);
                 assert_eq!(*not, false);
             }
+            _ => unreachable!(),
         }
     }
 
@@ -361,6 +369,7 @@ mod tests {
                 assert_eq!(*ordering, Ordering::Less);
                 assert_eq!(*not, false);
             }
+            _ => unreachable!(),
         }
     }
 

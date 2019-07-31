@@ -208,6 +208,7 @@ fn check_condition(condition: &ConditionKind, knots: &Knots) -> Result<bool, Ink
                 Ok(value)
             }
         }
+        _ => unimplemented!(),
     }
 }
 
