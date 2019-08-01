@@ -448,6 +448,25 @@ mod tests {
     use super::*;
 
     #[test]
+    fn parse_line_condition_returns_condition_if_true_and_else_content() {
+        let (condition, true_content, false_content) =
+            parse_line_condition("knot: True | False").unwrap();
+
+        assert_eq!(condition, parse_condition("knot").unwrap());
+        assert_eq!(true_content, " True ");
+        assert_eq!(false_content, Some(" False"));
+    }
+
+    #[test]
+    fn parse_line_condition_does_not_return_false_content_if_not_set() {
+        let (_, true_content, false_content) =
+            parse_line_condition("knot: True content").unwrap();
+
+        assert_eq!(true_content, " True content");
+        assert_eq!(false_content, None);
+    }
+
+    #[test]
     fn parsing_two_conditions_from_a_line() {
         let condition = parse_condition(&mut "knot > 0 and other_knot > 0").unwrap();
 
