@@ -208,12 +208,6 @@ impl fmt::Display for LineParsingError {
                 "Expected no more content after a divert statement address but found '{}'",
                 tail
             ),
-            ExpectedLogic { ref line } => write!(
-                f,
-                "Could not parse a conditional logic statement '{}'",
-                line
-            ),
-            ExpectedNumber { ref value } => write!(f, "Could not parse a number from '{}'", value),
             FoundTunnel => write!(
                 f,
                 "Found multiple divert markers in a line. In the `Ink` language this indicates \
@@ -266,10 +260,6 @@ pub enum LineErrorKind {
     EmptyExpression,
     /// Line did not end after a divert statement.
     ExpectedEndOfLine { tail: String },
-    /// Could not parse the logic in a conditional statement.
-    ExpectedLogic { line: String },
-    /// Could not parse a number from a string.
-    ExpectedNumber { value: String },
     /// Found several divert markers which indicates unimplemented tunnels.
     FoundTunnel,
     /// Found an address with invalid characters.
@@ -306,6 +296,8 @@ pub enum BadConditionKind {
     /// first condition should not be. After parsing the condition we assert that this is true.
     /// If not, some internal shenanigans are going on, but this should be unreachable.
     BadLink,
+    /// Could not parse a number from the condition.
+    BadValue,
     /// Generic error.
     CouldNotParse,
     /// The line had multiple else statements.
