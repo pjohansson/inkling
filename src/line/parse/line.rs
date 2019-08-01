@@ -2,14 +2,15 @@
 
 use crate::{
     consts::{DIVERT_MARKER, GLUE_MARKER, TAG_MARKER},
-    error::{BadCondition, BadConditionKind, LineErrorKind, LineParsingError},
+    error::{LineErrorKind, LineParsingError},
     line::{
         parse::{
             parse_alternative, parse_line_condition, split_line_at_separator_braces,
             split_line_into_groups_braces, LinePart,
         },
-        Content, InternalLine, InternalLineBuilder, LineChunk, LineChunkBuilder,
+        Content, InternalLine, InternalLineBuilder, LineChunk,
     },
+    story::Address,
 };
 
 /// Parse an `InternalLine` from a string.
@@ -38,21 +39,85 @@ pub fn parse_internal_line(content: &str) -> Result<InternalLine, LineParsingErr
 
 /// Parse a `LineChunk` object from a string.
 pub fn parse_chunk(content: &str) -> Result<LineChunk, LineParsingError> {
-    let mut builder = LineChunkBuilder::new();
+    Ok(LineChunk {
+        condition: None,
+        items: parse_line_content(content)?,
+        else_items: Vec::new(),
+    })
+}
 
-    for part in split_line_into_groups_braces(content)? {
-        match part {
-            LinePart::Text(part) => {
-                add_text_items(part, &mut builder)?;
-            }
-            LinePart::Embraced(text) => {
-                let alternative = parse_alternative(text)?;
-                builder.add_item(Content::Alternative(alternative));
-            }
-        }
+fn parse_line_content(content: &str) -> Result<Vec<Content>, LineParsingError> {
+    split_line_into_groups_braces(content)?
+        .into_iter()
+        .map(|group| match group {
+            LinePart::Text(part) => get_text_items(part),
+            LinePart::Embraced(text) => parse_embraced_line(text).map(|item| vec![item]),
+        })
+        .collect::<Result<Vec<Vec<_>>, _>>()
+        .map(|items| items.into_iter().flatten().collect())
+}
+
+/// Parse and add text and divert items to a `LineChunkBuilder`.
+fn get_text_items(content: &str) -> Result<Vec<Content>, LineParsingError> {
+    let mut buffer = content.to_string();
+    let mut items = Vec::new();
+
+    let divert = split_off_end_divert(&mut buffer)?;
+
+    if !buffer.trim().is_empty() {
+        items.push(Content::Text(buffer));
+    } else {
+        items.push(Content::Empty);
     }
 
-    Ok(builder.build())
+    if let Some(address) = divert {
+        items.push(Content::Divert(Address::Raw(address)));
+    }
+
+    Ok(items)
+}
+
+fn parse_embraced_line(content: &str) -> Result<Content, LineParsingError> {
+    match determine_kind(content)? {
+        ExpressionKind::Alternative => {
+            let alternative = parse_alternative(content)?;
+            Ok(Content::Alternative(alternative))
+        }
+        ExpressionKind::Conditional => {
+            let (condition, true_content, false_content) = parse_line_condition(content)?;
+
+            let chunk = LineChunk {
+                condition: Some(condition),
+                items: parse_line_content(true_content)?,
+                else_items: false_content
+                    .map(|content| parse_line_content(content))
+                    .transpose()?
+                    .unwrap_or(Vec::new()),
+            };
+
+            Ok(Content::Nested(chunk))
+        }
+        ExpressionKind::Variable => unimplemented!(),
+    }
+}
+
+#[test]
+fn parse_embraced_line_as_alternative() {
+    match parse_embraced_line("One | Two").unwrap() {
+        Content::Alternative(..) => (),
+        other => panic!("expected `Content::Alternative` but got {:?}", other),
+    }
+}
+
+#[test]
+fn parse_embraced_line_as_new_conditional_chunk() {
+    match parse_embraced_line("condition: One | Two").unwrap() {
+        Content::Nested(chunk) => {
+            let (condition, _, _) = parse_line_condition("condition: One | Two").unwrap();
+            assert_eq!(chunk.condition.unwrap(), condition);
+        }
+        other => panic!("expected `Content::Nested` but got {:?}", other),
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -76,24 +141,6 @@ fn determine_kind(content: &str) -> Result<ExpressionKind, LineParsingError> {
     } else {
         Ok(ExpressionKind::Variable)
     }
-}
-
-/// Parse and add text and divert items to a `LineChunkBuilder`.
-fn add_text_items(content: &str, builder: &mut LineChunkBuilder) -> Result<(), LineParsingError> {
-    let mut buffer = content.to_string();
-    let divert = split_off_end_divert(&mut buffer)?;
-
-    if buffer.trim().is_empty() {
-        builder.add_item(Content::Empty);
-    } else {
-        builder.add_text(&buffer);
-    }
-
-    if let Some(address) = divert {
-        builder.add_divert(&address);
-    }
-
-    Ok(())
 }
 
 /// Parse and remove glue markers from either side.

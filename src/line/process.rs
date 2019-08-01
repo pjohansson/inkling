@@ -55,6 +55,7 @@ impl Process for Content {
                 buffer.push(' ');
                 Ok(EncounteredEvent::Done)
             }
+            Content::Nested(chunk) => chunk.process(buffer),
             Content::Text(string) => {
                 buffer.push_str(string);
                 Ok(EncounteredEvent::Done)

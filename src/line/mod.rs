@@ -32,9 +32,8 @@ pub(crate) use choice::{InternalChoice, InternalChoiceBuilder};
 pub(crate) use condition::{
     Condition, ConditionBuilder, ConditionItem, ConditionKind, StoryCondition,
 };
-pub(crate) use line::{
-    builders::{InternalLineBuilder, LineChunkBuilder},
-    Content, InternalLine, LineChunk,
-};
+#[cfg(test)]
+pub(crate) use line::builders::LineChunkBuilder;
+pub(crate) use line::{builders::InternalLineBuilder, Content, InternalLine, LineChunk};
 pub(crate) use parse::{parse_line, ParsedLineKind};
 pub(crate) use process::Process;

@@ -459,8 +459,7 @@ mod tests {
 
     #[test]
     fn parse_line_condition_does_not_return_false_content_if_not_set() {
-        let (_, true_content, false_content) =
-            parse_line_condition("knot: True content").unwrap();
+        let (_, true_content, false_content) = parse_line_condition("knot: True content").unwrap();
 
         assert_eq!(true_content, " True content");
         assert_eq!(false_content, None);

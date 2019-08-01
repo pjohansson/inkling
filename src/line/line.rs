@@ -52,6 +52,7 @@ pub struct LineChunk {
     pub condition: Option<Condition>,
     /// Set of line content which will be processed in order.
     pub items: Vec<Content>,
+    pub else_items: Vec<Content>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -64,6 +65,7 @@ pub enum Content {
     Divert(Address),
     /// Null content.
     Empty,
+    Nested(LineChunk),
     /// String of regular text content in the line.
     Text(String),
 }
@@ -155,6 +157,7 @@ impl ValidateAddresses for Content {
             Content::Alternative(alternative) => alternative.validate(current_address, knots),
             Content::Divert(address) => address.validate(current_address, knots),
             Content::Empty | Content::Text(..) => Ok(()),
+            Content::Nested(chunk) => chunk.validate(current_address, knots),
         }
     }
 
@@ -164,6 +167,7 @@ impl ValidateAddresses for Content {
             Content::Alternative(ref alternative) => alternative.all_addresses_are_valid(),
             Content::Divert(ref address) => address.all_addresses_are_valid(),
             Content::Empty | Content::Text(..) => true,
+            Content::Nested(chunk) => chunk.all_addresses_are_valid(),
         }
     }
 }
@@ -231,6 +235,7 @@ pub mod builders {
         }
     }
 
+    #[cfg(test)]
     /// Builder for constructing a `LineChunk`.
     ///
     /// # Notes
@@ -239,6 +244,7 @@ pub mod builders {
         items: Vec<Content>,
     }
 
+    #[cfg(test)]
     impl LineChunkBuilder {
         /// Create an empty builder.
         pub fn new() -> Self {
@@ -254,46 +260,27 @@ pub mod builders {
             LineChunk {
                 condition: None,
                 items: self.items,
+                else_items: Vec::new(),
             }
         }
 
-        /// Add a `Content::Divert` item with the given address to the object.
-        pub fn add_divert(&mut self, address: &str) {
-            self.add_item(Content::Divert(Address::Raw(address.to_string())));
-        }
-
-        /// Add an item to the object.
-        pub fn add_item(&mut self, item: Content) {
-            self.items.push(item);
-        }
-
-        /// Add a `Content::Text` item with the given string to the object.
-        pub fn add_text(&mut self, text: &str) {
-            self.add_item(Content::Text(text.to_string()));
-        }
-
-        #[cfg(test)]
         pub fn with_alternative(self, alternative: Alternative) -> Self {
             self.with_item(Content::Alternative(alternative))
         }
 
-        #[cfg(test)]
         pub fn with_divert(self, address: &str) -> Self {
             self.with_item(Content::Divert(Address::Raw(address.to_string())))
         }
 
-        #[cfg(test)]
         pub fn with_item(mut self, item: Content) -> Self {
             self.items.push(item);
             self
         }
 
-        #[cfg(test)]
         pub fn with_text(self, text: &str) -> Self {
             self.with_item(Content::Text(text.to_string()))
         }
 
-        #[cfg(test)]
         pub fn from_string(line: &str) -> Self {
             LineChunkBuilder::new().with_text(line)
         }
