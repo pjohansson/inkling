@@ -148,9 +148,14 @@ fn parse_condition(content: &str) -> Result<Condition, BadCondition> {
         let mut condition_string = read_next_condition_string(&mut buffer)?;
 
         let link = split_off_condition_link(&mut condition_string);
-        let negate = split_off_negation(&mut condition_string);
+        let mut negate = split_off_negation(&mut condition_string);
 
-        let condition_kind = parse_condition_kind(&condition_string)?;
+        let (condition_kind, inner_negate) = parse_condition_kind(&condition_string)?;
+
+        if inner_negate {
+            negate = !negate;
+        }
+
         let item = ConditionItem {
             kind: condition_kind,
             negate,
@@ -180,17 +185,19 @@ fn parse_condition(content: &str) -> Result<Condition, BadCondition> {
         ))
 }
 
-/// Parse a `ConditionKind` item from a line.
+/// Parse a `ConditionKind` item from a line and pass on extra negation.
 ///
 /// This function evaluates the given string, determines if it's plainly `true` or `false`,
 /// or if it's a proper condition. If the condition is enclosed in parenthesis,
 /// `parse_condition` will be called and the item will be returned as a nested condition.
 /// If not `true`, `false` or nested, it will be parsed as a single condition.
-fn parse_condition_kind(content: &str) -> Result<ConditionKind, BadCondition> {
+/// 
+/// An extra negation comes from conditions with `!=` markers.
+fn parse_condition_kind(content: &str) -> Result<(ConditionKind, bool), BadCondition> {
     if &content.trim().to_lowercase() == "true" {
-        Ok(ConditionKind::True)
+        Ok((ConditionKind::True, false))
     } else if &content.trim().to_lowercase() == "false" {
-        Ok(ConditionKind::False)
+        Ok((ConditionKind::False, false))
     } else if content.trim().starts_with('(') && content.trim().ends_with(')') {
         let i = content.find('(').unwrap();
         let j = content.rfind(')').unwrap();
@@ -199,12 +206,12 @@ fn parse_condition_kind(content: &str) -> Result<ConditionKind, BadCondition> {
 
         let condition = parse_condition(inner_block)?;
 
-        Ok(ConditionKind::Nested(Box::new(condition)))
+        Ok((ConditionKind::Nested(Box::new(condition)), false))
     } else {
-        let condition = parse_story_condition(content)
+        let (condition, inner_negate) = parse_story_condition(content)
             .map_err(|_| BadCondition::from_kind(content, BadConditionKind::CouldNotParse))?;
 
-        Ok(ConditionKind::Single(condition))
+        Ok((ConditionKind::Single(condition), inner_negate))
     }
 }
 
@@ -300,18 +307,25 @@ fn get_split_index(content: &str, separator: &str) -> Result<usize, LineParsingE
         .map(|parts| parts[0].as_bytes().len())
 }
 
-/// Parse a condition from a line.
-fn parse_story_condition(line: &str) -> Result<StoryCondition, LineParsingError> {
+/// Parse a `StoryCondition` from a line and return with whether it is negated.
+/// 
+/// An extra negation comes from conditions with `!=` markers.
+/// 
+/// # Notes 
+/// *   Assumes that any preceeding `not` has been trimmed from the conditional. The 
+///     negation will come purely from a `!=` marker.
+fn parse_story_condition(line: &str) -> Result<(StoryCondition, bool), LineParsingError> {
     let ordering_search = line
         .find("==")
-        .map(|i| (i, Ordering::Equal, 0, 2))
-        .or(line.find("<=").map(|i| (i, Ordering::Less, 1, 2)))
-        .or(line.find(">=").map(|i| (i, Ordering::Greater, -1, 2)))
-        .or(line.find("<").map(|i| (i, Ordering::Less, 0, 1)))
-        .or(line.find(">").map(|i| (i, Ordering::Greater, 0, 1)));
+        .map(|i| (i, Ordering::Equal, 0, 2, false))
+        .or(line.find("!=").map(|i| (i, Ordering::Equal, 0, 2, true)))
+        .or(line.find("<=").map(|i| (i, Ordering::Less, 1, 2, false)))
+        .or(line.find(">=").map(|i| (i, Ordering::Greater, -1, 2, false)))
+        .or(line.find("<").map(|i| (i, Ordering::Less, 0, 1, false)))
+        .or(line.find(">").map(|i| (i, Ordering::Greater, 0, 1, false)));
 
     match ordering_search {
-        Some((index, ordering, adjustment, symbol_length)) => {
+        Some((index, ordering, adjustment, symbol_length, negate)) => {
             let head = line.get(..index).unwrap().trim();
             let tail = line.get(index + symbol_length..).unwrap().trim();
 
@@ -326,20 +340,20 @@ fn parse_story_condition(line: &str) -> Result<StoryCondition, LineParsingError>
                 )
             })? + adjustment;
 
-            Ok(StoryCondition::NumVisits {
+            Ok((StoryCondition::NumVisits {
                 address,
                 rhs_value,
                 ordering,
-            })
+            }, negate))
         }
         None => {
             let address = get_raw_address(line)?;
 
-            Ok(StoryCondition::NumVisits {
+            Ok((StoryCondition::NumVisits {
                 address,
                 rhs_value: 0,
                 ordering: Ordering::Greater,
-            })
+            }, false))
         }
     }
 }
@@ -390,14 +404,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn parsing_condition_with_not_sets_reverse_condition() {
-        let mut line = "not knot_name".to_string();
-        let condition = parse_condition(&mut line).unwrap();
-
-        assert!(condition.root.negate);
-    }
-
-    #[test]
     fn parsing_two_conditions_from_a_line() {
         let condition = parse_condition(&mut "knot > 0 and other_knot > 0").unwrap();
 
@@ -427,6 +433,27 @@ mod tests {
                 assert_eq!(*ordering, Ordering::Greater);
             }
         }
+    }
+
+    #[test]
+    fn parsing_condition_with_not_sets_reverse_condition() {
+        let mut line = "not knot_name".to_string();
+        let condition = parse_condition(&mut line).unwrap();
+
+        assert!(condition.root.negate);
+    }
+
+    #[test]
+    fn parsing_condition_with_not_equality_is_identical_to_not_equal_to_marker() {
+        let condition_marker = parse_condition("knot != 2").unwrap();
+        let condition_word = parse_condition("not knot == 2").unwrap();
+
+        assert_eq!(condition_marker, condition_word);
+
+        let inversed_condition_marker = parse_condition("not knot != 2").unwrap();
+        let inversed_condition_word = parse_condition("knot == 2").unwrap();
+
+        assert_eq!(inversed_condition_marker, inversed_condition_word);
     }
 
     #[test]
@@ -516,7 +543,7 @@ mod tests {
     #[test]
     fn parsing_single_larger_than_story_condition() {
         let mut line = "knot_name > 2".to_string();
-        let condition = parse_story_condition(&mut line).unwrap();
+        let (condition, _) = parse_story_condition(&mut line).unwrap();
 
         match &condition {
             StoryCondition::NumVisits {
@@ -534,7 +561,7 @@ mod tests {
     #[test]
     fn parsing_single_less_than_story_condition() {
         let mut line = "knot_name < 2".to_string();
-        let condition = parse_story_condition(&mut line).unwrap();
+        let (condition, _) = parse_story_condition(&mut line).unwrap();
 
         match &condition {
             StoryCondition::NumVisits {
@@ -552,7 +579,7 @@ mod tests {
     #[test]
     fn parsing_single_equal_than_story_condition() {
         let mut line = "knot_name == 2".to_string();
-        let condition = parse_story_condition(&mut line).unwrap();
+        let (condition, _) = parse_story_condition(&mut line).unwrap();
 
         match &condition {
             StoryCondition::NumVisits {
@@ -570,7 +597,7 @@ mod tests {
     #[test]
     fn parsing_single_equal_to_or_greater_than_story_condition() {
         let mut line = "knot_name >= 2".to_string();
-        let condition = parse_story_condition(&mut line).unwrap();
+        let (condition, _) = parse_story_condition(&mut line).unwrap();
 
         match &condition {
             StoryCondition::NumVisits {
@@ -588,7 +615,7 @@ mod tests {
     #[test]
     fn parsing_single_equal_to_or_less_than_story_condition() {
         let mut line = "knot_name <= 2".to_string();
-        let condition = parse_story_condition(&mut line).unwrap();
+        let (condition, _) = parse_story_condition(&mut line).unwrap();
 
         match &condition {
             StoryCondition::NumVisits {
@@ -601,6 +628,20 @@ mod tests {
                 assert_eq!(*ordering, Ordering::Less);
             }
         }
+    }
+
+    #[test]
+    fn not_equal_to_story_conditions_return_true_for_negation() {
+        let mut line = "knot_name == 2".to_string();
+        let (condition, not_negated) = parse_story_condition(&mut line).unwrap();
+
+        let mut line = "knot_name != 2".to_string();
+        let (negated_condition, negated) = parse_story_condition(&mut line).unwrap();
+
+        assert!(!not_negated);
+        assert!(negated);
+
+        assert_eq!(condition, negated_condition);
     }
 
     #[test]
@@ -677,36 +718,36 @@ mod tests {
     #[test]
     fn parsing_condition_kind_returns_true_or_false_for_those_strings() {
         assert_eq!(
-            parse_condition_kind("  true  ").unwrap(),
+            parse_condition_kind("  true  ").unwrap().0,
             ConditionKind::True
         );
         assert_eq!(
-            parse_condition_kind("  TRUE  ").unwrap(),
+            parse_condition_kind("  TRUE  ").unwrap().0,
             ConditionKind::True
         );
         assert_eq!(
-            parse_condition_kind("  false  ").unwrap(),
+            parse_condition_kind("  false  ").unwrap().0,
             ConditionKind::False
         );
         assert_eq!(
-            parse_condition_kind("  FALSE  ").unwrap(),
+            parse_condition_kind("  FALSE  ").unwrap().0,
             ConditionKind::False
         );
     }
 
     #[test]
     fn parsing_simple_condition_returns_a_story_condition() {
-        match parse_condition_kind("root").unwrap() {
+        match parse_condition_kind("root").unwrap().0 {
             ConditionKind::Single(..) => (),
             other => panic!("expected `ConditionKind::Single` but got {:?}", other),
         }
 
-        match parse_condition_kind("root > 1").unwrap() {
+        match parse_condition_kind("root > 1").unwrap().0 {
             ConditionKind::Single(..) => (),
             other => panic!("expected `ConditionKind::Single` but got {:?}", other),
         }
 
-        match parse_condition_kind("  root<=1   ").unwrap() {
+        match parse_condition_kind("  root<=1   ").unwrap().0 {
             ConditionKind::Single(..) => (),
             other => panic!("expected `ConditionKind::Single` but got {:?}", other),
         }
@@ -714,12 +755,12 @@ mod tests {
 
     #[test]
     fn parsing_condition_with_surrounding_parenthesis_returns_nested_condition() {
-        match parse_condition_kind("(root)").unwrap() {
+        match parse_condition_kind("(root)").unwrap().0 {
             ConditionKind::Nested(..) => (),
             other => panic!("expected `ConditionKind::Nested` but got {:?}", other),
         }
 
-        match parse_condition_kind("(root or root)").unwrap() {
+        match parse_condition_kind("(root or root)").unwrap().0 {
             ConditionKind::Nested(..) => (),
             other => panic!("expected `ConditionKind::Nested` but got {:?}", other),
         }
