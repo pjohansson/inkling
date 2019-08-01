@@ -191,7 +191,7 @@ fn parse_condition(content: &str) -> Result<Condition, BadCondition> {
 /// or if it's a proper condition. If the condition is enclosed in parenthesis,
 /// `parse_condition` will be called and the item will be returned as a nested condition.
 /// If not `true`, `false` or nested, it will be parsed as a single condition.
-/// 
+///
 /// An extra negation comes from conditions with `!=` markers.
 fn parse_condition_kind(content: &str) -> Result<(ConditionKind, bool), BadCondition> {
     if &content.trim().to_lowercase() == "true" {
@@ -308,11 +308,11 @@ fn get_split_index(content: &str, separator: &str) -> Result<usize, LineParsingE
 }
 
 /// Parse a `StoryCondition` from a line and return with whether it is negated.
-/// 
+///
 /// An extra negation comes from conditions with `!=` markers.
-/// 
-/// # Notes 
-/// *   Assumes that any preceeding `not` has been trimmed from the conditional. The 
+///
+/// # Notes
+/// *   Assumes that any preceeding `not` has been trimmed from the conditional. The
 ///     negation will come purely from a `!=` marker.
 fn parse_story_condition(line: &str) -> Result<(StoryCondition, bool), LineParsingError> {
     let ordering_search = line
@@ -320,7 +320,9 @@ fn parse_story_condition(line: &str) -> Result<(StoryCondition, bool), LineParsi
         .map(|i| (i, Ordering::Equal, 0, 2, false))
         .or(line.find("!=").map(|i| (i, Ordering::Equal, 0, 2, true)))
         .or(line.find("<=").map(|i| (i, Ordering::Less, 1, 2, false)))
-        .or(line.find(">=").map(|i| (i, Ordering::Greater, -1, 2, false)))
+        .or(line
+            .find(">=")
+            .map(|i| (i, Ordering::Greater, -1, 2, false)))
         .or(line.find("<").map(|i| (i, Ordering::Less, 0, 1, false)))
         .or(line.find(">").map(|i| (i, Ordering::Greater, 0, 1, false)));
 
@@ -340,20 +342,26 @@ fn parse_story_condition(line: &str) -> Result<(StoryCondition, bool), LineParsi
                 )
             })? + adjustment;
 
-            Ok((StoryCondition::NumVisits {
-                address,
-                rhs_value,
-                ordering,
-            }, negate))
+            Ok((
+                StoryCondition::NumVisits {
+                    address,
+                    rhs_value,
+                    ordering,
+                },
+                negate,
+            ))
         }
         None => {
             let address = get_raw_address(line)?;
 
-            Ok((StoryCondition::NumVisits {
-                address,
-                rhs_value: 0,
-                ordering: Ordering::Greater,
-            }, false))
+            Ok((
+                StoryCondition::NumVisits {
+                    address,
+                    rhs_value: 0,
+                    ordering: Ordering::Greater,
+                },
+                false,
+            ))
         }
     }
 }

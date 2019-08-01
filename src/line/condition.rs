@@ -194,18 +194,6 @@ impl ConditionBuilder {
     }
 }
 
-impl From<StoryCondition> for ConditionKind {
-    fn from(kind: StoryCondition) -> Self {
-        ConditionKind::Single(kind)
-    }
-}
-
-impl From<&StoryCondition> for ConditionKind {
-    fn from(kind: &StoryCondition) -> Self {
-        ConditionKind::Single(kind.clone())
-    }
-}
-
 impl ValidateAddresses for Condition {
     fn validate(
         &mut self,
@@ -283,6 +271,18 @@ mod tests {
     impl From<StoryCondition> for Condition {
         fn from(kind: StoryCondition) -> Self {
             ConditionBuilder::from_kind(&kind.into(), false).build()
+        }
+    }
+
+    impl From<StoryCondition> for ConditionKind {
+        fn from(kind: StoryCondition) -> Self {
+            ConditionKind::Single(kind)
+        }
+    }
+
+    impl From<&StoryCondition> for ConditionKind {
+        fn from(kind: &StoryCondition) -> Self {
+            ConditionKind::Single(kind.clone())
         }
     }
 
