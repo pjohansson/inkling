@@ -212,7 +212,10 @@ impl ValidateAddresses for Condition {
 
     #[cfg(test)]
     fn all_addresses_are_valid(&self) -> bool {
-        unimplemented!();
+        self.root.kind.all_addresses_are_valid()
+            && self.items.iter().all(|item| match item {
+                AndOr::And(item) | AndOr::Or(item) => item.kind.all_addresses_are_valid(),
+            })
     }
 }
 
