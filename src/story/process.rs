@@ -213,8 +213,8 @@ mod tests {
         follow::LineTextBuilder,
         knot::{Knot, Stitch},
         line::{
-            AlternativeBuilder, InternalChoice, InternalChoiceBuilder, InternalLineBuilder,
-            LineChunkBuilder,
+            AlternativeBuilder, ConditionBuilder, InternalChoice, InternalChoiceBuilder,
+            InternalLineBuilder, LineChunkBuilder,
         },
         story::Address,
     };
@@ -255,15 +255,11 @@ mod tests {
             ordering: Ordering::Greater,
         };
 
-        assert!(check_condition(&Condition::from(greater_than_condition), &knots).unwrap());
-
         let less_than_condition = StoryCondition::NumVisits {
             address: Address::from_target_address(&name, &current_address, &knots).unwrap(),
             rhs_value: 2,
             ordering: Ordering::Less,
         };
-
-        assert!(!check_condition(&Condition::from(less_than_condition), &knots).unwrap());
 
         let equal_condition = StoryCondition::NumVisits {
             address: Address::from_target_address(&name, &current_address, &knots).unwrap(),
@@ -271,17 +267,22 @@ mod tests {
             ordering: Ordering::Equal,
         };
 
-        assert!(check_condition(&Condition::from(equal_condition), &knots).unwrap());
-
-        panic!();
-
         let not_equal_condition = StoryCondition::NumVisits {
             address: Address::from_target_address(&name, &current_address, &knots).unwrap(),
             rhs_value: 3,
             ordering: Ordering::Equal,
         };
 
-        assert!(!check_condition(&Condition::from(not_equal_condition), &knots).unwrap());
+        let gt_condition =
+            ConditionBuilder::from_kind(&greater_than_condition.into(), false).build();
+        let lt_condition = ConditionBuilder::from_kind(&less_than_condition.into(), false).build();
+        let eq_condition = ConditionBuilder::from_kind(&equal_condition.into(), false).build();
+        let neq_condition = ConditionBuilder::from_kind(&not_equal_condition.into(), true).build();
+
+        assert!(check_condition(&gt_condition, &knots).unwrap());
+        assert!(!check_condition(&lt_condition, &knots).unwrap());
+        assert!(check_condition(&eq_condition, &knots).unwrap());
+        assert!(!check_condition(&neq_condition, &knots).unwrap());
     }
 
     #[test]
