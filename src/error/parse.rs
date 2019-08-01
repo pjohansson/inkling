@@ -199,11 +199,11 @@ impl fmt::Display for LineParsingError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         use LineErrorKind::*;
 
-        match self.kind {
-            BadCondition(..) => unimplemented!(),
+        match &self.kind {
+            BadCondition(err) => write!(f, "Could not parse a condition: {}", err),
             EmptyDivert => write!(f, "Encountered a divert statement with no address",),
             EmptyExpression => write!(f, "Found an empty embraced expression ({{}})"),
-            ExpectedEndOfLine { ref tail } => write!(
+            ExpectedEndOfLine { tail } => write!(
                 f,
                 "Expected no more content after a divert statement address but found '{}'",
                 tail
@@ -214,7 +214,7 @@ impl fmt::Display for LineParsingError {
                  a `tunnel` for the story to pass through, but these are not yet implemented \
                  in `inkling`."
             ),
-            InvalidAddress { ref address } => write!(
+            InvalidAddress { address } => write!(
                 f,
                 "Found an invalid address to knot, stitch or variable '{}': \
                  contains invalid characters",
@@ -273,12 +273,39 @@ pub enum LineErrorKind {
 }
 
 #[derive(Clone, Debug)]
+/// Error from parsing `Condition` objects.
 pub struct BadCondition {
+    /// Content of string that caused the error.
     content: String,
+    /// Error variant.
     kind: BadConditionKind,
 }
 
+impl fmt::Display for BadCondition {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        use BadConditionKind::*;
+
+        match self.kind {
+            BadLink => write!(
+                f,
+                "internal error: did not correctly partition conditions into parts separated \
+                 by `and`/`or` markers"
+            ),
+            BadValue => write!(f, "could not parse a number from the condition value"),
+            CouldNotParse => write!(f, "incorrectly formatted condition"),
+            MultipleElseStatements => write!(f, "found multiple else statements in condition"),
+            NoCondition => write!(f, "condition string was empty"),
+            UnmatchedParenthesis => write!(f, "contained unmatched parenthesis"),
+        }?;
+
+        write!(f, " (condition string: '{}')", &self.content)
+    }
+}
+
+impl Error for BadCondition {}
+
 impl BadCondition {
+    /// Quickly construct an error from the kind and line.
     pub fn from_kind<T: Into<String>>(content: T, kind: BadConditionKind) -> Self {
         BadCondition {
             content: content.into(),
@@ -288,6 +315,7 @@ impl BadCondition {
 }
 
 #[derive(Clone, Copy, Debug)]
+/// Variant of `Condition` parsing error.
 pub enum BadConditionKind {
     /// The first item in a condition was not `Blank` or any other item was not `And` or `Or`.
     ///
