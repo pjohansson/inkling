@@ -193,17 +193,10 @@ fn check_condition(condition: &Condition, knots: &Knots) -> Result<bool, Inkling
                 address,
                 rhs_value,
                 ordering,
-                not,
             } => {
                 let num_visits = get_stitch(address, knots)?.num_visited() as i32;
 
-                let value = num_visits.cmp(rhs_value) == *ordering;
-
-                if *not {
-                    Ok(!value)
-                } else {
-                    Ok(value)
-                }
+                Ok(num_visits.cmp(rhs_value) == *ordering)
             }
         }
     };
@@ -260,7 +253,6 @@ mod tests {
             address: Address::from_target_address(&name, &current_address, &knots).unwrap(),
             rhs_value: 2,
             ordering: Ordering::Greater,
-            not: false,
         };
 
         assert!(check_condition(&Condition::from(greater_than_condition), &knots).unwrap());
@@ -269,7 +261,6 @@ mod tests {
             address: Address::from_target_address(&name, &current_address, &knots).unwrap(),
             rhs_value: 2,
             ordering: Ordering::Less,
-            not: false,
         };
 
         assert!(!check_condition(&Condition::from(less_than_condition), &knots).unwrap());
@@ -278,16 +269,16 @@ mod tests {
             address: Address::from_target_address(&name, &current_address, &knots).unwrap(),
             rhs_value: 3,
             ordering: Ordering::Equal,
-            not: false,
         };
 
         assert!(check_condition(&Condition::from(equal_condition), &knots).unwrap());
+
+        panic!();
 
         let not_equal_condition = StoryCondition::NumVisits {
             address: Address::from_target_address(&name, &current_address, &knots).unwrap(),
             rhs_value: 3,
             ordering: Ordering::Equal,
-            not: true,
         };
 
         assert!(!check_condition(&Condition::from(not_equal_condition), &knots).unwrap());
@@ -497,14 +488,12 @@ mod tests {
             address: Address::from_target_address(&name, &current_address, &knots).unwrap(),
             rhs_value: 0,
             ordering: Ordering::Greater,
-            not: false,
         });
 
         let unfulfilled_condition = Condition::from(StoryCondition::NumVisits {
             address: Address::from_target_address(&name, &current_address, &knots).unwrap(),
             rhs_value: 2,
             ordering: Ordering::Greater,
-            not: false,
         });
 
         let choice1 = InternalChoiceBuilder::from_string("Removed")

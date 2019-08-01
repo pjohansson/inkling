@@ -193,7 +193,7 @@ fn parse_condition_kind(content: &str) -> Result<ConditionKind, BadCondition> {
         Ok(ConditionKind::False)
     } else if content.trim().starts_with('(') && content.trim().ends_with(')') {
         let i = content.find('(').unwrap();
-        let j = content.find(')').unwrap();
+        let j = content.rfind(')').unwrap();
 
         let inner_block = content.get(i + 1..j).unwrap();
 
@@ -315,7 +315,8 @@ fn parse_story_condition(line: &str) -> Result<StoryCondition, LineParsingError>
             let head = line.get(..index).unwrap().trim();
             let tail = line.get(index + symbol_length..).unwrap().trim();
 
-            let (name, not) = get_name_and_if_not_condition(head)?;
+            let address = get_raw_address(head)?;
+
             let rhs_value = tail.parse::<i32>().map_err(|_| {
                 LineParsingError::from_kind(
                     line,
@@ -326,22 +327,36 @@ fn parse_story_condition(line: &str) -> Result<StoryCondition, LineParsingError>
             })? + adjustment;
 
             Ok(StoryCondition::NumVisits {
-                address: Address::Raw(name.to_string()),
+                address,
                 rhs_value,
                 ordering,
-                not,
             })
         }
         None => {
-            let (name, not) = get_name_and_if_not_condition(line)?;
+            let address = get_raw_address(line)?;
 
             Ok(StoryCondition::NumVisits {
-                address: Address::Raw(name.to_string()),
+                address,
                 rhs_value: 0,
                 ordering: Ordering::Greater,
-                not,
             })
         }
+    }
+}
+
+/// Parse the condition `Address`.
+fn get_raw_address(line: &str) -> Result<Address, LineParsingError> {
+    let words = line.trim().split_whitespace().collect::<Vec<_>>();
+
+    if words.len() == 1 {
+        Ok(Address::Raw(words[0].to_string()))
+    } else {
+        Err(LineParsingError::from_kind(
+            line,
+            LineErrorKind::ExpectedLogic {
+                line: line.to_string(),
+            },
+        ))
     }
 }
 
@@ -370,42 +385,228 @@ fn split_line_condition_content(content: &str) -> Result<(&str, &str, &str), Lin
     }
 }
 
-/// Parse the condition `name` and whether the condition is negated.
-///
-/// ConditionKinds are of the form {(not) name (op value)} and this function treats
-/// the line that is left after trimming the (op value) part from it. Thus, we want
-/// to get the name and whether a `not` statement preceedes it.
-fn get_name_and_if_not_condition(line: &str) -> Result<(String, bool), LineParsingError> {
-    let words = line.trim().split_whitespace().collect::<Vec<_>>();
-
-    if words.len() == 1 {
-        Ok((words[0].to_string(), false))
-    } else if words.len() == 2 && words[0].to_lowercase() == "not" {
-        Ok((words[1].to_string(), true))
-    } else {
-        Err(LineParsingError::from_kind(
-            line,
-            LineErrorKind::ExpectedLogic {
-                line: line.to_string(),
-            },
-        ))
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn parsing_condition_without_brackets_return_none_and_leaves_string_unchanged() {
-        let mut line = "Hello, World!".to_string();
-        assert!(parse_choice_condition(&mut line).unwrap().is_none());
+    fn parsing_condition_with_not_sets_reverse_condition() {
+        let mut line = "not knot_name".to_string();
+        let condition = parse_condition(&mut line).unwrap();
+
+        assert!(condition.root.negate);
+    }
+
+    #[test]
+    fn parsing_two_conditions_from_a_line() {
+        let condition = parse_condition(&mut "knot > 0 and other_knot > 0").unwrap();
+
+        assert_eq!(condition.items.len(), 1);
+        assert!(condition.items[0].is_and());
+
+        match &condition.story_condition() {
+            StoryCondition::NumVisits {
+                address,
+                rhs_value,
+                ordering,
+            } => {
+                assert_eq!(address, &Address::Raw("knot".to_string()));
+                assert_eq!(*rhs_value, 0);
+                assert_eq!(*ordering, Ordering::Greater);
+            }
+        }
+
+        match &condition.items[0].story_condition() {
+            StoryCondition::NumVisits {
+                address,
+                rhs_value,
+                ordering,
+            } => {
+                assert_eq!(address, &Address::Raw("other_knot".to_string()));
+                assert_eq!(*rhs_value, 0);
+                assert_eq!(*ordering, Ordering::Greater);
+            }
+        }
+    }
+
+    #[test]
+    fn equivalence_between_specifying_greater_than_zero_conditions_and_implying() {
+        let condition_specified = parse_condition(&mut "knot > 0 and other_knot > 0").unwrap();
+        let condition_implied = parse_condition(&mut "knot and other_knot").unwrap();
+
+        assert_eq!(condition_specified, condition_implied);
+    }
+
+    #[test]
+    fn and_gives_and_and_vice_versa() {
+        let condition = parse_condition(&mut "knot and other_knot or third_knot").unwrap();
+
+        assert!(condition.items[0].is_and());
+        assert!(condition.items[1].is_or());
+    }
+
+    #[test]
+    fn nested_conditions_are_the_condition_from_the_parenthesis() {
+        let nested = parse_condition("knot and other_knot").unwrap();
+        let condition = parse_condition("(knot and other_knot)").unwrap();
+
+        assert_eq!(condition.root.kind.nested(), &nested);
+    }
+
+    #[test]
+    fn nested_conditions_work_as_part_of_condition() {
+        let nested = parse_condition("knot and other_knot").unwrap();
+        let condition =
+            parse_condition("first_knot and other or (knot and other_knot) and third").unwrap();
+
+        assert_eq!(condition.items.len(), 3);
+        assert!(condition.items[1].is_or());
+        assert_eq!(condition.items[1].nested(), &nested);
+    }
+
+    #[test]
+    fn nested_conditions_can_nest_in_multiple_levels() {
+        let inner = "knot and other_knot";
+
+        let level_zero = parse_condition(&format!("{}", inner)).unwrap();
+        let level_one = parse_condition(&format!("({})", inner)).unwrap();
+        let level_two = parse_condition(&format!("(({}))", inner)).unwrap();
+        let level_three = parse_condition(&format!("((({})))", inner)).unwrap();
+        let level_four = parse_condition(&format!("(((({}))))", inner)).unwrap();
+
+        assert_eq!(level_one.root.kind.nested(), &level_zero);
+        assert_eq!(level_two.root.kind.nested(), &level_one);
+        assert_eq!(level_three.root.kind.nested(), &level_two);
+        assert_eq!(level_four.root.kind.nested(), &level_three);
+    }
+
+    #[test]
+    fn nested_conditions_can_have_not_in_front_whereever() {
+        let inner = "knot and other_knot";
+
+        let level_one = parse_condition(&format!("({})", inner)).unwrap();
+        let level_two = parse_condition(&format!("(not ({}))", inner)).unwrap();
+
+        assert_eq!(level_two.root.kind.nested().root.kind, level_one.root.kind);
+
+        assert!(!level_one.root.kind.nested().root.negate);
+        assert!(level_two.root.kind.nested().root.negate);
+    }
+
+    #[test]
+    fn parsing_single_not_larger_than_condition() {
+        let mut line = "not knot_name > 2".to_string();
+        let condition = parse_condition(&mut line).unwrap();
+
+        assert!(condition.root.negate);
+
+        match &condition.story_condition() {
+            StoryCondition::NumVisits {
+                address,
+                rhs_value,
+                ordering,
+            } => {
+                assert_eq!(address, &Address::Raw("knot_name".to_string()));
+                assert_eq!(*rhs_value, 2);
+                assert_eq!(*ordering, Ordering::Greater);
+            }
+        }
+    }
+
+    #[test]
+    fn parsing_single_larger_than_story_condition() {
+        let mut line = "knot_name > 2".to_string();
+        let condition = parse_story_condition(&mut line).unwrap();
+
+        match &condition {
+            StoryCondition::NumVisits {
+                address,
+                rhs_value,
+                ordering,
+            } => {
+                assert_eq!(address, &Address::Raw("knot_name".to_string()));
+                assert_eq!(*rhs_value, 2);
+                assert_eq!(*ordering, Ordering::Greater);
+            }
+        }
+    }
+
+    #[test]
+    fn parsing_single_less_than_story_condition() {
+        let mut line = "knot_name < 2".to_string();
+        let condition = parse_story_condition(&mut line).unwrap();
+
+        match &condition {
+            StoryCondition::NumVisits {
+                address,
+                rhs_value,
+                ordering,
+            } => {
+                assert_eq!(address, &Address::Raw("knot_name".to_string()));
+                assert_eq!(*rhs_value, 2);
+                assert_eq!(*ordering, Ordering::Less);
+            }
+        }
+    }
+
+    #[test]
+    fn parsing_single_equal_than_story_condition() {
+        let mut line = "knot_name == 2".to_string();
+        let condition = parse_story_condition(&mut line).unwrap();
+
+        match &condition {
+            StoryCondition::NumVisits {
+                address,
+                rhs_value,
+                ordering,
+            } => {
+                assert_eq!(address, &Address::Raw("knot_name".to_string()));
+                assert_eq!(*rhs_value, 2);
+                assert_eq!(*ordering, Ordering::Equal);
+            }
+        }
+    }
+
+    #[test]
+    fn parsing_single_equal_to_or_greater_than_story_condition() {
+        let mut line = "knot_name >= 2".to_string();
+        let condition = parse_story_condition(&mut line).unwrap();
+
+        match &condition {
+            StoryCondition::NumVisits {
+                address,
+                rhs_value,
+                ordering,
+            } => {
+                assert_eq!(address, &Address::Raw("knot_name".to_string()));
+                assert_eq!(*rhs_value, 1);
+                assert_eq!(*ordering, Ordering::Greater);
+            }
+        }
+    }
+
+    #[test]
+    fn parsing_single_equal_to_or_less_than_story_condition() {
+        let mut line = "knot_name <= 2".to_string();
+        let condition = parse_story_condition(&mut line).unwrap();
+
+        match &condition {
+            StoryCondition::NumVisits {
+                address,
+                rhs_value,
+                ordering,
+            } => {
+                assert_eq!(address, &Address::Raw("knot_name".to_string()));
+                assert_eq!(*rhs_value, 3);
+                assert_eq!(*ordering, Ordering::Less);
+            }
+        }
     }
 
     #[test]
     fn parsing_bad_conditions_give_error() {
-        assert!(parse_story_condition("not too many names").is_err());
-        assert!(parse_story_condition("not too many > 3").is_err());
+        assert!(parse_story_condition("not superfluous").is_err());
+        assert!(parse_story_condition("not superfluous > 3").is_err());
         assert!(parse_story_condition("no_value >").is_err());
         assert!(parse_story_condition("too_many_values > 3 2").is_err());
         assert!(parse_story_condition("bad_value > s").is_err());
@@ -413,7 +614,7 @@ mod tests {
     }
 
     #[test]
-    fn parsing_condition_with_just_name_gives_larger_than_zero_visits_condition() {
+    fn parsing_choice_condition_with_just_name_gives_larger_than_zero_visits_condition() {
         let mut line = "{knot_name} Hello, World!".to_string();
         let condition = parse_choice_condition(&mut line).unwrap().unwrap();
 
@@ -422,14 +623,18 @@ mod tests {
                 address,
                 rhs_value,
                 ordering,
-                not,
             } => {
                 assert_eq!(address, &Address::Raw("knot_name".to_string()));
                 assert_eq!(*rhs_value, 0);
                 assert_eq!(*ordering, Ordering::Greater);
-                assert_eq!(*not, false);
             }
         }
+    }
+
+    #[test]
+    fn parsing_choice_condition_without_brackets_return_none_and_leaves_string_unchanged() {
+        let mut line = "Hello, World!".to_string();
+        assert!(parse_choice_condition(&mut line).unwrap().is_none());
     }
 
     #[test]
@@ -461,142 +666,10 @@ mod tests {
                 address,
                 rhs_value,
                 ordering,
-                not,
             } => {
                 assert_eq!(address, &Address::Raw("third_knot".to_string()));
                 assert_eq!(*rhs_value, 0);
                 assert_eq!(*ordering, Ordering::Greater);
-                assert_eq!(*not, false);
-            }
-        }
-    }
-
-    #[test]
-    fn parsing_condition_with_not_sets_reverse_condition() {
-        let mut line = "{not knot_name} Hello, World!".to_string();
-        let condition = parse_choice_condition(&mut line).unwrap().unwrap();
-
-        assert!(condition.root.negate);
-    }
-
-    #[test]
-    fn parsing_single_larger_than_condition() {
-        let mut line = "{knot_name > 2} Hello, World!".to_string();
-        let condition = parse_choice_condition(&mut line).unwrap().unwrap();
-
-        match &condition.story_condition() {
-            StoryCondition::NumVisits {
-                address,
-                rhs_value,
-                ordering,
-                not,
-            } => {
-                assert_eq!(address, &Address::Raw("knot_name".to_string()));
-                assert_eq!(*rhs_value, 2);
-                assert_eq!(*ordering, Ordering::Greater);
-                assert_eq!(*not, false);
-            }
-        }
-    }
-
-    #[test]
-    fn parsing_single_not_larger_than_condition() {
-        let mut line = "{not knot_name > 2} Hello, World!".to_string();
-        let condition = parse_choice_condition(&mut line).unwrap().unwrap();
-
-        assert!(condition.root.negate);
-
-        match &condition.story_condition() {
-            StoryCondition::NumVisits {
-                address,
-                rhs_value,
-                ordering,
-                not,
-            } => {
-                assert_eq!(address, &Address::Raw("knot_name".to_string()));
-                assert_eq!(*rhs_value, 2);
-                assert_eq!(*ordering, Ordering::Greater);
-                assert_eq!(*not, false);
-            }
-        }
-    }
-
-    #[test]
-    fn parsing_single_less_than_condition() {
-        let mut line = "{knot_name < 2} Hello, World!".to_string();
-        let condition = parse_choice_condition(&mut line).unwrap().unwrap();
-
-        match &condition.story_condition() {
-            StoryCondition::NumVisits {
-                address,
-                rhs_value,
-                ordering,
-                not,
-            } => {
-                assert_eq!(address, &Address::Raw("knot_name".to_string()));
-                assert_eq!(*rhs_value, 2);
-                assert_eq!(*ordering, Ordering::Less);
-                assert_eq!(*not, false);
-            }
-        }
-    }
-
-    #[test]
-    fn parsing_single_equal_than_condition() {
-        let mut line = "{knot_name == 2} Hello, World!".to_string();
-        let condition = parse_choice_condition(&mut line).unwrap().unwrap();
-
-        match &condition.story_condition() {
-            StoryCondition::NumVisits {
-                address,
-                rhs_value,
-                ordering,
-                not,
-            } => {
-                assert_eq!(address, &Address::Raw("knot_name".to_string()));
-                assert_eq!(*rhs_value, 2);
-                assert_eq!(*ordering, Ordering::Equal);
-                assert_eq!(*not, false);
-            }
-        }
-    }
-
-    #[test]
-    fn parsing_single_equal_to_or_greater_than_condition() {
-        let mut line = "{knot_name >= 2} Hello, World!".to_string();
-        let condition = parse_choice_condition(&mut line).unwrap().unwrap();
-
-        match &condition.story_condition() {
-            StoryCondition::NumVisits {
-                address,
-                rhs_value,
-                ordering,
-                not,
-            } => {
-                assert_eq!(address, &Address::Raw("knot_name".to_string()));
-                assert_eq!(*rhs_value, 1);
-                assert_eq!(*ordering, Ordering::Greater);
-                assert_eq!(*not, false);
-            }
-        }
-    }
-
-    #[test]
-    fn parsing_single_equal_to_or_less_than_condition() {
-        let mut line = "{knot_name <= 2} Hello, World!".to_string();
-        let condition = parse_choice_condition(&mut line).unwrap().unwrap();
-
-        match &condition.story_condition() {
-            StoryCondition::NumVisits {
-                address,
-                rhs_value,
-                ordering,
-                not,
-            } => {
-                assert_eq!(address, &Address::Raw("knot_name".to_string()));
-                assert_eq!(*rhs_value, 3);
-                assert_eq!(*ordering, Ordering::Less);
-                assert_eq!(*not, false);
             }
         }
     }

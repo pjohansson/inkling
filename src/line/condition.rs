@@ -97,7 +97,6 @@ pub enum StoryCondition {
         rhs_value: i32,
         #[cfg_attr(feature = "serde_support", serde(with = "OrderingDerive"))]
         ordering: Ordering,
-        not: bool, // negation of the condition, ie. !(condition)
     },
 }
 
@@ -113,7 +112,7 @@ impl Condition {
     /// Evaluate the condition with the given evaluator closure.
     ///
     /// This closure will be called on every item in the `Condition` as all parts
-    /// are walked through. 
+    /// are walked through.
     pub fn evaluate<F, E>(&self, evaluator: &F) -> Result<bool, E>
     where
         F: Fn(&StoryCondition) -> Result<bool, E>,
@@ -314,18 +313,53 @@ mod tests {
     }
 
     impl ConditionKind {
+        pub fn nested(&self) -> &Condition {
+            match self {
+                ConditionKind::Nested(condition) => condition,
+                other => panic!(
+                    "tried to extract nested `Condition`, but item was not `ConditionKind::Nested` \
+                     (was: {:?})",
+                     other
+                ),
+            }
+        }
+
         pub fn story_condition(&self) -> &StoryCondition {
             match self {
                 ConditionKind::Single(story_condition) => story_condition,
-                other => panic!("tried to extract `StoryCondition`, but item was not `ConditionKind::Single` (was: {:?})", other),
+                other => panic!(
+                    "tried to extract `StoryCondition`, but item was not `ConditionKind::Single` \
+                     (was: {:?})",
+                    other
+                ),
             }
         }
     }
 
     impl AndOr {
+        pub fn nested(&self) -> &Condition {
+            match self {
+                AndOr::And(item) | AndOr::Or(item) => item.kind.nested(),
+            }
+        }
+
         pub fn story_condition(&self) -> &StoryCondition {
             match self {
                 AndOr::And(item) | AndOr::Or(item) => item.kind.story_condition(),
+            }
+        }
+
+        pub fn is_and(&self) -> bool {
+            match self {
+                AndOr::And(..) => true,
+                _ => false,
+            }
+        }
+
+        pub fn is_or(&self) -> bool {
+            match self {
+                AndOr::Or(..) => true,
+                _ => false,
             }
         }
     }
