@@ -51,6 +51,31 @@ He just woke from a nightmare.
 }
 
 #[test]
+fn line_comments_are_removed() {
+    let content = "
+
+Mont Blanc was a world-renowned mountain guide. // need to introduce Mont Blanc
+He befriended thousands of climbers and children sightseeing in Switzerland.
+
+-> DONE
+
+";
+
+    let mut story = read_story_from_string(content).unwrap();
+    let mut line_buffer = Vec::new();
+
+    match story.start(&mut line_buffer) {
+        Ok(Prompt::Done) => {
+            assert_eq!(
+                &line_buffer[0].text,
+                "Mont Blanc was a world-renowned mountain guide.\n"
+            );
+        }
+        _ => panic!("error while reading a flat story from string"),
+    }
+}
+
+#[test]
 fn story_can_start_with_named_knot() {
     let content = "
 

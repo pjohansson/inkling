@@ -188,6 +188,13 @@ fn remove_empty_and_comment_lines(content: Vec<&str>) -> Vec<&str> {
             !(line.starts_with(LINE_COMMENT_MARKER) || line.starts_with(TODO_COMMENT_MARKER))
         })
         .filter(|line| !line.trim().is_empty())
+        .map(|line| {
+            if let Some(i) = line.find("//") {
+                line.get(..i).unwrap()
+            } else {
+                line
+            }
+        })
         .collect()
 }
 
@@ -285,6 +292,18 @@ Second line.
 
         let lines = remove_empty_and_comment_lines(content.clone());
         assert_eq!(&lines, &[content[0].clone(), content[5].clone()]);
+    }
+
+    #[test]
+    fn initial_processing_splits_off_line_comments() {
+        let content = vec![
+            "Line before comment marker // Removed part",
+            "Line with no comment marker",
+        ];
+
+        let lines = remove_empty_and_comment_lines(content.clone());
+        assert_eq!(lines[0], "Line before comment marker ");
+        assert_eq!(lines[1], "Line with no comment marker");
     }
 
     #[test]
