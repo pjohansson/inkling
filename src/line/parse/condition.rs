@@ -1,4 +1,4 @@
-//! Parse `StoryCondition` objects.
+//! Parse `Condition` objects.
 
 use std::cmp::Ordering;
 
@@ -80,56 +80,6 @@ pub fn parse_choice_condition(line: &mut String) -> Result<Option<Condition>, Li
 
         builder.build()
     }))
-}
-
-/// Split conditions from the string and return them separately.
-///
-/// In this case, splitting from the string means that all characters up until the regular
-/// line begins are removed from the input string as a side effect. The string up until
-/// that point is split into string expressions of the conditions contained within them.
-///
-/// # Notes
-/// *   ConditionKinds are marked by being contained within curly '{}' braces. This is unique
-///     to parsing conditions for choices. Other conditional lines require separate markup.
-/// *   As soon as text which is not enclosed by braces appear the condition parsing
-///     ends.
-/// *   A backslash '\\' can be used in front of a curly brace to denote that it's not
-///     a condition.
-/// *   The condition strings are returned without the enclosing braces.
-fn split_choice_conditions_off_string(
-    content: &mut String,
-) -> Result<Vec<String>, LineParsingError> {
-    let (head, backslash_adjustor) = content
-        .find("\\{")
-        .and_then(|i| content.get(..i))
-        .map(|s| (s, 1))
-        .unwrap_or((content.as_str(), 0));
-
-    let parts = split_line_into_groups_braces(head)?;
-
-    let iter = parts.into_iter().take_while(|part| match part {
-        LinePart::Embraced(..) => true,
-        LinePart::Text(text) => text.chars().all(|c| c.is_whitespace()),
-    });
-
-    let num_chars = iter
-        .clone()
-        .map(|part| match part {
-            LinePart::Embraced(text) => text.len() + 2,
-            LinePart::Text(text) => text.len(),
-        })
-        .sum::<usize>();
-
-    let conditions = iter
-        .filter_map(|part| match part {
-            LinePart::Embraced(text) => Some(text.to_string()),
-            _ => None,
-        })
-        .collect();
-
-    content.drain(..num_chars + backslash_adjustor);
-
-    Ok(conditions)
 }
 
 /// Parse a `Condition` from a line.
@@ -215,6 +165,84 @@ fn parse_condition_kind(content: &str) -> Result<(ConditionKind, bool), BadCondi
 
         Ok((ConditionKind::Single(condition), inner_negate))
     }
+}
+
+/// Split a line into conditional, true and false parts and return in that order.
+/// 
+/// This stems from conditional line content being on the format `{condition: if true | else }`.
+/// When a conditional is encountered we split these into separate parts for parsing.
+fn split_line_condition_content(content: &str) -> Result<(&str, &str, &str), LineParsingError> {
+    let parts = split_line_at_separator_braces(content, ":", Some(1))?;
+
+    let (head, tail) = match parts.len() {
+        1 => Err(LineParsingError::from_kind(
+            content,
+            BadCondition::from_kind(content, BadConditionKind::NoCondition).into(),
+        )),
+        2 => Ok((parts[0], parts[1])),
+        _ => unreachable!(),
+    }?;
+
+    let variational_parts = split_line_at_separator_braces(tail, "|", Some(2))?;
+
+    match variational_parts.len() {
+        1 => Ok((head, variational_parts[0], "")),
+        2 => Ok((head, variational_parts[0], variational_parts[1])),
+        _ => Err(LineParsingError::from_kind(
+            content,
+            BadCondition::from_kind(content, BadConditionKind::MultipleElseStatements).into(),
+        )),
+    }
+}
+
+/// Split conditions from the string and return them separately.
+///
+/// In this case, splitting from the string means that all characters up until the regular
+/// line begins are removed from the input string as a side effect. The string up until
+/// that point is split into string expressions of the conditions contained within them.
+///
+/// # Notes
+/// *   ConditionKinds are marked by being contained within curly '{}' braces. This is unique
+///     to parsing conditions for choices. Other conditional lines require separate markup.
+/// *   As soon as text which is not enclosed by braces appear the condition parsing
+///     ends.
+/// *   A backslash '\\' can be used in front of a curly brace to denote that it's not
+///     a condition.
+/// *   The condition strings are returned without the enclosing braces.
+fn split_choice_conditions_off_string(
+    content: &mut String,
+) -> Result<Vec<String>, LineParsingError> {
+    let (head, backslash_adjustor) = content
+        .find("\\{")
+        .and_then(|i| content.get(..i))
+        .map(|s| (s, 1))
+        .unwrap_or((content.as_str(), 0));
+
+    let parts = split_line_into_groups_braces(head)?;
+
+    let iter = parts.into_iter().take_while(|part| match part {
+        LinePart::Embraced(..) => true,
+        LinePart::Text(text) => text.chars().all(|c| c.is_whitespace()),
+    });
+
+    let num_chars = iter
+        .clone()
+        .map(|part| match part {
+            LinePart::Embraced(text) => text.len() + 2,
+            LinePart::Text(text) => text.len(),
+        })
+        .sum::<usize>();
+
+    let conditions = iter
+        .filter_map(|part| match part {
+            LinePart::Embraced(text) => Some(text.to_string()),
+            _ => None,
+        })
+        .collect();
+
+    content.drain(..num_chars + backslash_adjustor);
+
+    Ok(conditions)
 }
 
 /// Split off leading `and`/`or` parts from line and return them as a `Link`.
@@ -384,31 +412,6 @@ fn get_raw_address(line: &str) -> Result<Address, LineParsingError> {
     }
 }
 
-/// Split a line into conditional, true and false parts.
-fn split_line_condition_content(content: &str) -> Result<(&str, &str, &str), LineParsingError> {
-    let parts = split_line_at_separator_braces(content, ":", Some(1))?;
-
-    let (head, tail) = match parts.len() {
-        1 => Err(LineParsingError::from_kind(
-            content,
-            BadCondition::from_kind(content, BadConditionKind::NoCondition).into(),
-        )),
-        2 => Ok((parts[0], parts[1])),
-        _ => unreachable!(),
-    }?;
-
-    let variational_parts = split_line_at_separator_braces(tail, "|", Some(2))?;
-
-    match variational_parts.len() {
-        1 => Ok((head, variational_parts[0], "")),
-        2 => Ok((head, variational_parts[0], variational_parts[1])),
-        _ => Err(LineParsingError::from_kind(
-            content,
-            BadCondition::from_kind(content, BadConditionKind::MultipleElseStatements).into(),
-        )),
-    }
-}
-
 /// Verify that the head has no link and the tail has only `and` or `or` links.
 fn validate_items<T>(items: &[(Link, T)], content: &str) -> Result<(), BadCondition> {
     items
@@ -417,20 +420,14 @@ fn validate_items<T>(items: &[(Link, T)], content: &str) -> Result<(), BadCondit
             match first_link {
                 Link::Blank => (),
                 _ => {
-                    return Err(BadCondition::from_kind(
-                        content,
-                        BadConditionKind::BadLink,
-                    ));
+                    return Err(BadCondition::from_kind(content, BadConditionKind::BadLink));
                 }
             }
 
             for (link, _) in tail {
                 match link {
                     Link::Blank => {
-                        return Err(BadCondition::from_kind(
-                            content,
-                            BadConditionKind::BadLink,
-                        ));
+                        return Err(BadCondition::from_kind(content, BadConditionKind::BadLink));
                     }
                     _ => (),
                 }
@@ -1008,7 +1005,11 @@ mod tests {
     #[test]
     fn validation_fails_if_any_link_in_the_tail_is_blank() {
         assert!(validate_items(&[(Link::Blank, ()), (Link::And, ()), (Link::Or, ())], "").is_ok());
-        assert!(validate_items(&[(Link::Blank, ()), (Link::And, ()), (Link::Blank, ())], "").is_err());
-        assert!(validate_items(&[(Link::Blank, ()), (Link::Blank, ()), (Link::Or, ())], "").is_err());
+        assert!(
+            validate_items(&[(Link::Blank, ()), (Link::And, ()), (Link::Blank, ())], "").is_err()
+        );
+        assert!(
+            validate_items(&[(Link::Blank, ()), (Link::Blank, ()), (Link::Or, ())], "").is_err()
+        );
     }
 }

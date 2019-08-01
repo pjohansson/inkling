@@ -300,9 +300,9 @@ impl BadCondition {
 #[derive(Clone, Copy, Debug)]
 pub enum BadConditionKind {
     /// The first item in a condition was not `Blank` or any other item was not `And` or `Or`.
-    /// 
-    /// This is an internal consistency check from parsing a condition. Every subsequent 
-    /// condition to the first should be preceeded by an `and` or `or` marker, while the 
+    ///
+    /// This is an internal consistency check from parsing a condition. Every subsequent
+    /// condition to the first should be preceeded by an `and` or `or` marker, while the
     /// first condition should not be. After parsing the condition we assert that this is true.
     /// If not, some internal shenanigans are going on, but this should be unreachable.
     BadLink,
