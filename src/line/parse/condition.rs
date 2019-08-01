@@ -164,6 +164,8 @@ fn parse_condition(content: &str) -> Result<Condition, BadCondition> {
         items.push((link, item));
     }
 
+    validate_items(&items, content)?;
+
     items
         .split_first()
         .map(|((_, first), tail)| {
@@ -173,7 +175,7 @@ fn parse_condition(content: &str) -> Result<Condition, BadCondition> {
                 match link {
                     Link::And => builder.and(&item.kind, item.negate),
                     Link::Or => builder.or(&item.kind, item.negate),
-                    Link::Blank => unimplemented!(),
+                    Link::Blank => unreachable!(),
                 }
             }
 
@@ -405,6 +407,38 @@ fn split_line_condition_content(content: &str) -> Result<(&str, &str, &str), Lin
             BadCondition::from_kind(content, BadConditionKind::MultipleElseStatements).into(),
         )),
     }
+}
+
+/// Verify that the head has no link and the tail has only `and` or `or` links.
+fn validate_items<T>(items: &[(Link, T)], content: &str) -> Result<(), BadCondition> {
+    items
+        .split_first()
+        .map(|((first_link, _), tail)| {
+            match first_link {
+                Link::Blank => (),
+                _ => {
+                    return Err(BadCondition::from_kind(
+                        content,
+                        BadConditionKind::BadLink,
+                    ));
+                }
+            }
+
+            for (link, _) in tail {
+                match link {
+                    Link::Blank => {
+                        return Err(BadCondition::from_kind(
+                            content,
+                            BadConditionKind::BadLink,
+                        ));
+                    }
+                    _ => (),
+                }
+            }
+
+            Ok(())
+        })
+        .unwrap_or(Ok(()))
 }
 
 #[cfg(test)]
@@ -962,5 +996,19 @@ mod tests {
             "|| knot "
         );
         assert_eq!(&read_next_condition_string(&mut buffer).unwrap(), "&& knot");
+    }
+
+    #[test]
+    fn validation_fails_if_first_condition_item_does_not_have_blank_link() {
+        assert!(validate_items(&[(Link::Blank, ()), (Link::And, ()), (Link::Or, ())], "").is_ok());
+        assert!(validate_items(&[(Link::And, ()), (Link::And, ()), (Link::Or, ())], "").is_err());
+        assert!(validate_items(&[(Link::Or, ()), (Link::And, ()), (Link::Or, ())], "").is_err());
+    }
+
+    #[test]
+    fn validation_fails_if_any_link_in_the_tail_is_blank() {
+        assert!(validate_items(&[(Link::Blank, ()), (Link::And, ()), (Link::Or, ())], "").is_ok());
+        assert!(validate_items(&[(Link::Blank, ()), (Link::And, ()), (Link::Blank, ())], "").is_err());
+        assert!(validate_items(&[(Link::Blank, ()), (Link::Blank, ()), (Link::Or, ())], "").is_err());
     }
 }
