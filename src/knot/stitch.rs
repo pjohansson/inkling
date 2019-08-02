@@ -46,6 +46,8 @@ pub struct Knot {
     pub default_stitch: String,
     /// Map of `Stitches` belonging to this `Knot`.
     pub stitches: HashMap<String, Stitch>,
+    /// Tags associated with this knot.
+    pub tags: Vec<String>,
 }
 
 #[derive(Debug)]

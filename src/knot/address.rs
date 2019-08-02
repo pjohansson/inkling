@@ -284,6 +284,7 @@ fn get_empty_knot_map(knots: &KnotSet) -> KnotSet {
             let empty_knot = Knot {
                 default_stitch: knot.default_stitch.clone(),
                 stitches: empty_stitches,
+                tags: Vec::new(),
             };
 
             (knot_name.clone(), empty_knot)

@@ -47,6 +47,8 @@ fn get_knot_from_lines(
     knot_index: usize,
 ) -> Result<(String, Knot), KnotError> {
     let knot_name = get_knot_name(&mut lines, knot_index)?;
+
+    let tags = get_knot_tags(&mut lines);
     let knot_stitch_sets = divide_lines_at_marker(lines, STITCH_MARKER);
 
     let (default_stitch, stitches) = knot_stitch_sets
@@ -61,8 +63,29 @@ fn get_knot_from_lines(
         Knot {
             default_stitch,
             stitches,
+            tags,
         },
     ))
+}
+
+/// Parse knot tags from lines until the first line with content.
+///
+/// The lines which contain tags are split off of the input list.
+fn get_knot_tags(lines: &mut Vec<&str>) -> Vec<String> {
+    if let Some(i) = lines
+        .iter()
+        .map(|line| line.trim_start())
+        .position(|line| !(line.is_empty() || line.starts_with('#')))
+    {
+        lines
+            .drain(..i)
+            .map(|line| line.trim())
+            .filter(|line| !line.is_empty())
+            .map(|line| line.trim_start_matches("#").trim_start().to_string())
+            .collect()
+    } else {
+        Vec::new()
+    }
 }
 
 /// Parse a single `Stitch` from a set of lines.
@@ -400,5 +423,29 @@ Second line.
 
         let (_, knot) = get_knot_from_lines(lines, 0).unwrap();
         assert_eq!(&knot.default_stitch, "stitch_one");
+    }
+
+    #[test]
+    fn knot_parses_tags_from_name_until_first_line_without_octothorpe() {
+        let lines = vec!["== knot_name", "# Tag one", "# Tag two", "Line 1"];
+
+        let (_, knot) = get_knot_from_lines(lines, 0).unwrap();
+        assert_eq!(&knot.tags, &["Tag one".to_string(), "Tag two".to_string()]);
+    }
+
+    #[test]
+    fn knot_tags_ignore_empty_lines() {
+        let lines = vec!["== knot_name", "", "# Tag one", "", "# Tag two", "Line 1"];
+
+        let (_, knot) = get_knot_from_lines(lines, 0).unwrap();
+        assert_eq!(&knot.tags, &["Tag one".to_string(), "Tag two".to_string()]);
+    }
+
+    #[test]
+    fn if_no_tags_are_set_the_tags_are_empty() {
+        let lines = vec!["== knot_name", "Line 1"];
+
+        let (_, knot) = get_knot_from_lines(lines, 0).unwrap();
+        assert!(knot.tags.is_empty());
     }
 }
