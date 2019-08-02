@@ -27,6 +27,10 @@
 *   Add reading of tags for knots. Get them with the `get_knot_tags` method for `Story`.
 *   Fix bug where `serde_support` could not be activated since `FollowData` did not derive the traits.
 
+## 0.11.6
+
+*   Add `get_current_location` and `get_num_visited` methods for `Story`. The formers retrieves the knot and stitch name that the story is currently at. The latter the number of times a location has been visited so far in the story.
+
 # 0.10.0
 
 *   Add stitches to organize stories through.
