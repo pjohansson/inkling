@@ -1,6 +1,6 @@
 //! Validated addresses to nodes or content in a story.
 
-use super::story::Knots;
+use crate::knot::KnotSet;
 
 #[cfg(feature = "serde_support")]
 use serde::{Deserialize, Serialize};
@@ -25,7 +25,7 @@ pub trait ValidateAddresses {
     fn validate(
         &mut self,
         current_address: &Address,
-        knots: &Knots,
+        knots: &KnotSet,
     ) -> Result<(), InvalidAddressError>;
 
     #[cfg(test)]
@@ -51,11 +51,11 @@ pub enum Address {
 impl Address {
     /// Return an address from a string that is just a knot name.
     ///
-    /// The knot name is verified as present in the `Knots` set. The `Stitch` is set
+    /// The knot name is verified as present in the `KnotSet` set. The `Stitch` is set
     /// as the default for the found `Knot`.
     pub fn from_root_knot(
         root_knot_name: &str,
-        knots: &Knots,
+        knots: &KnotSet,
     ) -> Result<Self, InvalidAddressError> {
         let knot = knots
             .get(root_knot_name)
@@ -94,7 +94,7 @@ impl Address {
     pub fn from_target_address(
         target: &str,
         current_address: &Address,
-        knots: &Knots,
+        knots: &KnotSet,
     ) -> Result<Self, InvalidAddressError> {
         let mut address = Address::Raw(target.to_string());
         address.validate(current_address, knots).map(|_| address)
@@ -105,7 +105,7 @@ impl ValidateAddresses for Address {
     fn validate(
         &mut self,
         current_address: &Address,
-        knots: &Knots,
+        knots: &KnotSet,
     ) -> Result<(), InvalidAddressError> {
         match self {
             Address::Raw(ref target) if target == DONE_KNOT || target == END_KNOT => {
@@ -155,7 +155,7 @@ fn split_address_into_parts(address: &str) -> Result<(&str, Option<&str>), Inval
 fn get_full_address(
     knot: &str,
     stitch: &str,
-    knots: &Knots,
+    knots: &KnotSet,
 ) -> Result<(String, String), InvalidAddressError> {
     let target_knot = knots.get(knot).ok_or(InvalidAddressError::UnknownKnot {
         knot_name: knot.to_string(),
@@ -179,7 +179,7 @@ fn get_full_address(
 fn get_full_address_from_head(
     head: &str,
     current_address: &Address,
-    knots: &Knots,
+    knots: &KnotSet,
 ) -> Result<(String, String), InvalidAddressError> {
     let current_knot_name = current_address.get_knot().map_err(|_| {
         InvalidAddressError::ValidatedWithUnvalidatedAddress {
@@ -206,7 +206,7 @@ fn get_full_address_from_head(
 }
 
 /// Validate all addresses in knots using the `ValidateAddresses` trait.
-pub fn validate_addresses_in_knots(knots: &mut Knots) -> Result<(), InvalidAddressError> {
+pub fn validate_addresses_in_knots(knots: &mut KnotSet) -> Result<(), InvalidAddressError> {
     let empty_knots = get_empty_knot_map(knots);
 
     knots
@@ -227,8 +227,8 @@ pub fn validate_addresses_in_knots(knots: &mut Knots) -> Result<(), InvalidAddre
         .collect()
 }
 
-/// Return an empty copy of the `Knots` set.
-fn get_empty_knot_map(knots: &Knots) -> Knots {
+/// Return an empty copy of the `KnotSet`.
+fn get_empty_knot_map(knots: &KnotSet) -> KnotSet {
     knots
         .iter()
         .map(|(knot_name, knot)| {

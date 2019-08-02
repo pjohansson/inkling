@@ -32,7 +32,8 @@
 
 use crate::{
     error::InvalidAddressError,
-    story::{Address, Knots, ValidateAddresses},
+    knot::KnotSet,
+    story::{Address, ValidateAddresses},
 };
 
 use std::{cmp::Ordering, error::Error};
@@ -198,7 +199,7 @@ impl ValidateAddresses for Condition {
     fn validate(
         &mut self,
         current_address: &Address,
-        knots: &Knots,
+        knots: &KnotSet,
     ) -> Result<(), InvalidAddressError> {
         self.root.kind.validate(current_address, knots)?;
 
@@ -223,7 +224,7 @@ impl ValidateAddresses for ConditionKind {
     fn validate(
         &mut self,
         current_address: &Address,
-        knots: &Knots,
+        knots: &KnotSet,
     ) -> Result<(), InvalidAddressError> {
         match self {
             ConditionKind::True | ConditionKind::False => Ok(()),
@@ -246,7 +247,7 @@ impl ValidateAddresses for StoryCondition {
     fn validate(
         &mut self,
         current_address: &Address,
-        knots: &Knots,
+        knots: &KnotSet,
     ) -> Result<(), InvalidAddressError> {
         match self {
             StoryCondition::NumVisits {

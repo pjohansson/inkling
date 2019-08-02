@@ -10,8 +10,7 @@ use crate::{
         KNOT_MARKER, LINE_COMMENT_MARKER, ROOT_KNOT_NAME, STITCH_MARKER, TODO_COMMENT_MARKER,
     },
     error::{KnotError, KnotNameError, ParseError},
-    knot::{read_knot_name, read_stitch_name, Knot, Stitch},
-    story::Knots,
+    knot::{read_knot_name, read_stitch_name, Knot, KnotSet, Stitch},
 };
 
 use std::collections::HashMap;
@@ -20,7 +19,7 @@ use std::collections::HashMap;
 ///
 /// Creates `Stitch`es and their node tree of branching content. Returns the knot collection
 /// and the name of the first knot (the story root) in the set.
-pub fn read_knots_from_string(content: &str) -> Result<(String, Knots), ParseError> {
+pub fn read_knots_from_string(content: &str) -> Result<(String, KnotSet), ParseError> {
     let all_lines = content.lines().collect::<Vec<_>>();
     let content_lines = remove_empty_and_comment_lines(all_lines);
     let knot_line_sets = divide_lines_at_marker(content_lines, KNOT_MARKER);

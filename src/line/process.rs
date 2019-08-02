@@ -6,6 +6,8 @@ use crate::{
     line::{Content, InternalLine, LineChunk},
 };
 
+// pub type ConditionEvaluator = Fn(&ConditionKind) -> Result<bool, ProcessError>;
+
 pub trait Process {
     fn process(&mut self, buffer: &mut String) -> Result<EncounteredEvent, ProcessError>;
 }

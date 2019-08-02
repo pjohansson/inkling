@@ -3,10 +3,11 @@
 use crate::{
     error::{InklingError, InternalError},
     follow::{ChoiceInfo, LineDataBuffer, LineText},
+    knot::KnotSet,
     line::{Condition, InternalLine, StoryCondition},
 };
 
-use super::story::{get_stitch, Choice, Knots, Line, LineBuffer};
+use super::story::{get_stitch, Choice, Line, LineBuffer};
 
 use std::{cell::RefCell, rc::Rc};
 
@@ -33,7 +34,7 @@ pub fn process_buffer(into_buffer: &mut LineBuffer, from_buffer: LineDataBuffer)
 /// based on a set condition (currently: visited or not, unless sticky).
 pub fn prepare_choices_for_user(
     choices: &[ChoiceInfo],
-    knots: &Knots,
+    knots: &KnotSet,
 ) -> Result<Vec<Choice>, InklingError> {
     get_available_choices(choices, knots, false)
 }
@@ -44,7 +45,7 @@ pub fn prepare_choices_for_user(
 /// however, is the caller's responsibility.
 pub fn get_fallback_choices(
     choices: &[ChoiceInfo],
-    knots: &Knots,
+    knots: &KnotSet,
 ) -> Result<Vec<Choice>, InklingError> {
     get_available_choices(choices, knots, true)
 }
@@ -59,7 +60,7 @@ pub fn get_fallback_choices(
 /// the criteria. Otherwise return only non-fallback choices.
 fn get_available_choices(
     choices: &[ChoiceInfo],
-    knots: &Knots,
+    knots: &KnotSet,
     fallback: bool,
 ) -> Result<Vec<Choice>, InklingError> {
     let choices_with_filter_values = zip_choices_with_filter_values(choices, knots, fallback)?;
@@ -75,7 +76,7 @@ fn get_available_choices(
 /// Pair every choice with whether it fulfils its conditions.
 fn zip_choices_with_filter_values(
     choices: &[ChoiceInfo],
-    knots: &Knots,
+    knots: &KnotSet,
     fallback: bool,
 ) -> Result<Vec<(bool, Choice)>, InklingError> {
     let checked_choices = check_choices_for_conditions(choices, knots, fallback)?;
@@ -130,7 +131,7 @@ fn process_choice_text_and_tags(
 /// Return a list of whether choices fulfil their conditions.
 fn check_choices_for_conditions(
     choices: &[ChoiceInfo],
-    knots: &Knots,
+    knots: &KnotSet,
     keep_only_fallback: bool,
 ) -> Result<Vec<bool>, InklingError> {
     let mut checked_conditions = Vec::new();
@@ -186,7 +187,7 @@ fn add_line_ending(line: &mut LineText, next_line: Option<&LineText>) {
 }
 
 /// Check whether a single choice fulfils its conditions.
-fn check_condition(condition: &Condition, knots: &Knots) -> Result<bool, InklingError> {
+fn check_condition(condition: &Condition, knots: &KnotSet) -> Result<bool, InklingError> {
     let evaluator = |kind: &StoryCondition| -> Result<bool, InklingError> {
         match kind {
             StoryCondition::NumVisits {

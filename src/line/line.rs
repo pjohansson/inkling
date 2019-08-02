@@ -2,8 +2,9 @@
 
 use crate::{
     error::InvalidAddressError,
+    knot::KnotSet,
     line::{Alternative, Condition},
-    story::{Address, Knots, ValidateAddresses},
+    story::{Address, ValidateAddresses},
 };
 
 #[cfg(feature = "serde_support")]
@@ -114,7 +115,7 @@ impl ValidateAddresses for InternalLine {
     fn validate(
         &mut self,
         current_address: &Address,
-        knots: &Knots,
+        knots: &KnotSet,
     ) -> Result<(), InvalidAddressError> {
         self.chunk.validate(current_address, knots)
     }
@@ -129,7 +130,7 @@ impl ValidateAddresses for LineChunk {
     fn validate(
         &mut self,
         current_address: &Address,
-        knots: &Knots,
+        knots: &KnotSet,
     ) -> Result<(), InvalidAddressError> {
         if let Some(condition) = self.condition.as_mut() {
             condition.validate(current_address, knots)?;
@@ -151,7 +152,7 @@ impl ValidateAddresses for Content {
     fn validate(
         &mut self,
         current_address: &Address,
-        knots: &Knots,
+        knots: &KnotSet,
     ) -> Result<(), InvalidAddressError> {
         match self {
             Content::Alternative(alternative) => alternative.validate(current_address, knots),

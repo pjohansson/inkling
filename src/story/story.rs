@@ -3,13 +3,11 @@
 use crate::{
     error::{InklingError, InternalError, ParseError, StackError},
     follow::{ChoiceInfo, EncounteredEvent, LineDataBuffer},
-    knot::{Knot, Stitch},
+    knot::{KnotSet, Stitch},
 };
 
 #[cfg(feature = "serde_support")]
 use serde::{Deserialize, Serialize};
-
-use std::collections::HashMap;
 
 use super::{
     address::{validate_addresses_in_knots, Address},
@@ -48,17 +46,12 @@ pub struct Choice {
 /// Convenience type to indicate when a buffer of `Line` objects is being manipulated.
 pub type LineBuffer = Vec<Line>;
 
-/// Convenience type for a set of `Knot`s.
-///
-/// The knot names are used as keys in the collection.
-pub type Knots = HashMap<String, Knot>;
-
 #[derive(Debug)]
 #[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
 /// Story with knots, diverts, choices and possibly lots of text.
 pub struct Story {
     /// Collection of `Knot`s which make up the story.
-    knots: Knots,
+    knots: KnotSet,
     /// Internal stack for which `Knot` is actively being followed.
     stack: Vec<Address>,
     /// Set of last choices presented to the user.
@@ -307,7 +300,7 @@ fn follow_story(
     current_address: &Address,
     internal_buffer: &mut LineDataBuffer,
     selection: Option<usize>,
-    knots: &mut Knots,
+    knots: &mut KnotSet,
 ) -> Result<(Prompt, Address), InklingError> {
     let (last_address, event) = follow_knot(current_address, internal_buffer, selection, knots)?;
 
@@ -338,7 +331,7 @@ fn follow_knot(
     address: &Address,
     internal_buffer: &mut LineDataBuffer,
     mut selection: Option<usize>,
-    knots: &mut Knots,
+    knots: &mut KnotSet,
 ) -> Result<(Address, EncounteredEvent), InklingError> {
     let mut current_address = address.clone();
 
@@ -363,7 +356,7 @@ fn follow_knot(
 }
 
 /// Return a reference to the `Stitch` at the target address.
-pub fn get_stitch<'a>(target: &Address, knots: &'a Knots) -> Result<&'a Stitch, InternalError> {
+pub fn get_stitch<'a>(target: &Address, knots: &'a KnotSet) -> Result<&'a Stitch, InternalError> {
     let knot_name = target.get_knot()?;
     let stitch_name = target.get_stitch()?;
 
@@ -381,7 +374,7 @@ pub fn get_stitch<'a>(target: &Address, knots: &'a Knots) -> Result<&'a Stitch, 
 /// Return a mutable reference to the `Stitch` at the target address.
 pub fn get_mut_stitch<'a>(
     target: &Address,
-    knots: &'a mut Knots,
+    knots: &'a mut KnotSet,
 ) -> Result<&'a mut Stitch, InklingError> {
     let knot_name = target.get_knot()?;
     let stitch_name = target.get_stitch()?;
@@ -403,7 +396,7 @@ pub fn get_mut_stitch<'a>(
 fn get_fallback_choice(
     choice_set: &[ChoiceInfo],
     current_address: &Address,
-    knots: &Knots,
+    knots: &KnotSet,
 ) -> Result<Choice, InklingError> {
     get_fallback_choices(choice_set, knots).and_then(|choices| {
         choices.first().cloned().ok_or(InklingError::OutOfChoices {

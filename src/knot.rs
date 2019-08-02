@@ -27,6 +27,11 @@ use serde::{Deserialize, Serialize};
 
 use std::collections::HashMap;
 
+/// Convenience type for a set of `Knot`s.
+///
+/// The knot names are used as keys in the collection.
+pub type KnotSet = HashMap<String, Knot>;
+
 #[derive(Debug)]
 #[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
 /// Knots groups story content into bits. Knots are further subdivided into `Stitch`es,

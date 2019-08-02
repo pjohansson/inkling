@@ -3,8 +3,9 @@
 use crate::{
     error::{InvalidAddressError, ProcessError, ProcessErrorKind},
     follow::EncounteredEvent,
+    knot::KnotSet,
     line::{LineChunk, Process},
-    story::{Address, Knots, ValidateAddresses},
+    story::{Address, ValidateAddresses},
 };
 
 #[cfg(feature = "serde_support")]
@@ -105,7 +106,7 @@ impl ValidateAddresses for Alternative {
     fn validate(
         &mut self,
         current_address: &Address,
-        knots: &Knots,
+        knots: &KnotSet,
     ) -> Result<(), InvalidAddressError> {
         self.items
             .iter_mut()

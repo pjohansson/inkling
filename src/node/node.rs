@@ -2,9 +2,10 @@
 
 use crate::{
     error::InvalidAddressError,
+    knot::KnotSet,
     line::{InternalChoice, InternalLine, ParsedLineKind},
     node::parse_root_node,
-    story::{Address, Knots, ValidateAddresses},
+    story::{Address, ValidateAddresses},
 };
 
 #[cfg(feature = "serde_support")]
@@ -73,7 +74,7 @@ impl ValidateAddresses for RootNode {
     fn validate(
         &mut self,
         current_address: &Address,
-        knots: &Knots,
+        knots: &KnotSet,
     ) -> Result<(), InvalidAddressError> {
         self.items
             .iter_mut()
@@ -91,7 +92,7 @@ impl ValidateAddresses for Branch {
     fn validate(
         &mut self,
         current_address: &Address,
-        knots: &Knots,
+        knots: &KnotSet,
     ) -> Result<(), InvalidAddressError> {
         self.choice
             .condition
@@ -115,7 +116,7 @@ impl ValidateAddresses for NodeItem {
     fn validate(
         &mut self,
         current_address: &Address,
-        knots: &Knots,
+        knots: &KnotSet,
     ) -> Result<(), InvalidAddressError> {
         match self {
             NodeItem::BranchingPoint(branches) => branches
