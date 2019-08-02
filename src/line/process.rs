@@ -71,8 +71,8 @@ pub mod tests {
     use super::*;
 
     use crate::{
+        knot::Address,
         line::{parse::parse_internal_line, LineChunkBuilder},
-        story::Address,
     };
 
     /// Process an item into a buffer an return it.

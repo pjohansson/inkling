@@ -257,7 +257,7 @@ fn get_empty_knot_map(knots: &KnotSet) -> KnotSet {
 
 #[cfg(test)]
 pub mod tests {
-    use super::super::parse::read_knots_from_string;
+    use crate::story::read_knots_from_string;
     use super::*;
 
     use crate::consts::ROOT_KNOT_NAME;

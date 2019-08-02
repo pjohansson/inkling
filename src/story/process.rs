@@ -212,12 +212,11 @@ mod tests {
     use crate::{
         consts::ROOT_KNOT_NAME,
         follow::LineTextBuilder,
-        knot::{Knot, Stitch},
+        knot::{Address, Knot, Stitch},
         line::{
             AlternativeBuilder, ConditionBuilder, InternalChoice, InternalChoiceBuilder,
             InternalLineBuilder, LineChunkBuilder,
         },
-        story::Address,
     };
 
     use std::{cmp::Ordering, collections::HashMap, str::FromStr};

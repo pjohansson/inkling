@@ -199,8 +199,8 @@ mod tests {
 
     use crate::{
         error::{LineParsingError, ParseError},
+        knot::Address,
         line::{InternalLine, ParsedLineKind},
-        story::Address,
     };
 
     use std::str::FromStr;

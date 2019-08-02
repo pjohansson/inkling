@@ -320,9 +320,9 @@ mod tests {
 
     use crate::{
         error::InklingError,
+        knot::Address,
         line::{InternalChoice, LineChunkBuilder},
         node::builders::{BranchBuilder, BranchingPointBuilder, RootNodeBuilder},
-        story::Address,
     };
 
     #[test]

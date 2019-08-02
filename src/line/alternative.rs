@@ -3,9 +3,8 @@
 use crate::{
     error::{InvalidAddressError, ProcessError, ProcessErrorKind},
     follow::EncounteredEvent,
-    knot::KnotSet,
+    knot::{Address, KnotSet, ValidateAddresses},
     line::{LineChunk, Process},
-    story::{Address, ValidateAddresses},
 };
 
 #[cfg(feature = "serde_support")]
@@ -190,8 +189,8 @@ mod tests {
     use super::*;
 
     use crate::{
+        knot::Address,
         line::{Content, LineChunkBuilder},
-        story::Address,
     };
 
     #[test]

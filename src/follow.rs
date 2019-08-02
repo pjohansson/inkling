@@ -1,6 +1,6 @@
 //! Results and data that is used or encountered when following, or walking through, a story.
 
-use crate::{error::InklingError, line::InternalChoice, story::Address};
+use crate::{error::InklingError, line::InternalChoice, knot::Address};
 
 /// Convenience type for a result of the encountered event and main error type.
 pub type FollowResult = Result<EncounteredEvent, InklingError>;

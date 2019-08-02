@@ -4,8 +4,9 @@ use std::{error::Error, fmt};
 
 use crate::{
     follow::ChoiceInfo,
+    knot::Address,
     node::Stack,
-    story::{Address, Choice},
+    story::Choice,
 };
 
 #[derive(Clone, Debug)]

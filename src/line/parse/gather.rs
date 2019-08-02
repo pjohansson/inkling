@@ -26,8 +26,8 @@ pub mod tests {
     use super::*;
 
     use crate::{
+        knot::Address,
         line::{parse_line, Content, InternalLine},
-        story::Address,
     };
 
     #[test]

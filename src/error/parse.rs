@@ -4,7 +4,7 @@ use std::{error::Error, fmt};
 
 use crate::{
     consts::{CHOICE_MARKER, STICKY_CHOICE_MARKER},
-    story::Address,
+    knot::Address,
 };
 
 #[derive(Debug)]

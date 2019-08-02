@@ -3,6 +3,7 @@
 use crate::{
     consts::{DIVERT_MARKER, GLUE_MARKER, TAG_MARKER},
     error::{LineErrorKind, LineParsingError},
+    knot::Address,
     line::{
         parse::{
             parse_alternative, parse_line_condition, split_line_at_separator_braces,
@@ -10,7 +11,6 @@ use crate::{
         },
         Content, InternalLine, InternalLineBuilder, LineChunk,
     },
-    story::Address,
 };
 
 /// Parse an `InternalLine` from a string.
@@ -242,7 +242,7 @@ fn validate_divert_address(line: &str, backup_line: String) -> Result<String, Li
 mod tests {
     use super::*;
 
-    use crate::{line::process::tests::get_processed_string, story::Address};
+    use crate::{line::process::tests::get_processed_string, knot::Address};
 
     #[test]
     fn simple_text_string_parses_into_chunk_with_single_item() {

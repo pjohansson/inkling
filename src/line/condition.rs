@@ -32,8 +32,7 @@
 
 use crate::{
     error::InvalidAddressError,
-    knot::KnotSet,
-    story::{Address, ValidateAddresses},
+    knot::{Address, KnotSet, ValidateAddresses},
 };
 
 use std::{cmp::Ordering, error::Error};

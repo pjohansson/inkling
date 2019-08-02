@@ -14,12 +14,11 @@
 //! ensures that an encountered address from an `Ink` file is valid inside of the
 //! current story.
 
-mod address;
 mod parse;
 mod process;
 mod story;
 mod utils;
 
-pub use address::{Address, ValidateAddresses};
+pub use parse::read_knots_from_string;
 pub use story::{read_story_from_string, Choice, Line, LineBuffer, Prompt, Story};
 pub use utils::copy_lines_into_string;

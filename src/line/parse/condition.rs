@@ -4,6 +4,7 @@ use std::cmp::Ordering;
 
 use crate::{
     error::{BadCondition, BadConditionKind, LineParsingError},
+    knot::Address,
     line::{
         parse::{
             split_line_at_separator_braces, split_line_at_separator_parenthesis,
@@ -11,7 +12,6 @@ use crate::{
         },
         Condition, ConditionBuilder, ConditionItem, ConditionKind, StoryCondition,
     },
-    story::Address,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq)]

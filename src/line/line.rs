@@ -2,9 +2,8 @@
 
 use crate::{
     error::InvalidAddressError,
-    knot::KnotSet,
+    knot::{Address, KnotSet, ValidateAddresses},
     line::{Alternative, Condition},
-    story::{Address, ValidateAddresses},
 };
 
 #[cfg(feature = "serde_support")]

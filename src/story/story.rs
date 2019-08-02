@@ -3,14 +3,13 @@
 use crate::{
     error::{InklingError, InternalError, ParseError, StackError},
     follow::{ChoiceInfo, EncounteredEvent, LineDataBuffer},
-    knot::{KnotSet, Stitch},
+    knot::{Address, KnotSet, Stitch, validate_addresses_in_knots},
 };
 
 #[cfg(feature = "serde_support")]
 use serde::{Deserialize, Serialize};
 
 use super::{
-    address::{validate_addresses_in_knots, Address},
     parse::read_knots_from_string,
     process::{get_fallback_choices, prepare_choices_for_user, process_buffer},
 };
@@ -409,7 +408,7 @@ fn get_fallback_choice(
 mod tests {
     use super::*;
 
-    use crate::story::ValidateAddresses;
+    use crate::knot::ValidateAddresses;
 
     #[test]
     fn follow_knot_diverts_to_new_knots_when_encountered() {
