@@ -2,17 +2,20 @@
 
 use crate::{
     error::{ProcessError, ProcessErrorKind},
-    follow::{EncounteredEvent, LineDataBuffer, LineText},
+    follow::{EncounteredEvent, FollowData, LineDataBuffer, LineText},
     line::{Alternative, AlternativeKind, Content, InternalLine, LineChunk},
+    process::check_condition,
 };
 
+/// Process and add the content of an `InternalLine` to a buffer.
 pub fn process_line(
     line: &mut InternalLine,
     buffer: &mut LineDataBuffer,
+    data: &FollowData,
 ) -> Result<EncounteredEvent, ProcessError> {
     let mut text_buffer = String::new();
 
-    let result = process_chunk(&mut line.chunk, &mut text_buffer);
+    let result = process_chunk(&mut line.chunk, &mut text_buffer, data);
 
     let line_text = LineText {
         text: text_buffer,
@@ -26,12 +29,29 @@ pub fn process_line(
     result
 }
 
+/// Process and add the content of a `LineChunk` to a string buffer.
+/// 
+/// If a condition is set to the chunk, it will be evaluated. If it evaluates to true, 
+/// the items in the `items` field will be processed. If not, the items in the `else_items` 
+/// field will be.
 fn process_chunk(
     chunk: &mut LineChunk,
     buffer: &mut String,
+    data: &FollowData,
 ) -> Result<EncounteredEvent, ProcessError> {
-    for item in chunk.items.iter_mut() {
-        let result = process_content(item, buffer)?;
+    let items = match &chunk.condition {
+        Some(ref condition) => {
+            if check_condition(condition, data)? {
+                chunk.items.iter_mut()
+            } else {
+                chunk.else_items.iter_mut()
+            }
+        }
+        None => chunk.items.iter_mut(),
+    };
+
+    for item in items {
+        let result = process_content(item, buffer, data)?;
 
         if let EncounteredEvent::Divert(..) = result {
             return Ok(result);
@@ -41,18 +61,20 @@ fn process_chunk(
     Ok(EncounteredEvent::Done)
 }
 
+/// Process and add the content of a `Content` item to a string buffer.
 fn process_content(
     item: &mut Content,
     buffer: &mut String,
+    data: &FollowData,
 ) -> Result<EncounteredEvent, ProcessError> {
     match item {
-        Content::Alternative(alternative) => process_alternative(alternative, buffer),
+        Content::Alternative(alternative) => process_alternative(alternative, buffer, data),
         Content::Divert(address) => Ok(EncounteredEvent::Divert(address.clone())),
         Content::Empty => {
             buffer.push(' ');
             Ok(EncounteredEvent::Done)
         }
-        Content::Nested(chunk) => process_chunk(chunk, buffer),
+        Content::Nested(chunk) => process_chunk(chunk, buffer, data),
         Content::Text(string) => {
             buffer.push_str(string);
             Ok(EncounteredEvent::Done)
@@ -60,9 +82,11 @@ fn process_content(
     }
 }
 
+/// Process and add the content of an `Alternative` to a string buffer.
 fn process_alternative(
     alternative: &mut Alternative,
     buffer: &mut String,
+    data: &FollowData,
 ) -> Result<EncounteredEvent, ProcessError> {
     let num_items = alternative.items.len();
 
@@ -83,7 +107,7 @@ fn process_alternative(
                 *index = 0;
             }
 
-            process_chunk(item, buffer)
+            process_chunk(item, buffer, data)
         }
         AlternativeKind::OnceOnly => {
             let index = alternative.current_index.get_or_insert(0);
@@ -91,7 +115,7 @@ fn process_alternative(
             match alternative.items.get_mut(*index) {
                 Some(item) => {
                     *index += 1;
-                    process_chunk(item, buffer)
+                    process_chunk(item, buffer, data)
                 }
                 None => Ok(EncounteredEvent::Done),
             }
@@ -110,7 +134,7 @@ fn process_alternative(
                 *index += 1;
             }
 
-            process_chunk(item, buffer)
+            process_chunk(item, buffer, data)
         }
     }
 }
@@ -121,19 +145,40 @@ pub mod tests {
 
     use crate::{
         knot::Address,
-        line::{parse::parse_internal_line, AlternativeBuilder, LineChunkBuilder},
+        line::{
+            parse::parse_internal_line, AlternativeBuilder, ConditionBuilder, ConditionKind,
+            LineChunkBuilder,
+        },
     };
+
+    use std::collections::HashMap;
 
     pub fn get_processed_alternative(alternative: &mut Alternative) -> String {
         let mut buffer = String::new();
-        process_alternative(alternative, &mut buffer).unwrap();
+        let data = mock_data_with_single_stitch("", "", 0);
+
+        process_alternative(alternative, &mut buffer, &data).unwrap();
+
         buffer
     }
 
     pub fn get_processed_chunk(chunk: &mut LineChunk) -> String {
         let mut buffer = String::new();
-        process_chunk(chunk, &mut buffer).unwrap();
+        let data = mock_data_with_single_stitch("", "", 0);
+
+        process_chunk(chunk, &mut buffer, &data).unwrap();
+
         buffer
+    }
+
+    fn mock_data_with_single_stitch(knot: &str, stitch: &str, num_visited: u32) -> FollowData {
+        let mut stitch_count = HashMap::new();
+        stitch_count.insert(stitch.to_string(), num_visited);
+
+        let mut knot_visit_counts = HashMap::new();
+        knot_visit_counts.insert(knot.to_string(), stitch_count);
+
+        FollowData { knot_visit_counts }
     }
 
     #[test]
@@ -143,7 +188,9 @@ pub mod tests {
         line.glue_end = true;
 
         let mut buffer = Vec::new();
-        process_line(&mut line, &mut buffer).unwrap();
+        let data = mock_data_with_single_stitch("", "", 0);
+
+        process_line(&mut line, &mut buffer, &data).unwrap();
 
         let result = &buffer[0];
         assert!(result.glue_begin);
@@ -156,7 +203,9 @@ pub mod tests {
         line.tags = vec!["tag 1".to_string(), "tag 2".to_string()];
 
         let mut buffer = Vec::new();
-        process_line(&mut line, &mut buffer).unwrap();
+        let data = mock_data_with_single_stitch("", "", 0);
+
+        process_line(&mut line, &mut buffer, &data).unwrap();
 
         let result = &buffer[0];
         assert_eq!(result.tags, line.tags);
@@ -165,9 +214,10 @@ pub mod tests {
     #[test]
     fn pure_text_line_processes_into_the_contained_string() {
         let mut buffer = String::new();
+        let data = mock_data_with_single_stitch("", "", 0);
 
         let mut item = Content::Text("Hello, World!".to_string());
-        process_content(&mut item, &mut buffer).unwrap();
+        process_content(&mut item, &mut buffer, &data).unwrap();
 
         assert_eq!(&buffer, "Hello, World!");
     }
@@ -175,9 +225,10 @@ pub mod tests {
     #[test]
     fn empty_content_processes_into_single_white_space() {
         let mut buffer = String::new();
+        let data = mock_data_with_single_stitch("", "", 0);
 
         let mut item = Content::Empty;
-        process_content(&mut item, &mut buffer).unwrap();
+        process_content(&mut item, &mut buffer, &data).unwrap();
 
         assert_eq!(&buffer, " ");
     }
@@ -186,9 +237,10 @@ pub mod tests {
     fn line_with_text_processes_into_that_text() {
         let content = "Text string.";
         let mut buffer = String::new();
+        let data = mock_data_with_single_stitch("", "", 0);
 
         let mut line = LineChunkBuilder::from_string(content).build();
-        process_chunk(&mut line, &mut buffer).unwrap();
+        process_chunk(&mut line, &mut buffer, &data).unwrap();
 
         assert_eq!(&buffer, content);
     }
@@ -196,29 +248,94 @@ pub mod tests {
     #[test]
     fn chunks_with_several_text_items_stitch_them_with_no_whitespace() {
         let mut buffer = String::new();
+        let data = mock_data_with_single_stitch("", "", 0);
 
-        let mut line = LineChunkBuilder::new()
+        let mut chunk = LineChunkBuilder::new()
             .with_text("Line 1")
             .with_text("Line 2")
             .build();
 
-        process_chunk(&mut line, &mut buffer).unwrap();
+        process_chunk(&mut chunk, &mut buffer, &data).unwrap();
 
         assert_eq!(&buffer, "Line 1Line 2");
     }
 
     #[test]
+    fn chunk_with_condition_processes_its_content_if_it_is_fulfilled() {
+        let true_condition = ConditionBuilder::from_kind(&ConditionKind::True, false).build();
+        let false_condition = ConditionBuilder::from_kind(&ConditionKind::False, false).build();
+
+        let mut chunk = LineChunk {
+            condition: Some(true_condition),
+            items: vec![Content::Text("Displayed if true.".to_string())],
+            else_items: Vec::new(),
+        };
+
+        let mut buffer = String::new();
+        let data = mock_data_with_single_stitch("", "", 0);
+        process_chunk(&mut chunk, &mut buffer, &data).unwrap();
+
+        assert_eq!(&buffer, "Displayed if true.");
+
+        chunk.condition.replace(false_condition);
+
+        buffer.clear();
+        process_chunk(&mut chunk, &mut buffer, &data).unwrap();
+        assert_eq!(&buffer, "");
+    }
+
+    #[test]
+    fn if_a_condition_is_false_content_in_the_else_items_list_is_processed() {
+        let true_condition = ConditionBuilder::from_kind(&ConditionKind::True, false).build();
+        let false_condition = ConditionBuilder::from_kind(&ConditionKind::False, false).build();
+
+        let mut chunk = LineChunk {
+            condition: Some(true_condition),
+            items: vec![Content::Text("Displayed if true.".to_string())],
+            else_items: vec![Content::Text("Displayed if false.".to_string())],
+        };
+
+        let mut buffer = String::new();
+        let data = mock_data_with_single_stitch("", "", 0);
+        process_chunk(&mut chunk, &mut buffer, &data).unwrap();
+
+        assert_eq!(&buffer, "Displayed if true.");
+
+        chunk.condition.replace(false_condition);
+
+        buffer.clear();
+        process_chunk(&mut chunk, &mut buffer, &data).unwrap();
+        assert_eq!(&buffer, "Displayed if false.");
+    }
+
+    #[test]
+    fn chunks_without_condition_always_processes_the_true_content() {
+        let mut chunk = LineChunk {
+            condition: None,
+            items: vec![Content::Text("Displayed if true.".to_string())],
+            else_items: vec![Content::Text("Displayed if false.".to_string())],
+        };
+
+        let mut buffer = String::new();
+        let data = mock_data_with_single_stitch("", "", 0);
+        process_chunk(&mut chunk, &mut buffer, &data).unwrap();
+
+        assert_eq!(&buffer, "Displayed if true.");
+    }
+
+    #[test]
     fn lines_shortcut_if_proper_diverts_are_encountered() {
         let mut buffer = String::new();
+        let data = mock_data_with_single_stitch("", "", 0);
 
-        let mut line = LineChunkBuilder::new()
+        let mut chunk = LineChunkBuilder::new()
             .with_text("Line 1")
             .with_divert("divert")
             .with_text("Line 2")
             .build();
 
         assert_eq!(
-            process_chunk(&mut line, &mut buffer).unwrap(),
+            process_chunk(&mut chunk, &mut buffer, &data).unwrap(),
             EncounteredEvent::Divert(Address::Raw("divert".to_string()))
         );
 
@@ -233,16 +350,17 @@ pub mod tests {
             .build();
 
         let mut buffer = String::new();
+        let data = mock_data_with_single_stitch("", "", 0);
 
-        process_alternative(&mut sequence, &mut buffer).unwrap();
+        process_alternative(&mut sequence, &mut buffer, &data).unwrap();
         assert_eq!(&buffer, "Line 1");
         buffer.clear();
 
-        process_alternative(&mut sequence, &mut buffer).unwrap();
+        process_alternative(&mut sequence, &mut buffer, &data).unwrap();
         assert_eq!(&buffer, "Line 2");
         buffer.clear();
 
-        process_alternative(&mut sequence, &mut buffer).unwrap();
+        process_alternative(&mut sequence, &mut buffer, &data).unwrap();
         assert_eq!(&buffer, "Line 2");
         buffer.clear();
     }
@@ -255,16 +373,17 @@ pub mod tests {
             .build();
 
         let mut buffer = String::new();
+        let data = mock_data_with_single_stitch("", "", 0);
 
-        process_alternative(&mut once_only, &mut buffer).unwrap();
+        process_alternative(&mut once_only, &mut buffer, &data).unwrap();
         assert_eq!(&buffer, "Line 1");
         buffer.clear();
 
-        process_alternative(&mut once_only, &mut buffer).unwrap();
+        process_alternative(&mut once_only, &mut buffer, &data).unwrap();
         assert_eq!(&buffer, "Line 2");
         buffer.clear();
 
-        process_alternative(&mut once_only, &mut buffer).unwrap();
+        process_alternative(&mut once_only, &mut buffer, &data).unwrap();
         assert!(buffer.is_empty());
     }
 
@@ -276,16 +395,17 @@ pub mod tests {
             .build();
 
         let mut buffer = String::new();
+        let data = mock_data_with_single_stitch("", "", 0);
 
-        process_alternative(&mut cycle, &mut buffer).unwrap();
+        process_alternative(&mut cycle, &mut buffer, &data).unwrap();
         assert_eq!(&buffer, "Line 1");
         buffer.clear();
 
-        process_alternative(&mut cycle, &mut buffer).unwrap();
+        process_alternative(&mut cycle, &mut buffer, &data).unwrap();
         assert_eq!(&buffer, "Line 2");
         buffer.clear();
 
-        process_alternative(&mut cycle, &mut buffer).unwrap();
+        process_alternative(&mut cycle, &mut buffer, &data).unwrap();
         assert_eq!(&buffer, "Line 1");
         buffer.clear();
     }
@@ -299,22 +419,23 @@ pub mod tests {
             .build();
 
         let mut buffer = String::new();
+        let data = mock_data_with_single_stitch("", "", 0);
 
         assert_eq!(
-            process_alternative(&mut alternative, &mut buffer).unwrap(),
+            process_alternative(&mut alternative, &mut buffer, &data).unwrap(),
             EncounteredEvent::Done
         );
         assert_eq!(&buffer, "Line 1");
         buffer.clear();
 
         assert_eq!(
-            process_alternative(&mut alternative, &mut buffer).unwrap(),
+            process_alternative(&mut alternative, &mut buffer, &data).unwrap(),
             EncounteredEvent::Divert(Address::Raw("divert".to_string()))
         );
         buffer.clear();
 
         assert_eq!(
-            process_alternative(&mut alternative, &mut buffer).unwrap(),
+            process_alternative(&mut alternative, &mut buffer, &data).unwrap(),
             EncounteredEvent::Done
         );
         assert_eq!(&buffer, "Line 2");
@@ -339,9 +460,10 @@ pub mod tests {
             .build();
 
         let mut buffer = String::new();
+        let data = mock_data_with_single_stitch("", "", 0);
 
         assert_eq!(
-            process_chunk(&mut line, &mut buffer).unwrap(),
+            process_chunk(&mut line, &mut buffer, &data).unwrap(),
             EncounteredEvent::Done
         );
 
@@ -349,7 +471,7 @@ pub mod tests {
         buffer.clear();
 
         assert_eq!(
-            process_chunk(&mut line, &mut buffer).unwrap(),
+            process_chunk(&mut line, &mut buffer, &data).unwrap(),
             EncounteredEvent::Divert(Address::Raw("divert".to_string()))
         );
 
@@ -357,7 +479,7 @@ pub mod tests {
         buffer.clear();
 
         assert_eq!(
-            process_chunk(&mut line, &mut buffer).unwrap(),
+            process_chunk(&mut line, &mut buffer, &data).unwrap(),
             EncounteredEvent::Done
         );
 

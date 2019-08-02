@@ -69,13 +69,13 @@ fn zip_choices_with_filter_values(
         .enumerate()
         .map(|(i, (ChoiceInfo { choice_data, .. }, keep))| {
             let (text, tags) = if keep {
-                process_choice_text_and_tags(choice_data.selection_text.clone())
+                process_choice_text_and_tags(choice_data.selection_text.clone(), data)
             } else {
                 // If we are filtering the choice we do not want it's processed selection
                 // text to update their state. Instead, we clone the data and process that.
 
                 let independent_text = choice_data.selection_text.borrow().clone();
-                process_choice_text_and_tags(Rc::new(RefCell::new(independent_text)))
+                process_choice_text_and_tags(Rc::new(RefCell::new(independent_text)), data)
             }?;
 
             Ok((
@@ -93,12 +93,13 @@ fn zip_choices_with_filter_values(
 /// Process a line into a string and return it with its tags.
 fn process_choice_text_and_tags(
     choice_line: Rc<RefCell<InternalLine>>,
+    data: &FollowData,
 ) -> Result<(String, Vec<String>), InklingError> {
     let mut data_buffer = Vec::new();
 
     let mut line = choice_line.borrow_mut();
 
-    process_line(&mut line, &mut data_buffer).map_err(|err| InternalError::from(err))?;
+    process_line(&mut line, &mut data_buffer, data).map_err(|err| InternalError::from(err))?;
 
     let mut buffer = String::new();
 

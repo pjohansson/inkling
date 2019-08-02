@@ -215,6 +215,7 @@ impl fmt::Display for InternalError {
                     f,
                     "When processing an alternative, an invalid index was used to pick an item"
                 ),
+                InklingError(err) => write!(f, "{}", err),
             },
             IncorrectChoiceIndex {
                 selection,
@@ -283,11 +284,21 @@ pub struct ProcessError {
     pub kind: ProcessErrorKind,
 }
 
+impl From<InklingError> for ProcessError {
+    fn from(err: InklingError) -> Self {
+        ProcessError {
+            kind: ProcessErrorKind::InklingError(Box::new(err)),
+        }
+    }
+}
+
 #[derive(Clone, Debug)]
 /// Variant of `ProcessError`.
 pub enum ProcessErrorKind {
     /// An `Alternative` sequence tried to access an item with an out-of-bounds index.
     InvalidAlternativeIndex,
+    /// An `InklingError` encountered during processing.
+    InklingError(Box<InklingError>),
 }
 
 #[derive(Clone, Debug)]

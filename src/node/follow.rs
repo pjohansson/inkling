@@ -90,7 +90,7 @@ pub trait Follow: FollowInternal {
             match item {
                 NodeItem::Line(line) => {
                     let result =
-                        process_line(line, buffer).map_err(|err| InternalError::from(err))?;
+                        process_line(line, buffer, data).map_err(|err| InternalError::from(err))?;
 
                     if let EncounteredEvent::Divert(..) = result {
                         return Ok(result);
