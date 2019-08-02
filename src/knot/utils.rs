@@ -6,6 +6,7 @@ use crate::{
 
 use std::collections::HashMap;
 
+#[allow(dead_code)]
 /// Return a reference to the `Stitch` at the target address.
 pub fn get_stitch<'a>(address: &Address, knots: &'a KnotSet) -> Result<&'a Stitch, InternalError> {
     let (knot_name, stitch_name) = address.get_knot_and_stitch()?;

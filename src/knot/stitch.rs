@@ -91,14 +91,6 @@ impl Stitch {
         Ok(result)
     }
 
-    /// Get the number of times this stitch has been diverted to.
-    ///
-    /// This will only have been incremented when the stitch has been `follow`ed from
-    /// the beginning, not when resumed from with a choice or after a gather point.
-    pub fn num_visited(&self) -> u32 {
-        self.root.num_visited
-    }
-
     /// Reset the current stack to the first line of the root node.
     fn reset_stack(&mut self) {
         self.stack = vec![0];
@@ -204,7 +196,7 @@ mod tests {
 
     use crate::{
         error::{LineParsingError, ParseError},
-        knot::Address,
+        knot::{get_num_visited, Address},
         line::{InternalLine, ParsedLineKind},
     };
 
@@ -282,7 +274,7 @@ mod tests {
         stitch.follow(&mut buffer, &mut data).unwrap();
         stitch.follow(&mut buffer, &mut data).unwrap();
 
-        assert_eq!(stitch.num_visited(), 2);
+        assert_eq!(get_num_visited(&stitch.root.address, &data).unwrap(), 2);
     }
 
     #[test]
@@ -298,7 +290,7 @@ mod tests {
             .follow_with_choice(0, &mut buffer, &mut data)
             .unwrap();
 
-        assert_eq!(stitch.num_visited(), 0);
+        assert_eq!(get_num_visited(&stitch.root.address, &data).unwrap(), 0);
     }
 
     #[test]
@@ -319,7 +311,7 @@ mod tests {
             .unwrap();
 
         assert_eq!(buffer.last().unwrap().text.trim(), "Line");
-        assert_eq!(stitch.num_visited(), 0);
+        assert_eq!(get_num_visited(&stitch.root.address, &data).unwrap(), 0);
     }
 
     #[test]

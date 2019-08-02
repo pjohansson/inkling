@@ -256,7 +256,6 @@ pub trait FollowInternal: fmt::Debug {
     fn get_item(&self, index: usize) -> Option<&NodeItem>;
     fn get_item_mut(&mut self, index: usize) -> Option<&mut NodeItem>;
     fn get_num_items(&self) -> usize;
-    fn get_num_visited(&self) -> u32;
     fn increment_num_visited(&mut self, data: &mut FollowData) -> Result<(), InternalError>;
     fn iter_mut_items(&mut self) -> IterMut<NodeItem>;
 }
@@ -274,16 +273,8 @@ impl FollowInternal for RootNode {
         self.items.len()
     }
 
-    fn get_num_visited(&self) -> u32 {
-        self.num_visited
-    }
-
     fn increment_num_visited(&mut self, data: &mut FollowData) -> Result<(), InternalError> {
-        increment_num_visited(&self.address, data)?;
-
-        self.num_visited += 1;
-
-        Ok(())
+        increment_num_visited(&self.address, data)
     }
 
     fn iter_mut_items(&mut self) -> IterMut<NodeItem> {
@@ -302,10 +293,6 @@ impl FollowInternal for Branch {
 
     fn get_num_items(&self) -> usize {
         self.items.len()
-    }
-
-    fn get_num_visited(&self) -> u32 {
-        self.num_visited
     }
 
     fn increment_num_visited(&mut self, _: &mut FollowData) -> Result<(), InternalError> {
@@ -467,23 +454,6 @@ mod tests {
         let mut buffer = Vec::new();
         let mut data = mock_follow_data(&node);
 
-        assert_eq!(node.num_visited, 0);
-
-        node.follow(&mut vec![0], &mut buffer, &mut data).unwrap();
-        node.follow(&mut vec![0], &mut buffer, &mut data).unwrap();
-
-        assert_eq!(node.num_visited, 2);
-    }
-
-    #[test]
-    fn following_into_a_node_increments_number_of_visits_in_data() {
-        let mut node = RootNodeBuilder::empty()
-            .with_text_line_chunk("Line 1")
-            .build();
-
-        let mut buffer = Vec::new();
-        let mut data = mock_follow_data(&node);
-
         assert_eq!(get_num_visited(&node.address, &data).unwrap(), 0);
 
         node.follow(&mut vec![0], &mut buffer, &mut data).unwrap();
@@ -554,11 +524,11 @@ mod tests {
         let mut buffer = Vec::new();
         let mut data = mock_follow_data(&node);
 
-        assert_eq!(node.num_visited, 0);
+        assert_eq!(get_num_visited(&node.address, &data).unwrap(), 0);
 
         node.follow(&mut vec![1], &mut buffer, &mut data).unwrap();
 
-        assert_eq!(node.num_visited, 0);
+        assert_eq!(get_num_visited(&node.address, &data).unwrap(), 0);
     }
 
     #[test]

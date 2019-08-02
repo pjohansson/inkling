@@ -17,8 +17,6 @@ pub struct RootNode {
     pub address: Address,
     /// Content grouped under this stitch.
     pub items: Vec<NodeItem>,
-    /// Number of times the node has been visited in the story.
-    pub num_visited: u32,
 }
 
 #[derive(Clone, Debug)]
@@ -174,7 +172,6 @@ pub mod builders {
             RootNode {
                 address: self.address,
                 items: self.items,
-                num_visited: 0,
             }
         }
 

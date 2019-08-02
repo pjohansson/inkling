@@ -390,7 +390,7 @@ fn get_fallback_choice(
 mod tests {
     use super::*;
 
-    use crate::knot::{get_num_visited, get_stitch, ValidateAddresses};
+    use crate::knot::{get_num_visited, ValidateAddresses};
 
     fn mock_follow_data(knots: &KnotSet) -> FollowData {
         FollowData {
@@ -553,20 +553,12 @@ We hurried home to Savile Row as fast as we could.
         let current_address = Address::from_root_knot("addis_ababa", &knots).unwrap();
         let divert_address = Address::from_root_knot("tripoli", &knots).unwrap();
 
-        assert_eq!(
-            get_stitch(&divert_address, &knots).unwrap().num_visited(),
-            0
-        );
-
         let mut buffer = Vec::new();
         let mut data = mock_follow_data(&knots);
 
         follow_knot(&current_address, &mut buffer, None, &mut knots, &mut data).unwrap();
 
-        assert_eq!(
-            get_stitch(&divert_address, &knots).unwrap().num_visited(),
-            1
-        );
+        assert_eq!(get_num_visited(&divert_address, &data).unwrap(), 1);
     }
 
     #[test]
@@ -581,11 +573,6 @@ We hurried home to Savile Row as fast as we could.
         validate_addresses_in_knots(&mut knots).unwrap();
         let current_address = Address::from_root_knot("tripoli", &knots).unwrap();
 
-        assert_eq!(
-            get_stitch(&current_address, &knots).unwrap().num_visited(),
-            0
-        );
-
         let mut buffer = Vec::new();
         let mut data = mock_follow_data(&knots);
 
@@ -598,10 +585,7 @@ We hurried home to Savile Row as fast as we could.
         )
         .unwrap();
 
-        assert_eq!(
-            get_stitch(&current_address, &knots).unwrap().num_visited(),
-            0
-        );
+        assert_eq!(get_num_visited(&current_address, &data).unwrap(), 0);
     }
 
     #[test]
@@ -973,7 +957,7 @@ Hello, World!
 
         let address = Address::from_root_knot("$ROOT$", &story.knots).unwrap();
 
-        assert_eq!(get_stitch(&address, &story.knots).unwrap().num_visited(), 1);
+        assert_eq!(get_num_visited(&address, &story.data).unwrap(), 1);
     }
 
     #[test]
@@ -1096,8 +1080,8 @@ Three
         let address_twice = Address::from_root_knot("visit_twice", &knots).unwrap();
         let address_thrice = Address::from_root_knot("visit_thrice", &knots).unwrap();
 
-        assert_eq!(get_stitch(&address_twice, knots).unwrap().num_visited(), 2);
-        assert_eq!(get_stitch(&address_thrice, knots).unwrap().num_visited(), 3);
-        assert_eq!(get_stitch(&address_root, knots).unwrap().num_visited(), 6);
+        assert_eq!(get_num_visited(&address_twice, &story.data).unwrap(), 2);
+        assert_eq!(get_num_visited(&address_thrice, &story.data).unwrap(), 3);
+        assert_eq!(get_num_visited(&address_root, &story.data).unwrap(), 6);
     }
 }
