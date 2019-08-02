@@ -105,13 +105,17 @@ impl Stitch {
 }
 
 /// Parse a set of input lines into a `Stitch`.
-pub fn parse_stitch_from_lines(lines: &[&str]) -> Result<Stitch, LineParsingError> {
+pub fn parse_stitch_from_lines(
+    lines: &[&str],
+    knot: &str,
+    stitch: &str,
+) -> Result<Stitch, LineParsingError> {
     let parsed_lines = lines
         .into_iter()
         .map(|line| parse_line(line))
         .collect::<Result<Vec<_>, _>>()?;
 
-    let root = parse_root_node(&parsed_lines, "", "");
+    let root = parse_root_node(&parsed_lines, knot, stitch);
 
     Ok(Stitch {
         root,
@@ -221,6 +225,19 @@ mod tests {
 
     fn parse_lines(s: &str) -> Result<Vec<ParsedLineKind>, LineParsingError> {
         s.lines().map(|line| parse_line(line)).collect()
+    }
+
+    #[test]
+    fn parsing_stitch_sets_root_node_address() {
+        let stitch = parse_stitch_from_lines(&[], "tripoli", "cinema").unwrap();
+
+        assert_eq!(
+            stitch.root.address,
+            Address::Validated {
+                knot: "tripoli".to_string(),
+                stitch: "cinema".to_string()
+            }
+        );
     }
 
     #[test]

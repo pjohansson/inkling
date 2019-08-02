@@ -52,7 +52,7 @@ fn get_knot_from_lines(
     let (default_stitch, stitches) = knot_stitch_sets
         .into_iter()
         .enumerate()
-        .map(|(stitch_index, lines)| get_stitch_from_lines(lines, stitch_index))
+        .map(|(stitch_index, lines)| get_stitch_from_lines(lines, stitch_index, &knot_name))
         .collect::<Result<Vec<_>, _>>()
         .and_then(get_default_stitch_and_hash_map_tuple)?;
 
@@ -72,11 +72,12 @@ fn get_knot_from_lines(
 fn get_stitch_from_lines(
     mut lines: Vec<&str>,
     stitch_index: usize,
+    knot_name: &str,
 ) -> Result<(String, Stitch), KnotError> {
     let stitch_name =
         get_stitch_name(&mut lines).map(|name| get_stitch_identifier(name, stitch_index))?;
 
-    let content = parse_stitch_from_lines(&lines)?;
+    let content = parse_stitch_from_lines(&lines, knot_name, &stitch_name)?;
 
     Ok((stitch_name, content))
 }
@@ -200,6 +201,8 @@ fn remove_empty_and_comment_lines(content: Vec<&str>) -> Vec<&str> {
 #[cfg(test)]
 pub mod tests {
     use super::*;
+
+    use crate::knot::Address;
 
     #[test]
     fn read_knots_from_string_works_for_single_nameless_knot() {
@@ -328,19 +331,42 @@ Second line.
 
     #[test]
     fn parsing_a_stitch_gets_name_if_present_else_default_root_name_if_index_is_zero() {
-        let (name, _) = get_stitch_from_lines(vec!["= stitch_name =", "Line 1"], 0).unwrap();
+        let (name, _) = get_stitch_from_lines(vec!["= stitch_name =", "Line 1"], 0, "").unwrap();
         assert_eq!(name, "stitch_name".to_string());
 
-        let (name, _) = get_stitch_from_lines(vec!["Line 1"], 0).unwrap();
+        let (name, _) = get_stitch_from_lines(vec!["Line 1"], 0, "").unwrap();
         assert_eq!(name, ROOT_KNOT_NAME);
     }
 
     #[test]
+    fn parsing_stitch_from_lines_sets_address_in_root_node() {
+        let (_, stitch) = get_stitch_from_lines(vec!["= cinema", "Line 1"], 0, "tripoli").unwrap();
+
+        assert_eq!(
+            stitch.root.address,
+            Address::Validated {
+                knot: "tripoli".to_string(),
+                stitch: "cinema".to_string()
+            }
+        );
+
+        let (_, stitch) = get_stitch_from_lines(vec!["Line 1"], 0, "tripoli").unwrap();
+
+        assert_eq!(
+            stitch.root.address,
+            Address::Validated {
+                knot: "tripoli".to_string(),
+                stitch: "$ROOT$".to_string()
+            }
+        );
+    }
+
+    #[test]
     fn parsing_a_stitch_gets_all_content_regardless_of_whether_name_is_present() {
-        let (_, content) = get_stitch_from_lines(vec!["= stitch_name =", "Line 1"], 0).unwrap();
+        let (_, content) = get_stitch_from_lines(vec!["= stitch_name =", "Line 1"], 0, "").unwrap();
         assert_eq!(content.root.items.len(), 1);
 
-        let (_, content) = get_stitch_from_lines(vec!["Line 1"], 0).unwrap();
+        let (_, content) = get_stitch_from_lines(vec!["Line 1"], 0, "").unwrap();
         assert_eq!(content.root.items.len(), 1);
     }
 
