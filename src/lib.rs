@@ -107,7 +107,7 @@
 //!
 //! Currently the processor supports:
 //!
-//! *   Structure:  Knots, stitches, nested branching choices, gathers, diverts
+//! *   Structure:  Knots, stitches, nested branching choices, gathers, diverts, tags for knots
 //! *   Choices:    Non-sticky, sticky, fallback, line variations, conditions
 //! *   Lines:      Plain text, diverts, tags, conditions, alternative sequences (all
 //!                 except shuffle)

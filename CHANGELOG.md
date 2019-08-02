@@ -22,6 +22,11 @@
 *   Line conditionals are implemented.
 *   Conditions can be nested with parenthesis and `and`/`or` connections.
 
+## 0.11.5
+
+*   Add reading of tags for knots. Get them with the `get_knot_tags` method for `Story`.
+*   Fix bug where `serde_support` could not be activated since `FollowData` did not derive the traits.
+
 # 0.10.0
 
 *   Add stitches to organize stories through.
