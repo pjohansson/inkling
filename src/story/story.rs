@@ -4,7 +4,10 @@ use crate::{
     consts::ROOT_KNOT_NAME,
     error::{InklingError, ParseError, StackError},
     follow::{ChoiceInfo, EncounteredEvent, FollowData, LineDataBuffer},
-    knot::{get_empty_knot_counts, get_mut_stitch, validate_addresses_in_knots, Address, KnotSet},
+    knot::{
+        get_empty_knot_counts, get_mut_stitch, get_num_visited, validate_addresses_in_knots,
+        Address, KnotSet,
+    },
     process::{get_fallback_choices, prepare_choices_for_user, process_buffer},
     story::read_knots_from_string,
 };
@@ -373,6 +376,34 @@ impl Story {
             })
     }
 
+    /// Get the number of times a knot or stitch has been visited so far.
+    ///
+    /// # Examples
+    /// ```
+    /// # use inkling::{read_story_from_string, Prompt};
+    /// # let content = "
+    /// # === depths ===
+    /// # You enter the dungeon. Bravely or foolhardily? Who is to decide?
+    /// # ";
+    /// # let mut story = read_story_from_string(content).unwrap();
+    /// # let mut line_buffer = Vec::new();
+    /// # story.start(&mut line_buffer).unwrap();
+    /// # story.move_to("depths", None).unwrap();
+    /// # story.resume(&mut line_buffer).unwrap();
+    /// let num_visited = story.get_num_visited("depths", None).unwrap();
+    /// assert_eq!(num_visited, 2);
+    /// ```
+    pub fn get_num_visited(&self, knot: &str, stitch: Option<&str>) -> Result<u32, InklingError> {
+        let address = Address::from_parts(knot, stitch, &self.knots).map_err(|_| {
+            InklingError::InvalidAddress {
+                knot: knot.to_string(),
+                stitch: stitch.map(|s| s.to_string()),
+            }
+        })?;
+
+        get_num_visited(&address, &self.data).map_err(|err| err.into())
+    }
+
     /// Wrapper of common behavior between `start` and `resume_with_choice`.
     ///
     /// Updates the stack to the last visited address and the last presented set of choices
@@ -549,7 +580,7 @@ fn get_fallback_choice(
 mod tests {
     use super::*;
 
-    use crate::knot::{get_num_visited, ValidateAddresses};
+    use crate::knot::{get_num_visited, increment_num_visited, ValidateAddresses};
 
     fn mock_follow_data(knots: &KnotSet) -> FollowData {
         FollowData {
@@ -1576,5 +1607,59 @@ We hurried home as fast as we could.
             story.get_current_location().unwrap(),
             ("hurry_home".to_string(), Some("at_home".to_string()))
         );
+    }
+
+    #[test]
+    fn getting_number_of_visits_uses_data() {
+        let content = "
+== hurry_home
+We hurried home as fast as we could. 
+-> END
+
+= at_home
+Once back home we feasted on cheese.
+-> END
+
+";
+
+        let mut story = read_story_from_string(content).unwrap();
+
+        let address = Address::from_parts("hurry_home", Some("at_home"), &story.knots).unwrap();
+
+        increment_num_visited(&address, &mut story.data).unwrap();
+        increment_num_visited(&address, &mut story.data).unwrap();
+
+        assert_eq!(story.get_num_visited("hurry_home", None).unwrap(), 0);
+        assert_eq!(
+            story
+                .get_num_visited("hurry_home", Some("at_home"))
+                .unwrap(),
+            2
+        );
+    }
+
+    #[test]
+    fn getting_number_of_visits_yields_error_if_knot_or_stitch_name_is_invalid() {
+        let content = "
+
+We arrived into Almaty at 9.45pm exactly.
+-> END
+
+== hurry_home
+We hurried home as fast as we could. 
+-> END
+
+= at_home
+Once back home we feasted on cheese.
+-> END
+
+";
+
+        let story = read_story_from_string(content).unwrap();
+
+        assert!(story.get_num_visited("fin", None).is_err());
+        assert!(story
+            .get_num_visited("hurry_home", Some("with_family"))
+            .is_err());
     }
 }
