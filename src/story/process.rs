@@ -2,8 +2,8 @@
 
 use crate::{
     error::{InklingError, InternalError},
-    follow::{ChoiceInfo, LineDataBuffer, LineText},
-    knot::{get_stitch, KnotSet},
+    follow::{ChoiceInfo, FollowData, LineDataBuffer, LineText},
+    knot::get_num_visited,
     line::{Condition, InternalLine, StoryCondition},
 };
 
@@ -34,9 +34,9 @@ pub fn process_buffer(into_buffer: &mut LineBuffer, from_buffer: LineDataBuffer)
 /// based on a set condition (currently: visited or not, unless sticky).
 pub fn prepare_choices_for_user(
     choices: &[ChoiceInfo],
-    knots: &KnotSet,
+    data: &FollowData,
 ) -> Result<Vec<Choice>, InklingError> {
-    get_available_choices(choices, knots, false)
+    get_available_choices(choices, data, false)
 }
 
 /// Prepare a list of fallback choices from the given set.
@@ -45,9 +45,9 @@ pub fn prepare_choices_for_user(
 /// however, is the caller's responsibility.
 pub fn get_fallback_choices(
     choices: &[ChoiceInfo],
-    knots: &KnotSet,
+    data: &FollowData,
 ) -> Result<Vec<Choice>, InklingError> {
-    get_available_choices(choices, knots, true)
+    get_available_choices(choices, data, true)
 }
 
 /// Return the currently available choices in the set.
@@ -60,10 +60,10 @@ pub fn get_fallback_choices(
 /// the criteria. Otherwise return only non-fallback choices.
 fn get_available_choices(
     choices: &[ChoiceInfo],
-    knots: &KnotSet,
+    data: &FollowData,
     fallback: bool,
 ) -> Result<Vec<Choice>, InklingError> {
-    let choices_with_filter_values = zip_choices_with_filter_values(choices, knots, fallback)?;
+    let choices_with_filter_values = zip_choices_with_filter_values(choices, data, fallback)?;
 
     let filtered_choices = choices_with_filter_values
         .into_iter()
@@ -76,10 +76,10 @@ fn get_available_choices(
 /// Pair every choice with whether it fulfils its conditions.
 fn zip_choices_with_filter_values(
     choices: &[ChoiceInfo],
-    knots: &KnotSet,
+    data: &FollowData,
     fallback: bool,
 ) -> Result<Vec<(bool, Choice)>, InklingError> {
-    let checked_choices = check_choices_for_conditions(choices, knots, fallback)?;
+    let checked_choices = check_choices_for_conditions(choices, data, fallback)?;
 
     choices
         .iter()
@@ -131,7 +131,7 @@ fn process_choice_text_and_tags(
 /// Return a list of whether choices fulfil their conditions.
 fn check_choices_for_conditions(
     choices: &[ChoiceInfo],
-    knots: &KnotSet,
+    data: &FollowData,
     keep_only_fallback: bool,
 ) -> Result<Vec<bool>, InklingError> {
     let mut checked_conditions = Vec::new();
@@ -144,7 +144,7 @@ fn check_choices_for_conditions(
         let mut keep = choice_data
             .condition
             .as_ref()
-            .map(|condition| check_condition(condition, knots).unwrap())
+            .map(|condition| check_condition(condition, data).unwrap())
             .unwrap_or(true);
 
         keep = keep
@@ -187,7 +187,7 @@ fn add_line_ending(line: &mut LineText, next_line: Option<&LineText>) {
 }
 
 /// Check whether a single choice fulfils its conditions.
-fn check_condition(condition: &Condition, knots: &KnotSet) -> Result<bool, InklingError> {
+fn check_condition(condition: &Condition, data: &FollowData) -> Result<bool, InklingError> {
     let evaluator = |kind: &StoryCondition| -> Result<bool, InklingError> {
         match kind {
             StoryCondition::NumVisits {
@@ -195,9 +195,9 @@ fn check_condition(condition: &Condition, knots: &KnotSet) -> Result<bool, Inkli
                 rhs_value,
                 ordering,
             } => {
-                let num_visits = get_stitch(address, knots)?.num_visited() as i32;
+                let num_visited = get_num_visited(address, data)? as i32;
 
-                Ok(num_visits.cmp(rhs_value) == *ordering)
+                Ok(num_visited.cmp(rhs_value) == *ordering)
             }
         }
     };
@@ -212,14 +212,14 @@ mod tests {
     use crate::{
         consts::ROOT_KNOT_NAME,
         follow::LineTextBuilder,
-        knot::{Address, Knot, Stitch},
+        knot::Address,
         line::{
             AlternativeBuilder, ConditionBuilder, InternalChoice, InternalChoiceBuilder,
             InternalLineBuilder, LineChunkBuilder,
         },
     };
 
-    use std::{cmp::Ordering, collections::HashMap, str::FromStr};
+    use std::{cmp::Ordering, collections::HashMap};
 
     fn create_choice_extra(num_visited: u32, choice_data: InternalChoice) -> ChoiceInfo {
         ChoiceInfo {
@@ -228,47 +228,53 @@ mod tests {
         }
     }
 
+    fn get_empty_data() -> FollowData {
+        FollowData {
+            knot_visit_counts: HashMap::new(),
+        }
+    }
+
+    fn mock_data_with_single_stitch(knot: &str, stitch: &str, num_visited: u32) -> FollowData {
+        let mut stitch_count = HashMap::new();
+        stitch_count.insert(stitch.to_string(), num_visited);
+
+        let mut knot_visit_counts = HashMap::new();
+        knot_visit_counts.insert(knot.to_string(), stitch_count);
+
+        FollowData { knot_visit_counts }
+    }
+
     #[test]
     fn check_some_conditions_against_number_of_visits_in_a_hash_map() {
         let name = "knot_name".to_string();
 
-        let mut stitch = Stitch::from_str("").unwrap();
-        stitch.root.num_visited = 3;
+        let data = mock_data_with_single_stitch(&name, ROOT_KNOT_NAME, 3);
 
-        let mut stitches = HashMap::new();
-        stitches.insert(ROOT_KNOT_NAME.to_string(), stitch);
-
-        let mut knots = HashMap::new();
-        knots.insert(
-            name.clone(),
-            Knot {
-                default_stitch: ROOT_KNOT_NAME.to_string(),
-                stitches,
-            },
-        );
-
-        let current_address = Address::from_root_knot("knot_name", &knots).unwrap();
+        let address = Address::Validated {
+            knot: name.clone(),
+            stitch: ROOT_KNOT_NAME.to_string(),
+        };
 
         let greater_than_condition = StoryCondition::NumVisits {
-            address: Address::from_target_address(&name, &current_address, &knots).unwrap(),
+            address: address.clone(),
             rhs_value: 2,
             ordering: Ordering::Greater,
         };
 
         let less_than_condition = StoryCondition::NumVisits {
-            address: Address::from_target_address(&name, &current_address, &knots).unwrap(),
+            address: address.clone(),
             rhs_value: 2,
             ordering: Ordering::Less,
         };
 
         let equal_condition = StoryCondition::NumVisits {
-            address: Address::from_target_address(&name, &current_address, &knots).unwrap(),
+            address: address.clone(),
             rhs_value: 3,
             ordering: Ordering::Equal,
         };
 
         let not_equal_condition = StoryCondition::NumVisits {
-            address: Address::from_target_address(&name, &current_address, &knots).unwrap(),
+            address: address.clone(),
             rhs_value: 3,
             ordering: Ordering::Equal,
         };
@@ -279,10 +285,10 @@ mod tests {
         let eq_condition = ConditionBuilder::from_kind(&equal_condition.into(), false).build();
         let neq_condition = ConditionBuilder::from_kind(&not_equal_condition.into(), true).build();
 
-        assert!(check_condition(&gt_condition, &knots).unwrap());
-        assert!(!check_condition(&lt_condition, &knots).unwrap());
-        assert!(check_condition(&eq_condition, &knots).unwrap());
-        assert!(!check_condition(&neq_condition, &knots).unwrap());
+        assert!(check_condition(&gt_condition, &data).unwrap());
+        assert!(!check_condition(&lt_condition, &data).unwrap());
+        assert!(check_condition(&eq_condition, &data).unwrap());
+        assert!(!check_condition(&neq_condition, &data).unwrap());
     }
 
     #[test]
@@ -441,8 +447,8 @@ mod tests {
             create_choice_extra(0, choice2),
         ];
 
-        let empty_hash_map = HashMap::new();
-        let displayed_choices = prepare_choices_for_user(&choices, &empty_hash_map).unwrap();
+        let empty_data = get_empty_data();
+        let displayed_choices = prepare_choices_for_user(&choices, &empty_data).unwrap();
 
         assert_eq!(displayed_choices.len(), 2);
         assert_eq!(&displayed_choices[0].text, "Choice 1");
@@ -458,8 +464,8 @@ mod tests {
 
         let choices = vec![create_choice_extra(0, choice)];
 
-        let empty_hash_map = HashMap::new();
-        let displayed_choices = prepare_choices_for_user(&choices, &empty_hash_map).unwrap();
+        let empty_data = get_empty_data();
+        let displayed_choices = prepare_choices_for_user(&choices, &empty_data).unwrap();
 
         assert_eq!(displayed_choices[0].tags, tags);
     }
@@ -468,31 +474,22 @@ mod tests {
     fn processing_choices_checks_conditions() {
         let name = "knot_name".to_string();
 
-        let mut stitch = Stitch::from_str("").unwrap();
-        stitch.root.num_visited = 1;
-
-        let mut stitches = HashMap::new();
-        stitches.insert(ROOT_KNOT_NAME.to_string(), stitch);
-
-        let mut knots = HashMap::new();
-        knots.insert(
-            name.clone(),
-            Knot {
-                default_stitch: ROOT_KNOT_NAME.to_string(),
-                stitches,
-            },
-        );
-
-        let current_address = Address::from_root_knot("knot_name", &knots).unwrap();
+        let data = mock_data_with_single_stitch(&name, ROOT_KNOT_NAME, 1);
 
         let fulfilled_condition = Condition::from(StoryCondition::NumVisits {
-            address: Address::from_target_address(&name, &current_address, &knots).unwrap(),
+            address: Address::Validated {
+                knot: name.clone(),
+                stitch: ROOT_KNOT_NAME.to_string(),
+            },
             rhs_value: 0,
             ordering: Ordering::Greater,
         });
 
         let unfulfilled_condition = Condition::from(StoryCondition::NumVisits {
-            address: Address::from_target_address(&name, &current_address, &knots).unwrap(),
+            address: Address::Validated {
+                knot: name.clone(),
+                stitch: ROOT_KNOT_NAME.to_string(),
+            },
             rhs_value: 2,
             ordering: Ordering::Greater,
         });
@@ -513,7 +510,7 @@ mod tests {
             create_choice_extra(0, choice3),
         ];
 
-        let displayed_choices = prepare_choices_for_user(&choices, &knots).unwrap();
+        let displayed_choices = prepare_choices_for_user(&choices, &data).unwrap();
 
         assert_eq!(displayed_choices.len(), 1);
         assert_eq!(&displayed_choices[0].text, "Kept");
@@ -531,8 +528,8 @@ mod tests {
             create_choice_extra(0, choice3),
         ];
 
-        let empty_hash_map = HashMap::new();
-        let displayed_choices = prepare_choices_for_user(&choices, &empty_hash_map).unwrap();
+        let empty_data = get_empty_data();
+        let displayed_choices = prepare_choices_for_user(&choices, &empty_data).unwrap();
 
         assert_eq!(displayed_choices.len(), 2);
         assert_eq!(&displayed_choices[0].text, "Kept");
@@ -553,8 +550,8 @@ mod tests {
             create_choice_extra(1, choice3),
         ];
 
-        let empty_hash_map = HashMap::new();
-        let displayed_choices = prepare_choices_for_user(&choices, &empty_hash_map).unwrap();
+        let empty_data = get_empty_data();
+        let displayed_choices = prepare_choices_for_user(&choices, &empty_data).unwrap();
 
         assert_eq!(displayed_choices.len(), 2);
         assert_eq!(&displayed_choices[0].text, "Kept");
@@ -577,8 +574,8 @@ mod tests {
             create_choice_extra(0, choice3),
         ];
 
-        let empty_hash_map = HashMap::new();
-        let displayed_choices = prepare_choices_for_user(&choices, &empty_hash_map).unwrap();
+        let empty_data = get_empty_data();
+        let displayed_choices = prepare_choices_for_user(&choices, &empty_data).unwrap();
 
         assert_eq!(displayed_choices.len(), 2);
         assert_eq!(&displayed_choices[0].text, "Kept");
@@ -604,8 +601,8 @@ mod tests {
             create_choice_extra(1, choice3),
         ];
 
-        let empty_hash_map = HashMap::new();
-        let fallback_choices = get_fallback_choices(&choices, &empty_hash_map).unwrap();
+        let empty_data = get_empty_data();
+        let fallback_choices = get_fallback_choices(&choices, &empty_data).unwrap();
 
         assert_eq!(fallback_choices.len(), 2);
         assert_eq!(&fallback_choices[0].text, "Kept");
@@ -631,14 +628,14 @@ mod tests {
 
         let choices = vec![create_choice_extra(0, choice)];
 
-        let empty_hash_map = HashMap::new();
+        let empty_data = get_empty_data();
 
-        let presented_choices = prepare_choices_for_user(&choices, &empty_hash_map).unwrap();
+        let presented_choices = prepare_choices_for_user(&choices, &empty_data).unwrap();
 
         assert_eq!(presented_choices.len(), 1);
         assert_eq!(&presented_choices[0].text, "Hello once!");
 
-        let presented_choices = prepare_choices_for_user(&choices, &empty_hash_map).unwrap();
+        let presented_choices = prepare_choices_for_user(&choices, &empty_data).unwrap();
 
         assert_eq!(presented_choices.len(), 1);
         assert_eq!(&presented_choices[0].text, "Hello twice!");

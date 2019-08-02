@@ -315,11 +315,11 @@ fn follow_story(
 
     match event {
         EncounteredEvent::BranchingChoice(choice_set) => {
-            let user_choice_lines = prepare_choices_for_user(&choice_set, knots)?;
+            let user_choice_lines = prepare_choices_for_user(&choice_set, data)?;
             if !user_choice_lines.is_empty() {
                 Ok((Prompt::Choice(user_choice_lines), last_address))
             } else {
-                let choice = get_fallback_choice(&choice_set, &last_address, knots)?;
+                let choice = get_fallback_choice(&choice_set, &last_address, data)?;
 
                 follow_story(
                     &last_address,
@@ -377,9 +377,9 @@ fn follow_knot(
 fn get_fallback_choice(
     choice_set: &[ChoiceInfo],
     current_address: &Address,
-    knots: &KnotSet,
+    data: &FollowData,
 ) -> Result<Choice, InklingError> {
-    get_fallback_choices(choice_set, knots).and_then(|choices| {
+    get_fallback_choices(choice_set, data).and_then(|choices| {
         choices.first().cloned().ok_or(InklingError::OutOfChoices {
             address: current_address.clone(),
         })
