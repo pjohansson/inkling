@@ -3,7 +3,7 @@
 use crate::{
     error::{InklingError, InternalError},
     follow::{ChoiceInfo, LineDataBuffer, LineText},
-    knot::{KnotSet, get_stitch},
+    knot::{get_stitch, KnotSet},
     line::{Condition, InternalLine, StoryCondition},
 };
 

@@ -2,12 +2,7 @@
 
 use std::{error::Error, fmt};
 
-use crate::{
-    follow::ChoiceInfo,
-    knot::Address,
-    node::Stack,
-    story::Choice,
-};
+use crate::{follow::ChoiceInfo, knot::Address, node::Stack, story::Choice};
 
 #[derive(Clone, Debug)]
 /// Errors from running a story.

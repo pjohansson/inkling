@@ -227,7 +227,7 @@ fn validate_divert_address(line: &str, backup_line: String) -> Result<String, Li
 mod tests {
     use super::*;
 
-    use crate::{line::process::tests::get_processed_string, knot::Address};
+    use crate::{knot::Address, line::process::tests::get_processed_string};
 
     #[test]
     fn simple_text_string_parses_into_chunk_with_single_item() {

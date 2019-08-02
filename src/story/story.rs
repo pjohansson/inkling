@@ -3,7 +3,7 @@
 use crate::{
     error::{InklingError, ParseError, StackError},
     follow::{ChoiceInfo, EncounteredEvent, LineDataBuffer},
-    knot::{Address, KnotSet, validate_addresses_in_knots, get_mut_stitch},
+    knot::{get_mut_stitch, validate_addresses_in_knots, Address, KnotSet},
 };
 
 #[cfg(feature = "serde_support")]
@@ -373,7 +373,7 @@ fn get_fallback_choice(
 mod tests {
     use super::*;
 
-    use crate::knot::{ValidateAddresses, get_stitch};
+    use crate::knot::{get_stitch, ValidateAddresses};
 
     #[test]
     fn follow_knot_diverts_to_new_knots_when_encountered() {
