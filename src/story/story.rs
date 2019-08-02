@@ -1,9 +1,9 @@
 //! Structures which contain parsed `Ink` stories and content presented to the user.
 
 use crate::{
-    error::{InklingError, InternalError, ParseError, StackError},
+    error::{InklingError, ParseError, StackError},
     follow::{ChoiceInfo, EncounteredEvent, LineDataBuffer},
-    knot::{Address, KnotSet, Stitch, validate_addresses_in_knots},
+    knot::{Address, KnotSet, validate_addresses_in_knots, get_mut_stitch},
 };
 
 #[cfg(feature = "serde_support")]
@@ -354,41 +354,6 @@ fn follow_knot(
     Ok((current_address, event))
 }
 
-/// Return a reference to the `Stitch` at the target address.
-pub fn get_stitch<'a>(target: &Address, knots: &'a KnotSet) -> Result<&'a Stitch, InternalError> {
-    let knot_name = target.get_knot()?;
-    let stitch_name = target.get_stitch()?;
-
-    knots
-        .get(knot_name)
-        .and_then(|knot| knot.stitches.get(stitch_name))
-        .ok_or(
-            StackError::BadAddress {
-                address: target.clone(),
-            }
-            .into(),
-        )
-}
-
-/// Return a mutable reference to the `Stitch` at the target address.
-pub fn get_mut_stitch<'a>(
-    target: &Address,
-    knots: &'a mut KnotSet,
-) -> Result<&'a mut Stitch, InklingError> {
-    let knot_name = target.get_knot()?;
-    let stitch_name = target.get_stitch()?;
-
-    knots
-        .get_mut(knot_name)
-        .and_then(|knot| knot.stitches.get_mut(stitch_name))
-        .ok_or(
-            StackError::BadAddress {
-                address: target.clone(),
-            }
-            .into(),
-        )
-}
-
 /// Return the first available fallback choice from the given set of choices.
 ///
 /// Choices are filtered as usual by conditions and visits.
@@ -408,7 +373,7 @@ fn get_fallback_choice(
 mod tests {
     use super::*;
 
-    use crate::knot::ValidateAddresses;
+    use crate::knot::{ValidateAddresses, get_stitch};
 
     #[test]
     fn follow_knot_diverts_to_new_knots_when_encountered() {

@@ -3,11 +3,11 @@
 use crate::{
     error::{InklingError, InternalError},
     follow::{ChoiceInfo, LineDataBuffer, LineText},
-    knot::KnotSet,
+    knot::{KnotSet, get_stitch},
     line::{Condition, InternalLine, StoryCondition},
 };
 
-use super::story::{get_stitch, Choice, Line, LineBuffer};
+use super::story::{Choice, Line, LineBuffer};
 
 use std::{cell::RefCell, rc::Rc};
 
