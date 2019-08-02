@@ -13,6 +13,17 @@ use crate::{
     },
 };
 
+#[derive(Clone, Copy, Debug, PartialEq)]
+/// Kinds of variable expressions in an `Ink` line of text.
+enum VariableText {
+    /// Set of `Alternative` objects which will be selected from.
+    Alternative,
+    /// Content which will be display if (or if not) conditions are fulfilled.
+    Conditional,
+    /// Content stored in a variable.
+    Variable,
+}
+
 /// Parse an `InternalLine` from a string.
 pub fn parse_internal_line(content: &str) -> Result<InternalLine, LineParsingError> {
     let mut buffer = content.to_string();
@@ -79,11 +90,11 @@ fn get_text_items(content: &str) -> Result<Vec<Content>, LineParsingError> {
 
 fn parse_embraced_line(content: &str) -> Result<Content, LineParsingError> {
     match determine_kind(content)? {
-        ExpressionKind::Alternative => {
+        VariableText::Alternative => {
             let alternative = parse_alternative(content)?;
             Ok(Content::Alternative(alternative))
         }
-        ExpressionKind::Conditional => {
+        VariableText::Conditional => {
             let (condition, true_content, false_content) = parse_line_condition(content)?;
 
             let chunk = LineChunk {
@@ -97,49 +108,23 @@ fn parse_embraced_line(content: &str) -> Result<Content, LineParsingError> {
 
             Ok(Content::Nested(chunk))
         }
-        ExpressionKind::Variable => unimplemented!(),
+        VariableText::Variable => unimplemented!(),
     }
 }
 
-#[test]
-fn parse_embraced_line_as_alternative() {
-    match parse_embraced_line("One | Two").unwrap() {
-        Content::Alternative(..) => (),
-        other => panic!("expected `Content::Alternative` but got {:?}", other),
-    }
-}
-
-#[test]
-fn parse_embraced_line_as_new_conditional_chunk() {
-    match parse_embraced_line("condition: One | Two").unwrap() {
-        Content::Nested(chunk) => {
-            let (condition, _, _) = parse_line_condition("condition: One | Two").unwrap();
-            assert_eq!(chunk.condition.unwrap(), condition);
-        }
-        other => panic!("expected `Content::Nested` but got {:?}", other),
-    }
-}
-
-#[derive(Clone, Copy, Debug, PartialEq)]
-/// Kinds of expressions which will evaluate to strings when processed.
-enum ExpressionKind {
-    Alternative,
-    Conditional,
-    Variable,
-}
-
-fn determine_kind(content: &str) -> Result<ExpressionKind, LineParsingError> {
+/// Determine which kind of variable content is in an embraced string.
+fn determine_kind(content: &str) -> Result<VariableText, LineParsingError> {
     if content.trim().is_empty() {
         Err(LineParsingError::from_kind(
             content,
             LineErrorKind::EmptyExpression,
         ))
     } else if split_line_at_separator_braces(content, ":", Some(1))?.len() > 1 {
-        Ok(ExpressionKind::Conditional)
+        Ok(VariableText::Conditional)
     } else if split_line_at_separator_braces(content, "|", Some(1))?.len() > 1 {
-        Ok(ExpressionKind::Alternative)
+        Ok(VariableText::Alternative)
     } else {
-        Ok(ExpressionKind::Variable)
+        Ok(VariableText::Variable)
     }
 }
 
@@ -461,26 +446,45 @@ mod tests {
     }
 
     #[test]
+    fn parse_embraced_line_as_alternative() {
+        match parse_embraced_line("One | Two").unwrap() {
+            Content::Alternative(..) => (),
+            other => panic!("expected `Content::Alternative` but got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn parse_embraced_line_as_new_conditional_chunk() {
+        match parse_embraced_line("condition: One | Two").unwrap() {
+            Content::Nested(chunk) => {
+                let (condition, _, _) = parse_line_condition("condition: One | Two").unwrap();
+                assert_eq!(chunk.condition.unwrap(), condition);
+            }
+            other => panic!("expected `Content::Nested` but got {:?}", other),
+        }
+    }
+
+    #[test]
     fn expression_with_colon_separator_is_condition() {
         assert_eq!(
             determine_kind("knot: item").unwrap(),
-            ExpressionKind::Conditional
+            VariableText::Conditional
         );
         assert_eq!(
             determine_kind("knot: item | item 2").unwrap(),
-            ExpressionKind::Conditional
+            VariableText::Conditional
         );
         assert_eq!(
             determine_kind("not knot : item").unwrap(),
-            ExpressionKind::Conditional
+            VariableText::Conditional
         );
         assert_eq!(
             determine_kind("not knot > 2 : item").unwrap(),
-            ExpressionKind::Conditional
+            VariableText::Conditional
         );
         assert_eq!(
             determine_kind("not knot > 2 : rest of line | another line").unwrap(),
-            ExpressionKind::Conditional
+            VariableText::Conditional
         );
     }
 
@@ -488,19 +492,19 @@ mod tests {
     fn expression_with_only_vertical_separators_is_alternative() {
         assert_eq!(
             determine_kind("one | two").unwrap(),
-            ExpressionKind::Alternative
+            VariableText::Alternative
         );
         assert_eq!(
             determine_kind("one|two").unwrap(),
-            ExpressionKind::Alternative
+            VariableText::Alternative
         );
     }
 
     #[test]
     fn expression_which_is_neither_alternative_or_condition_is_variable() {
-        assert_eq!(determine_kind("one").unwrap(), ExpressionKind::Variable);
-        assert_eq!(determine_kind("one.two").unwrap(), ExpressionKind::Variable);
-        assert_eq!(determine_kind("one.two").unwrap(), ExpressionKind::Variable);
+        assert_eq!(determine_kind("one").unwrap(), VariableText::Variable);
+        assert_eq!(determine_kind("one.two").unwrap(), VariableText::Variable);
+        assert_eq!(determine_kind("one.two").unwrap(), VariableText::Variable);
     }
 
     #[test]
