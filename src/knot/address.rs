@@ -89,6 +89,16 @@ impl Address {
         }
     }
 
+    /// Get knot and stitch names from a validated address.
+    pub fn get_knot_and_stitch(&self) -> Result<(&str, &str), InternalError> {
+        match self {
+            Address::Validated { knot, stitch } => Ok((knot, stitch)),
+            _ => Err(InternalError::UseOfUnvalidatedAddress {
+                address: self.clone(),
+            }),
+        }
+    }
+
     #[cfg(test)]
     /// Get a validated address from a string.
     pub fn from_target_address(
