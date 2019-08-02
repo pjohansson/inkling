@@ -99,7 +99,7 @@ fn lines_can_have_conditional_content() {
 
 == root
 
-I {nantucket: {nantucket > 1: {nantucket > 2: many times | twice } | once } | have never} met a comrade from Nantucket. 
+I {nantucket: {nantucket > 1: {nantucket > 2: many times | twice } | once } | have never} met {nantucket: with} a comrade from Nantucket. 
 
 +   [Go there] -> nantucket
 
@@ -113,11 +113,32 @@ I {nantucket: {nantucket > 1: {nantucket > 2: many times | twice } | once } | ha
 
     story.start(&mut line_buffer).unwrap();
 
-    dbg!(&line_buffer);
-
     assert_eq!(
         &line_buffer[0].text,
         "I have never met a comrade from Nantucket.\n"
     );
+
     line_buffer.clear();
+    story.resume_with_choice(0, &mut line_buffer).unwrap();
+
+    assert_eq!(
+        &line_buffer[0].text,
+        "I once met with a comrade from Nantucket.\n"
+    );
+
+    line_buffer.clear();
+    story.resume_with_choice(0, &mut line_buffer).unwrap();
+
+    assert_eq!(
+        &line_buffer[0].text,
+        "I twice met with a comrade from Nantucket.\n"
+    );
+
+    line_buffer.clear();
+    story.resume_with_choice(0, &mut line_buffer).unwrap();
+
+    assert_eq!(
+        &line_buffer[0].text,
+        "I many times met with a comrade from Nantucket.\n"
+    );
 }
