@@ -69,6 +69,32 @@ impl Address {
         })
     }
 
+    pub fn from_parts(
+        knot_name: &str,
+        stitch_name: Option<&str>,
+        knots: &KnotSet,
+    ) -> Result<Self, InvalidAddressError> {
+        let knot = knots
+            .get(knot_name)
+            .ok_or(InvalidAddressError::UnknownKnot {
+                knot_name: knot_name.to_string(),
+            })?;
+
+        let stitch_name = stitch_name.unwrap_or(&knot.default_stitch);
+
+        if knot.stitches.contains_key(stitch_name) {
+            Ok(Address::Validated {
+                knot: knot_name.to_string(),
+                stitch: stitch_name.to_string(),
+            })
+        } else {
+            Err(InvalidAddressError::UnknownStitch {
+                knot_name: knot_name.to_string(),
+                stitch_name: stitch_name.to_string(),
+            })
+        }
+    }
+
     /// Get the knot name of a validated address.
     pub fn get_knot(&self) -> Result<&str, InternalError> {
         match self {
@@ -268,9 +294,8 @@ fn get_empty_knot_map(knots: &KnotSet) -> KnotSet {
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    use crate::story::read_knots_from_string;
 
-    use crate::consts::ROOT_KNOT_NAME;
+    use crate::{consts::ROOT_KNOT_NAME, story::read_knots_from_string};
 
     impl Address {
         fn from_knot(name: &str) -> Self {
@@ -499,5 +524,88 @@ You find yourself in Tripoli, the capital of Libya.
         let mut done_address = Address::Raw("DONE".to_string());
         assert!(done_address.validate(&current_address, &knots).is_ok());
         assert_eq!(done_address, Address::End);
+    }
+
+    #[test]
+    fn address_can_be_validated_from_parts() {
+        let content = "
+== tripoli
+You find yourself in Tripoli, the capital of Libya.
+-> END
+
+= cinema
+-> END
+
+== addis_ababa
+You find yourself in Addis Ababa, the capital of Ethiopia.
+-> END 
+
+";
+
+        let (_, knots) = read_knots_from_string(content).unwrap();
+
+        assert_eq!(
+            Address::from_parts("addis_ababa", None, &knots).unwrap(),
+            Address::Validated {
+                knot: "addis_ababa".to_string(),
+                stitch: ROOT_KNOT_NAME.to_string()
+            }
+        );
+
+        assert_eq!(
+            Address::from_parts("tripoli", None, &knots).unwrap(),
+            Address::Validated {
+                knot: "tripoli".to_string(),
+                stitch: ROOT_KNOT_NAME.to_string()
+            }
+        );
+
+        assert_eq!(
+            Address::from_parts("tripoli", Some("cinema"), &knots).unwrap(),
+            Address::Validated {
+                knot: "tripoli".to_string(),
+                stitch: "cinema".to_string()
+            }
+        );
+
+        assert!(Address::from_parts("rabat", None, &knots).is_err());
+        assert!(Address::from_parts("addis_ababa", Some("cinema"), &knots).is_err());
+        assert!(Address::from_parts("tripoli", Some("with_family"), &knots).is_err());
+    }
+
+    #[test]
+    fn if_a_default_stitch_is_set_for_the_knot_it_is_used() {
+        let content = "
+== tripoli
+You find yourself in Tripoli, the capital of Libya.
+-> END
+
+= cinema
+-> END
+
+== cairo 
+= airport 
+You find yourself in Cairo, the capital of Egypt.
+-> END
+
+";
+
+        let (_, knots) = read_knots_from_string(content).unwrap();
+
+        assert_eq!(
+            Address::from_parts("tripoli", None, &knots).unwrap(),
+            Address::Validated {
+                knot: "tripoli".to_string(),
+                stitch: ROOT_KNOT_NAME.to_string()
+            }
+        );
+
+        assert_eq!(
+            Address::from_parts("cairo", None, &knots).unwrap(),
+            Address::Validated {
+                knot: "cairo".to_string(),
+                stitch: "airport".to_string()
+            }
+        );
     }
 }
