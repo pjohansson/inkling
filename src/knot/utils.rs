@@ -1,5 +1,5 @@
 use crate::{
-    error::{InklingError, InternalError, StackError},
+    error::{InternalError, StackError},
     knot::{Address, KnotSet, Stitch},
 };
 
@@ -23,7 +23,7 @@ pub fn get_stitch<'a>(target: &Address, knots: &'a KnotSet) -> Result<&'a Stitch
 pub fn get_mut_stitch<'a>(
     target: &Address,
     knots: &'a mut KnotSet,
-) -> Result<&'a mut Stitch, InklingError> {
+) -> Result<&'a mut Stitch, InternalError> {
     let knot_name = target.get_knot()?;
     let stitch_name = target.get_stitch()?;
 
