@@ -92,3 +92,32 @@ You meet with Aaron.
     assert_eq!(&choices[0].text, "Hello!");
     assert_eq!(&choices[1].text, "Sorry, I want some me-time right now");
 }
+
+#[test]
+fn lines_can_have_conditional_content() {
+    let content = "
+
+== root
+
+I {nantucket: {nantucket > 1: {nantucket > 2: many times | twice } | once } | have never} met a comrade from Nantucket. 
+
++   [Go there] -> nantucket
+
+== nantucket
+-> root
+
+";
+
+    let mut story = read_story_from_string(content).unwrap();
+    let mut line_buffer = Vec::new();
+
+    story.start(&mut line_buffer).unwrap();
+
+    dbg!(&line_buffer);
+
+    assert_eq!(
+        &line_buffer[0].text,
+        "I have never met a comrade from Nantucket.\n"
+    );
+    line_buffer.clear();
+}

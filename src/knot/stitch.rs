@@ -79,9 +79,9 @@ impl Stitch {
         buffer: &mut LineDataBuffer,
         data: &mut FollowData,
     ) -> FollowResult {
-        let result = self
-            .root
-            .follow_with_choice(choice_index, 0, &mut self.stack, buffer, data)?;
+        let result =
+            self.root
+                .follow_with_choice(choice_index, 0, &mut self.stack, buffer, data)?;
 
         match result {
             EncounteredEvent::Done | EncounteredEvent::Divert(..) => self.reset_stack(),
@@ -288,7 +288,9 @@ mod tests {
         let mut buffer = Vec::new();
         let mut data = mock_follow_data();
 
-        stitch.follow_with_choice(0, &mut buffer, &mut data).unwrap();
+        stitch
+            .follow_with_choice(0, &mut buffer, &mut data)
+            .unwrap();
 
         assert_eq!(stitch.num_visited(), 0);
     }
@@ -306,7 +308,9 @@ mod tests {
         let mut buffer = Vec::new();
         let mut data = mock_follow_data();
 
-        stitch.follow_with_choice(0, &mut buffer, &mut data).unwrap();
+        stitch
+            .follow_with_choice(0, &mut buffer, &mut data)
+            .unwrap();
 
         assert_eq!(buffer.last().unwrap().text.trim(), "Line");
         assert_eq!(stitch.num_visited(), 0);
@@ -393,7 +397,9 @@ mod tests {
         let mut data = mock_follow_data();
 
         stitch.follow(&mut buffer, &mut data).unwrap();
-        stitch.follow_with_choice(0, &mut buffer, &mut data).unwrap();
+        stitch
+            .follow_with_choice(0, &mut buffer, &mut data)
+            .unwrap();
 
         assert_eq!(buffer.len(), 1);
         assert_eq!(&buffer[0].text, choice);
@@ -414,7 +420,9 @@ mod tests {
         stitch.follow(&mut buffer, &mut data).unwrap();
         assert_eq!(&stitch.stack, &[0]);
 
-        stitch.follow_with_choice(0, &mut buffer, &mut data).unwrap();
+        stitch
+            .follow_with_choice(0, &mut buffer, &mut data)
+            .unwrap();
         assert_eq!(&stitch.stack, &[0]);
     }
 
@@ -444,7 +452,9 @@ mod tests {
         let mut data = mock_follow_data();
 
         stitch.follow(&mut buffer, &mut data).unwrap();
-        stitch.follow_with_choice(1, &mut buffer, &mut data).unwrap();
+        stitch
+            .follow_with_choice(1, &mut buffer, &mut data)
+            .unwrap();
 
         assert_eq!(buffer.len(), 3);
         assert_eq!(&buffer[1].text, line1);
@@ -484,7 +494,9 @@ mod tests {
 
         let mut results_choice2 = LineDataBuffer::new();
 
-        stitch.follow(&mut results_choice2, &mut data).expect("three");
+        stitch
+            .follow(&mut results_choice2, &mut data)
+            .expect("three");
         stitch
             .follow_with_choice(1, &mut results_choice2, &mut data)
             .expect("four");
@@ -514,9 +526,15 @@ Line 6
         let mut data = mock_follow_data();
 
         stitch.follow(&mut buffer, &mut data).unwrap();
-        stitch.follow_with_choice(0, &mut buffer, &mut data).unwrap();
-        stitch.follow_with_choice(1, &mut buffer, &mut data).unwrap();
-        stitch.follow_with_choice(0, &mut buffer, &mut data).unwrap();
+        stitch
+            .follow_with_choice(0, &mut buffer, &mut data)
+            .unwrap();
+        stitch
+            .follow_with_choice(1, &mut buffer, &mut data)
+            .unwrap();
+        stitch
+            .follow_with_choice(0, &mut buffer, &mut data)
+            .unwrap();
 
         // Four lines in choice, three choice lines and two lines after the gather
         assert_eq!(buffer.len(), 4 + 3 + 2);

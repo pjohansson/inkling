@@ -61,7 +61,12 @@ pub trait Follow: FollowInternal {
     ///     reached in the tree.
     ///
     ///     Ensure that the stack is maintained before calling this method.
-    fn follow(&mut self, stack: &mut Stack, buffer: &mut LineDataBuffer, data: &mut FollowData) -> FollowResult {
+    fn follow(
+        &mut self,
+        stack: &mut Stack,
+        buffer: &mut LineDataBuffer,
+        data: &mut FollowData,
+    ) -> FollowResult {
         let at_index = stack
             .last_mut()
             .ok_or(InternalError::from(IncorrectNodeStackError::EmptyStack))?;
@@ -128,7 +133,7 @@ pub trait Follow: FollowInternal {
         stack_index: usize,
         stack: &mut Stack,
         buffer: &mut LineDataBuffer,
-        data: &mut FollowData
+        data: &mut FollowData,
     ) -> FollowResult {
         let result = if let Some(next_branch) = self.get_next_level_branch(stack_index, stack)? {
             next_branch.follow_with_choice(selection, stack_index + 2, stack, buffer, data)
