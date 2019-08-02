@@ -11,7 +11,10 @@ pub fn process_buffer(into_buffer: &mut LineBuffer, from_buffer: LineDataBuffer)
         .peekable();
 
     while let Some(mut line) = iter.next() {
-        add_line_ending(&mut line, iter.peek());
+        let (glue, whitespace) = check_for_whitespace_and_glue(&line, iter.peek());
+
+        trim_extra_whitespace(&mut line);
+        add_line_ending(&mut line, glue, whitespace);
 
         into_buffer.push(Line {
             text: line.text,
@@ -20,10 +23,8 @@ pub fn process_buffer(into_buffer: &mut LineBuffer, from_buffer: LineDataBuffer)
     }
 }
 
-/// Add a newline character to the current line if it is not glued to the next.
-///
-/// Ensure that only a single whitespace remains between the lines if they are glued.
-fn add_line_ending(line: &mut LineText, next_line: Option<&LineText>) {
+/// Check whether the line is glued to the next and if so whether it ends with a blank space.
+fn check_for_whitespace_and_glue(line: &LineText, next_line: Option<&LineText>) -> (bool, bool) {
     let glue = next_line
         .map(|next_line| line.glue_end || next_line.glue_begin)
         .unwrap_or(false);
@@ -34,6 +35,20 @@ fn add_line_ending(line: &mut LineText, next_line: Option<&LineText>) {
             .unwrap_or(false)
     };
 
+    (glue, whitespace)
+}
+
+/// Trim multiple whitespace characters between words.
+fn trim_extra_whitespace(line: &mut LineText) {
+    let trimmed = line.text.split_whitespace().collect::<Vec<_>>().join(" ");
+
+    line.text = trimmed;
+}
+
+/// Add a newline character to the current line if it is not glued to the next.
+///
+/// Ensures that only a single whitespace remains between the lines if they are glued.
+fn add_line_ending(line: &mut LineText, glue: bool, whitespace: bool) {
     if !glue || whitespace {
         let mut text = line.text.trim().to_string();
 
@@ -198,5 +213,19 @@ mod tests {
         process_buffer(&mut processed, buffer);
 
         assert_eq!(processed[0].tags, tags);
+    }
+
+    #[test]
+    fn only_single_whitespaces_are_left_between_words_after_processing() {
+        let text = "A line    with   just    enough   whitespace";
+        let line = LineTextBuilder::from_string(text).build();
+
+        let buffer = vec![line];
+
+        let mut processed = Vec::new();
+        process_buffer(&mut processed, buffer);
+
+        assert_eq!(&processed[0].text, "A line with just enough whitespace\n");
+
     }
 }
