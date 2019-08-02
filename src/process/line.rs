@@ -1,12 +1,10 @@
 //! Processing of nested line chunks into text content.
 
 use crate::{
-    error::ProcessError,
+    error::{ProcessError, ProcessErrorKind},
     follow::{EncounteredEvent, LineDataBuffer, LineText},
-    line::{Content, InternalLine, LineChunk},
+    line::{Alternative, AlternativeKind, Content, InternalLine, LineChunk},
 };
-
-// pub type ConditionEvaluator = Fn(&ConditionKind) -> Result<bool, ProcessError>;
 
 pub trait Process {
     fn process(&mut self, buffer: &mut String) -> Result<EncounteredEvent, ProcessError>;
@@ -66,13 +64,61 @@ impl Process for Content {
     }
 }
 
+impl Process for Alternative {
+    fn process(&mut self, buffer: &mut String) -> Result<EncounteredEvent, ProcessError> {
+        let num_items = self.items.len();
+
+        match self.kind {
+            AlternativeKind::Cycle => {
+                let index = self.current_index.get_or_insert(0);
+
+                let item = self.items.get_mut(*index).ok_or_else(|| ProcessError {
+                    kind: ProcessErrorKind::InvalidAlternativeIndex,
+                })?;
+
+                if *index < num_items - 1 {
+                    *index += 1;
+                } else {
+                    *index = 0;
+                }
+
+                item.process(buffer)
+            }
+            AlternativeKind::OnceOnly => {
+                let index = self.current_index.get_or_insert(0);
+
+                match self.items.get_mut(*index) {
+                    Some(item) => {
+                        *index += 1;
+                        item.process(buffer)
+                    }
+                    None => Ok(EncounteredEvent::Done),
+                }
+            }
+            AlternativeKind::Sequence => {
+                let index = self.current_index.get_or_insert(0);
+
+                let item = self.items.get_mut(*index).ok_or_else(|| ProcessError {
+                    kind: ProcessErrorKind::InvalidAlternativeIndex,
+                })?;
+
+                if *index < num_items - 1 {
+                    *index += 1;
+                }
+
+                item.process(buffer)
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 pub mod tests {
     use super::*;
 
     use crate::{
         knot::Address,
-        line::{parse::parse_internal_line, LineChunkBuilder},
+        line::{parse::parse_internal_line, AlternativeBuilder, LineChunkBuilder},
     };
 
     /// Process an item into a buffer an return it.
@@ -171,5 +217,138 @@ pub mod tests {
         );
 
         assert_eq!(&buffer, "Line 1");
+    }
+
+    #[test]
+    fn sequence_alternative_walks_through_content_when_processed_repeatably() {
+        let mut sequence = AlternativeBuilder::sequence()
+            .with_line(LineChunkBuilder::from_string("Line 1").build())
+            .with_line(LineChunkBuilder::from_string("Line 2").build())
+            .build();
+
+        let mut buffer = String::new();
+
+        sequence.process(&mut buffer).unwrap();
+        assert_eq!(&buffer, "Line 1");
+        buffer.clear();
+
+        sequence.process(&mut buffer).unwrap();
+        assert_eq!(&buffer, "Line 2");
+        buffer.clear();
+
+        sequence.process(&mut buffer).unwrap();
+        assert_eq!(&buffer, "Line 2");
+        buffer.clear();
+    }
+
+    #[test]
+    fn once_only_alternative_walks_through_content_and_stops_after_final_item_when_processed() {
+        let mut once_only = AlternativeBuilder::once_only()
+            .with_line(LineChunkBuilder::from_string("Line 1").build())
+            .with_line(LineChunkBuilder::from_string("Line 2").build())
+            .build();
+
+        let mut buffer = String::new();
+
+        once_only.process(&mut buffer).unwrap();
+        assert_eq!(&buffer, "Line 1");
+        buffer.clear();
+
+        once_only.process(&mut buffer).unwrap();
+        assert_eq!(&buffer, "Line 2");
+        buffer.clear();
+
+        once_only.process(&mut buffer).unwrap();
+        assert!(buffer.is_empty());
+    }
+
+    #[test]
+    fn cycle_alternative_repeats_from_first_index_after_reaching_end() {
+        let mut cycle = AlternativeBuilder::cycle()
+            .with_line(LineChunkBuilder::from_string("Line 1").build())
+            .with_line(LineChunkBuilder::from_string("Line 2").build())
+            .build();
+
+        let mut buffer = String::new();
+
+        cycle.process(&mut buffer).unwrap();
+        assert_eq!(&buffer, "Line 1");
+        buffer.clear();
+
+        cycle.process(&mut buffer).unwrap();
+        assert_eq!(&buffer, "Line 2");
+        buffer.clear();
+
+        cycle.process(&mut buffer).unwrap();
+        assert_eq!(&buffer, "Line 1");
+        buffer.clear();
+    }
+
+    #[test]
+    fn diverts_in_alternates_shortcut_when_finally_processed() {
+        let mut alternative = AlternativeBuilder::sequence()
+            .with_line(LineChunkBuilder::from_string("Line 1").build())
+            .with_line(LineChunkBuilder::new().with_divert("divert").build())
+            .with_line(LineChunkBuilder::from_string("Line 2").build())
+            .build();
+
+        let mut buffer = String::new();
+
+        assert_eq!(
+            alternative.process(&mut buffer).unwrap(),
+            EncounteredEvent::Done
+        );
+        assert_eq!(&buffer, "Line 1");
+        buffer.clear();
+
+        assert_eq!(
+            alternative.process(&mut buffer).unwrap(),
+            EncounteredEvent::Divert(Address::Raw("divert".to_string()))
+        );
+        buffer.clear();
+
+        assert_eq!(
+            alternative.process(&mut buffer).unwrap(),
+            EncounteredEvent::Done
+        );
+        assert_eq!(&buffer, "Line 2");
+    }
+
+    #[test]
+    fn diverts_are_raised_through_the_nested_stack_when_encountered() {
+        let alternative = AlternativeBuilder::sequence()
+            .with_line(LineChunkBuilder::from_string("Alternative line 1").build())
+            .with_line(
+                LineChunkBuilder::from_string("Divert")
+                    .with_divert("divert")
+                    .build(),
+            )
+            .with_line(LineChunkBuilder::from_string("Alternative line 2").build())
+            .build();
+
+        let mut line = LineChunkBuilder::new()
+            .with_text("Line 1")
+            .with_item(Content::Alternative(alternative))
+            .with_text("Line 2")
+            .build();
+
+        let mut buffer = String::new();
+
+        assert_eq!(line.process(&mut buffer).unwrap(), EncounteredEvent::Done);
+
+        assert_eq!(&buffer, "Line 1Alternative line 1Line 2");
+        buffer.clear();
+
+        assert_eq!(
+            line.process(&mut buffer).unwrap(),
+            EncounteredEvent::Divert(Address::Raw("divert".to_string()))
+        );
+
+        assert_eq!(&buffer, "Line 1Divert");
+        buffer.clear();
+
+        assert_eq!(line.process(&mut buffer).unwrap(), EncounteredEvent::Done);
+
+        assert_eq!(&buffer, "Line 1Alternative line 2Line 2");
     }
 }
