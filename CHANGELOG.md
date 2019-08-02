@@ -18,6 +18,7 @@
 
 ## 0.11.4
 
+*   Add `move_to` and `resume` methods for `Story`. These are used to respectively move the story to a different knot and resume from there.
 *   Line conditionals are implemented.
 *   Conditions can be nested with parenthesis and `and`/`or` connections.
 
