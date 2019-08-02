@@ -255,7 +255,7 @@ impl Story {
     /// ```
     pub fn move_to(&mut self, knot: &str, stitch: Option<&str>) -> Result<(), InklingError> {
         let to_address = Address::from_parts(knot, stitch, &self.knots).map_err(|_| {
-            InklingError::InvalidMove {
+            InklingError::InvalidAddress {
                 knot: knot.to_string(),
                 stitch: stitch.map(|s| s.to_string()),
             }
@@ -309,6 +309,37 @@ impl Story {
         }
 
         self.follow_story_wrapper(None, line_buffer)
+    }
+
+    /// Get the tags associated with the given knot.
+    ///
+    /// Returns an error if no knot with the given name exists in the story.
+    ///
+    /// # Examples
+    /// ```
+    /// # use inkling::{read_story_from_string, Prompt};
+    /// // From ‘Sanshirō’ by Natsume Sōseki
+    /// let content = "
+    /// === tokyo ===
+    /// ## weather: hot
+    /// ## sound: crowds
+    /// Tokyo was full of things that startled Sanshirō.
+    /// ";
+    ///
+    /// let story = read_story_from_string(content).unwrap();
+    /// let tags = story.get_knot_tags("tokyo").unwrap();
+    ///
+    /// assert_eq!(&tags[0], "weather: hot");
+    /// assert_eq!(&tags[1], "sound: crowds");
+    /// ```
+    pub fn get_knot_tags(&self, knot_name: &str) -> Result<Vec<String>, InklingError> {
+        self.knots
+            .get(knot_name)
+            .map(|knot| knot.tags.clone())
+            .ok_or(InklingError::InvalidAddress {
+                knot: knot_name.to_string(),
+                stitch: None,
+            })
     }
 
     /// Wrapper of common behavior between `start` and `resume_with_choice`.
@@ -1441,6 +1472,50 @@ We hurried home as fast as we could.
             Err(InklingError::ResumeWithoutChoice) => (),
             other => panic!(
                 "expected `InklingError::ResumeWithoutChoice` but got {:?}",
+                other
+            ),
+        }
+    }
+
+    #[test]
+    fn get_knot_tags_from_knot_name() {
+        let content = "
+
+== tripoli
+# country: Libya
+# capital
+-> END
+
+";
+
+        let story = read_story_from_string(content).unwrap();
+
+        assert_eq!(
+            &story.get_knot_tags("tripoli").unwrap(),
+            &["country: Libya".to_string(), "capital".to_string()]
+        );
+    }
+
+    #[test]
+    fn getting_knot_tags_with_invalid_name_yields_error() {
+        let content = "
+
+== tripoli
+# country: Libya
+# capital
+-> END
+
+";
+
+        let story = read_story_from_string(content).unwrap();
+
+        match story.get_knot_tags("addis_ababa") {
+            Err(InklingError::InvalidAddress { knot, stitch }) => {
+                assert_eq!(&knot, "addis_ababa");
+                assert!(stitch.is_none());
+            }
+            other => panic!(
+                "expected `InklingError::InvalidAddress` but got {:?}",
                 other
             ),
         }

@@ -23,17 +23,17 @@ use crate::{follow::ChoiceInfo, knot::Address, node::Stack, story::Choice};
 pub enum InklingError {
     /// Internal errors caused by `inkling`.
     Internal(InternalError),
+    /// Used a knot or stitch name that is not present in the story as an input variable.
+    InvalidAddress {
+        knot: String,
+        stitch: Option<String>,
+    },
     /// An invalid choice index was given to resume the story with.
     InvalidChoice {
         /// Choice input by the user to resume the story with.
         selection: usize,
         /// List of choices that were available for the selection
         presented_choices: Vec<Choice>,
-    },
-    /// Tried to move to an invalid knot or stitch.
-    InvalidMove {
-        knot: String,
-        stitch: Option<String>,
     },
     /// No choices or fallback choices were available in a story branch at the given address.
     OutOfChoices { address: Address },
@@ -146,6 +146,18 @@ impl fmt::Display for InklingError {
 
         match self {
             Internal(err) => write!(f, "INTERNAL ERROR: {}", err),
+            InvalidAddress { knot, stitch } => match stitch {
+                Some(stitch_name) => write!(
+                    f,
+                    "Invalid address: knot '{}' does not contain a stitch named '{}'",
+                    knot, stitch_name
+                ),
+                None => write!(
+                    f,
+                    "Invalid address: story does not contain a knot name '{}'",
+                    knot
+                ),
+            },
             InvalidChoice {
                 selection,
                 presented_choices,
@@ -157,18 +169,6 @@ impl fmt::Display for InklingError {
                 presented_choices.len(),
                 presented_choices.len() - 1
             ),
-            InvalidMove { knot, stitch } => match stitch {
-                Some(stitch_name) => write!(
-                    f,
-                    "Invalid move: knot '{}' does not contain a stitch named '{}'",
-                    knot, stitch_name
-                ),
-                None => write!(
-                    f,
-                    "Invalid move: story does not contain a knot name '{}'",
-                    knot
-                ),
-            },
             OutOfChoices {
                 address: Address::Validated { knot, stitch },
             } => write!(

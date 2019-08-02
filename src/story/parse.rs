@@ -448,4 +448,18 @@ Second line.
         let (_, knot) = get_knot_from_lines(lines, 0).unwrap();
         assert!(knot.tags.is_empty());
     }
+
+    #[test]
+    fn tags_do_not_disturb_remaining_content() {
+        let lines_with_tags = vec!["== knot_name", "# Tag one", "# Tag two", "", "Line 1"];
+        let lines_without_tags = vec!["== knot_name", "Line 1"];
+
+        let (_, knot_tags) = get_knot_from_lines(lines_with_tags, 0).unwrap();
+        let (_, knot_no_tags) = get_knot_from_lines(lines_without_tags, 0).unwrap();
+
+        assert_eq!(
+            format!("{:?}", knot_tags.stitches),
+            format!("{:?}", knot_no_tags.stitches)
+        );
+    }
 }
