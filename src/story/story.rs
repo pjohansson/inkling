@@ -2,7 +2,7 @@
 
 use crate::{
     error::{InklingError, ParseError, StackError},
-    follow::{ChoiceInfo, EncounteredEvent, LineDataBuffer},
+    follow::{ChoiceInfo, EncounteredEvent, FollowData, LineDataBuffer},
     knot::{get_mut_stitch, validate_addresses_in_knots, Address, KnotSet},
 };
 
@@ -53,6 +53,8 @@ pub struct Story {
     knots: KnotSet,
     /// Internal stack for which `Knot` is actively being followed.
     stack: Vec<Address>,
+    /// Internal data for the story.
+    data: FollowData,
     /// Set of last choices presented to the user.
     last_choices: Option<Vec<Choice>>,
     /// Whether or not the story has been started.
@@ -232,6 +234,7 @@ impl Story {
             &mut internal_buffer,
             selection,
             &mut self.knots,
+            &mut self.data,
         )?;
 
         process_buffer(line_buffer, internal_buffer);
@@ -282,9 +285,15 @@ pub fn read_story_from_string(string: &str) -> Result<Story, ParseError> {
          This simply should not be possible",
     );
 
+    use std::collections::HashMap;
+    let DATA = FollowData {
+        knot_visit_counts: HashMap::new(),
+    };
+
     Ok(Story {
         knots,
         stack: vec![root_address],
+        data: DATA,
         last_choices: None,
         in_progress: false,
     })
@@ -300,8 +309,9 @@ fn follow_story(
     internal_buffer: &mut LineDataBuffer,
     selection: Option<usize>,
     knots: &mut KnotSet,
+    data: &mut FollowData,
 ) -> Result<(Prompt, Address), InklingError> {
-    let (last_address, event) = follow_knot(current_address, internal_buffer, selection, knots)?;
+    let (last_address, event) = follow_knot(current_address, internal_buffer, selection, knots, data)?;
 
     match event {
         EncounteredEvent::BranchingChoice(choice_set) => {
@@ -311,7 +321,7 @@ fn follow_story(
             } else {
                 let choice = get_fallback_choice(&choice_set, &last_address, knots)?;
 
-                follow_story(&last_address, internal_buffer, Some(choice.index), knots)
+                follow_story(&last_address, internal_buffer, Some(choice.index), knots, data)
             }
         }
         EncounteredEvent::Done => Ok((Prompt::Done, last_address)),
@@ -331,6 +341,7 @@ fn follow_knot(
     internal_buffer: &mut LineDataBuffer,
     mut selection: Option<usize>,
     knots: &mut KnotSet,
+    data: &mut FollowData,
 ) -> Result<(Address, EncounteredEvent), InklingError> {
     let mut current_address = address.clone();
 
@@ -338,8 +349,8 @@ fn follow_knot(
         let current_stitch = get_mut_stitch(&current_address, knots)?;
 
         let result = match selection.take() {
-            Some(i) => current_stitch.follow_with_choice(i, internal_buffer),
-            None => current_stitch.follow(internal_buffer),
+            Some(i) => current_stitch.follow_with_choice(i, internal_buffer, data),
+            None => current_stitch.follow(internal_buffer, data),
         }?;
 
         match result {
@@ -375,6 +386,14 @@ mod tests {
 
     use crate::knot::{get_stitch, ValidateAddresses};
 
+    use std::collections::HashMap;
+
+    fn mock_follow_data() -> FollowData {
+        FollowData {
+            knot_visit_counts: HashMap::new(),
+        }
+    }
+
     #[test]
     fn follow_knot_diverts_to_new_knots_when_encountered() {
         let content = "
@@ -391,7 +410,9 @@ We hurried home to Savile Row as fast as we could.
         let root_address = Address::from_root_knot("back_in_london", &knots).unwrap();
 
         let mut buffer = Vec::new();
-        follow_knot(&root_address, &mut buffer, None, &mut knots).unwrap();
+        let mut data = mock_follow_data();
+
+        follow_knot(&root_address, &mut buffer, None, &mut knots, &mut data).unwrap();
 
         assert_eq!(
             &buffer.last().unwrap().text,
@@ -415,7 +436,9 @@ We hurried home to Savile Row as fast as we could.
         let root_address = Address::from_root_knot("back_in_london", &knots).unwrap();
 
         let mut buffer = Vec::new();
-        let (_, event) = follow_knot(&root_address, &mut buffer, None, &mut knots).unwrap();
+        let mut data = mock_follow_data();
+        
+        let (_, event) = follow_knot(&root_address, &mut buffer, None, &mut knots, &mut data).unwrap();
 
         match event {
             EncounteredEvent::Done => (),
@@ -437,7 +460,9 @@ We hurried home to Savile Row as fast as we could.
         let root_address = Address::from_root_knot("select_destination", &knots).unwrap();
 
         let mut buffer = Vec::new();
-        let (_, event) = follow_knot(&root_address, &mut buffer, None, &mut knots).unwrap();
+        let mut data = mock_follow_data();
+
+        let (_, event) = follow_knot(&root_address, &mut buffer, None, &mut knots, &mut data).unwrap();
 
         match event {
             EncounteredEvent::BranchingChoice(ref choices) => {
@@ -466,7 +491,9 @@ We hurried home to Savile Row as fast as we could.
         let root_address = Address::from_root_knot("back_in_london", &knots).unwrap();
 
         let mut buffer = Vec::new();
-        let (last_address, _) = follow_knot(&root_address, &mut buffer, None, &mut knots).unwrap();
+        let mut data = mock_follow_data();
+
+        let (last_address, _) = follow_knot(&root_address, &mut buffer, None, &mut knots, &mut data).unwrap();
 
         assert_eq!(
             last_address,
@@ -490,13 +517,14 @@ We hurried home to Savile Row as fast as we could.
         let end_address = Address::from_root_knot("knot_end", &knots).unwrap();
 
         let mut buffer = Vec::new();
+        let mut data = mock_follow_data();
 
-        match follow_knot(&done_address, &mut buffer, None, &mut knots).unwrap() {
+        match follow_knot(&done_address, &mut buffer, None, &mut knots, &mut data).unwrap() {
             (_, EncounteredEvent::Done) => (),
             _ => panic!("story should be done when diverting to DONE knot"),
         }
 
-        match follow_knot(&end_address, &mut buffer, None, &mut knots).unwrap() {
+        match follow_knot(&end_address, &mut buffer, None, &mut knots, &mut data).unwrap() {
             (_, EncounteredEvent::Done) => (),
             _ => panic!("story should be done when diverting to END knot"),
         }
@@ -524,7 +552,9 @@ We hurried home to Savile Row as fast as we could.
         );
 
         let mut buffer = Vec::new();
-        follow_knot(&current_address, &mut buffer, None, &mut knots).unwrap();
+        let mut data = mock_follow_data();
+
+        follow_knot(&current_address, &mut buffer, None, &mut knots, &mut data).unwrap();
 
         assert_eq!(
             get_stitch(&divert_address, &knots).unwrap().num_visited(),
@@ -550,7 +580,9 @@ We hurried home to Savile Row as fast as we could.
         );
 
         let mut buffer = Vec::new();
-        follow_knot(&current_address, &mut buffer, Some(1), &mut knots).unwrap();
+        let mut data = mock_follow_data();
+
+        follow_knot(&current_address, &mut buffer, Some(1), &mut knots, &mut data).unwrap();
 
         assert_eq!(
             get_stitch(&current_address, &knots).unwrap().num_visited(),
@@ -578,8 +610,10 @@ We hurried home to Savile Row as fast as we could.
         let current_address = Address::from_root_knot("addis_ababa", &knots).unwrap();
 
         let mut line_buffer = Vec::new();
+        let mut data = mock_follow_data();
+
         let (_, last_address) =
-            follow_story(&current_address, &mut line_buffer, None, &mut knots).unwrap();
+            follow_story(&current_address, &mut line_buffer, None, &mut knots, &mut data).unwrap();
 
         assert_eq!(
             last_address,
@@ -604,8 +638,10 @@ We hurried home to Savile Row as fast as we could.
         let current_address = Address::from_root_knot("addis_ababa", &knots).unwrap();
 
         let mut line_buffer = Vec::new();
+        let mut data = mock_follow_data();
+
         let (_, last_address) =
-            follow_story(&current_address, &mut line_buffer, None, &mut knots).unwrap();
+            follow_story(&current_address, &mut line_buffer, None, &mut knots, &mut data).unwrap();
 
         assert_eq!(
             last_address,
@@ -729,8 +765,9 @@ We hurried home to Savile Row as fast as we could.
 
         let mut line_buffer = Vec::new();
         let mut internal_buffer = Vec::new();
+        let mut data = mock_follow_data();
 
-        follow_story(&current_address, &mut internal_buffer, None, &mut knots).unwrap();
+        follow_story(&current_address, &mut internal_buffer, None, &mut knots, &mut data).unwrap();
         process_buffer(&mut line_buffer, internal_buffer);
 
         assert_eq!(&line_buffer[0].text, "Fallback choice\n");
@@ -750,8 +787,9 @@ We decided to go to the <>
 
         let mut line_buffer = Vec::new();
         let mut internal_buffer = Vec::new();
+        let mut data = mock_follow_data();
 
-        follow_story(&current_address, &mut internal_buffer, None, &mut knots).unwrap();
+        follow_story(&current_address, &mut internal_buffer, None, &mut knots, &mut data).unwrap();
         process_buffer(&mut line_buffer, internal_buffer);
 
         assert_eq!(&line_buffer[0].text, "We decided to go to the ");

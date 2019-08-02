@@ -1,6 +1,8 @@
 //! Results and data that is used or encountered when following, or walking through, a story.
 
-use crate::{error::InklingError, line::InternalChoice, knot::Address};
+use crate::{error::InklingError, knot::Address, line::InternalChoice};
+
+use std::collections::HashMap;
 
 /// Convenience type for a result of the encountered event and main error type.
 pub type FollowResult = Result<EncounteredEvent, InklingError>;
@@ -36,6 +38,12 @@ impl ChoiceInfo {
             choice_data: choice.clone(),
         }
     }
+}
+
+#[derive(Clone, Debug)]
+/// Data used during a follow through knots and nodes.
+pub struct FollowData {
+    pub knot_visit_counts: HashMap<String, HashMap<String, u32>>,
 }
 
 #[derive(Clone, Debug, PartialEq)]

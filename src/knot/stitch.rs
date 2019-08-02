@@ -17,7 +17,7 @@
 use crate::{
     consts::{KNOT_MARKER, RESERVED_KEYWORDS, STITCH_MARKER},
     error::{KnotError, KnotNameError, LineParsingError},
-    follow::{EncounteredEvent, FollowResult, LineDataBuffer},
+    follow::{EncounteredEvent, FollowData, FollowResult, LineDataBuffer},
     line::parse_line,
     node::{parse_root_node, Follow, RootNode, Stack},
 };
@@ -61,8 +61,8 @@ pub struct Stitch {
 
 impl Stitch {
     /// Follow a story while reading every line into a buffer.
-    pub fn follow(&mut self, buffer: &mut LineDataBuffer) -> FollowResult {
-        let result = self.root.follow(&mut self.stack, buffer)?;
+    pub fn follow(&mut self, buffer: &mut LineDataBuffer, data: &mut FollowData) -> FollowResult {
+        let result = self.root.follow(&mut self.stack, buffer, data)?;
 
         match &result {
             EncounteredEvent::Done | EncounteredEvent::Divert(..) => self.reset_stack(),
@@ -77,10 +77,11 @@ impl Stitch {
         &mut self,
         choice_index: usize,
         buffer: &mut LineDataBuffer,
+        data: &mut FollowData,
     ) -> FollowResult {
         let result = self
             .root
-            .follow_with_choice(choice_index, 0, &mut self.stack, buffer)?;
+            .follow_with_choice(choice_index, 0, &mut self.stack, buffer, data)?;
 
         match result {
             EncounteredEvent::Done | EncounteredEvent::Divert(..) => self.reset_stack(),
@@ -227,6 +228,12 @@ mod tests {
         s.lines().map(|line| parse_line(line)).collect()
     }
 
+    fn mock_follow_data() -> FollowData {
+        FollowData {
+            knot_visit_counts: HashMap::new(),
+        }
+    }
+
     #[test]
     fn parsing_stitch_sets_root_node_address() {
         let stitch = parse_stitch_from_lines(&[], "tripoli", "cinema").unwrap();
@@ -247,9 +254,10 @@ mod tests {
         let mut stitch = Stitch::from_str(text).unwrap();
 
         let mut buffer = Vec::new();
+        let mut data = mock_follow_data();
 
-        stitch.follow(&mut buffer).unwrap();
-        stitch.follow(&mut buffer).unwrap();
+        stitch.follow(&mut buffer, &mut data).unwrap();
+        stitch.follow(&mut buffer, &mut data).unwrap();
 
         assert_eq!(buffer.len(), 2);
         assert_eq!(&buffer[0].text, text);
@@ -263,9 +271,10 @@ mod tests {
         let mut stitch = Stitch::from_str(text).unwrap();
 
         let mut buffer = Vec::new();
+        let mut data = mock_follow_data();
 
-        stitch.follow(&mut buffer).unwrap();
-        stitch.follow(&mut buffer).unwrap();
+        stitch.follow(&mut buffer, &mut data).unwrap();
+        stitch.follow(&mut buffer, &mut data).unwrap();
 
         assert_eq!(stitch.num_visited(), 2);
     }
@@ -277,8 +286,9 @@ mod tests {
         let mut stitch = Stitch::from_str(text).unwrap();
 
         let mut buffer = Vec::new();
+        let mut data = mock_follow_data();
 
-        stitch.follow_with_choice(0, &mut buffer).unwrap();
+        stitch.follow_with_choice(0, &mut buffer, &mut data).unwrap();
 
         assert_eq!(stitch.num_visited(), 0);
     }
@@ -294,8 +304,9 @@ mod tests {
         let mut stitch = Stitch::from_str(text).unwrap();
 
         let mut buffer = Vec::new();
+        let mut data = mock_follow_data();
 
-        stitch.follow_with_choice(0, &mut buffer).unwrap();
+        stitch.follow_with_choice(0, &mut buffer, &mut data).unwrap();
 
         assert_eq!(buffer.last().unwrap().text.trim(), "Line");
         assert_eq!(stitch.num_visited(), 0);
@@ -320,9 +331,10 @@ mod tests {
         let mut stitch = Stitch::from_str(&text).unwrap();
 
         let mut buffer = Vec::new();
+        let mut data = mock_follow_data();
 
         assert_eq!(
-            stitch.follow(&mut buffer).unwrap(),
+            stitch.follow(&mut buffer, &mut data).unwrap(),
             EncounteredEvent::Divert(Address::Raw(name))
         );
 
@@ -351,8 +363,9 @@ mod tests {
         let mut stitch = Stitch::from_str(&text).unwrap();
 
         let mut buffer = Vec::new();
+        let mut data = mock_follow_data();
 
-        let choices = match stitch.follow(&mut buffer).unwrap() {
+        let choices = match stitch.follow(&mut buffer, &mut data).unwrap() {
             EncounteredEvent::BranchingChoice(choices) => choices,
             _ => panic!("did not get a `BranchingChoice`"),
         };
@@ -377,9 +390,10 @@ mod tests {
         let mut stitch = Stitch::from_str(&text).unwrap();
 
         let mut buffer = LineDataBuffer::new();
+        let mut data = mock_follow_data();
 
-        stitch.follow(&mut buffer).unwrap();
-        stitch.follow_with_choice(0, &mut buffer).unwrap();
+        stitch.follow(&mut buffer, &mut data).unwrap();
+        stitch.follow_with_choice(0, &mut buffer, &mut data).unwrap();
 
         assert_eq!(buffer.len(), 1);
         assert_eq!(&buffer[0].text, choice);
@@ -395,11 +409,12 @@ mod tests {
         let mut stitch = Stitch::from_str(text).unwrap();
 
         let mut buffer = Vec::new();
+        let mut data = mock_follow_data();
 
-        stitch.follow(&mut buffer).unwrap();
+        stitch.follow(&mut buffer, &mut data).unwrap();
         assert_eq!(&stitch.stack, &[0]);
 
-        stitch.follow_with_choice(0, &mut buffer).unwrap();
+        stitch.follow_with_choice(0, &mut buffer, &mut data).unwrap();
         assert_eq!(&stitch.stack, &[0]);
     }
 
@@ -426,9 +441,10 @@ mod tests {
         let mut stitch = Stitch::from_str(&text).unwrap();
 
         let mut buffer = LineDataBuffer::new();
+        let mut data = mock_follow_data();
 
-        stitch.follow(&mut buffer).unwrap();
-        stitch.follow_with_choice(1, &mut buffer).unwrap();
+        stitch.follow(&mut buffer, &mut data).unwrap();
+        stitch.follow_with_choice(1, &mut buffer, &mut data).unwrap();
 
         assert_eq!(buffer.len(), 3);
         assert_eq!(&buffer[1].text, line1);
@@ -457,19 +473,20 @@ mod tests {
         }
 
         let mut stitch = Stitch::from_str(&text).unwrap();
+        let mut data = mock_follow_data();
 
         let mut results_choice1 = LineDataBuffer::new();
 
-        stitch.follow(&mut results_choice1).expect("one");
+        stitch.follow(&mut results_choice1, &mut data).expect("one");
         stitch
-            .follow_with_choice(0, &mut results_choice1)
+            .follow_with_choice(0, &mut results_choice1, &mut data)
             .expect("two");
 
         let mut results_choice2 = LineDataBuffer::new();
 
-        stitch.follow(&mut results_choice2).expect("three");
+        stitch.follow(&mut results_choice2, &mut data).expect("three");
         stitch
-            .follow_with_choice(1, &mut results_choice2)
+            .follow_with_choice(1, &mut results_choice2, &mut data)
             .expect("four");
 
         assert_eq!(results_choice1[3], results_choice2[2]);
@@ -494,11 +511,12 @@ Line 6
         let mut stitch = Stitch::from_str(&text).unwrap();
 
         let mut buffer = LineDataBuffer::new();
+        let mut data = mock_follow_data();
 
-        stitch.follow(&mut buffer).unwrap();
-        stitch.follow_with_choice(0, &mut buffer).unwrap();
-        stitch.follow_with_choice(1, &mut buffer).unwrap();
-        stitch.follow_with_choice(0, &mut buffer).unwrap();
+        stitch.follow(&mut buffer, &mut data).unwrap();
+        stitch.follow_with_choice(0, &mut buffer, &mut data).unwrap();
+        stitch.follow_with_choice(1, &mut buffer, &mut data).unwrap();
+        stitch.follow_with_choice(0, &mut buffer, &mut data).unwrap();
 
         // Four lines in choice, three choice lines and two lines after the gather
         assert_eq!(buffer.len(), 4 + 3 + 2);
@@ -513,10 +531,11 @@ Line 6
         let mut stitch = Stitch::from_str(&text).unwrap();
 
         let mut buffer = LineDataBuffer::new();
+        let mut data = mock_follow_data();
 
-        stitch.follow(&mut buffer).unwrap();
+        stitch.follow(&mut buffer, &mut data).unwrap();
 
-        match stitch.follow_with_choice(2, &mut buffer) {
+        match stitch.follow_with_choice(2, &mut buffer, &mut data) {
             Err(_) => (),
             _ => panic!("expected a `InklingError::InvalidChoice` but did not get it"),
         }

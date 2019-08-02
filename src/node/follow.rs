@@ -2,7 +2,7 @@
 
 use crate::{
     error::{IncorrectNodeStackError, InternalError},
-    follow::{ChoiceInfo, EncounteredEvent, FollowResult, LineDataBuffer},
+    follow::{ChoiceInfo, EncounteredEvent, FollowData, FollowResult, LineDataBuffer},
     node::{Branch, NodeItem, RootNode},
 };
 
@@ -61,7 +61,7 @@ pub trait Follow: FollowInternal {
     ///     reached in the tree.
     ///
     ///     Ensure that the stack is maintained before calling this method.
-    fn follow(&mut self, stack: &mut Stack, buffer: &mut LineDataBuffer) -> FollowResult {
+    fn follow(&mut self, stack: &mut Stack, buffer: &mut LineDataBuffer, data: &mut FollowData) -> FollowResult {
         let at_index = stack
             .last_mut()
             .ok_or(InternalError::from(IncorrectNodeStackError::EmptyStack))?;
@@ -128,15 +128,16 @@ pub trait Follow: FollowInternal {
         stack_index: usize,
         stack: &mut Stack,
         buffer: &mut LineDataBuffer,
+        data: &mut FollowData
     ) -> FollowResult {
         let result = if let Some(next_branch) = self.get_next_level_branch(stack_index, stack)? {
-            next_branch.follow_with_choice(selection, stack_index + 2, stack, buffer)
+            next_branch.follow_with_choice(selection, stack_index + 2, stack, buffer, data)
         } else {
             let selected_branch = self.get_selected_branch(selection, stack_index, stack)?;
 
             stack.extend_from_slice(&[selection, 0]);
 
-            selected_branch.follow(stack, buffer)
+            selected_branch.follow(stack, buffer, data)
         }?;
 
         match result {
@@ -144,7 +145,7 @@ pub trait Follow: FollowInternal {
                 stack.truncate(stack_index + 1);
                 stack.last_mut().map(|i| *i += 1);
 
-                self.follow(stack, buffer)
+                self.follow(stack, buffer, data)
             }
             other => Ok(other),
         }
@@ -325,6 +326,14 @@ mod tests {
         node::builders::{BranchBuilder, BranchingPointBuilder, RootNodeBuilder},
     };
 
+    use std::collections::HashMap;
+
+    fn mock_follow_data() -> FollowData {
+        FollowData {
+            knot_visit_counts: HashMap::new(),
+        }
+    }
+
     #[test]
     fn stack_that_points_to_line_instead_of_branching_choice_returns_error() {
         let mut node = RootNodeBuilder::empty()
@@ -333,8 +342,9 @@ mod tests {
 
         let mut buffer = Vec::new();
         let mut stack = vec![0];
+        let mut data = mock_follow_data();
 
-        match node.follow_with_choice(0, 0, &mut stack, &mut buffer) {
+        match node.follow_with_choice(0, 0, &mut stack, &mut buffer, &mut data) {
             Err(InklingError::Internal(InternalError::IncorrectNodeStack(err))) => match err {
                 IncorrectNodeStackError::ExpectedBranchingPoint { .. } => (),
                 _ => unreachable!(),
@@ -349,8 +359,9 @@ mod tests {
 
         let mut buffer = Vec::new();
         let mut stack = vec![0];
+        let mut data = mock_follow_data();
 
-        match node.follow_with_choice(0, 0, &mut stack, &mut buffer) {
+        match node.follow_with_choice(0, 0, &mut stack, &mut buffer, &mut data) {
             Err(InklingError::Internal(InternalError::IncorrectNodeStack(err))) => match err {
                 IncorrectNodeStackError::OutOfBounds { .. } => (),
                 _ => unreachable!(),
@@ -367,8 +378,9 @@ mod tests {
 
         let mut buffer = Vec::new();
         let mut stack = vec![0, 0, 0];
+        let mut data = mock_follow_data();
 
-        match node.follow_with_choice(0, 0, &mut stack, &mut buffer) {
+        match node.follow_with_choice(0, 0, &mut stack, &mut buffer, &mut data) {
             Err(InklingError::Internal(InternalError::IncorrectNodeStack(err))) => match err {
                 IncorrectNodeStackError::OutOfBounds { .. } => (),
                 _ => unreachable!(),
@@ -391,8 +403,9 @@ mod tests {
 
         let mut buffer = Vec::new();
         let mut stack = vec![0];
+        let mut data = mock_follow_data();
 
-        match node.follow_with_choice(1, 0, &mut stack, &mut buffer) {
+        match node.follow_with_choice(1, 0, &mut stack, &mut buffer, &mut data) {
             Err(InklingError::Internal(InternalError::IncorrectChoiceIndex {
                 selection,
                 available_choices,
@@ -415,9 +428,10 @@ mod tests {
 
         let mut buffer = Vec::new();
         let mut stack = vec![0];
+        let mut data = mock_follow_data();
 
         assert_eq!(
-            node.follow(&mut stack, &mut buffer).unwrap(),
+            node.follow(&mut stack, &mut buffer, &mut data).unwrap(),
             EncounteredEvent::Done
         );
 
@@ -433,11 +447,12 @@ mod tests {
             .build();
 
         let mut buffer = Vec::new();
+        let mut data = mock_follow_data();
 
         assert_eq!(node.num_visited, 0);
 
-        node.follow(&mut vec![0], &mut buffer).unwrap();
-        node.follow(&mut vec![0], &mut buffer).unwrap();
+        node.follow(&mut vec![0], &mut buffer, &mut data).unwrap();
+        node.follow(&mut vec![0], &mut buffer, &mut data).unwrap();
 
         assert_eq!(node.num_visited, 2);
     }
@@ -451,8 +466,9 @@ mod tests {
 
         let mut buffer = Vec::new();
         let mut stack = vec![0];
+        let mut data = mock_follow_data();
 
-        node.follow(&mut stack, &mut buffer).unwrap();
+        node.follow(&mut stack, &mut buffer, &mut data).unwrap();
         assert_eq!(stack[0], 2);
     }
 
@@ -465,8 +481,9 @@ mod tests {
 
         let mut buffer = Vec::new();
         let mut stack = vec![1];
+        let mut data = mock_follow_data();
 
-        node.follow(&mut stack, &mut buffer).unwrap();
+        node.follow(&mut stack, &mut buffer, &mut data).unwrap();
 
         assert_eq!(&buffer[0].text, "Line 2");
         assert_eq!(stack[0], 2);
@@ -483,8 +500,9 @@ mod tests {
         let mut buffer = Vec::new();
 
         let mut stack = vec![0, 2, 1];
+        let mut data = mock_follow_data();
 
-        node.follow(&mut stack, &mut buffer).unwrap();
+        node.follow(&mut stack, &mut buffer, &mut data).unwrap();
 
         assert_eq!(buffer.len(), 2);
         assert_eq!(&buffer[0].text, "Line 2");
@@ -499,10 +517,11 @@ mod tests {
             .build();
 
         let mut buffer = Vec::new();
+        let mut data = mock_follow_data();
 
         assert_eq!(node.num_visited, 0);
 
-        node.follow(&mut vec![1], &mut buffer).unwrap();
+        node.follow(&mut vec![1], &mut buffer, &mut data).unwrap();
 
         assert_eq!(node.num_visited, 0);
     }
@@ -522,9 +541,10 @@ mod tests {
 
         let mut buffer = Vec::new();
         let mut stack = vec![0];
+        let mut data = mock_follow_data();
 
         assert_eq!(
-            node.follow(&mut stack, &mut buffer).unwrap(),
+            node.follow(&mut stack, &mut buffer, &mut data).unwrap(),
             EncounteredEvent::Divert(Address::Raw("divert".to_string()))
         );
 
@@ -549,8 +569,9 @@ mod tests {
 
         let mut buffer = Vec::new();
         let mut stack = vec![0];
+        let mut data = mock_follow_data();
 
-        match node.follow(&mut stack, &mut buffer).unwrap() {
+        match node.follow(&mut stack, &mut buffer, &mut data).unwrap() {
             EncounteredEvent::BranchingChoice(choice_set) => {
                 assert_eq!(choice_set.len(), 2);
                 assert_eq!(choice_set[0].choice_data, choice1);
@@ -580,8 +601,9 @@ mod tests {
 
         let mut buffer = Vec::new();
         let mut stack = vec![0];
+        let mut data = mock_follow_data();
 
-        node.follow(&mut stack, &mut buffer).unwrap();
+        node.follow(&mut stack, &mut buffer, &mut data).unwrap();
 
         assert_eq!(stack[0], 1);
     }
@@ -623,8 +645,9 @@ mod tests {
 
         let mut buffer = Vec::new();
         let mut stack = vec![1, 2, 2];
+        let mut data = mock_follow_data();
 
-        node.follow_with_choice(1, 0, &mut stack, &mut buffer)
+        node.follow_with_choice(1, 0, &mut stack, &mut buffer, &mut data)
             .unwrap();
 
         assert_eq!(&buffer[1].text, "Line 3");
@@ -646,8 +669,9 @@ mod tests {
 
         let mut buffer = Vec::new();
         let mut stack = vec![0];
+        let mut data = mock_follow_data();
 
-        node.follow_with_choice(0, 0, &mut stack, &mut buffer)
+        node.follow_with_choice(0, 0, &mut stack, &mut buffer, &mut data)
             .unwrap();
 
         assert_eq!(buffer.len(), 2);
@@ -672,8 +696,9 @@ mod tests {
 
         let mut buffer = Vec::new();
         let mut stack = vec![0];
+        let mut data = mock_follow_data();
 
-        node.follow_with_choice(1, 0, &mut stack, &mut buffer)
+        node.follow_with_choice(1, 0, &mut stack, &mut buffer, &mut data)
             .unwrap();
 
         match &node.items[0] {
@@ -699,15 +724,16 @@ mod tests {
             .build();
 
         let mut buffer = Vec::new();
+        let mut data = mock_follow_data();
 
-        node.follow_with_choice(0, 0, &mut vec![0], &mut buffer)
+        node.follow_with_choice(0, 0, &mut vec![0], &mut buffer, &mut data)
             .unwrap();
-        node.follow_with_choice(0, 0, &mut vec![0], &mut buffer)
+        node.follow_with_choice(0, 0, &mut vec![0], &mut buffer, &mut data)
             .unwrap();
-        node.follow_with_choice(0, 0, &mut vec![0], &mut buffer)
+        node.follow_with_choice(0, 0, &mut vec![0], &mut buffer, &mut data)
             .unwrap();
 
-        match node.follow(&mut vec![0], &mut buffer).unwrap() {
+        match node.follow(&mut vec![0], &mut buffer, &mut data).unwrap() {
             EncounteredEvent::BranchingChoice(branches) => {
                 assert_eq!(branches[0].num_visited, 3);
             }
@@ -732,8 +758,9 @@ mod tests {
 
         let mut buffer = Vec::new();
         let mut stack = vec![0];
+        let mut data = mock_follow_data();
 
-        node.follow_with_choice(0, 0, &mut stack, &mut buffer)
+        node.follow_with_choice(0, 0, &mut stack, &mut buffer, &mut data)
             .unwrap();
 
         assert_eq!(&buffer[0].text, "Choice");
@@ -753,9 +780,10 @@ mod tests {
 
         let mut buffer = Vec::new();
         let mut stack = vec![0];
+        let mut data = mock_follow_data();
 
         assert_eq!(
-            node.follow_with_choice(0, 0, &mut stack, &mut buffer)
+            node.follow_with_choice(0, 0, &mut stack, &mut buffer, &mut data)
                 .unwrap(),
             EncounteredEvent::Divert(Address::Raw("divert".to_string()))
         );
@@ -783,9 +811,10 @@ mod tests {
 
         let mut buffer = Vec::new();
         let mut stack = vec![0];
+        let mut data = mock_follow_data();
 
         match node
-            .follow_with_choice(0, 0, &mut stack, &mut buffer)
+            .follow_with_choice(0, 0, &mut stack, &mut buffer, &mut data)
             .unwrap()
         {
             EncounteredEvent::BranchingChoice(branches) => assert_eq!(branches.len(), 1),
@@ -830,12 +859,13 @@ mod tests {
 
         let mut buffer = Vec::new();
         let mut stack = vec![0];
+        let mut data = mock_follow_data();
 
-        node.follow_with_choice(0, 0, &mut stack, &mut buffer)
+        node.follow_with_choice(0, 0, &mut stack, &mut buffer, &mut data)
             .unwrap();
-        node.follow_with_choice(0, 0, &mut stack, &mut buffer)
+        node.follow_with_choice(0, 0, &mut stack, &mut buffer, &mut data)
             .unwrap();
-        node.follow_with_choice(0, 0, &mut stack, &mut buffer)
+        node.follow_with_choice(0, 0, &mut stack, &mut buffer, &mut data)
             .unwrap();
 
         assert_eq!(buffer.len(), 7);
@@ -852,8 +882,9 @@ mod tests {
             .build();
 
         let mut buffer = Vec::new();
+        let mut data = mock_follow_data();
 
-        match node.follow(&mut vec![2], &mut buffer) {
+        match node.follow(&mut vec![2], &mut buffer, &mut data) {
             Err(InklingError::Internal(InternalError::IncorrectNodeStack(err))) => match err {
                 IncorrectNodeStackError::OutOfBounds { .. } => (),
                 err => panic!(
@@ -875,8 +906,9 @@ mod tests {
             .build();
 
         let mut buffer = Vec::new();
+        let mut data = mock_follow_data();
 
-        match node.follow(&mut vec![], &mut buffer) {
+        match node.follow(&mut vec![], &mut buffer, &mut data) {
             Err(InklingError::Internal(InternalError::IncorrectNodeStack(err))) => match err {
                 IncorrectNodeStackError::EmptyStack => (),
                 err => panic!(
