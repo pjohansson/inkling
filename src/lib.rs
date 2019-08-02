@@ -108,16 +108,16 @@
 //! Currently the processor supports:
 //!
 //! *   Structure:  Knots, stitches, nested branching choices, gathers, diverts
-//! *   Choices:    Non-sticky, sticky, fallback, line variations, simple conditions
-//! *   Lines:      Plain text, diverts, tags, alternative sequences (all except shuffle)
+//! *   Choices:    Non-sticky, sticky, fallback, line variations, conditions
+//! *   Lines:      Plain text, diverts, tags, conditions, alternative sequences (all
+//!                 except shuffle)
+//! *   Conditions: Nested, `and`/`or` linking.
 //! *   Reading:    Address validation for diverts and conditions
 //!
 //! Hopefully coming:
 //!
-//! *   Lines:      ConditionKinds
 //! *   Variables:  Use in lines, ability to modify from the calling program
 //! *   Reading:    Include statements in files
-//! *   Logic:      Nested conditions with brackets, `and`/`or` statements
 //!
 //! Unlikely features:
 //!
@@ -143,6 +143,7 @@
 //! Likewise, contributions are welcome. Please open an issue on
 //! [Github](https://github.com/pjohansson/inkling) to discuss improvements or submit
 //! a pull request.
+
 mod consts;
 pub mod error;
 mod follow;

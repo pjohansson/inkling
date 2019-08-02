@@ -226,6 +226,5 @@ mod tests {
         process_buffer(&mut processed, buffer);
 
         assert_eq!(&processed[0].text, "A line with just enough whitespace\n");
-
     }
 }

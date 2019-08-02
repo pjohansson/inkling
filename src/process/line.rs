@@ -30,9 +30,9 @@ pub fn process_line(
 }
 
 /// Process and add the content of a `LineChunk` to a string buffer.
-/// 
-/// If a condition is set to the chunk, it will be evaluated. If it evaluates to true, 
-/// the items in the `items` field will be processed. If not, the items in the `else_items` 
+///
+/// If a condition is set to the chunk, it will be evaluated. If it evaluates to true,
+/// the items in the `items` field will be processed. If not, the items in the `else_items`
 /// field will be.
 fn process_chunk(
     chunk: &mut LineChunk,

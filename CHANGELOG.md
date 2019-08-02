@@ -18,6 +18,7 @@
 
 ## 0.11.4
 
+*   Line conditionals are implemented.
 *   Conditions can be nested with parenthesis and `and`/`or` connections.
 
 # 0.10.0
