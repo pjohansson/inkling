@@ -14,6 +14,8 @@ use serde::{Deserialize, Serialize};
 #[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
 /// Root of a single `Stitch`, containing all text and branching content belonging to it.
 pub struct RootNode {
+    /// Address of stitch that this node belongs to.
+    pub address: Address,
     /// Content grouped under this stitch.
     pub items: Vec<NodeItem>,
     /// Number of times the node has been visited in the story.
@@ -146,7 +148,10 @@ pub mod builders {
 
     use super::{Branch, NodeItem, RootNode};
 
-    use crate::line::{InternalChoice, InternalLine};
+    use crate::{
+        knot::Address,
+        line::{InternalChoice, InternalLine},
+    };
 
     #[cfg(test)]
     use crate::line::LineChunk;
@@ -156,16 +161,26 @@ pub mod builders {
     /// # Notes
     ///  *  Sets the number of visits to 0
     pub struct RootNodeBuilder {
+        address: Address,
         items: Vec<NodeItem>,
     }
 
     impl RootNodeBuilder {
-        pub fn new() -> Self {
-            RootNodeBuilder { items: Vec::new() }
+        pub fn from_address(knot: &str, stitch: &str) -> Self {
+            let address = Address::Validated {
+                knot: knot.to_string(),
+                stitch: stitch.to_string(),
+            };
+
+            RootNodeBuilder {
+                address,
+                items: Vec::new(),
+            }
         }
 
         pub fn build(self) -> RootNode {
             RootNode {
+                address: self.address,
                 items: self.items,
                 num_visited: 0,
             }
@@ -181,6 +196,11 @@ pub mod builders {
 
         pub fn add_line(&mut self, line: InternalLine) {
             self.add_item(NodeItem::Line(line));
+        }
+
+        #[cfg(test)]
+        pub fn empty() -> Self {
+            Self::from_address("", "")
         }
 
         #[cfg(test)]

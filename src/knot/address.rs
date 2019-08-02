@@ -237,7 +237,7 @@ fn get_empty_knot_map(knots: &KnotSet) -> KnotSet {
                 .keys()
                 .map(|stitch_name| {
                     let empty_stitch = Stitch {
-                        root: RootNodeBuilder::new().build(),
+                        root: RootNodeBuilder::from_address("", "").build(),
                         stack: Vec::new(),
                     };
 

@@ -18,8 +18,8 @@ use crate::{
 ///
 /// Parses the input lines from beginning to end and construct a branching tree
 /// of line content from it.
-pub fn parse_root_node(lines: &[ParsedLineKind]) -> RootNode {
-    let mut builder = RootNodeBuilder::new();
+pub fn parse_root_node(lines: &[ParsedLineKind], knot: &str, stitch: &str) -> RootNode {
+    let mut builder = RootNodeBuilder::from_address(knot, stitch);
 
     let mut index = 0;
 
@@ -183,7 +183,7 @@ fn parse_branch_at_given_level(
 mod tests {
     use super::*;
 
-    use crate::{line::InternalChoice, node::NodeItem};
+    use crate::{knot::Address, line::InternalChoice, node::NodeItem};
 
     pub fn get_empty_choice(level: u32) -> ParsedLineKind {
         ParsedLineKind::choice(level, InternalChoice::from_string(""))
@@ -502,7 +502,7 @@ mod tests {
 
         let lines = vec![line.clone(), line.clone(), choice1.clone(), choice1.clone()];
 
-        let root = parse_root_node(&lines);
+        let root = parse_root_node(&lines, "", "");
 
         assert_eq!(root.items.len(), 3);
         assert!(root.items[0].is_line());
@@ -530,7 +530,7 @@ mod tests {
             gather1.clone(), // Breaks BranchingChoice; becomes third level-1 element
         ];
 
-        let root_node = parse_root_node(&lines);
+        let root_node = parse_root_node(&lines, "", "");
 
         assert_eq!(root_node.items.len(), 3);
         assert!(root_node.items[1].is_branching_choice());
@@ -539,14 +539,14 @@ mod tests {
 
     #[test]
     fn parse_empty_list_return_empty_node() {
-        let root_node = parse_root_node(&[]);
+        let root_node = parse_root_node(&[], "", "");
         assert_eq!(root_node.items.len(), 0);
     }
 
     #[test]
     fn parse_list_with_only_branches_works() {
         let choice = get_empty_choice(1);
-        let root = parse_root_node(&[choice.clone(), choice.clone(), choice.clone()]);
+        let root = parse_root_node(&[choice.clone(), choice.clone(), choice.clone()], "", "");
 
         assert_eq!(root.items.len(), 1);
         match &root.items[0] {
@@ -560,7 +560,7 @@ mod tests {
     #[test]
     fn parse_list_with_non_matched_gathers_turns_them_into_lines() {
         let gather = get_empty_gather(1);
-        let root = parse_root_node(&[gather.clone(), gather.clone(), gather.clone()]);
+        let root = parse_root_node(&[gather.clone(), gather.clone(), gather.clone()], "", "");
 
         assert_eq!(root.items.len(), 3);
 
@@ -574,13 +574,17 @@ mod tests {
         let choice1 = get_empty_choice(64);
         let choice2 = get_empty_choice(128);
 
-        let root_node = parse_root_node(&[
-            choice1.clone(),
-            choice1.clone(),
-            choice2.clone(),
-            choice2.clone(),
-            choice1.clone(),
-        ]);
+        let root_node = parse_root_node(
+            &[
+                choice1.clone(),
+                choice1.clone(),
+                choice2.clone(),
+                choice2.clone(),
+                choice1.clone(),
+            ],
+            "",
+            "",
+        );
 
         assert_eq!(root_node.items.len(), 1);
 
@@ -597,5 +601,17 @@ mod tests {
             }
             _ => unreachable!(),
         }
+    }
+
+    #[test]
+    fn address_of_root_node_is_set_from_knot_and_stitch_names() {
+        let root_node = parse_root_node(&[], "tripoli", "cinema");
+        assert_eq!(
+            root_node.address,
+            Address::Validated {
+                knot: "tripoli".to_string(),
+                stitch: "cinema".to_string()
+            }
+        );
     }
 }

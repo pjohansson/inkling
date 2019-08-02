@@ -327,7 +327,7 @@ mod tests {
 
     #[test]
     fn stack_that_points_to_line_instead_of_branching_choice_returns_error() {
-        let mut node = RootNodeBuilder::new()
+        let mut node = RootNodeBuilder::empty()
             .with_text_line_chunk("Line 1")
             .build();
 
@@ -345,7 +345,7 @@ mod tests {
 
     #[test]
     fn out_of_bounds_stack_indices_return_stack_error() {
-        let mut node = RootNodeBuilder::new().build();
+        let mut node = RootNodeBuilder::empty().build();
 
         let mut buffer = Vec::new();
         let mut stack = vec![0];
@@ -361,7 +361,7 @@ mod tests {
 
     #[test]
     fn out_of_bounds_stack_indices_return_stack_error_when_checking_branches() {
-        let mut node = RootNodeBuilder::new()
+        let mut node = RootNodeBuilder::empty()
             .with_branching_choice(BranchingPointBuilder::new().build())
             .build();
 
@@ -381,7 +381,7 @@ mod tests {
     fn branch_choices_are_collected_when_supplying_an_incorrect_index_for_a_choice() {
         let internal_choice = InternalChoice::from_string("Choice");
 
-        let mut node = RootNodeBuilder::new()
+        let mut node = RootNodeBuilder::empty()
             .with_branching_choice(
                 BranchingPointBuilder::new()
                     .with_branch(BranchBuilder::from_choice(internal_choice.clone()).build())
@@ -408,7 +408,7 @@ mod tests {
 
     #[test]
     fn following_items_in_a_node_adds_lines_to_buffer() {
-        let mut node = RootNodeBuilder::new()
+        let mut node = RootNodeBuilder::empty()
             .with_text_line_chunk("Line 1")
             .with_text_line_chunk("Line 2")
             .build();
@@ -428,7 +428,7 @@ mod tests {
 
     #[test]
     fn following_into_a_node_increments_number_of_visits() {
-        let mut node = RootNodeBuilder::new()
+        let mut node = RootNodeBuilder::empty()
             .with_text_line_chunk("Line 1")
             .build();
 
@@ -444,7 +444,7 @@ mod tests {
 
     #[test]
     fn following_items_updates_stack() {
-        let mut node = RootNodeBuilder::new()
+        let mut node = RootNodeBuilder::empty()
             .with_text_line_chunk("Line 1")
             .with_text_line_chunk("Line 2")
             .build();
@@ -458,7 +458,7 @@ mod tests {
 
     #[test]
     fn following_items_starts_from_stack() {
-        let mut node = RootNodeBuilder::new()
+        let mut node = RootNodeBuilder::empty()
             .with_text_line_chunk("Line 1")
             .with_text_line_chunk("Line 2")
             .build();
@@ -474,7 +474,7 @@ mod tests {
 
     #[test]
     fn follow_always_uses_last_position_in_stack() {
-        let mut node = RootNodeBuilder::new()
+        let mut node = RootNodeBuilder::empty()
             .with_text_line_chunk("Line 1")
             .with_text_line_chunk("Line 2")
             .with_text_line_chunk("Line 3")
@@ -493,7 +493,7 @@ mod tests {
 
     #[test]
     fn following_into_a_node_does_not_increment_number_of_visits_if_stack_is_non_zero() {
-        let mut node = RootNodeBuilder::new()
+        let mut node = RootNodeBuilder::empty()
             .with_text_line_chunk("Line 1")
             .with_text_line_chunk("Line 2")
             .build();
@@ -509,7 +509,7 @@ mod tests {
 
     #[test]
     fn following_into_line_with_divert_immediately_returns_it() {
-        let mut node = RootNodeBuilder::new()
+        let mut node = RootNodeBuilder::empty()
             .with_text_line_chunk("Line 1")
             .with_line_chunk(
                 LineChunkBuilder::new()
@@ -543,7 +543,7 @@ mod tests {
             .with_branch(BranchBuilder::from_choice(choice2.clone()).build())
             .build();
 
-        let mut node = RootNodeBuilder::new()
+        let mut node = RootNodeBuilder::empty()
             .with_branching_choice(branching_choice_set)
             .build();
 
@@ -573,7 +573,7 @@ mod tests {
             .with_branch(BranchBuilder::from_choice(choice2.clone()).build())
             .build();
 
-        let mut node = RootNodeBuilder::new()
+        let mut node = RootNodeBuilder::empty()
             .with_text_line_chunk("Line 1")
             .with_branching_choice(branching_choice_set)
             .build();
@@ -615,7 +615,7 @@ mod tests {
             .with_branch(nested_branch) // Stack: [1, 2]
             .build();
 
-        let mut node = RootNodeBuilder::new()
+        let mut node = RootNodeBuilder::empty()
             .with_text_line_chunk("Line 1")
             .with_branching_choice(root_branching_choice) // Stack: [1]
             .with_text_line_chunk("Line 5")
@@ -635,7 +635,7 @@ mod tests {
     fn after_finishing_with_a_branch_lower_nodes_return_to_their_content() {
         let choice = InternalChoice::from_string("Choice");
 
-        let mut node = RootNodeBuilder::new()
+        let mut node = RootNodeBuilder::empty()
             .with_branching_choice(
                 BranchingPointBuilder::new()
                     .with_branch(BranchBuilder::from_choice(choice).build())
@@ -660,7 +660,7 @@ mod tests {
     fn selected_branches_have_their_number_of_visits_number_incremented() {
         let choice = InternalChoice::from_string("Choice");
 
-        let mut node = RootNodeBuilder::new()
+        let mut node = RootNodeBuilder::empty()
             .with_branching_choice(
                 BranchingPointBuilder::new()
                     .with_branch(BranchBuilder::from_choice(choice.clone()).build())
@@ -690,7 +690,7 @@ mod tests {
     fn encountered_choices_return_with_their_number_of_visits_counter() {
         let choice = InternalChoice::from_string("Choice");
 
-        let mut node = RootNodeBuilder::new()
+        let mut node = RootNodeBuilder::empty()
             .with_branching_choice(
                 BranchingPointBuilder::new()
                     .with_branch(BranchBuilder::from_choice(choice.clone()).build())
@@ -722,7 +722,7 @@ mod tests {
     fn selected_branches_adds_line_text_to_line_buffer() {
         let choice = InternalChoice::from_string("Choice");
 
-        let mut node = RootNodeBuilder::new()
+        let mut node = RootNodeBuilder::empty()
             .with_branching_choice(
                 BranchingPointBuilder::new()
                     .with_branch(BranchBuilder::from_choice(choice.clone()).build())
@@ -743,7 +743,7 @@ mod tests {
     fn diverts_found_after_selections_are_returned() {
         let choice = InternalChoice::from_string("Choice -> divert");
 
-        let mut node = RootNodeBuilder::new()
+        let mut node = RootNodeBuilder::empty()
             .with_branching_choice(
                 BranchingPointBuilder::new()
                     .with_branch(BranchBuilder::from_choice(choice.clone()).build())
@@ -777,7 +777,7 @@ mod tests {
             )
             .build();
 
-        let mut node = RootNodeBuilder::new()
+        let mut node = RootNodeBuilder::empty()
             .with_branching_choice(branch_set)
             .build();
 
@@ -797,7 +797,7 @@ mod tests {
     fn after_a_followed_choice_returns_the_caller_nodes_always_follow_into_their_next_lines() {
         let choice = InternalChoice::from_string("Choice");
 
-        let mut node = RootNodeBuilder::new()
+        let mut node = RootNodeBuilder::empty()
             .with_branching_choice(
                 BranchingPointBuilder::new()
                     .with_branch(
@@ -847,7 +847,7 @@ mod tests {
 
     #[test]
     fn following_with_stack_that_has_too_large_index_raises_error() {
-        let mut node = RootNodeBuilder::new()
+        let mut node = RootNodeBuilder::empty()
             .with_text_line_chunk("Line 1")
             .build();
 
@@ -870,7 +870,7 @@ mod tests {
 
     #[test]
     fn following_with_empty_stack_raises_error() {
-        let mut node = RootNodeBuilder::new()
+        let mut node = RootNodeBuilder::empty()
             .with_text_line_chunk("Line 1")
             .build();
 
