@@ -30,12 +30,19 @@ pub enum InklingError {
         /// List of choices that were available for the selection
         presented_choices: Vec<Choice>,
     },
+    /// Tried to move to an invalid knot or stitch.
+    InvalidMove {
+        knot: String,
+        stitch: Option<String>,
+    },
     /// No choices or fallback choices were available in a story branch at the given address.
     OutOfChoices { address: Address },
     /// No content was available for the story to continue from.
     OutOfContent,
     /// Tried to resume a story that has not been started.
     ResumeBeforeStart,
+    /// Tried to resume a story with a choice, but no choice was prompted.
+    ResumeWithoutChoice,
     /// Tried to `start` a story that is already in progress.
     StartOnStoryInProgress,
 }
@@ -150,6 +157,18 @@ impl fmt::Display for InklingError {
                 presented_choices.len(),
                 presented_choices.len() - 1
             ),
+            InvalidMove { knot, stitch } => match stitch {
+                Some(stitch_name) => write!(
+                    f,
+                    "Invalid move: knot '{}' does not contain a stitch named '{}'",
+                    knot, stitch_name
+                ),
+                None => write!(
+                    f,
+                    "Invalid move: story does not contain a knot name '{}'",
+                    knot
+                ),
+            },
             OutOfChoices {
                 address: Address::Validated { knot, stitch },
             } => write!(
@@ -165,6 +184,11 @@ impl fmt::Display for InklingError {
             ),
             OutOfContent => write!(f, "Story ran out of content before an end was reached"),
             ResumeBeforeStart => write!(f, "Tried to resume a story that has not yet been started"),
+            ResumeWithoutChoice => write!(
+                f,
+                "Tried to resume a story with a choice after moving to a new knot, where \
+                 no choices have yet been encountered"
+            ),
             StartOnStoryInProgress => {
                 write!(f, "Called `start` on a story that is already in progress")
             }

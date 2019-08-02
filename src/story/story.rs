@@ -54,6 +54,8 @@ pub struct Story {
     data: FollowData,
     /// Set of last choices presented to the user.
     last_choices: Option<Vec<Choice>>,
+    /// Whether a choice has to be made.
+    requires_choice: bool,
     /// Whether or not the story has been started.
     in_progress: bool,
 }
@@ -129,6 +131,7 @@ impl Story {
     /// # Examples
     /// ```
     /// # use inkling::{read_story_from_string, Story};
+    /// // From ‘A Wizard of Earthsea’ by Ursula K. Le Guin
     /// let content = "\
     /// Only in silence the word,
     /// only in dark the light,
@@ -196,6 +199,10 @@ impl Story {
             return Err(InklingError::ResumeBeforeStart);
         }
 
+        if !self.requires_choice {
+            return Err(InklingError::ResumeWithoutChoice);
+        }
+
         let index = self
             .last_choices
             .as_ref()
@@ -210,7 +217,98 @@ impl Story {
                     .map(|choice| choice.index)
             })?;
 
+        self.requires_choice = false;
+
         self.follow_story_wrapper(Some(index), line_buffer)
+    }
+
+    /// Move the story to another knot or stitch.
+    ///
+    /// A move can be performed at any time, before or after starting the story. It
+    /// simply updates the current internal address in the story to the given address.
+    /// If no stitch name is given the default stitch from the root will be selected.
+    ///
+    /// The story will not resume automatically after the move. To do this, use
+    /// the `resume` method whenever you are ready.
+    ///
+    /// # Examples
+    /// ```
+    /// // From ‘Purge’ by Sofi Oksanen
+    /// # use inkling::{read_story_from_string, Prompt};
+    /// let content = "\
+    /// May, 1949
+    /// For the free Estonia!
+    ///
+    /// === chapter_one ===
+    /// 1992, western Estonia
+    /// Aliide Truu stared at the fly and the fly stared right back at her.
+    /// ";
+    ///
+    /// let mut story = read_story_from_string(content).unwrap();
+    /// let mut line_buffer = Vec::new();
+    ///
+    /// // Let’s skip ahead!
+    /// story.move_to("chapter_one", None).unwrap();
+    /// story.start(&mut line_buffer).unwrap();
+    ///
+    /// assert_eq!(&line_buffer[0].text, "1992, western Estonia\n");
+    /// ```
+    pub fn move_to(&mut self, knot: &str, stitch: Option<&str>) -> Result<(), InklingError> {
+        let to_address = Address::from_parts(knot, stitch, &self.knots).map_err(|_| {
+            InklingError::InvalidMove {
+                knot: knot.to_string(),
+                stitch: stitch.map(|s| s.to_string()),
+            }
+        })?;
+
+        self.update_last_stack(&to_address);
+
+        self.requires_choice = false;
+        self.last_choices = None;
+
+        Ok(())
+    }
+
+    /// Resume the story after a move.
+    ///
+    /// Starts walking through the story from the knot and stitch that the story was moved
+    /// to. Works exactly like `start`, except that this cannot be called before the story
+    /// has been started (mirroring how `start` cannot be called on a story in progress).
+    ///
+    /// # Examples
+    /// ```
+    /// # use inkling::{read_story_from_string, Prompt};
+    /// # let content = "\
+    /// # Sam was in real trouble now. The fleet footed criminals were just about to corner her.
+    /// #
+    /// # *   [Climb the fire escape]
+    /// #     She clattered up the rackety fire escape.
+    /// # *   [Bluff]
+    /// #     To hell with running. Sam turned around with a cocksure smirk on her lips.
+    /// #  
+    /// # === mirandas_den ===
+    /// # = bar
+    /// # The room was thick with smoke and the smell of noir.
+    /// #
+    /// # = meeting
+    /// # Miranda was waiting in her office.
+    /// # She had questions and Sam for once had answers.
+    /// # ";
+    /// # let mut story = read_story_from_string(content).unwrap();
+    /// # let mut line_buffer = Vec::new();
+    /// # story.start(&mut line_buffer).unwrap();
+    /// story.move_to("mirandas_den", Some("meeting")).unwrap();
+    /// # line_buffer.clear();
+    /// story.resume(&mut line_buffer).unwrap();
+    ///
+    /// assert_eq!(&line_buffer[0].text, "Miranda was waiting in her office.\n");
+    /// ```
+    pub fn resume(&mut self, line_buffer: &mut LineBuffer) -> Result<Prompt, InklingError> {
+        if !self.in_progress {
+            return Err(InklingError::ResumeBeforeStart);
+        }
+
+        self.follow_story_wrapper(None, line_buffer)
     }
 
     /// Wrapper of common behavior between `start` and `resume_with_choice`.
@@ -241,6 +339,7 @@ impl Story {
         match result {
             Prompt::Choice(choices) => {
                 self.last_choices.replace(choices.clone());
+                self.requires_choice = true;
 
                 Ok(Prompt::Choice(choices))
             }
@@ -291,6 +390,7 @@ pub fn read_story_from_string(string: &str) -> Result<Story, ParseError> {
         stack: vec![root_address],
         data,
         last_choices: None,
+        requires_choice: false,
         in_progress: false,
     })
 }
@@ -387,7 +487,10 @@ fn get_fallback_choice(
 mod tests {
     use super::*;
 
-    use crate::knot::{get_num_visited, ValidateAddresses};
+    use crate::{
+        consts::ROOT_KNOT_NAME,
+        knot::{get_num_visited, ValidateAddresses},
+    };
 
     fn mock_follow_data(knots: &KnotSet) -> FollowData {
         FollowData {
@@ -1080,5 +1183,266 @@ Three
         assert_eq!(get_num_visited(&address_twice, &story.data).unwrap(), 2);
         assert_eq!(get_num_visited(&address_thrice, &story.data).unwrap(), 3);
         assert_eq!(get_num_visited(&address_root, &story.data).unwrap(), 6);
+    }
+
+    #[test]
+    fn calling_resume_on_a_story_at_a_choice_returns_the_choice_again() {
+        let content = "
+
+== back_in_almaty
+
+After an arduous journey we arrived back in Almaty.
+
+*   We hurried home as fast as we could. 
+    -> END
+*   But we decided our trip wasn't done yet.
+    We immediately left the city. 
+
+";
+        let mut story = read_story_from_string(content).unwrap();
+        let mut line_buffer = Vec::new();
+
+        let choices = story
+            .start(&mut line_buffer)
+            .unwrap()
+            .get_choices()
+            .unwrap();
+
+        line_buffer.clear();
+        let resume_choices = story
+            .resume(&mut line_buffer)
+            .unwrap()
+            .get_choices()
+            .unwrap();
+
+        assert_eq!(choices, resume_choices);
+        assert!(line_buffer.is_empty());
+    }
+
+    #[test]
+    fn after_a_resume_is_made_the_choice_can_be_made_as_usual() {
+        let content = "
+
+== back_in_almaty
+
+After an arduous journey we arrived back in Almaty.
+
+*   We hurried home as fast as we could. 
+    -> END
+*   But we decided our trip wasn't done yet.
+    We immediately left the city. 
+
+";
+        let mut story = read_story_from_string(content).unwrap();
+        let mut line_buffer = Vec::new();
+
+        story
+            .start(&mut line_buffer)
+            .unwrap()
+            .get_choices()
+            .unwrap();
+
+        line_buffer.clear();
+        story
+            .resume(&mut line_buffer)
+            .unwrap()
+            .get_choices()
+            .unwrap();
+        story
+            .resume(&mut line_buffer)
+            .unwrap()
+            .get_choices()
+            .unwrap();
+        story
+            .resume(&mut line_buffer)
+            .unwrap()
+            .get_choices()
+            .unwrap();
+        story
+            .resume(&mut line_buffer)
+            .unwrap()
+            .get_choices()
+            .unwrap();
+
+        story.resume_with_choice(1, &mut line_buffer).unwrap();
+
+        assert_eq!(line_buffer.len(), 2);
+        assert_eq!(
+            &line_buffer[0].text,
+            "But we decided our trip wasn't done yet.\n"
+        );
+        assert_eq!(&line_buffer[1].text, "We immediately left the city.\n");
+    }
+
+    #[test]
+    fn resume_cannot_be_called_on_an_unstarted_story() {
+        let content = "
+
+== back_in_almaty
+After an arduous journey we arrived back in Almaty.
+
+";
+        let mut story = read_story_from_string(content).unwrap();
+        let mut line_buffer = Vec::new();
+
+        match story.resume(&mut line_buffer) {
+            Err(InklingError::ResumeBeforeStart) => (),
+            other => panic!(
+                "expected `InklingError::ResumeBeforeStart` but got {:?}",
+                other
+            ),
+        }
+    }
+
+    #[test]
+    fn story_can_be_moved_to_another_address() {
+        let content = "
+
+We arrived into Almaty at 9.45pm exactly.
+-> END
+
+== hurry_home
+We hurried home as fast as we could. 
+-> END
+
+";
+
+        let mut story = read_story_from_string(content).unwrap();
+        let mut line_buffer = Vec::new();
+
+        story.start(&mut line_buffer).unwrap();
+
+        story.move_to("hurry_home", None).unwrap();
+
+        let address = story.stack.last().unwrap();
+        assert_eq!(address.get_knot().unwrap(), "hurry_home");
+        assert_eq!(address.get_stitch().unwrap(), ROOT_KNOT_NAME);
+
+        line_buffer.clear();
+        story.resume(&mut line_buffer).unwrap();
+
+        assert_eq!(
+            &line_buffer[0].text,
+            "We hurried home as fast as we could.\n"
+        );
+    }
+
+    #[test]
+    fn move_to_addresses_can_include_stitches() {
+        let content = "
+
+We arrived into Almaty at 9.45pm exactly.
+-> END
+
+== hurry_home
+We hurried home as fast as we could. 
+-> END
+
+= at_home
+Once back home we feasted on cheese.
+-> END
+
+";
+
+        let mut story = read_story_from_string(content).unwrap();
+        let mut line_buffer = Vec::new();
+
+        story.start(&mut line_buffer).unwrap();
+
+        story.move_to("hurry_home", Some("at_home")).unwrap();
+
+        let address = story.stack.last().unwrap();
+        assert_eq!(address.get_knot().unwrap(), "hurry_home");
+        assert_eq!(address.get_stitch().unwrap(), "at_home");
+
+        line_buffer.clear();
+        story.resume(&mut line_buffer).unwrap();
+
+        assert_eq!(
+            &line_buffer[0].text,
+            "Once back home we feasted on cheese.\n"
+        );
+    }
+
+    #[test]
+    fn move_to_can_be_called_on_a_story_before_the_start() {
+        let content = "
+
+We arrived into Almaty at 9.45pm exactly.
+-> END
+
+== hurry_home
+We hurried home as fast as we could. 
+-> END
+
+= at_home
+Once back home we feasted on cheese.
+-> END
+
+";
+
+        let mut story = read_story_from_string(content).unwrap();
+        let mut line_buffer = Vec::new();
+
+        story.move_to("hurry_home", Some("at_home")).unwrap();
+        story.start(&mut line_buffer).unwrap();
+
+        assert_eq!(
+            &line_buffer[0].text,
+            "Once back home we feasted on cheese.\n"
+        );
+    }
+
+    #[test]
+    fn move_to_yields_error_if_knot_or_stitch_name_is_invalid() {
+        let content = "
+
+We arrived into Almaty at 9.45pm exactly.
+-> END
+
+== hurry_home
+We hurried home as fast as we could. 
+-> END
+
+= at_home
+Once back home we feasted on cheese.
+-> END
+
+";
+
+        let mut story = read_story_from_string(content).unwrap();
+
+        assert!(story.move_to("fin", None).is_err());
+        assert!(story.move_to("hurry_home", Some("not_at_home")).is_err());
+    }
+
+    #[test]
+    fn resume_with_choice_cannot_be_called_directly_after_a_move() {
+        let content = "
+
+We arrived into Almaty at 9.45pm exactly.
+*   That was the end of our trip. -> fin
+
+== hurry_home
+We hurried home as fast as we could. 
+
+== fin
+-> END
+
+";
+
+        let mut story = read_story_from_string(content).unwrap();
+        let mut line_buffer = Vec::new();
+
+        story.start(&mut line_buffer).unwrap();
+        story.move_to("hurry_home", None).unwrap();
+
+        match story.resume_with_choice(0, &mut line_buffer) {
+            Err(InklingError::ResumeWithoutChoice) => (),
+            other => panic!(
+                "expected `InklingError::ResumeWithoutChoice` but got {:?}",
+                other
+            ),
+        }
     }
 }
