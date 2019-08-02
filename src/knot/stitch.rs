@@ -228,10 +228,16 @@ mod tests {
         s.lines().map(|line| parse_line(line)).collect()
     }
 
-    fn mock_follow_data() -> FollowData {
-        FollowData {
-            knot_visit_counts: HashMap::new(),
-        }
+    fn mock_follow_data(stitch: &Stitch) -> FollowData {
+        let (knot, stitch) = stitch.root.address.get_knot_and_stitch().unwrap();
+
+        let mut stitch_count = HashMap::new();
+        stitch_count.insert(stitch.to_string(), 0);
+
+        let mut knot_visit_counts = HashMap::new();
+        knot_visit_counts.insert(knot.to_string(), stitch_count);
+
+        FollowData { knot_visit_counts }
     }
 
     #[test]
@@ -254,7 +260,7 @@ mod tests {
         let mut stitch = Stitch::from_str(text).unwrap();
 
         let mut buffer = Vec::new();
-        let mut data = mock_follow_data();
+        let mut data = mock_follow_data(&stitch);
 
         stitch.follow(&mut buffer, &mut data).unwrap();
         stitch.follow(&mut buffer, &mut data).unwrap();
@@ -271,7 +277,7 @@ mod tests {
         let mut stitch = Stitch::from_str(text).unwrap();
 
         let mut buffer = Vec::new();
-        let mut data = mock_follow_data();
+        let mut data = mock_follow_data(&stitch);
 
         stitch.follow(&mut buffer, &mut data).unwrap();
         stitch.follow(&mut buffer, &mut data).unwrap();
@@ -286,7 +292,7 @@ mod tests {
         let mut stitch = Stitch::from_str(text).unwrap();
 
         let mut buffer = Vec::new();
-        let mut data = mock_follow_data();
+        let mut data = mock_follow_data(&stitch);
 
         stitch
             .follow_with_choice(0, &mut buffer, &mut data)
@@ -306,7 +312,7 @@ mod tests {
         let mut stitch = Stitch::from_str(text).unwrap();
 
         let mut buffer = Vec::new();
-        let mut data = mock_follow_data();
+        let mut data = mock_follow_data(&stitch);
 
         stitch
             .follow_with_choice(0, &mut buffer, &mut data)
@@ -335,7 +341,7 @@ mod tests {
         let mut stitch = Stitch::from_str(&text).unwrap();
 
         let mut buffer = Vec::new();
-        let mut data = mock_follow_data();
+        let mut data = mock_follow_data(&stitch);
 
         assert_eq!(
             stitch.follow(&mut buffer, &mut data).unwrap(),
@@ -367,7 +373,7 @@ mod tests {
         let mut stitch = Stitch::from_str(&text).unwrap();
 
         let mut buffer = Vec::new();
-        let mut data = mock_follow_data();
+        let mut data = mock_follow_data(&stitch);
 
         let choices = match stitch.follow(&mut buffer, &mut data).unwrap() {
             EncounteredEvent::BranchingChoice(choices) => choices,
@@ -394,7 +400,7 @@ mod tests {
         let mut stitch = Stitch::from_str(&text).unwrap();
 
         let mut buffer = LineDataBuffer::new();
-        let mut data = mock_follow_data();
+        let mut data = mock_follow_data(&stitch);
 
         stitch.follow(&mut buffer, &mut data).unwrap();
         stitch
@@ -415,7 +421,7 @@ mod tests {
         let mut stitch = Stitch::from_str(text).unwrap();
 
         let mut buffer = Vec::new();
-        let mut data = mock_follow_data();
+        let mut data = mock_follow_data(&stitch);
 
         stitch.follow(&mut buffer, &mut data).unwrap();
         assert_eq!(&stitch.stack, &[0]);
@@ -449,7 +455,7 @@ mod tests {
         let mut stitch = Stitch::from_str(&text).unwrap();
 
         let mut buffer = LineDataBuffer::new();
-        let mut data = mock_follow_data();
+        let mut data = mock_follow_data(&stitch);
 
         stitch.follow(&mut buffer, &mut data).unwrap();
         stitch
@@ -483,7 +489,7 @@ mod tests {
         }
 
         let mut stitch = Stitch::from_str(&text).unwrap();
-        let mut data = mock_follow_data();
+        let mut data = mock_follow_data(&stitch);
 
         let mut results_choice1 = LineDataBuffer::new();
 
@@ -523,7 +529,7 @@ Line 6
         let mut stitch = Stitch::from_str(&text).unwrap();
 
         let mut buffer = LineDataBuffer::new();
-        let mut data = mock_follow_data();
+        let mut data = mock_follow_data(&stitch);
 
         stitch.follow(&mut buffer, &mut data).unwrap();
         stitch
@@ -549,7 +555,7 @@ Line 6
         let mut stitch = Stitch::from_str(&text).unwrap();
 
         let mut buffer = LineDataBuffer::new();
-        let mut data = mock_follow_data();
+        let mut data = mock_follow_data(&stitch);
 
         stitch.follow(&mut buffer, &mut data).unwrap();
 

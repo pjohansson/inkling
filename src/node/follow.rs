@@ -3,6 +3,7 @@
 use crate::{
     error::{IncorrectNodeStackError, InternalError},
     follow::{ChoiceInfo, EncounteredEvent, FollowData, FollowResult, LineDataBuffer},
+    knot::increment_num_visited,
     node::{Branch, NodeItem, RootNode},
 };
 
@@ -79,7 +80,7 @@ pub trait Follow: FollowInternal {
             })
             .into());
         } else if *at_index == 0 {
-            self.increment_num_visited();
+            self.increment_num_visited(data)?;
         }
 
         for item in self.iter_mut_items().skip(*at_index) {
@@ -256,7 +257,7 @@ pub trait FollowInternal: fmt::Debug {
     fn get_item_mut(&mut self, index: usize) -> Option<&mut NodeItem>;
     fn get_num_items(&self) -> usize;
     fn get_num_visited(&self) -> u32;
-    fn increment_num_visited(&mut self);
+    fn increment_num_visited(&mut self, data: &mut FollowData) -> Result<(), InternalError>;
     fn iter_mut_items(&mut self) -> IterMut<NodeItem>;
 }
 
@@ -277,8 +278,12 @@ impl FollowInternal for RootNode {
         self.num_visited
     }
 
-    fn increment_num_visited(&mut self) {
+    fn increment_num_visited(&mut self, data: &mut FollowData) -> Result<(), InternalError> {
+        increment_num_visited(&self.address, data)?;
+
         self.num_visited += 1;
+
+        Ok(())
     }
 
     fn iter_mut_items(&mut self) -> IterMut<NodeItem> {
@@ -303,8 +308,10 @@ impl FollowInternal for Branch {
         self.num_visited
     }
 
-    fn increment_num_visited(&mut self) {
+    fn increment_num_visited(&mut self, _: &mut FollowData) -> Result<(), InternalError> {
         self.num_visited += 1;
+
+        Ok(())
     }
 
     fn iter_mut_items(&mut self) -> IterMut<NodeItem> {
@@ -326,17 +333,23 @@ mod tests {
 
     use crate::{
         error::InklingError,
-        knot::Address,
+        knot::{get_num_visited, Address},
         line::{InternalChoice, LineChunkBuilder},
         node::builders::{BranchBuilder, BranchingPointBuilder, RootNodeBuilder},
     };
 
     use std::collections::HashMap;
 
-    fn mock_follow_data() -> FollowData {
-        FollowData {
-            knot_visit_counts: HashMap::new(),
-        }
+    fn mock_follow_data(node: &RootNode) -> FollowData {
+        let (knot, stitch) = node.address.get_knot_and_stitch().unwrap();
+
+        let mut stitch_count = HashMap::new();
+        stitch_count.insert(stitch.to_string(), 0);
+
+        let mut knot_visit_counts = HashMap::new();
+        knot_visit_counts.insert(knot.to_string(), stitch_count);
+
+        FollowData { knot_visit_counts }
     }
 
     #[test]
@@ -347,7 +360,7 @@ mod tests {
 
         let mut buffer = Vec::new();
         let mut stack = vec![0];
-        let mut data = mock_follow_data();
+        let mut data = mock_follow_data(&node);
 
         match node.follow_with_choice(0, 0, &mut stack, &mut buffer, &mut data) {
             Err(InklingError::Internal(InternalError::IncorrectNodeStack(err))) => match err {
@@ -364,7 +377,7 @@ mod tests {
 
         let mut buffer = Vec::new();
         let mut stack = vec![0];
-        let mut data = mock_follow_data();
+        let mut data = mock_follow_data(&node);
 
         match node.follow_with_choice(0, 0, &mut stack, &mut buffer, &mut data) {
             Err(InklingError::Internal(InternalError::IncorrectNodeStack(err))) => match err {
@@ -383,7 +396,7 @@ mod tests {
 
         let mut buffer = Vec::new();
         let mut stack = vec![0, 0, 0];
-        let mut data = mock_follow_data();
+        let mut data = mock_follow_data(&node);
 
         match node.follow_with_choice(0, 0, &mut stack, &mut buffer, &mut data) {
             Err(InklingError::Internal(InternalError::IncorrectNodeStack(err))) => match err {
@@ -408,7 +421,7 @@ mod tests {
 
         let mut buffer = Vec::new();
         let mut stack = vec![0];
-        let mut data = mock_follow_data();
+        let mut data = mock_follow_data(&node);
 
         match node.follow_with_choice(1, 0, &mut stack, &mut buffer, &mut data) {
             Err(InklingError::Internal(InternalError::IncorrectChoiceIndex {
@@ -433,7 +446,7 @@ mod tests {
 
         let mut buffer = Vec::new();
         let mut stack = vec![0];
-        let mut data = mock_follow_data();
+        let mut data = mock_follow_data(&node);
 
         assert_eq!(
             node.follow(&mut stack, &mut buffer, &mut data).unwrap(),
@@ -452,7 +465,7 @@ mod tests {
             .build();
 
         let mut buffer = Vec::new();
-        let mut data = mock_follow_data();
+        let mut data = mock_follow_data(&node);
 
         assert_eq!(node.num_visited, 0);
 
@@ -460,6 +473,23 @@ mod tests {
         node.follow(&mut vec![0], &mut buffer, &mut data).unwrap();
 
         assert_eq!(node.num_visited, 2);
+    }
+
+    #[test]
+    fn following_into_a_node_increments_number_of_visits_in_data() {
+        let mut node = RootNodeBuilder::empty()
+            .with_text_line_chunk("Line 1")
+            .build();
+
+        let mut buffer = Vec::new();
+        let mut data = mock_follow_data(&node);
+
+        assert_eq!(get_num_visited(&node.address, &data).unwrap(), 0);
+
+        node.follow(&mut vec![0], &mut buffer, &mut data).unwrap();
+        node.follow(&mut vec![0], &mut buffer, &mut data).unwrap();
+
+        assert_eq!(get_num_visited(&node.address, &data).unwrap(), 2);
     }
 
     #[test]
@@ -471,7 +501,7 @@ mod tests {
 
         let mut buffer = Vec::new();
         let mut stack = vec![0];
-        let mut data = mock_follow_data();
+        let mut data = mock_follow_data(&node);
 
         node.follow(&mut stack, &mut buffer, &mut data).unwrap();
         assert_eq!(stack[0], 2);
@@ -486,7 +516,7 @@ mod tests {
 
         let mut buffer = Vec::new();
         let mut stack = vec![1];
-        let mut data = mock_follow_data();
+        let mut data = mock_follow_data(&node);
 
         node.follow(&mut stack, &mut buffer, &mut data).unwrap();
 
@@ -505,7 +535,7 @@ mod tests {
         let mut buffer = Vec::new();
 
         let mut stack = vec![0, 2, 1];
-        let mut data = mock_follow_data();
+        let mut data = mock_follow_data(&node);
 
         node.follow(&mut stack, &mut buffer, &mut data).unwrap();
 
@@ -522,7 +552,7 @@ mod tests {
             .build();
 
         let mut buffer = Vec::new();
-        let mut data = mock_follow_data();
+        let mut data = mock_follow_data(&node);
 
         assert_eq!(node.num_visited, 0);
 
@@ -546,7 +576,7 @@ mod tests {
 
         let mut buffer = Vec::new();
         let mut stack = vec![0];
-        let mut data = mock_follow_data();
+        let mut data = mock_follow_data(&node);
 
         assert_eq!(
             node.follow(&mut stack, &mut buffer, &mut data).unwrap(),
@@ -574,7 +604,7 @@ mod tests {
 
         let mut buffer = Vec::new();
         let mut stack = vec![0];
-        let mut data = mock_follow_data();
+        let mut data = mock_follow_data(&node);
 
         match node.follow(&mut stack, &mut buffer, &mut data).unwrap() {
             EncounteredEvent::BranchingChoice(choice_set) => {
@@ -606,7 +636,7 @@ mod tests {
 
         let mut buffer = Vec::new();
         let mut stack = vec![0];
-        let mut data = mock_follow_data();
+        let mut data = mock_follow_data(&node);
 
         node.follow(&mut stack, &mut buffer, &mut data).unwrap();
 
@@ -650,7 +680,7 @@ mod tests {
 
         let mut buffer = Vec::new();
         let mut stack = vec![1, 2, 2];
-        let mut data = mock_follow_data();
+        let mut data = mock_follow_data(&node);
 
         node.follow_with_choice(1, 0, &mut stack, &mut buffer, &mut data)
             .unwrap();
@@ -674,7 +704,7 @@ mod tests {
 
         let mut buffer = Vec::new();
         let mut stack = vec![0];
-        let mut data = mock_follow_data();
+        let mut data = mock_follow_data(&node);
 
         node.follow_with_choice(0, 0, &mut stack, &mut buffer, &mut data)
             .unwrap();
@@ -701,7 +731,7 @@ mod tests {
 
         let mut buffer = Vec::new();
         let mut stack = vec![0];
-        let mut data = mock_follow_data();
+        let mut data = mock_follow_data(&node);
 
         node.follow_with_choice(1, 0, &mut stack, &mut buffer, &mut data)
             .unwrap();
@@ -729,7 +759,7 @@ mod tests {
             .build();
 
         let mut buffer = Vec::new();
-        let mut data = mock_follow_data();
+        let mut data = mock_follow_data(&node);
 
         node.follow_with_choice(0, 0, &mut vec![0], &mut buffer, &mut data)
             .unwrap();
@@ -763,7 +793,7 @@ mod tests {
 
         let mut buffer = Vec::new();
         let mut stack = vec![0];
-        let mut data = mock_follow_data();
+        let mut data = mock_follow_data(&node);
 
         node.follow_with_choice(0, 0, &mut stack, &mut buffer, &mut data)
             .unwrap();
@@ -785,7 +815,7 @@ mod tests {
 
         let mut buffer = Vec::new();
         let mut stack = vec![0];
-        let mut data = mock_follow_data();
+        let mut data = mock_follow_data(&node);
 
         assert_eq!(
             node.follow_with_choice(0, 0, &mut stack, &mut buffer, &mut data)
@@ -816,7 +846,7 @@ mod tests {
 
         let mut buffer = Vec::new();
         let mut stack = vec![0];
-        let mut data = mock_follow_data();
+        let mut data = mock_follow_data(&node);
 
         match node
             .follow_with_choice(0, 0, &mut stack, &mut buffer, &mut data)
@@ -864,7 +894,7 @@ mod tests {
 
         let mut buffer = Vec::new();
         let mut stack = vec![0];
-        let mut data = mock_follow_data();
+        let mut data = mock_follow_data(&node);
 
         node.follow_with_choice(0, 0, &mut stack, &mut buffer, &mut data)
             .unwrap();
@@ -887,7 +917,7 @@ mod tests {
             .build();
 
         let mut buffer = Vec::new();
-        let mut data = mock_follow_data();
+        let mut data = mock_follow_data(&node);
 
         match node.follow(&mut vec![2], &mut buffer, &mut data) {
             Err(InklingError::Internal(InternalError::IncorrectNodeStack(err))) => match err {
@@ -911,7 +941,7 @@ mod tests {
             .build();
 
         let mut buffer = Vec::new();
-        let mut data = mock_follow_data();
+        let mut data = mock_follow_data(&node);
 
         match node.follow(&mut vec![], &mut buffer, &mut data) {
             Err(InklingError::Internal(InternalError::IncorrectNodeStack(err))) => match err {

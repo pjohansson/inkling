@@ -390,9 +390,7 @@ fn get_fallback_choice(
 mod tests {
     use super::*;
 
-    use crate::knot::{get_num_visits, get_stitch, ValidateAddresses};
-
-    use std::collections::HashMap;
+    use crate::knot::{get_num_visited, get_stitch, ValidateAddresses};
 
     fn mock_follow_data(knots: &KnotSet) -> FollowData {
         FollowData {
@@ -1038,9 +1036,9 @@ We arrived into Almaty at 9.45pm exactly.
             stitch: "at_home".into(),
         };
 
-        assert_eq!(get_num_visits(&back_in_almaty, &story.data).unwrap(), 0);
-        assert_eq!(get_num_visits(&hurry_home, &story.data).unwrap(), 0);
-        assert_eq!(get_num_visits(&at_home, &story.data).unwrap(), 0);
+        assert_eq!(get_num_visited(&back_in_almaty, &story.data).unwrap(), 0);
+        assert_eq!(get_num_visited(&hurry_home, &story.data).unwrap(), 0);
+        assert_eq!(get_num_visited(&at_home, &story.data).unwrap(), 0);
     }
 
     #[test]

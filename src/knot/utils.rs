@@ -39,7 +39,7 @@ pub fn get_mut_stitch<'a>(
         )
 }
 
-pub fn get_num_visits(address: &Address, data: &FollowData) -> Result<u32, InternalError> {
+pub fn get_num_visited(address: &Address, data: &FollowData) -> Result<u32, InternalError> {
     let (knot_name, stitch_name) = address.get_knot_and_stitch()?;
 
     data.knot_visit_counts
@@ -53,7 +53,10 @@ pub fn get_num_visits(address: &Address, data: &FollowData) -> Result<u32, Inter
         )
 }
 
-pub fn increment_num_visits(address: &Address, data: &mut FollowData) -> Result<(), InternalError> {
+pub fn increment_num_visited(
+    address: &Address,
+    data: &mut FollowData,
+) -> Result<(), InternalError> {
     let (knot_name, stitch_name) = address.get_knot_and_stitch()?;
 
     data.knot_visit_counts
