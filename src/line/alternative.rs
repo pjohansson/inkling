@@ -4,7 +4,8 @@ use crate::{
     error::{InvalidAddressError, ProcessError, ProcessErrorKind},
     follow::EncounteredEvent,
     knot::{Address, KnotSet, ValidateAddresses},
-    line::{LineChunk, Process},
+    line::LineChunk,
+    process::Process,
 };
 
 #[cfg(feature = "serde_support")]

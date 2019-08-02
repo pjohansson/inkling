@@ -58,7 +58,7 @@ fn get_sequence_kind(content: &str) -> AlternativeKind {
 mod tests {
     use super::*;
 
-    use crate::line::process::tests::get_processed_string;
+    use crate::process::line::tests::get_processed_string;
 
     #[test]
     fn list_of_strings_separated_by_vertical_lines_are_added_to_set() {

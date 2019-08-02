@@ -5,9 +5,8 @@ use crate::{
     follow::{ChoiceInfo, FollowData, LineDataBuffer, LineText},
     knot::get_num_visited,
     line::{Condition, InternalLine, StoryCondition},
+    story::{Choice, Line, LineBuffer},
 };
-
-use super::story::{Choice, Line, LineBuffer};
 
 use std::{cell::RefCell, rc::Rc};
 
@@ -186,19 +185,17 @@ fn add_line_ending(line: &mut LineText, next_line: Option<&LineText>) {
     }
 }
 
-/// Check whether a single choice fulfils its conditions.
+/// Check whether a single condition is fulfilled.
 fn check_condition(condition: &Condition, data: &FollowData) -> Result<bool, InklingError> {
-    let evaluator = |kind: &StoryCondition| -> Result<bool, InklingError> {
-        match kind {
-            StoryCondition::NumVisits {
-                address,
-                rhs_value,
-                ordering,
-            } => {
-                let num_visited = get_num_visited(address, data)? as i32;
+    let evaluator = |kind: &StoryCondition| match kind {
+        StoryCondition::NumVisits {
+            address,
+            rhs_value,
+            ordering,
+        } => {
+            let num_visited = get_num_visited(address, data)? as i32;
 
-                Ok(num_visited.cmp(rhs_value) == *ordering)
-            }
+            Ok(num_visited.cmp(rhs_value) == *ordering)
         }
     };
 

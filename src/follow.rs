@@ -43,6 +43,7 @@ impl ChoiceInfo {
 #[derive(Clone, Debug)]
 /// Data used during a follow through knots and nodes.
 pub struct FollowData {
+    /// Number of times a knot and stitch address has been visited.
     pub knot_visit_counts: HashMap<String, HashMap<String, u32>>,
 }
 

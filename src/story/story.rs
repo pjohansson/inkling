@@ -4,15 +4,12 @@ use crate::{
     error::{InklingError, ParseError, StackError},
     follow::{ChoiceInfo, EncounteredEvent, FollowData, LineDataBuffer},
     knot::{get_empty_knot_counts, get_mut_stitch, validate_addresses_in_knots, Address, KnotSet},
+    process::{get_fallback_choices, prepare_choices_for_user, process_buffer},
+    story::read_knots_from_string,
 };
 
 #[cfg(feature = "serde_support")]
 use serde::{Deserialize, Serialize};
-
-use super::{
-    parse::read_knots_from_string,
-    process::{get_fallback_choices, prepare_choices_for_user, process_buffer},
-};
 
 #[derive(Clone, Debug, PartialEq)]
 /// Single line of text in a story, ready to display.

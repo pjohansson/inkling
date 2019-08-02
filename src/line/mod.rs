@@ -24,8 +24,7 @@ mod alternative;
 mod choice;
 mod condition;
 mod line;
-pub(self) mod parse;
-pub(self) mod process;
+pub(crate) mod parse;
 
 pub(crate) use alternative::{Alternative, AlternativeBuilder, AlternativeKind};
 pub(crate) use choice::{InternalChoice, InternalChoiceBuilder};
@@ -36,4 +35,3 @@ pub(crate) use condition::{
 pub(crate) use line::builders::LineChunkBuilder;
 pub(crate) use line::{builders::InternalLineBuilder, Content, InternalLine, LineChunk};
 pub(crate) use parse::{parse_line, ParsedLineKind};
-pub(crate) use process::Process;
