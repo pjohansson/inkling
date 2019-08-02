@@ -10,7 +10,7 @@ use crate::{
         KNOT_MARKER, LINE_COMMENT_MARKER, ROOT_KNOT_NAME, STITCH_MARKER, TODO_COMMENT_MARKER,
     },
     error::{KnotError, KnotNameError, ParseError},
-    knot::{read_knot_name, read_stitch_name, Knot, KnotSet, Stitch},
+    knot::{parse_stitch_from_lines, read_knot_name, read_stitch_name, Knot, KnotSet, Stitch},
 };
 
 use std::collections::HashMap;
@@ -76,7 +76,7 @@ fn get_stitch_from_lines(
     let stitch_name =
         get_stitch_name(&mut lines).map(|name| get_stitch_identifier(name, stitch_index))?;
 
-    let content = Stitch::from_lines(&lines)?;
+    let content = parse_stitch_from_lines(&lines)?;
 
     Ok((stitch_name, content))
 }

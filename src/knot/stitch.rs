@@ -90,21 +90,6 @@ impl Stitch {
         Ok(result)
     }
 
-    /// Parse a set of input lines into a `Stitch`.
-    pub fn from_lines(lines: &[&str]) -> Result<Self, LineParsingError> {
-        let parsed_lines = lines
-            .into_iter()
-            .map(|line| parse_line(line))
-            .collect::<Result<Vec<_>, _>>()?;
-
-        let root = parse_root_node(&parsed_lines, "", "");
-
-        Ok(Stitch {
-            root,
-            stack: vec![0],
-        })
-    }
-
     /// Get the number of times this stitch has been diverted to.
     ///
     /// This will only have been incremented when the stitch has been `follow`ed from
@@ -117,6 +102,21 @@ impl Stitch {
     fn reset_stack(&mut self) {
         self.stack = vec![0];
     }
+}
+
+/// Parse a set of input lines into a `Stitch`.
+pub fn parse_stitch_from_lines(lines: &[&str]) -> Result<Stitch, LineParsingError> {
+    let parsed_lines = lines
+        .into_iter()
+        .map(|line| parse_line(line))
+        .collect::<Result<Vec<_>, _>>()?;
+
+    let root = parse_root_node(&parsed_lines, "", "");
+
+    Ok(Stitch {
+        root,
+        stack: vec![0],
+    })
 }
 
 /// Read a knot name from a non-parsed string which contains text markers for a knot.
