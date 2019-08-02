@@ -12,4 +12,4 @@ mod parse;
 pub use follow::{Follow, Stack};
 pub(self) use node::builders;
 pub use node::{builders::RootNodeBuilder, Branch, NodeItem, RootNode};
-pub(self) use parse::parse_root_node;
+pub use parse::parse_root_node;

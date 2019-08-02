@@ -22,13 +22,6 @@ pub struct RootNode {
     pub num_visited: u32,
 }
 
-impl RootNode {
-    /// Parse a set of `ParsedLine` items and create a full graph representation of it.
-    pub fn from_lines(lines: &[ParsedLineKind]) -> Self {
-        parse_root_node(lines)
-    }
-}
-
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
 /// Branch from a set of choices in a `Stitch`.

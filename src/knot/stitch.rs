@@ -19,7 +19,7 @@ use crate::{
     error::{KnotError, KnotNameError, LineParsingError},
     follow::{EncounteredEvent, FollowResult, LineDataBuffer},
     line::parse_line,
-    node::{Follow, RootNode, Stack},
+    node::{parse_root_node, Follow, RootNode, Stack},
 };
 
 #[cfg(feature = "serde_support")]
@@ -97,7 +97,7 @@ impl Stitch {
             .map(|line| parse_line(line))
             .collect::<Result<Vec<_>, _>>()?;
 
-        let root = RootNode::from_lines(&parsed_lines);
+        let root = parse_root_node(&parsed_lines, "", "");
 
         Ok(Stitch {
             root,
@@ -210,7 +210,7 @@ mod tests {
 
         fn from_str(content: &str) -> Result<Self, Self::Err> {
             let lines = parse_lines(content)?;
-            let root = RootNode::from_lines(&lines);
+            let root = parse_root_node(&lines, "", "");
 
             Ok(Stitch {
                 root,
