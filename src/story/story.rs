@@ -1,6 +1,7 @@
 //! Structures which contain parsed `Ink` stories and content presented to the user.
 
 use crate::{
+    consts::ROOT_KNOT_NAME,
     error::{InklingError, ParseError, StackError},
     follow::{ChoiceInfo, EncounteredEvent, FollowData, LineDataBuffer},
     knot::{get_empty_knot_counts, get_mut_stitch, validate_addresses_in_knots, Address, KnotSet},
@@ -311,6 +312,36 @@ impl Story {
         self.follow_story_wrapper(None, line_buffer)
     }
 
+    /// Get the knot and stitch (if applicable) that the story is at currently.
+    ///
+    /// # Examples
+    /// ```
+    /// # use inkling::{read_story_from_string, Prompt};
+    /// let content = "
+    /// === gesichts_apartment ===
+    /// = dream
+    /// Gesicht wakes up from a nightmare. Something horrible is afoot.
+    /// ";
+    ///
+    /// let mut story = read_story_from_string(content).unwrap();
+    /// story.move_to("gesichts_apartment", None).unwrap();
+    ///
+    /// let (knot, stitch) = story.get_current_location().unwrap();
+    ///
+    /// assert_eq!(&knot, "gesichts_apartment");
+    /// assert_eq!(&stitch.unwrap(), "dream");
+    /// ```
+    pub fn get_current_location(&self) -> Result<(String, Option<String>), InklingError> {
+        let address = self.get_current_address()?;
+        let (knot, stitch) = address.get_knot_and_stitch()?;
+
+        if stitch == ROOT_KNOT_NAME {
+            Ok((knot.to_string(), None))
+        } else {
+            Ok((knot.to_string(), Some(stitch.to_string())))
+        }
+    }
+
     /// Get the tags associated with the given knot.
     ///
     /// Returns an error if no knot with the given name exists in the story.
@@ -518,10 +549,7 @@ fn get_fallback_choice(
 mod tests {
     use super::*;
 
-    use crate::{
-        consts::ROOT_KNOT_NAME,
-        knot::{get_num_visited, ValidateAddresses},
-    };
+    use crate::knot::{get_num_visited, ValidateAddresses};
 
     fn mock_follow_data(knots: &KnotSet) -> FollowData {
         FollowData {
@@ -1519,5 +1547,34 @@ We hurried home as fast as we could.
                 other
             ),
         }
+    }
+
+    #[test]
+    fn current_location_in_story_is_the_latest_address_pushed_on_the_stack() {
+        let content = "
+
+We arrived into Almaty at 9.45pm exactly.
+-> END
+
+== hurry_home
+= at_home
+We hurried home as fast as we could. 
+-> END
+
+";
+
+        let mut story = read_story_from_string(content).unwrap();
+
+        assert_eq!(
+            story.get_current_location().unwrap(),
+            (ROOT_KNOT_NAME.to_string(), None)
+        );
+
+        story.move_to("hurry_home", None).unwrap();
+
+        assert_eq!(
+            story.get_current_location().unwrap(),
+            ("hurry_home".to_string(), Some("at_home".to_string()))
+        );
     }
 }
