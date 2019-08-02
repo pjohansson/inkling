@@ -253,9 +253,9 @@ mod tests {
     }
 
     #[test]
-    fn empty_string_parses_into_empty_object() {
+    fn empty_string_parses_into_empty_chunk() {
         let chunk = parse_chunk("").unwrap();
-        assert_eq!(chunk.items[0], Content::Empty);
+        assert_eq!(chunk.items.len(), 0);
     }
 
     #[test]

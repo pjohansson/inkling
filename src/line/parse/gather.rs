@@ -80,16 +80,14 @@ pub mod tests {
     fn gather_markers_do_not_require_text() {
         match parse_line("-").unwrap() {
             ParsedLineKind::Gather { line, .. } => {
-                assert_eq!(line.chunk.items.len(), 1);
-                assert_eq!(line.chunk.items[0], Content::Empty);
+                assert_eq!(line.chunk.items.len(), 0);
             }
             other => panic!("expected `ParsedLineKind::Gather` but got {:?}", other),
         }
 
         match parse_line(" - -  ").unwrap() {
             ParsedLineKind::Gather { line, .. } => {
-                assert_eq!(line.chunk.items.len(), 1);
-                assert_eq!(line.chunk.items[0], Content::Empty);
+                assert_eq!(line.chunk.items.len(), 0);
             }
             other => panic!("expected `ParsedLineKind::Gather` but got {:?}", other),
         }
