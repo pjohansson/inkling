@@ -15,10 +15,6 @@
 //! Choices are represented by the [`InternalChoice`][crate::line::InternalChoice] object.
 //! This contains different variants of text to be shown to the user and once a choice
 //! is made and can have conditions for when they are presented at all.
-//!
-//! Tying the story processor together is the [`Process`][crate::line::Process] trait
-//! which is implemented on constituent parts of lines. This makes nesting into lines
-//! possible.
 
 mod alternative;
 mod choice;

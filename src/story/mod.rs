@@ -10,9 +10,6 @@
 //!
 //! Most of the rest of this module deals with processing internal data into a form
 //! presented to the user, or validating the content of the story as it is being accessed.
-//! An example of the latter is the [`Address`][crate::story::Address] object which
-//! ensures that an encountered address from an `Ink` file is valid inside of the
-//! current story.
 
 mod parse;
 mod story;

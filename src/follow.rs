@@ -50,7 +50,7 @@ pub struct FollowData {
 #[derive(Clone, Debug, PartialEq)]
 /// Processed text from a full line.
 ///
-/// This is the result from calling [`Process`][crate::line::Process] on a single
+/// This is the result from calling [`process_line`][crate::process::process_line] on a single
 /// [`InternalLine`][crate::line::InternalLine] object and filling in the remaining
 /// information. It is one possible result from that object since the `Process` trait
 /// can handle variations depending on variables or alternatives.

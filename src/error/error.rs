@@ -302,7 +302,7 @@ impl fmt::Display for InternalError {
 }
 
 #[derive(Clone, Debug)]
-/// Error from calling the [`Process`][crate::line::Process] trait on line data.
+/// Error from processing content into its final format.
 pub struct ProcessError {
     /// Error variant.
     pub kind: ProcessErrorKind,
