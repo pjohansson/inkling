@@ -58,7 +58,7 @@ fn get_sequence_kind(content: &str) -> AlternativeKind {
 mod tests {
     use super::*;
 
-    use crate::process::line::tests::get_processed_string;
+    use crate::process::line::tests::{get_processed_alternative, get_processed_chunk};
 
     #[test]
     fn list_of_strings_separated_by_vertical_lines_are_added_to_set() {
@@ -68,9 +68,9 @@ mod tests {
 
         assert_eq!(alternative.items.len(), 3);
 
-        assert_eq!(&get_processed_string(&mut alternative.items[0]), "One");
-        assert_eq!(&get_processed_string(&mut alternative.items[1]), "Two");
-        assert_eq!(&get_processed_string(&mut alternative.items[2]), "Three");
+        assert_eq!(&get_processed_chunk(&mut alternative.items[0]), "One");
+        assert_eq!(&get_processed_chunk(&mut alternative.items[1]), "Two");
+        assert_eq!(&get_processed_chunk(&mut alternative.items[2]), "Three");
     }
 
     #[test]
@@ -108,7 +108,7 @@ mod tests {
         let text = " &One|Two|Three";
         let mut alternative = parse_alternative(text).unwrap();
 
-        assert_eq!(&get_processed_string(&mut alternative), "One");
+        assert_eq!(&get_processed_alternative(&mut alternative), "One");
 
         match &alternative.kind {
             AlternativeKind::Cycle => (),

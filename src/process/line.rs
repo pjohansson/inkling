@@ -6,108 +6,111 @@ use crate::{
     line::{Alternative, AlternativeKind, Content, InternalLine, LineChunk},
 };
 
-pub trait Process {
-    fn process(&mut self, buffer: &mut String) -> Result<EncounteredEvent, ProcessError>;
+pub fn process_line(
+    line: &mut InternalLine,
+    buffer: &mut LineDataBuffer,
+) -> Result<EncounteredEvent, ProcessError> {
+    let mut text_buffer = String::new();
+
+    let result = process_chunk(&mut line.chunk, &mut text_buffer);
+
+    let line_text = LineText {
+        text: text_buffer,
+        glue_begin: line.glue_begin,
+        glue_end: line.glue_end,
+        tags: line.tags.clone(),
+    };
+
+    buffer.push(line_text);
+
+    result
 }
 
-impl InternalLine {
-    pub fn process(
-        &mut self,
-        buffer: &mut LineDataBuffer,
-    ) -> Result<EncounteredEvent, ProcessError> {
-        let mut text_buffer = String::new();
+fn process_chunk(
+    chunk: &mut LineChunk,
+    buffer: &mut String,
+) -> Result<EncounteredEvent, ProcessError> {
+    for item in chunk.items.iter_mut() {
+        let result = process_content(item, buffer)?;
 
-        let result = self.chunk.process(&mut text_buffer);
-
-        let line_text = LineText {
-            text: text_buffer,
-            glue_begin: self.glue_begin,
-            glue_end: self.glue_end,
-            tags: self.tags.clone(),
-        };
-
-        buffer.push(line_text);
-
-        result
-    }
-}
-
-impl Process for LineChunk {
-    fn process(&mut self, buffer: &mut String) -> Result<EncounteredEvent, ProcessError> {
-        for item in self.items.iter_mut() {
-            let result = item.process(buffer)?;
-
-            if let EncounteredEvent::Divert(..) = result {
-                return Ok(result);
-            }
+        if let EncounteredEvent::Divert(..) = result {
+            return Ok(result);
         }
-
-        Ok(EncounteredEvent::Done)
     }
+
+    Ok(EncounteredEvent::Done)
 }
 
-impl Process for Content {
-    fn process(&mut self, buffer: &mut String) -> Result<EncounteredEvent, ProcessError> {
-        match self {
-            Content::Alternative(alternative) => alternative.process(buffer),
-            Content::Divert(address) => Ok(EncounteredEvent::Divert(address.clone())),
-            Content::Empty => {
-                buffer.push(' ');
-                Ok(EncounteredEvent::Done)
-            }
-            Content::Nested(chunk) => chunk.process(buffer),
-            Content::Text(string) => {
-                buffer.push_str(string);
-                Ok(EncounteredEvent::Done)
-            }
+fn process_content(
+    item: &mut Content,
+    buffer: &mut String,
+) -> Result<EncounteredEvent, ProcessError> {
+    match item {
+        Content::Alternative(alternative) => process_alternative(alternative, buffer),
+        Content::Divert(address) => Ok(EncounteredEvent::Divert(address.clone())),
+        Content::Empty => {
+            buffer.push(' ');
+            Ok(EncounteredEvent::Done)
+        }
+        Content::Nested(chunk) => process_chunk(chunk, buffer),
+        Content::Text(string) => {
+            buffer.push_str(string);
+            Ok(EncounteredEvent::Done)
         }
     }
 }
 
-impl Process for Alternative {
-    fn process(&mut self, buffer: &mut String) -> Result<EncounteredEvent, ProcessError> {
-        let num_items = self.items.len();
+fn process_alternative(
+    alternative: &mut Alternative,
+    buffer: &mut String,
+) -> Result<EncounteredEvent, ProcessError> {
+    let num_items = alternative.items.len();
 
-        match self.kind {
-            AlternativeKind::Cycle => {
-                let index = self.current_index.get_or_insert(0);
+    match alternative.kind {
+        AlternativeKind::Cycle => {
+            let index = alternative.current_index.get_or_insert(0);
 
-                let item = self.items.get_mut(*index).ok_or_else(|| ProcessError {
+            let item = alternative
+                .items
+                .get_mut(*index)
+                .ok_or_else(|| ProcessError {
                     kind: ProcessErrorKind::InvalidAlternativeIndex,
                 })?;
 
-                if *index < num_items - 1 {
+            if *index < num_items - 1 {
+                *index += 1;
+            } else {
+                *index = 0;
+            }
+
+            process_chunk(item, buffer)
+        }
+        AlternativeKind::OnceOnly => {
+            let index = alternative.current_index.get_or_insert(0);
+
+            match alternative.items.get_mut(*index) {
+                Some(item) => {
                     *index += 1;
-                } else {
-                    *index = 0;
+                    process_chunk(item, buffer)
                 }
-
-                item.process(buffer)
+                None => Ok(EncounteredEvent::Done),
             }
-            AlternativeKind::OnceOnly => {
-                let index = self.current_index.get_or_insert(0);
+        }
+        AlternativeKind::Sequence => {
+            let index = alternative.current_index.get_or_insert(0);
 
-                match self.items.get_mut(*index) {
-                    Some(item) => {
-                        *index += 1;
-                        item.process(buffer)
-                    }
-                    None => Ok(EncounteredEvent::Done),
-                }
-            }
-            AlternativeKind::Sequence => {
-                let index = self.current_index.get_or_insert(0);
-
-                let item = self.items.get_mut(*index).ok_or_else(|| ProcessError {
+            let item = alternative
+                .items
+                .get_mut(*index)
+                .ok_or_else(|| ProcessError {
                     kind: ProcessErrorKind::InvalidAlternativeIndex,
                 })?;
 
-                if *index < num_items - 1 {
-                    *index += 1;
-                }
-
-                item.process(buffer)
+            if *index < num_items - 1 {
+                *index += 1;
             }
+
+            process_chunk(item, buffer)
         }
     }
 }
@@ -121,10 +124,15 @@ pub mod tests {
         line::{parse::parse_internal_line, AlternativeBuilder, LineChunkBuilder},
     };
 
-    /// Process an item into a buffer an return it.
-    pub fn get_processed_string<T: Process>(item: &mut T) -> String {
+    pub fn get_processed_alternative(alternative: &mut Alternative) -> String {
         let mut buffer = String::new();
-        item.process(&mut buffer).unwrap();
+        process_alternative(alternative, &mut buffer).unwrap();
+        buffer
+    }
+
+    pub fn get_processed_chunk(chunk: &mut LineChunk) -> String {
+        let mut buffer = String::new();
+        process_chunk(chunk, &mut buffer).unwrap();
         buffer
     }
 
@@ -135,7 +143,7 @@ pub mod tests {
         line.glue_end = true;
 
         let mut buffer = Vec::new();
-        line.process(&mut buffer).unwrap();
+        process_line(&mut line, &mut buffer).unwrap();
 
         let result = &buffer[0];
         assert!(result.glue_begin);
@@ -148,7 +156,7 @@ pub mod tests {
         line.tags = vec!["tag 1".to_string(), "tag 2".to_string()];
 
         let mut buffer = Vec::new();
-        line.process(&mut buffer).unwrap();
+        process_line(&mut line, &mut buffer).unwrap();
 
         let result = &buffer[0];
         assert_eq!(result.tags, line.tags);
@@ -158,9 +166,8 @@ pub mod tests {
     fn pure_text_line_processes_into_the_contained_string() {
         let mut buffer = String::new();
 
-        Content::Text("Hello, World!".to_string())
-            .process(&mut buffer)
-            .unwrap();
+        let mut item = Content::Text("Hello, World!".to_string());
+        process_content(&mut item, &mut buffer).unwrap();
 
         assert_eq!(&buffer, "Hello, World!");
     }
@@ -169,7 +176,8 @@ pub mod tests {
     fn empty_content_processes_into_single_white_space() {
         let mut buffer = String::new();
 
-        Content::Empty.process(&mut buffer).unwrap();
+        let mut item = Content::Empty;
+        process_content(&mut item, &mut buffer).unwrap();
 
         assert_eq!(&buffer, " ");
     }
@@ -177,42 +185,40 @@ pub mod tests {
     #[test]
     fn line_with_text_processes_into_that_text() {
         let content = "Text string.";
-
-        let mut line = LineChunkBuilder::from_string(content).build();
-
         let mut buffer = String::new();
 
-        line.process(&mut buffer).unwrap();
+        let mut line = LineChunkBuilder::from_string(content).build();
+        process_chunk(&mut line, &mut buffer).unwrap();
 
         assert_eq!(&buffer, content);
     }
 
     #[test]
     fn chunks_with_several_text_items_stitch_them_with_no_whitespace() {
+        let mut buffer = String::new();
+
         let mut line = LineChunkBuilder::new()
             .with_text("Line 1")
             .with_text("Line 2")
             .build();
 
-        let mut buffer = String::new();
-
-        line.process(&mut buffer).unwrap();
+        process_chunk(&mut line, &mut buffer).unwrap();
 
         assert_eq!(&buffer, "Line 1Line 2");
     }
 
     #[test]
     fn lines_shortcut_if_proper_diverts_are_encountered() {
+        let mut buffer = String::new();
+
         let mut line = LineChunkBuilder::new()
             .with_text("Line 1")
             .with_divert("divert")
             .with_text("Line 2")
             .build();
 
-        let mut buffer = String::new();
-
         assert_eq!(
-            line.process(&mut buffer).unwrap(),
+            process_chunk(&mut line, &mut buffer).unwrap(),
             EncounteredEvent::Divert(Address::Raw("divert".to_string()))
         );
 
@@ -228,15 +234,15 @@ pub mod tests {
 
         let mut buffer = String::new();
 
-        sequence.process(&mut buffer).unwrap();
+        process_alternative(&mut sequence, &mut buffer).unwrap();
         assert_eq!(&buffer, "Line 1");
         buffer.clear();
 
-        sequence.process(&mut buffer).unwrap();
+        process_alternative(&mut sequence, &mut buffer).unwrap();
         assert_eq!(&buffer, "Line 2");
         buffer.clear();
 
-        sequence.process(&mut buffer).unwrap();
+        process_alternative(&mut sequence, &mut buffer).unwrap();
         assert_eq!(&buffer, "Line 2");
         buffer.clear();
     }
@@ -250,15 +256,15 @@ pub mod tests {
 
         let mut buffer = String::new();
 
-        once_only.process(&mut buffer).unwrap();
+        process_alternative(&mut once_only, &mut buffer).unwrap();
         assert_eq!(&buffer, "Line 1");
         buffer.clear();
 
-        once_only.process(&mut buffer).unwrap();
+        process_alternative(&mut once_only, &mut buffer).unwrap();
         assert_eq!(&buffer, "Line 2");
         buffer.clear();
 
-        once_only.process(&mut buffer).unwrap();
+        process_alternative(&mut once_only, &mut buffer).unwrap();
         assert!(buffer.is_empty());
     }
 
@@ -271,15 +277,15 @@ pub mod tests {
 
         let mut buffer = String::new();
 
-        cycle.process(&mut buffer).unwrap();
+        process_alternative(&mut cycle, &mut buffer).unwrap();
         assert_eq!(&buffer, "Line 1");
         buffer.clear();
 
-        cycle.process(&mut buffer).unwrap();
+        process_alternative(&mut cycle, &mut buffer).unwrap();
         assert_eq!(&buffer, "Line 2");
         buffer.clear();
 
-        cycle.process(&mut buffer).unwrap();
+        process_alternative(&mut cycle, &mut buffer).unwrap();
         assert_eq!(&buffer, "Line 1");
         buffer.clear();
     }
@@ -295,20 +301,20 @@ pub mod tests {
         let mut buffer = String::new();
 
         assert_eq!(
-            alternative.process(&mut buffer).unwrap(),
+            process_alternative(&mut alternative, &mut buffer).unwrap(),
             EncounteredEvent::Done
         );
         assert_eq!(&buffer, "Line 1");
         buffer.clear();
 
         assert_eq!(
-            alternative.process(&mut buffer).unwrap(),
+            process_alternative(&mut alternative, &mut buffer).unwrap(),
             EncounteredEvent::Divert(Address::Raw("divert".to_string()))
         );
         buffer.clear();
 
         assert_eq!(
-            alternative.process(&mut buffer).unwrap(),
+            process_alternative(&mut alternative, &mut buffer).unwrap(),
             EncounteredEvent::Done
         );
         assert_eq!(&buffer, "Line 2");
@@ -334,20 +340,26 @@ pub mod tests {
 
         let mut buffer = String::new();
 
-        assert_eq!(line.process(&mut buffer).unwrap(), EncounteredEvent::Done);
+        assert_eq!(
+            process_chunk(&mut line, &mut buffer).unwrap(),
+            EncounteredEvent::Done
+        );
 
         assert_eq!(&buffer, "Line 1Alternative line 1Line 2");
         buffer.clear();
 
         assert_eq!(
-            line.process(&mut buffer).unwrap(),
+            process_chunk(&mut line, &mut buffer).unwrap(),
             EncounteredEvent::Divert(Address::Raw("divert".to_string()))
         );
 
         assert_eq!(&buffer, "Line 1Divert");
         buffer.clear();
 
-        assert_eq!(line.process(&mut buffer).unwrap(), EncounteredEvent::Done);
+        assert_eq!(
+            process_chunk(&mut line, &mut buffer).unwrap(),
+            EncounteredEvent::Done
+        );
 
         assert_eq!(&buffer, "Line 1Alternative line 2Line 2");
     }

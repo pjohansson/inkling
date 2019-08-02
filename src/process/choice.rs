@@ -4,7 +4,7 @@ use crate::{
     error::{InklingError, InternalError},
     follow::{ChoiceInfo, FollowData},
     line::InternalLine,
-    process::check_condition,
+    process::{check_condition, process_line},
     story::Choice,
 };
 
@@ -98,8 +98,7 @@ fn process_choice_text_and_tags(
 
     let mut line = choice_line.borrow_mut();
 
-    line.process(&mut data_buffer)
-        .map_err(|err| InternalError::from(err))?;
+    process_line(&mut line, &mut data_buffer).map_err(|err| InternalError::from(err))?;
 
     let mut buffer = String::new();
 

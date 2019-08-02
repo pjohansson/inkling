@@ -5,6 +5,7 @@ use crate::{
     follow::{ChoiceInfo, EncounteredEvent, FollowData, FollowResult, LineDataBuffer},
     knot::increment_num_visited,
     node::{Branch, NodeItem, RootNode},
+    process::process_line,
 };
 
 use std::{fmt, slice::IterMut};
@@ -88,9 +89,8 @@ pub trait Follow: FollowInternal {
 
             match item {
                 NodeItem::Line(line) => {
-                    let result = line
-                        .process(buffer)
-                        .map_err(|err| InternalError::from(err))?;
+                    let result =
+                        process_line(line, buffer).map_err(|err| InternalError::from(err))?;
 
                     if let EncounteredEvent::Divert(..) = result {
                         return Ok(result);

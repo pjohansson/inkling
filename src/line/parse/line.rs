@@ -227,7 +227,7 @@ fn validate_divert_address(line: &str, backup_line: String) -> Result<String, Li
 mod tests {
     use super::*;
 
-    use crate::{knot::Address, process::line::tests::get_processed_string};
+    use crate::{knot::Address, process::line::tests::get_processed_chunk};
 
     #[test]
     fn simple_text_string_parses_into_chunk_with_single_item() {
@@ -262,8 +262,8 @@ mod tests {
             other => panic!("expected `Content::Alternative` but got {:?}", other),
         }
 
-        assert_eq!(&get_processed_string(&mut chunk), "One");
-        assert_eq!(&get_processed_string(&mut chunk), "Two");
+        assert_eq!(&get_processed_chunk(&mut chunk), "One");
+        assert_eq!(&get_processed_chunk(&mut chunk), "Two");
     }
 
     #[test]
