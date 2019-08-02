@@ -1,3 +1,5 @@
+//! Processing of story content into its final form, which will be handed to the user.
+
 mod buffer;
 pub(crate) mod choice;
 mod condition;

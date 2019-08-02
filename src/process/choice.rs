@@ -1,4 +1,4 @@
-//! Process content to display to the user.
+//! Process and filter choices to present to the user.
 
 use crate::{
     error::{InklingError, InternalError},

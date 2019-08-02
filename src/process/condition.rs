@@ -1,3 +1,5 @@
+//! Checking of `Condition`s which determine whether content will be displayed.
+
 use crate::{
     error::InklingError,
     follow::FollowData,

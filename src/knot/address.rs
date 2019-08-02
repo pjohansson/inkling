@@ -1,4 +1,4 @@
-//! Validated addresses to nodes or content in a story.
+//! Validated addresses to content in a story.
 
 use crate::knot::KnotSet;
 

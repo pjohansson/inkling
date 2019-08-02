@@ -1,3 +1,5 @@
+//! Story structure collections: `Knot`s, `Stitch`es and utilities.
+
 mod address;
 mod stitch;
 mod utils;

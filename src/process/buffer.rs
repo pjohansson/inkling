@@ -1,3 +1,5 @@
+//! Processing of internal line data into pure text data for the user.
+
 use crate::{
     follow::{LineDataBuffer, LineText},
     story::{Line, LineBuffer},

@@ -1,3 +1,5 @@
+//! Utilities for accessing `Knot` and `Stitch` data.
+
 use crate::{
     error::{InternalError, StackError},
     follow::FollowData,
