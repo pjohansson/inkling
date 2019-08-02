@@ -2,6 +2,9 @@
 
 use crate::{error::InklingError, knot::Address, line::InternalChoice};
 
+#[cfg(feature = "serde_support")]
+use serde::{Deserialize, Serialize};
+
 use std::collections::HashMap;
 
 /// Convenience type for a result of the encountered event and main error type.
@@ -41,6 +44,7 @@ impl ChoiceInfo {
 }
 
 #[derive(Clone, Debug)]
+#[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
 /// Data used during a follow through knots and nodes.
 pub struct FollowData {
     /// Number of times a knot and stitch address has been visited.
