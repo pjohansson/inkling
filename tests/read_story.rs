@@ -79,6 +79,8 @@ He befriended thousands of climbers and children sightseeing in Switzerland.
 fn story_can_start_with_named_knot() {
     let content = "
 
+-> dream
+
 == dream ==
 GESICHT'S BEDROOM (MORNING)
 
@@ -102,6 +104,8 @@ He just woke from a nightmare.
 #[test]
 fn story_can_divert_at_will_between_unordered_knots() {
     let content = "
+
+-> murder
 
 == murder ==
 SCENE OF MURDER (TRASHED APARTMENT, DAYTIME)
@@ -142,6 +146,8 @@ He identifies himself as being from Europol and passes the barrier.
 fn story_can_be_structured_using_stitches() {
     let content = "
 
+-> introduction
+
 == introduction
 
 Mont Blanc was a world-renowned mountain guide.
@@ -173,6 +179,8 @@ He just woke from a nightmare.
 #[test]
 fn stitches_can_be_diverted_to_inside_a_knot_without_the_full_address() {
     let content = "
+
+-> introduction
 
 == introduction
 

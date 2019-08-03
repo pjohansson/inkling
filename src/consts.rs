@@ -77,5 +77,21 @@ pub const DONE_KNOT: &'static str = "DONE";
 /// Name of knot that marks that the story is finished.
 pub const END_KNOT: &'static str = "END";
 
+/**********************
+ * Meta data variable *
+ **********************/
+
+/// Marker for constant variable.
+pub const CONST_MARKER: &'static str = "CONST";
+
+/// Marker for external function signature.
+pub const EXTERNAL_FUNCTION_MARKER: &'static str = "EXTERNAL";
+
+/// Marker for include of another file.
+pub const INCLUDE_MARKER: &'static str = "INCLUDE";
+
+/// Marker for global variable.
+pub const VARIABLE_MARKER: &'static str = "VAR";
+
 /// Names which cannot be used by variables, knots or stitches.
 pub const RESERVED_KEYWORDS: &[&'static str] = &["ELSE", "NOT", "TRUE", "FALSE", "AND", "OR"];

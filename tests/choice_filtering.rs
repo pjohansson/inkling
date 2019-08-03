@@ -4,6 +4,8 @@ use inkling::*;
 pub fn choices_are_filtered_after_being_picked_once_unless_sticky() {
     let content = "
 
+-> head
+
 == head ==
 You enter a dark room.
 
@@ -61,6 +63,8 @@ You enter a dark room.
 #[test]
 fn choices_can_be_filtered_by_visited_knots() {
     let content = "
+
+-> passage
 
 == passage ==
 
@@ -134,6 +138,8 @@ You head back.
 #[test]
 fn choices_can_be_filtered_by_referencing_stitches_with_internal_shorthand() {
     let content = "
+
+-> exploring_the_tunnel
 
 == exploring_the_tunnel
 
@@ -210,6 +216,8 @@ You head back.
 fn choices_can_be_filtered_by_referencing_stitches_outside_the_current_knot() {
     let content = "
 
+-> passage
+
 == passage
 
 A crossing! Which path do you take?
@@ -284,6 +292,8 @@ You head back.
 fn fallback_choices_are_followed_if_no_choices_remain_after_filtering() {
     let content = "
 
+-> passage
+
 == passage
 
 A crossing! Which path do you take?
@@ -350,6 +360,8 @@ You pick the torch up and head back.
 #[test]
 fn fallback_choices_may_include_text_or_direct_diverts() {
     let content = "
+
+-> passage
 
 == passage
 
@@ -420,6 +432,8 @@ You pick the torch up and head back.
 #[test]
 fn glue_binds_across_fallback_choices() {
     let content = "
+
+-> passage
 
 == passage
 

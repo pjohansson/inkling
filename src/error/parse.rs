@@ -238,6 +238,7 @@ impl fmt::Display for LineParsingError {
             InvalidVariableNumber { content } => {
                 write!(f, "Invalid number '{}' when parsing variable", content)
             }
+            NoVariableName => write!(f, "No variable name for variable assignment"),
             StickyAndNonSticky => write!(
                 f,
                 "Encountered a line which has both non-sticky ('{}') and sticky ('{}') \
@@ -288,6 +289,8 @@ pub enum LineErrorKind {
     InvalidVariableDivert { address: String, content: String },
     /// Number variable contained a number that could not be parsed.
     InvalidVariableNumber { content: String },
+    /// No variable name after a VAR statement.
+    NoVariableName,
     /// A choice has both non-sticky and sticky markers.
     StickyAndNonSticky,
     /// Found unmatched curly braces.

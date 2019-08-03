@@ -9,7 +9,7 @@ use crate::{
         Address, KnotSet,
     },
     process::{get_fallback_choices, prepare_choices_for_user, process_buffer},
-    story::read_knots_from_string,
+    story::read_story_content_from_string,
 };
 
 #[cfg(feature = "serde_support")]
@@ -466,7 +466,7 @@ impl Story {
 /// let story: Story = read_story_from_string(content).unwrap();
 /// ```
 pub fn read_story_from_string(string: &str) -> Result<Story, ParseError> {
-    let (root_knot_name, mut knots) = read_knots_from_string(string)?;
+    let mut knots = read_story_content_from_string(string)?;
 
     let data = FollowData {
         knot_visit_counts: get_empty_knot_counts(&knots),
@@ -475,7 +475,7 @@ pub fn read_story_from_string(string: &str) -> Result<Story, ParseError> {
 
     validate_addresses_in_knots(&mut knots, &data)?;
 
-    let root_address = Address::from_root_knot(&root_knot_name, &knots).expect(
+    let root_address = Address::from_root_knot(ROOT_KNOT_NAME, &knots).expect(
         "After successfully creating all knots, the root knot name that was returned from \
          `read_knots_from_string` is not present in the set of created knots. \
          This simply should not be possible",
@@ -583,7 +583,10 @@ fn get_fallback_choice(
 mod tests {
     use super::*;
 
-    use crate::knot::{get_num_visited, increment_num_visited, ValidateAddresses};
+    use crate::{
+        knot::{get_num_visited, increment_num_visited, ValidateAddresses},
+        story::parse::tests::read_knots_from_string,
+    };
 
     fn mock_follow_data(knots: &KnotSet) -> FollowData {
         FollowData {
@@ -603,7 +606,7 @@ We arrived into London at 9.45pm exactly.
 We hurried home to Savile Row as fast as we could.
 ";
 
-        let (_, mut knots) = read_knots_from_string(content).unwrap();
+        let mut knots = read_knots_from_string(content).unwrap();
 
         let mut data = mock_follow_data(&knots);
         validate_addresses_in_knots(&mut knots, &data).unwrap();
@@ -631,7 +634,7 @@ We arrived into London at 9.45pm exactly.
 We hurried home to Savile Row as fast as we could.
 ";
 
-        let (_, mut knots) = read_knots_from_string(content).unwrap();
+        let mut knots = read_knots_from_string(content).unwrap();
 
         let mut data = mock_follow_data(&knots);
         validate_addresses_in_knots(&mut knots, &data).unwrap();
@@ -658,7 +661,7 @@ We hurried home to Savile Row as fast as we could.
 *   Rabat
 ";
 
-        let (_, mut knots) = read_knots_from_string(content).unwrap();
+        let mut knots = read_knots_from_string(content).unwrap();
 
         let mut data = mock_follow_data(&knots);
         validate_addresses_in_knots(&mut knots, &data).unwrap();
@@ -692,7 +695,7 @@ We arrived into London at 9.45pm exactly.
 We hurried home to Savile Row as fast as we could.
 ";
 
-        let (_, mut knots) = read_knots_from_string(content).unwrap();
+        let mut knots = read_knots_from_string(content).unwrap();
 
         let mut data = mock_follow_data(&knots);
         validate_addresses_in_knots(&mut knots, &data).unwrap();
@@ -720,7 +723,7 @@ We hurried home to Savile Row as fast as we could.
 -> END
 ";
 
-        let (_, mut knots) = read_knots_from_string(content).unwrap();
+        let mut knots = read_knots_from_string(content).unwrap();
 
         let mut data = mock_follow_data(&knots);
         validate_addresses_in_knots(&mut knots, &data).unwrap();
@@ -751,7 +754,7 @@ We hurried home to Savile Row as fast as we could.
 -> DONE
 ";
 
-        let (_, mut knots) = read_knots_from_string(content).unwrap();
+        let mut knots = read_knots_from_string(content).unwrap();
 
         let mut data = mock_follow_data(&knots);
         validate_addresses_in_knots(&mut knots, &data).unwrap();
@@ -774,7 +777,7 @@ We hurried home to Savile Row as fast as we could.
 *   Cinema -> END
 *   Visit family -> END
 ";
-        let (_, mut knots) = read_knots_from_string(content).unwrap();
+        let mut knots = read_knots_from_string(content).unwrap();
 
         let mut data = mock_follow_data(&knots);
         validate_addresses_in_knots(&mut knots, &data).unwrap();
@@ -810,7 +813,7 @@ We hurried home to Savile Row as fast as we could.
 -> END
 ";
 
-        let (_, mut knots) = read_knots_from_string(content).unwrap();
+        let mut knots = read_knots_from_string(content).unwrap();
 
         let mut data = mock_follow_data(&knots);
         validate_addresses_in_knots(&mut knots, &data).unwrap();
@@ -846,7 +849,7 @@ We hurried home to Savile Row as fast as we could.
 *   Visit family -> END
 ";
 
-        let (_, mut knots) = read_knots_from_string(content).unwrap();
+        let mut knots = read_knots_from_string(content).unwrap();
 
         let mut data = mock_follow_data(&knots);
         validate_addresses_in_knots(&mut knots, &data).unwrap();
@@ -883,6 +886,8 @@ We hurried home to Savile Row as fast as we could.
 ";
 
         let mut story = read_story_from_string(content).unwrap();
+        story.move_to("addis_ababa", None).unwrap();
+
         let mut line_buffer = Vec::new();
 
         story.follow_story_wrapper(None, &mut line_buffer).unwrap();
@@ -903,6 +908,8 @@ We hurried home to Savile Row as fast as we could.
 ";
 
         let mut story = read_story_from_string(content).unwrap();
+        story.move_to("tripoli", None).unwrap();
+
         let mut line_buffer = Vec::new();
 
         story.start(&mut line_buffer).unwrap();
@@ -929,6 +936,8 @@ We hurried home to Savile Row as fast as we could.
 ";
 
         let mut story = read_story_from_string(content).unwrap();
+        story.move_to("tripoli", None).unwrap();
+
         let mut line_buffer = Vec::new();
 
         story.start(&mut line_buffer).unwrap();
@@ -950,6 +959,7 @@ We hurried home to Savile Row as fast as we could.
 ";
 
         let mut story = read_story_from_string(content).unwrap();
+        story.move_to("knot", None).unwrap();
 
         let mut buffer = Vec::new();
 
@@ -972,7 +982,7 @@ We hurried home to Savile Row as fast as we could.
     Fallback choice
 ";
 
-        let (_, mut knots) = read_knots_from_string(content).unwrap();
+        let mut knots = read_knots_from_string(content).unwrap();
 
         let mut data = mock_follow_data(&knots);
         validate_addresses_in_knots(&mut knots, &data).unwrap();
@@ -1003,7 +1013,7 @@ We decided to go to the <>
 *   [] Cinema.
 ";
 
-        let (_, mut knots) = read_knots_from_string(content).unwrap();
+        let mut knots = read_knots_from_string(content).unwrap();
 
         let mut data = mock_follow_data(&knots);
         validate_addresses_in_knots(&mut knots, &data).unwrap();
@@ -1035,6 +1045,7 @@ We decided to go to the <>
 ";
 
         let mut story = read_story_from_string(content).unwrap();
+        story.move_to("knot", None).unwrap();
 
         let mut buffer = Vec::new();
 
@@ -1056,6 +1067,8 @@ We decided to go to the <>
 ";
 
         let mut story = read_story_from_string(content).unwrap();
+        story.move_to("knot", None).unwrap();
+
         let mut line_buffer = Vec::new();
 
         assert!(story.last_choices.is_none());
@@ -1077,6 +1090,8 @@ We decided to go to the <>
 ";
 
         let mut story = read_story_from_string(content).unwrap();
+        story.move_to("knot", None).unwrap();
+
         let mut line_buffer = Vec::new();
 
         story.start(&mut line_buffer).unwrap();
@@ -1133,6 +1148,7 @@ We arrived into Almaty at 9.45pm exactly.
 ";
 
         let mut story = read_story_from_string(content).unwrap();
+        story.move_to("back_in_almaty", None).unwrap();
 
         let mut line_buffer = Vec::new();
 
@@ -1298,6 +1314,8 @@ After an arduous journey we arrived back in Almaty.
 
 ";
         let mut story = read_story_from_string(content).unwrap();
+        story.move_to("back_in_almaty", None);
+
         let mut line_buffer = Vec::new();
 
         let choices = story
@@ -1332,6 +1350,8 @@ After an arduous journey we arrived back in Almaty.
 
 ";
         let mut story = read_story_from_string(content).unwrap();
+        story.move_to("back_in_almaty", None).unwrap();
+
         let mut line_buffer = Vec::new();
 
         story
@@ -1381,6 +1401,8 @@ After an arduous journey we arrived back in Almaty.
 
 ";
         let mut story = read_story_from_string(content).unwrap();
+        story.move_to("back_in_almaty", None).unwrap();
+
         let mut line_buffer = Vec::new();
 
         match story.resume(&mut line_buffer) {

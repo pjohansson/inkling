@@ -350,7 +350,7 @@ pub fn validate_addresses_in_knots(
 pub mod tests {
     use super::*;
 
-    use crate::{consts::ROOT_KNOT_NAME, story::read_knots_from_string};
+    use crate::{consts::ROOT_KNOT_NAME, story::parse::tests::read_knots_from_string};
 
     impl Address {
         fn from_knot(name: &str) -> Self {
@@ -386,7 +386,7 @@ pub mod tests {
 -> END
 ";
 
-        let (_, knots) = read_knots_from_string(content).unwrap();
+        let knots = read_knots_from_string(content).unwrap();
 
         let data = ValidateAddressData::from_data(&knots, &HashMap::new());
 
@@ -414,7 +414,7 @@ pub mod tests {
 -> END
 ";
 
-        let (_, knots) = read_knots_from_string(content).unwrap();
+        let knots = read_knots_from_string(content).unwrap();
 
         let data = ValidateAddressData::from_data(&knots, &HashMap::new());
 
@@ -454,7 +454,7 @@ pub mod tests {
 -> END
 ";
 
-        let (_, knots) = read_knots_from_string(content).unwrap();
+        let knots = read_knots_from_string(content).unwrap();
         let data = ValidateAddressData::from_data(&knots, &HashMap::new());
 
         let current_address = Address::from_knot("addis_ababa");
@@ -478,7 +478,7 @@ pub mod tests {
 -> END
 ";
 
-        let (_, knots) = read_knots_from_string(content).unwrap();
+        let knots = read_knots_from_string(content).unwrap();
         let data = ValidateAddressData::from_data(&knots, &HashMap::new());
 
         let current_address = Address::from_knot("addis_ababa");
@@ -505,7 +505,7 @@ You find yourself in Tripoli, the capital of Libya.
 -> END
 ";
 
-        let (_, knots) = read_knots_from_string(content).unwrap();
+        let knots = read_knots_from_string(content).unwrap();
         let data = ValidateAddressData::from_data(&knots, &HashMap::new());
 
         let current_address = Address::from_knot("addis_ababa");
@@ -529,7 +529,7 @@ You find yourself in Tripoli, the capital of Libya.
 -> END
 ";
 
-        let (_, knots) = read_knots_from_string(content).unwrap();
+        let knots = read_knots_from_string(content).unwrap();
         let data = ValidateAddressData::from_data(&knots, &HashMap::new());
 
         let current_address = Address::from_knot("tripoli");
@@ -553,7 +553,7 @@ You find yourself in Tripoli, the capital of Libya.
 -> END
 ";
 
-        let (_, knots) = read_knots_from_string(content).unwrap();
+        let knots = read_knots_from_string(content).unwrap();
         let data = ValidateAddressData::from_data(&knots, &HashMap::new());
 
         let current_address = Address::from_knot("rabat");
@@ -570,7 +570,7 @@ You find yourself in Tripoli, the capital of Libya.
 You find yourself in Tripoli, the capital of Libya.
 ";
 
-        let (_, knots) = read_knots_from_string(content).unwrap();
+        let knots = read_knots_from_string(content).unwrap();
         let data = ValidateAddressData::from_data(&knots, &HashMap::new());
 
         let current_address = Address::from_knot("tripoli");
@@ -599,7 +599,7 @@ You find yourself in Addis Ababa, the capital of Ethiopia.
 -> END
 ";
 
-        let (_, knots) = read_knots_from_string(content).unwrap();
+        let knots = read_knots_from_string(content).unwrap();
         let data = ValidateAddressData::from_data(&knots, &HashMap::new());
 
         let current_address = Address::from_knot("addis_ababa");
@@ -617,7 +617,7 @@ You find yourself in Addis Ababa, the capital of Ethiopia.
 -> END
 ";
 
-        let (_, knots) = read_knots_from_string(content).unwrap();
+        let knots = read_knots_from_string(content).unwrap();
 
         let variables = &[("counter".to_string(), Variable::Int(0))]
             .into_iter()
@@ -647,7 +647,7 @@ You find yourself in Tripoli, the capital of Libya.
 -> END
 ";
 
-        let (_, knots) = read_knots_from_string(content).unwrap();
+        let knots = read_knots_from_string(content).unwrap();
         let data = ValidateAddressData::from_data(&knots, &HashMap::new());
 
         let current_address = Address::from_knot("");
@@ -677,7 +677,7 @@ You find yourself in Addis Ababa, the capital of Ethiopia.
 
 ";
 
-        let (_, knots) = read_knots_from_string(content).unwrap();
+        let knots = read_knots_from_string(content).unwrap();
 
         assert_eq!(
             Address::from_parts("addis_ababa", None, &knots).unwrap(),
@@ -725,7 +725,7 @@ You find yourself in Cairo, the capital of Egypt.
 
 ";
 
-        let (_, knots) = read_knots_from_string(content).unwrap();
+        let knots = read_knots_from_string(content).unwrap();
 
         assert_eq!(
             Address::from_parts("tripoli", None, &knots).unwrap(),

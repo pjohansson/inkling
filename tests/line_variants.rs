@@ -4,6 +4,8 @@ use inkling::*;
 fn variant_sequences_can_be_nested() {
     let content = "
 
+-> start
+
 == start
 I {once|twice|have many times} \
 met with a {gentleperson|friend|{&comrade|{&bud|pal}}} \
@@ -54,6 +56,8 @@ from Nantucket. {|||||We're besties.}
 fn choices_can_have_variants_in_selection_text() {
     let content = "
 
+-> meeting
+
 == meeting
 You meet with Aaron.
 
@@ -96,6 +100,8 @@ You meet with Aaron.
 #[test]
 fn lines_can_have_conditional_content() {
     let content = "
+
+-> root
 
 == root
 
