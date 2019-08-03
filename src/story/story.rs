@@ -61,6 +61,8 @@ pub struct Story {
     stack: Vec<Address>,
     /// Internal data for the story.
     data: FollowData,
+    /// Global tags associated with the story.
+    tags: Vec<String>,
     /// Set of last choices presented to the user.
     last_choices: Option<Vec<Choice>>,
     /// Whether a choice has to be made.
@@ -411,17 +413,17 @@ impl Story {
     }
 
     /// Retrieve the value of a global variable.
-    /// 
-    /// # Examples 
+    ///
+    /// # Examples
     /// ```
     /// # use inkling::{read_story_from_string, Variable};
     /// let content = "\
     /// VAR books_in_library = 3
     /// VAR title = \"A Momentuous Spectacle\"
     /// ";
-    /// 
+    ///
     /// let story = read_story_from_string(content).unwrap();
-    /// 
+    ///
     /// assert_eq!(story.get_variable("books_in_library").unwrap(), Variable::Int(3));
     /// ```
     pub fn get_variable(&self, name: &str) -> Result<Variable, InklingError> {
@@ -438,8 +440,8 @@ impl Story {
     ///
     /// Will return an error if the variable contains a `Divert` value, which cannot be
     /// printed as text.
-    /// 
-    /// # Examples 
+    ///
+    /// # Examples
     /// ```
     /// # use inkling::{read_story_from_string, Variable};
     /// # let content = "\
@@ -467,12 +469,12 @@ impl Story {
     /// The assignment is type checked: a variable of integer type cannot be changed to
     /// contain a decimal number, a string, or anything else. An error will be returned
     /// if this is attempted.
-    /// 
-    /// Note that this method accepts values which implement `Into<Variable>`. This is implemented 
-    /// for integers, floating point numbers, booleans and string representations, so those 
+    ///
+    /// Note that this method accepts values which implement `Into<Variable>`. This is implemented
+    /// for integers, floating point numbers, booleans and string representations, so those
     /// can be used without a lot of typing.
-    /// 
-    /// # Examples 
+    ///
+    /// # Examples
     /// Fully specifying `Variable` type:
     /// ```
     /// # use inkling::{read_story_from_string, Variable};
@@ -481,12 +483,12 @@ impl Story {
     /// VAR num_passengers = 0
     /// VAR price_of_ticket = 7.50
     /// ";
-    /// 
+    ///
     /// let mut story = read_story_from_string(content).unwrap();
-    /// 
+    ///
     /// assert!(story.set_variable("num_passengers", Variable::Int(5)).is_ok());
     /// ```
-    /// 
+    ///
     /// Inferring type from input:
     /// ```
     /// # use inkling::{read_story_from_string, Variable};
@@ -498,7 +500,7 @@ impl Story {
     /// # let mut story = read_story_from_string(content).unwrap();
     /// assert!(story.set_variable("price_of_ticket", 3.75).is_ok());
     /// ```
-    /// 
+    ///
     /// Trying to assign another type of variable yields an error:
     /// ```
     /// # use inkling::{read_story_from_string, Variable};
@@ -584,7 +586,7 @@ impl Story {
 /// let story: Story = read_story_from_string(content).unwrap();
 /// ```
 pub fn read_story_from_string(string: &str) -> Result<Story, ParseError> {
-    let (mut knots, variables, _) = read_story_content_from_string(string)?;
+    let (mut knots, variables, tags) = read_story_content_from_string(string)?;
 
     let data = FollowData {
         knot_visit_counts: get_empty_knot_counts(&knots),
@@ -603,6 +605,7 @@ pub fn read_story_from_string(string: &str) -> Result<Story, ParseError> {
         knots,
         stack: vec![root_address],
         data,
+        tags,
         last_choices: None,
         requires_choice: false,
         in_progress: false,
@@ -1367,7 +1370,13 @@ We arrived into Almaty at 9.45pm exactly.
 ";
         let story = read_story_from_string(content).unwrap();
 
-        panic!();
+        assert_eq!(
+            &story.tags,
+            &[
+                "title: inkling".to_string(),
+                "author: Petter Johansson".to_string()
+            ]
+        );
     }
 
     #[test]
