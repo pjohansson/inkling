@@ -220,6 +220,17 @@ impl fmt::Display for LineParsingError {
                  contains invalid characters",
                 address
             ),
+            InvalidVariable { content } => {
+                write!(f, "Could not parse a variable from '{}'", content)
+            }
+            InvalidVariableDivert { address, content } => write!(
+                f,
+                "Invalid divert address '{}' when parsing variable from '{}'",
+                address, content
+            ),
+            InvalidVariableNumber { content } => {
+                write!(f, "Invalid number '{}' when parsing variable", content)
+            }
             StickyAndNonSticky => write!(
                 f,
                 "Encountered a line which has both non-sticky ('{}') and sticky ('{}') \
@@ -264,6 +275,12 @@ pub enum LineErrorKind {
     FoundTunnel,
     /// Found an address with invalid characters.
     InvalidAddress { address: String },
+    /// Could not parse a variable.
+    InvalidVariable { content: String },
+    /// Divert variable contained an invalid address.
+    InvalidVariableDivert { address: String, content: String },
+    /// Number variable contained a number that could not be parsed.
+    InvalidVariableNumber { content: String },
     /// A choice has both non-sticky and sticky markers.
     StickyAndNonSticky,
     /// Found unmatched curly braces.

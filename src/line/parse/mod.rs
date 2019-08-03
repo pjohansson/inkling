@@ -18,6 +18,7 @@ mod gather;
 mod kind;
 mod line;
 mod utils;
+mod variable;
 
 pub(self) use alternative::parse_alternative;
 pub(self) use choice::parse_choice;
@@ -25,8 +26,9 @@ pub(self) use condition::{parse_choice_condition, parse_line_condition};
 pub(self) use gather::parse_gather;
 pub use kind::{parse_line, ParsedLineKind};
 pub(self) use kind::{parse_markers_and_text, split_at_divert_marker};
-pub use line::{parse_chunk, parse_internal_line};
+pub use line::{parse_chunk, parse_internal_line, validate_divert_address};
 pub(self) use utils::{
     split_line_at_separator_braces, split_line_at_separator_parenthesis,
     split_line_into_groups_braces, LinePart,
 };
+pub use variable::parse_variable;

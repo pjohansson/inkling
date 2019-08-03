@@ -193,7 +193,10 @@ fn split_off_end_divert(line: &mut String) -> Result<Option<String>, LineParsing
 ///
 /// # Notes
 /// *   Expectes the input line to be trimmed of whitespace from the edges.
-fn validate_divert_address(line: &str, backup_line: String) -> Result<String, LineParsingError> {
+pub fn validate_divert_address(
+    line: &str,
+    backup_line: String,
+) -> Result<String, LineParsingError> {
     if line.contains(|c: char| c.is_whitespace()) {
         let tail = line
             .splitn(2, |c: char| c.is_whitespace())

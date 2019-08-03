@@ -2,7 +2,7 @@
 
 use std::{error::Error, fmt};
 
-use crate::{follow::ChoiceInfo, knot::Address, node::Stack, story::Choice};
+use crate::{follow::ChoiceInfo, knot::Address, line::Variable, node::Stack, story::Choice};
 
 #[derive(Clone, Debug)]
 /// Errors from running a story.
@@ -39,6 +39,8 @@ pub enum InklingError {
     OutOfChoices { address: Address },
     /// No content was available for the story to continue from.
     OutOfContent,
+    /// Tried to print a variable that cannot be printed.
+    PrintInvalidVariable { name: String, value: Variable },
     /// Tried to resume a story that has not been started.
     ResumeBeforeStart,
     /// Tried to resume a story with a choice, but no choice was prompted.
@@ -183,6 +185,11 @@ impl fmt::Display for InklingError {
                 address
             ),
             OutOfContent => write!(f, "Story ran out of content before an end was reached"),
+            PrintInvalidVariable { name, value } => write!(
+                f,
+                "Cannot print variable '{}' which has value '{:?}': invalid type",
+                name, value
+            ),
             ResumeBeforeStart => write!(f, "Tried to resume a story that has not yet been started"),
             ResumeWithoutChoice => write!(
                 f,
