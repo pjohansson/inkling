@@ -107,16 +107,20 @@
 //!
 //! Currently the processor supports:
 //!
-//! *   Structure:  Knots, stitches, nested branching choices, gathers, diverts, tags for knots
+//! *   Structure:  Knots, stitches, nested branching choices, gathers, diverts, 
+//!                 tags for knots and story
 //! *   Choices:    Non-sticky, sticky, fallback, line variations, conditions
 //! *   Lines:      Plain text, diverts, tags, conditions, alternative sequences (all
 //!                 except shuffle)
 //! *   Conditions: Nested, `and`/`or` linking.
 //! *   Reading:    Address validation for diverts and conditions
+//! *   Variables:  Used as text in sentences, can modify from calling program
 //!
 //! Hopefully coming:
 //!
-//! *   Variables:  Use in lines, ability to modify from the calling program
+//! *   API:        Use `resume` method as main story processing method instead 
+//!                 of `resume_with_choice` (should be `make_choice`, then `resume`)
+//! *   Variables:  Modify in the Ink script, use in conditions 
 //! *   Reading:    Include statements in files
 //!
 //! Unlikely features:
