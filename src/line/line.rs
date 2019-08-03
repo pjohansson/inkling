@@ -3,7 +3,7 @@
 use crate::{
     error::InvalidAddressError,
     knot::{Address, KnotSet, ValidateAddresses},
-    line::{Alternative, Condition},
+    line::{Alternative, Condition, Variable},
 };
 
 #[cfg(feature = "serde_support")]
@@ -68,6 +68,7 @@ pub enum Content {
     Nested(LineChunk),
     /// String of regular text content in the line.
     Text(String),
+    Variable(Variable),
 }
 
 impl InternalLine {
@@ -158,6 +159,7 @@ impl ValidateAddresses for Content {
             Content::Divert(address) => address.validate(current_address, knots),
             Content::Empty | Content::Text(..) => Ok(()),
             Content::Nested(chunk) => chunk.validate(current_address, knots),
+            Content::Variable(variable) => variable.validate(current_address, knots),
         }
     }
 
@@ -168,6 +170,7 @@ impl ValidateAddresses for Content {
             Content::Divert(ref address) => address.all_addresses_are_valid(),
             Content::Empty | Content::Text(..) => true,
             Content::Nested(chunk) => chunk.all_addresses_are_valid(),
+            Content::Variable(variable) => variable.all_addresses_are_valid(),
         }
     }
 }

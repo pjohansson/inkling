@@ -1,9 +1,9 @@
 //! Types of variables used in a story.
 
 use crate::{
-    error::InklingError,
+    error::{InklingError, InvalidAddressError},
     follow::FollowData,
-    knot::{get_num_visited, Address},
+    knot::{get_num_visited, Address, KnotSet, ValidateAddresses},
 };
 
 #[derive(Clone, Debug, PartialEq)]
@@ -44,6 +44,35 @@ impl Variable {
             Variable::Float(value) => Ok(format!("{}", value)),
             Variable::Int(value) => Ok(format!("{}", value)),
             Variable::String(content) => Ok(content.clone()),
+        }
+    }
+}
+
+impl ValidateAddresses for Variable {
+    fn validate(
+        &mut self,
+        current_address: &Address,
+        knots: &KnotSet,
+    ) -> Result<(), InvalidAddressError> {
+        match self {
+            Variable::Address(address) | Variable::Divert(address) => {
+                address.validate(current_address, knots)
+            }
+            Variable::Bool(..) | Variable::Float(..) | Variable::Int(..) | Variable::String(..) => {
+                Ok(())
+            }
+        }
+    }
+
+    #[cfg(test)]
+    fn all_addresses_are_valid(&self) -> bool {
+        match self {
+            Variable::Address(address) | Variable::Divert(address) => {
+                address.all_addresses_are_valid()
+            }
+            Variable::Bool(..) | Variable::Float(..) | Variable::Int(..) | Variable::String(..) => {
+                true
+            }
         }
     }
 }

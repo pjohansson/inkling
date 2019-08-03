@@ -79,6 +79,10 @@ fn process_content(
             buffer.push_str(string);
             Ok(EncounteredEvent::Done)
         }
+        Content::Variable(variable) => {
+            buffer.push_str(&variable.to_string(data)?);
+            Ok(EncounteredEvent::Done)
+        }
     }
 }
 
@@ -147,7 +151,7 @@ pub mod tests {
         knot::Address,
         line::{
             parse::parse_internal_line, AlternativeBuilder, ConditionBuilder, ConditionKind,
-            LineChunkBuilder,
+            LineChunkBuilder, Variable,
         },
     };
 
@@ -220,6 +224,26 @@ pub mod tests {
         process_content(&mut item, &mut buffer, &data).unwrap();
 
         assert_eq!(&buffer, "Hello, World!");
+    }
+
+    #[test]
+    fn variable_content_processes_into_string() {
+        let mut buffer = String::new();
+        let data = mock_data_with_single_stitch("", "", 0);
+
+        let mut item = Content::Variable(Variable::Float(3.9));
+        process_content(&mut item, &mut buffer, &data).unwrap();
+
+        assert_eq!(&buffer, "3.9");
+    }
+
+    #[test]
+    fn divert_variable_yields_error() {
+        let mut buffer = String::new();
+        let data = mock_data_with_single_stitch("", "", 0);
+
+        let mut item = Content::Variable(Variable::Divert(Address::End));
+        assert!(process_content(&mut item, &mut buffer, &data).is_err());
     }
 
     #[test]
