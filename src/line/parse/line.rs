@@ -9,7 +9,7 @@ use crate::{
             parse_alternative, parse_line_condition, split_line_at_separator_braces,
             split_line_into_groups_braces, LinePart,
         },
-        Content, InternalLine, InternalLineBuilder, LineChunk,
+        Content, InternalLine, InternalLineBuilder, LineChunk, Variable,
     },
 };
 
@@ -108,7 +108,11 @@ fn parse_embraced_line(content: &str) -> Result<Content, LineParsingError> {
 
             Ok(Content::Nested(chunk))
         }
-        VariableText::Variable => unimplemented!(),
+        VariableText::Variable => {
+            let address = validate_address(content.trim(), content.to_string())?;
+
+            Ok(Content::Variable(Variable::Address(Address::Raw(address))))
+        }
     }
 }
 
@@ -176,7 +180,7 @@ fn split_off_end_divert(line: &mut String) -> Result<Option<String>, LineParsing
         2 => {
             let head_length = splits.get(0).unwrap().len();
 
-            let address = validate_divert_address(splits[1].trim(), backup_line)?;
+            let address = validate_address(splits[1].trim(), backup_line)?;
             line.truncate(head_length);
             line.push(' ');
 
@@ -189,14 +193,11 @@ fn split_off_end_divert(line: &mut String) -> Result<Option<String>, LineParsing
     }
 }
 
-/// Validate that a divert address can be parsed.
+/// Validate that an address for a divert or variable can be parsed.
 ///
 /// # Notes
 /// *   Expectes the input line to be trimmed of whitespace from the edges.
-pub fn validate_divert_address(
-    line: &str,
-    backup_line: String,
-) -> Result<String, LineParsingError> {
+pub fn validate_address(line: &str, backup_line: String) -> Result<String, LineParsingError> {
     if line.contains(|c: char| c.is_whitespace()) {
         let tail = line
             .splitn(2, |c: char| c.is_whitespace())
@@ -465,6 +466,35 @@ mod tests {
             }
             other => panic!("expected `Content::Nested` but got {:?}", other),
         }
+    }
+
+    #[test]
+    fn parse_embraced_line_as_variable_parses_to_address() {
+        match parse_embraced_line("root").unwrap() {
+            Content::Variable(Variable::Address(address)) => {
+                assert_eq!(address, Address::Raw("root".to_string()));
+            }
+            other => panic!(
+                "expected `Content::Nested(Variable::Address)` but got {:?}",
+                other
+            ),
+        }
+
+        match parse_embraced_line("root.stitch").unwrap() {
+            Content::Variable(Variable::Address(address)) => {
+                assert_eq!(address, Address::Raw("root.stitch".to_string()));
+            }
+            other => panic!(
+                "expected `Content::Nested(Variable::Address)` but got {:?}",
+                other
+            ),
+        }
+    }
+
+    #[test]
+    fn address_in_embraced_variable_must_be_valid() {
+        assert!(parse_embraced_line("root stitch").is_err());
+        assert!(parse_embraced_line("root$stitch").is_err());
     }
 
     #[test]

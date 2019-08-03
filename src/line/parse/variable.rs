@@ -4,7 +4,7 @@ use crate::{
     consts::DIVERT_MARKER,
     error::LineErrorKind,
     knot::Address,
-    line::{parse::validate_divert_address, Variable},
+    line::{parse::validate_address, Variable},
 };
 
 /// Parse a `Variable` from a line.
@@ -21,7 +21,7 @@ pub fn parse_variable(content: &str) -> Result<Variable, LineErrorKind> {
         ))
     } else if content.starts_with(DIVERT_MARKER) {
         let inner = content.get(DIVERT_MARKER.len()..).unwrap().trim();
-        let address = validate_divert_address(inner, content.to_string()).map_err(|_| {
+        let address = validate_address(inner, content.to_string()).map_err(|_| {
             LineErrorKind::InvalidVariableDivert {
                 address: inner.to_string(),
                 content: content.to_string(),
