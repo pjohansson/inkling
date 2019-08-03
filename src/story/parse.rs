@@ -367,20 +367,14 @@ Second line.
 
         assert_eq!(
             stitch.root.address,
-            Address::Validated {
-                knot: "tripoli".to_string(),
-                stitch: "cinema".to_string()
-            }
+            Address::from_parts_unchecked("tripoli", Some("cinema"))
         );
 
         let (_, stitch) = get_stitch_from_lines(vec!["Line 1"], 0, "tripoli").unwrap();
 
         assert_eq!(
             stitch.root.address,
-            Address::Validated {
-                knot: "tripoli".to_string(),
-                stitch: "$ROOT$".to_string()
-            }
+            Address::from_parts_unchecked("tripoli", None)
         );
     }
 

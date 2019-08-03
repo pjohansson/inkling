@@ -1214,18 +1214,9 @@ We arrived into Almaty at 9.45pm exactly.
 
         let story = read_story_from_string(content).unwrap();
 
-        let back_in_almaty = Address::Validated {
-            knot: "back_in_almaty".into(),
-            stitch: "$ROOT$".into(),
-        };
-        let hurry_home = Address::Validated {
-            knot: "hurry_home".into(),
-            stitch: "$ROOT$".into(),
-        };
-        let at_home = Address::Validated {
-            knot: "hurry_home".into(),
-            stitch: "at_home".into(),
-        };
+        let back_in_almaty = Address::from_parts_unchecked("back_in_almaty", None);
+        let hurry_home = Address::from_parts_unchecked("hurry_home", None);
+        let at_home = Address::from_parts_unchecked("hurry_home", Some("at_home"));
 
         assert_eq!(get_num_visited(&back_in_almaty, &story.data).unwrap(), 0);
         assert_eq!(get_num_visited(&hurry_home, &story.data).unwrap(), 0);

@@ -139,7 +139,7 @@ pub mod builders {
     use super::{Branch, NodeItem, RootNode};
 
     use crate::{
-        knot::Address,
+        knot::{Address, AddressKind},
         line::{InternalChoice, InternalLine},
     };
 
@@ -157,10 +157,10 @@ pub mod builders {
 
     impl RootNodeBuilder {
         pub fn from_address(knot: &str, stitch: &str) -> Self {
-            let address = Address::Validated {
+            let address = Address::Validated(AddressKind::Location {
                 knot: knot.to_string(),
                 stitch: stitch.to_string(),
-            };
+            });
 
             RootNodeBuilder {
                 address,

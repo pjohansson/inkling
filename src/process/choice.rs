@@ -222,19 +222,13 @@ mod tests {
         let data = mock_data_with_single_stitch(&name, ROOT_KNOT_NAME, 1);
 
         let fulfilled_condition = Condition::from(StoryCondition::NumVisits {
-            address: Address::Validated {
-                knot: name.clone(),
-                stitch: ROOT_KNOT_NAME.to_string(),
-            },
+            address: Address::from_parts_unchecked(&name, None),
             rhs_value: 0,
             ordering: Ordering::Greater,
         });
 
         let unfulfilled_condition = Condition::from(StoryCondition::NumVisits {
-            address: Address::Validated {
-                knot: name.clone(),
-                stitch: ROOT_KNOT_NAME.to_string(),
-            },
+            address: Address::from_parts_unchecked(&name, None),
             rhs_value: 2,
             ordering: Ordering::Greater,
         });

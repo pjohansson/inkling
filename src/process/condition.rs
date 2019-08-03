@@ -51,10 +51,7 @@ mod tests {
 
         let data = mock_data_with_single_stitch(&name, ROOT_KNOT_NAME, 3);
 
-        let address = Address::Validated {
-            knot: name.clone(),
-            stitch: ROOT_KNOT_NAME.to_string(),
-        };
+        let address = Address::from_parts_unchecked(&name, None);
 
         let greater_than_condition = StoryCondition::NumVisits {
             address: address.clone(),

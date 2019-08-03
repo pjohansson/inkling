@@ -69,11 +69,18 @@ pub trait ValidateAddresses {
 /// get them.
 pub enum Address {
     /// An address that has been validated and is guarantueed to resolve.
-    Validated { knot: String, stitch: String },
+    Validated(AddressKind),
     /// This string-formatted address has not yet been validated.
     Raw(String),
     /// Divert address to mark that a story is finished.
     End,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
+pub enum AddressKind {
+    Location { knot: String, stitch: String },
+    GlobalVariable { name: String },
 }
 
 impl Address {
@@ -91,10 +98,10 @@ impl Address {
                 knot_name: root_knot_name.to_string(),
             })?;
 
-        Ok(Address::Validated {
+        Ok(Address::Validated(AddressKind::Location {
             knot: root_knot_name.to_string(),
             stitch: knot.default_stitch.clone(),
-        })
+        }))
     }
 
     pub fn from_parts(
@@ -111,10 +118,10 @@ impl Address {
         let stitch_name = stitch_name.unwrap_or(&knot.default_stitch);
 
         if knot.stitches.contains_key(stitch_name) {
-            Ok(Address::Validated {
+            Ok(Address::Validated(AddressKind::Location {
                 knot: knot_name.to_string(),
                 stitch: stitch_name.to_string(),
-            })
+            }))
         } else {
             Err(InvalidAddressError::UnknownStitch {
                 knot_name: knot_name.to_string(),
@@ -126,7 +133,10 @@ impl Address {
     /// Get the knot name of a validated address.
     pub fn get_knot(&self) -> Result<&str, InternalError> {
         match self {
-            Address::Validated { knot, .. } => Ok(knot),
+            Address::Validated(AddressKind::Location { knot, .. }) => Ok(knot),
+            Address::Validated(AddressKind::GlobalVariable { name }) => {
+                Err(InternalError::UseOfVariableAsLocation { name: name.clone() })
+            }
             _ => Err(InternalError::UseOfUnvalidatedAddress {
                 address: self.clone(),
             }),
@@ -136,7 +146,10 @@ impl Address {
     /// Get the stitch name of a validateed address.
     pub fn get_stitch(&self) -> Result<&str, InternalError> {
         match self {
-            Address::Validated { stitch, .. } => Ok(stitch),
+            Address::Validated(AddressKind::Location { stitch, .. }) => Ok(stitch),
+            Address::Validated(AddressKind::GlobalVariable { name }) => {
+                Err(InternalError::UseOfVariableAsLocation { name: name.clone() })
+            }
             _ => Err(InternalError::UseOfUnvalidatedAddress {
                 address: self.clone(),
             }),
@@ -146,7 +159,10 @@ impl Address {
     /// Get knot and stitch names from a validated address.
     pub fn get_knot_and_stitch(&self) -> Result<(&str, &str), InternalError> {
         match self {
-            Address::Validated { knot, stitch } => Ok((knot, stitch)),
+            Address::Validated(AddressKind::Location { knot, stitch }) => Ok((knot, stitch)),
+            Address::Validated(AddressKind::GlobalVariable { name }) => {
+                Err(InternalError::UseOfVariableAsLocation { name: name.clone() })
+            }
             _ => Err(InternalError::UseOfUnvalidatedAddress {
                 address: self.clone(),
             }),
@@ -170,7 +186,7 @@ impl ValidateAddresses for Address {
                     (head, None) => get_full_address_from_head(head, current_address, data)?,
                 };
 
-                *self = Address::Validated { knot, stitch };
+                *self = Address::Validated(AddressKind::Location { knot, stitch });
             }
             Address::Validated { .. } | Address::End => (),
         }
@@ -244,19 +260,20 @@ fn get_full_address_from_head(
         }
     })?;
 
-    let (_, current_knot_stitches) =
-        data.knot_structure
-            .get(current_knot_name)
-            .ok_or(InvalidAddressError::UnknownCurrentAddress {
-                address: current_address.clone(),
-            })?;
+    let (_, current_knot_stitches) = data.knot_structure.get(current_knot_name).ok_or(
+        InvalidAddressError::UnknownCurrentAddress {
+            address: current_address.clone(),
+        },
+    )?;
 
     if current_knot_stitches.contains(&needle.to_string()) {
         Ok((current_knot_name.to_string(), needle.to_string()))
     } else if let Some((default_stitch, _)) = data.knot_structure.get(needle) {
         Ok((needle.to_string(), default_stitch.clone()))
     } else {
-        Err(InvalidAddressError::UnknownKnot { knot_name: needle.to_string() })
+        Err(InvalidAddressError::UnknownKnot {
+            knot_name: needle.to_string(),
+        })
     }
 }
 
@@ -273,10 +290,10 @@ pub fn validate_addresses_in_knots(
             knot.stitches
                 .iter_mut()
                 .map(|(stitch_name, stitch)| {
-                    let current_address = Address::Validated {
+                    let current_address = Address::Validated(AddressKind::Location {
                         knot: knot_name.clone(),
                         stitch: stitch_name.clone(),
-                    };
+                    });
 
                     stitch.root.validate(&current_address, &validation_data)
                 })
@@ -293,19 +310,20 @@ pub mod tests {
 
     impl Address {
         fn from_knot(name: &str) -> Self {
-            Address::Validated {
+            Address::Validated(AddressKind::Location {
                 knot: name.to_string(),
-                stitch: String::new(),
-            }
+                stitch: ROOT_KNOT_NAME.to_string(),
+            })
         }
 
         /// Get an unvalidated address from parts
         pub fn from_parts_unchecked(knot: &str, stitch: Option<&str>) -> Self {
             let stitch_name = stitch.unwrap_or(ROOT_KNOT_NAME);
-            Address::Validated {
+
+            Address::Validated(AddressKind::Location {
                 knot: knot.to_string(),
                 stitch: stitch_name.to_string(),
-            }
+            })
         }
     }
 
@@ -589,26 +607,26 @@ You find yourself in Addis Ababa, the capital of Ethiopia.
 
         assert_eq!(
             Address::from_parts("addis_ababa", None, &knots).unwrap(),
-            Address::Validated {
+            Address::Validated(AddressKind::Location {
                 knot: "addis_ababa".to_string(),
                 stitch: ROOT_KNOT_NAME.to_string()
-            }
+            })
         );
 
         assert_eq!(
             Address::from_parts("tripoli", None, &knots).unwrap(),
-            Address::Validated {
+            Address::Validated(AddressKind::Location {
                 knot: "tripoli".to_string(),
                 stitch: ROOT_KNOT_NAME.to_string()
-            }
+            })
         );
 
         assert_eq!(
             Address::from_parts("tripoli", Some("cinema"), &knots).unwrap(),
-            Address::Validated {
+            Address::Validated(AddressKind::Location {
                 knot: "tripoli".to_string(),
                 stitch: "cinema".to_string()
-            }
+            })
         );
 
         assert!(Address::from_parts("rabat", None, &knots).is_err());
@@ -637,18 +655,18 @@ You find yourself in Cairo, the capital of Egypt.
 
         assert_eq!(
             Address::from_parts("tripoli", None, &knots).unwrap(),
-            Address::Validated {
+            Address::Validated(AddressKind::Location {
                 knot: "tripoli".to_string(),
                 stitch: ROOT_KNOT_NAME.to_string()
-            }
+            })
         );
 
         assert_eq!(
             Address::from_parts("cairo", None, &knots).unwrap(),
-            Address::Validated {
+            Address::Validated(AddressKind::Location {
                 knot: "cairo".to_string(),
                 stitch: "airport".to_string()
-            }
+            })
         );
     }
 }

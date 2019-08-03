@@ -243,10 +243,7 @@ mod tests {
 
         assert_eq!(
             stitch.root.address,
-            Address::Validated {
-                knot: "tripoli".to_string(),
-                stitch: "cinema".to_string()
-            }
+            Address::from_parts_unchecked("tripoli", Some("cinema")),
         );
     }
 

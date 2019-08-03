@@ -606,12 +606,10 @@ mod tests {
     #[test]
     fn address_of_root_node_is_set_from_knot_and_stitch_names() {
         let root_node = parse_root_node(&[], "tripoli", "cinema");
+
         assert_eq!(
             root_node.address,
-            Address::Validated {
-                knot: "tripoli".to_string(),
-                stitch: "cinema".to_string()
-            }
+            Address::from_parts_unchecked("tripoli", Some("cinema"))
         );
     }
 }

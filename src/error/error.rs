@@ -2,7 +2,13 @@
 
 use std::{error::Error, fmt};
 
-use crate::{follow::ChoiceInfo, knot::Address, line::Variable, node::Stack, story::Choice};
+use crate::{
+    follow::ChoiceInfo,
+    knot::{Address, AddressKind},
+    line::Variable,
+    node::Stack,
+    story::Choice,
+};
 
 #[derive(Clone, Debug)]
 /// Errors from running a story.
@@ -78,6 +84,8 @@ pub enum InternalError {
     },
     /// Current stack is not properly representing the graph or has some indexing problems.
     IncorrectNodeStack(IncorrectNodeStackError),
+    /// Tried to use a variable address as a location.
+    UseOfVariableAsLocation { name: String },
     /// Tried to use an unvalidated address after the story was parsed.
     UseOfUnvalidatedAddress { address: Address },
 }
@@ -172,7 +180,7 @@ impl fmt::Display for InklingError {
                 presented_choices.len() - 1
             ),
             OutOfChoices {
-                address: Address::Validated { knot, stitch },
+                address: Address::Validated(AddressKind::Location { knot, stitch }),
             } => write!(
                 f,
                 "Story reached a branching choice with no available choices to present \
@@ -181,7 +189,8 @@ impl fmt::Display for InklingError {
             ),
             OutOfChoices { address } => write!(
                 f,
-                "Tried to use a non-validated `Address` ('{:?}') when following a story",
+                "Internal error: Tried to use a non-validated or non-location `Address` ('{:?}') \
+                 when following a story",
                 address
             ),
             OutOfContent => write!(f, "Story ran out of content before an end was reached"),
@@ -213,7 +222,7 @@ impl fmt::Display for InternalError {
         match self {
             BadKnotStack(err) => match err {
                 BadAddress {
-                    address: Address::Validated { knot, stitch },
+                    address: Address::Validated(AddressKind::Location { knot, stitch }),
                 } => write!(
                     f,
                     "The currently set knot address (knot: {}, stitch: {}) does not \
@@ -222,7 +231,8 @@ impl fmt::Display for InternalError {
                 ),
                 BadAddress { address } => write!(
                     f,
-                    "Tried to used a non-validated `Address` ('{:?}') in a function",
+                    "Tried to used a non-validated or non-location `Address` ('{:?}') in \
+                     a function",
                     address
                 ),
                 NoLastChoices => write!(
@@ -301,6 +311,11 @@ impl fmt::Display for InternalError {
                     stack[*stack_index], stack_index, num_items, stack
                 ),
             },
+            UseOfVariableAsLocation { name } => write!(
+                f,
+                "Tried to use variable '{}' as a location in the story",
+                name
+            ),
             UseOfUnvalidatedAddress { address } => {
                 write!(f, "Tried to use unvalidated address '{:?}'", address)
             }
