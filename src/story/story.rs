@@ -387,6 +387,7 @@ impl Story {
     /// ```
     /// # use inkling::{read_story_from_string, Prompt};
     /// # let content = "
+    /// # -> depths
     /// # === depths ===
     /// # You enter the dungeon. Bravely or foolhardily? Who is to decide?
     /// # ";
