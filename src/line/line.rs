@@ -2,7 +2,7 @@
 
 use crate::{
     error::InvalidAddressError,
-    knot::{Address, KnotSet, ValidateAddresses},
+    knot::{Address, ValidateAddressData, ValidateAddresses},
     line::{Alternative, Condition, Variable},
 };
 
@@ -115,9 +115,9 @@ impl ValidateAddresses for InternalLine {
     fn validate(
         &mut self,
         current_address: &Address,
-        knots: &KnotSet,
+        data: &ValidateAddressData,
     ) -> Result<(), InvalidAddressError> {
-        self.chunk.validate(current_address, knots)
+        self.chunk.validate(current_address, data)
     }
 
     #[cfg(test)]
@@ -130,15 +130,15 @@ impl ValidateAddresses for LineChunk {
     fn validate(
         &mut self,
         current_address: &Address,
-        knots: &KnotSet,
+        data: &ValidateAddressData,
     ) -> Result<(), InvalidAddressError> {
         if let Some(condition) = self.condition.as_mut() {
-            condition.validate(current_address, knots)?;
+            condition.validate(current_address, data)?;
         }
 
         self.items
             .iter_mut()
-            .map(|item| item.validate(current_address, knots))
+            .map(|item| item.validate(current_address, data))
             .collect()
     }
 
@@ -152,14 +152,14 @@ impl ValidateAddresses for Content {
     fn validate(
         &mut self,
         current_address: &Address,
-        knots: &KnotSet,
+        data: &ValidateAddressData,
     ) -> Result<(), InvalidAddressError> {
         match self {
-            Content::Alternative(alternative) => alternative.validate(current_address, knots),
-            Content::Divert(address) => address.validate(current_address, knots),
+            Content::Alternative(alternative) => alternative.validate(current_address, data),
+            Content::Divert(address) => address.validate(current_address, data),
             Content::Empty | Content::Text(..) => Ok(()),
-            Content::Nested(chunk) => chunk.validate(current_address, knots),
-            Content::Variable(variable) => variable.validate(current_address, knots),
+            Content::Nested(chunk) => chunk.validate(current_address, data),
+            Content::Variable(variable) => variable.validate(current_address, data),
         }
     }
 

@@ -2,7 +2,7 @@
 
 use crate::{
     error::InvalidAddressError,
-    knot::{Address, KnotSet, ValidateAddresses},
+    knot::{Address, ValidateAddressData, ValidateAddresses},
     line::{InternalChoice, InternalLine},
 };
 
@@ -65,11 +65,11 @@ impl ValidateAddresses for RootNode {
     fn validate(
         &mut self,
         current_address: &Address,
-        knots: &KnotSet,
+        data: &ValidateAddressData,
     ) -> Result<(), InvalidAddressError> {
         self.items
             .iter_mut()
-            .map(|item| item.validate(current_address, knots))
+            .map(|item| item.validate(current_address, data))
             .collect()
     }
 
@@ -83,16 +83,16 @@ impl ValidateAddresses for Branch {
     fn validate(
         &mut self,
         current_address: &Address,
-        knots: &KnotSet,
+        data: &ValidateAddressData,
     ) -> Result<(), InvalidAddressError> {
         self.choice
             .condition
             .iter_mut()
-            .map(|item| item.validate(current_address, knots))
+            .map(|item| item.validate(current_address, data))
             .chain(
                 self.items
                     .iter_mut()
-                    .map(|item| item.validate(current_address, knots)),
+                    .map(|item| item.validate(current_address, data)),
             )
             .collect()
     }
@@ -107,14 +107,14 @@ impl ValidateAddresses for NodeItem {
     fn validate(
         &mut self,
         current_address: &Address,
-        knots: &KnotSet,
+        data: &ValidateAddressData,
     ) -> Result<(), InvalidAddressError> {
         match self {
             NodeItem::BranchingPoint(branches) => branches
                 .iter_mut()
-                .map(|item| item.validate(current_address, knots))
+                .map(|item| item.validate(current_address, data))
                 .collect(),
-            NodeItem::Line(line) => line.validate(current_address, knots),
+            NodeItem::Line(line) => line.validate(current_address, data),
         }
     }
 

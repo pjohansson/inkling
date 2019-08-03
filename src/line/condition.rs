@@ -32,7 +32,7 @@
 
 use crate::{
     error::InvalidAddressError,
-    knot::{Address, KnotSet, ValidateAddresses},
+    knot::{Address, ValidateAddressData, ValidateAddresses},
 };
 
 use std::{cmp::Ordering, error::Error};
@@ -198,14 +198,14 @@ impl ValidateAddresses for Condition {
     fn validate(
         &mut self,
         current_address: &Address,
-        knots: &KnotSet,
+        data: &ValidateAddressData,
     ) -> Result<(), InvalidAddressError> {
-        self.root.kind.validate(current_address, knots)?;
+        self.root.kind.validate(current_address, data)?;
 
         self.items
             .iter_mut()
             .map(|item| match item {
-                AndOr::And(item) | AndOr::Or(item) => item.kind.validate(current_address, knots),
+                AndOr::And(item) | AndOr::Or(item) => item.kind.validate(current_address, data),
             })
             .collect()
     }
@@ -223,12 +223,12 @@ impl ValidateAddresses for ConditionKind {
     fn validate(
         &mut self,
         current_address: &Address,
-        knots: &KnotSet,
+        data: &ValidateAddressData,
     ) -> Result<(), InvalidAddressError> {
         match self {
             ConditionKind::True | ConditionKind::False => Ok(()),
-            ConditionKind::Nested(condition) => condition.validate(current_address, knots),
-            ConditionKind::Single(kind) => kind.validate(current_address, knots),
+            ConditionKind::Nested(condition) => condition.validate(current_address, data),
+            ConditionKind::Single(kind) => kind.validate(current_address, data),
         }
     }
 
@@ -246,12 +246,12 @@ impl ValidateAddresses for StoryCondition {
     fn validate(
         &mut self,
         current_address: &Address,
-        knots: &KnotSet,
+        data: &ValidateAddressData,
     ) -> Result<(), InvalidAddressError> {
         match self {
             StoryCondition::NumVisits {
                 ref mut address, ..
-            } => address.validate(current_address, knots),
+            } => address.validate(current_address, data),
         }
     }
 

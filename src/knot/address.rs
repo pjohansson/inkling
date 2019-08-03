@@ -1,16 +1,44 @@
 //! Validated addresses to content in a story.
 
-use crate::knot::KnotSet;
-
 #[cfg(feature = "serde_support")]
 use serde::{Deserialize, Serialize};
 
 use crate::{
     consts::{DONE_KNOT, END_KNOT},
     error::{InternalError, InvalidAddressError},
-    knot::{Knot, Stitch},
-    node::RootNodeBuilder,
+    follow::FollowData,
+    knot::KnotSet,
+    line::Variable,
 };
+
+use std::collections::{HashMap, HashSet};
+
+pub struct ValidateAddressData {
+    /// Set of knots in story, each with their default stitch and list of stitches.
+    knot_structure: HashMap<String, (String, Vec<String>)>,
+    /// Set of global variables in story.
+    variables: HashSet<String>,
+}
+
+impl ValidateAddressData {
+    fn from_data(knots: &KnotSet, variable_set: &HashMap<String, Variable>) -> Self {
+        let knot_structure = knots
+            .iter()
+            .map(|(knot_name, knot)| {
+                let stitches = knot.stitches.keys().cloned().collect();
+
+                (knot_name.clone(), (knot.default_stitch.clone(), stitches))
+            })
+            .collect();
+
+        let variables = variable_set.keys().cloned().collect();
+
+        ValidateAddressData {
+            knot_structure,
+            variables,
+        }
+    }
+}
 
 /// Trait for validating `Address` objects.
 ///
@@ -25,7 +53,7 @@ pub trait ValidateAddresses {
     fn validate(
         &mut self,
         current_address: &Address,
-        knots: &KnotSet,
+        data: &ValidateAddressData,
     ) -> Result<(), InvalidAddressError>;
 
     #[cfg(test)]
@@ -130,7 +158,7 @@ impl ValidateAddresses for Address {
     fn validate(
         &mut self,
         current_address: &Address,
-        knots: &KnotSet,
+        data: &ValidateAddressData,
     ) -> Result<(), InvalidAddressError> {
         match self {
             Address::Raw(ref target) if target == DONE_KNOT || target == END_KNOT => {
@@ -138,13 +166,13 @@ impl ValidateAddresses for Address {
             }
             Address::Raw(ref target) => {
                 let (knot, stitch) = match split_address_into_parts(target.trim())? {
-                    (knot, Some(stitch)) => get_full_address(knot, stitch, knots)?,
-                    (head, None) => get_full_address_from_head(head, current_address, knots)?,
+                    (knot, Some(stitch)) => get_full_address(knot, stitch, &data.knot_structure)?,
+                    (head, None) => get_full_address_from_head(head, current_address, data)?,
                 };
 
                 *self = Address::Validated { knot, stitch };
             }
-            _ => (),
+            Address::Validated { .. } | Address::End => (),
         }
 
         Ok(())
@@ -166,6 +194,7 @@ impl ValidateAddresses for Address {
 fn split_address_into_parts(address: &str) -> Result<(&str, Option<&str>), InvalidAddressError> {
     if let Some(i) = address.find('.') {
         let knot = address.get(..i).unwrap();
+
         let stitch = address.get(i + 1..).ok_or(InvalidAddressError::BadFormat {
             line: address.to_string(),
         })?;
@@ -178,20 +207,22 @@ fn split_address_into_parts(address: &str) -> Result<(&str, Option<&str>), Inval
 
 /// Verify and return the full address to a node.
 fn get_full_address(
-    knot: &str,
-    stitch: &str,
-    knots: &KnotSet,
+    knot_name: &str,
+    stitch_name: &str,
+    knot_structure: &HashMap<String, (String, Vec<String>)>,
 ) -> Result<(String, String), InvalidAddressError> {
-    let target_knot = knots.get(knot).ok_or(InvalidAddressError::UnknownKnot {
-        knot_name: knot.to_string(),
-    })?;
+    let (_, stitches) = knot_structure
+        .get(knot_name)
+        .ok_or(InvalidAddressError::UnknownKnot {
+            knot_name: knot_name.to_string(),
+        })?;
 
-    if target_knot.stitches.contains_key(stitch) {
-        Ok((knot.to_string(), stitch.to_string()))
+    if stitches.contains(&stitch_name.to_string()) {
+        Ok((knot_name.to_string(), stitch_name.to_string()))
     } else {
         Err(InvalidAddressError::UnknownStitch {
-            knot_name: knot.to_string(),
-            stitch_name: stitch.to_string(),
+            knot_name: knot_name.to_string(),
+            stitch_name: stitch_name.to_string(),
         })
     }
 }
@@ -202,37 +233,39 @@ fn get_full_address(
 /// the knot name and the address is returned. Otherwise the default stitch from a knot
 /// with the name is returned.
 fn get_full_address_from_head(
-    head: &str,
+    needle: &str,
     current_address: &Address,
-    knots: &KnotSet,
+    data: &ValidateAddressData,
 ) -> Result<(String, String), InvalidAddressError> {
     let current_knot_name = current_address.get_knot().map_err(|_| {
         InvalidAddressError::ValidatedWithUnvalidatedAddress {
-            needle: head.to_string(),
+            needle: needle.to_string(),
             current_address: current_address.clone(),
         }
     })?;
 
-    let current_knot =
-        knots
+    let (_, current_knot_stitches) =
+        data.knot_structure
             .get(current_knot_name)
             .ok_or(InvalidAddressError::UnknownCurrentAddress {
                 address: current_address.clone(),
             })?;
 
-    if current_knot.stitches.contains_key(head) {
-        Ok((current_knot_name.to_string(), head.to_string()))
+    if current_knot_stitches.contains(&needle.to_string()) {
+        Ok((current_knot_name.to_string(), needle.to_string()))
+    } else if let Some((default_stitch, _)) = data.knot_structure.get(needle) {
+        Ok((needle.to_string(), default_stitch.clone()))
     } else {
-        let target_knot = knots.get(head).ok_or(InvalidAddressError::UnknownKnot {
-            knot_name: head.to_string(),
-        })?;
-        Ok((head.to_string(), target_knot.default_stitch.clone()))
+        Err(InvalidAddressError::UnknownKnot { knot_name: needle.to_string() })
     }
 }
 
 /// Validate all addresses in knots using the `ValidateAddresses` trait.
-pub fn validate_addresses_in_knots(knots: &mut KnotSet) -> Result<(), InvalidAddressError> {
-    let empty_knots = get_empty_knot_map(knots);
+pub fn validate_addresses_in_knots(
+    knots: &mut KnotSet,
+    data: &FollowData,
+) -> Result<(), InvalidAddressError> {
+    let validation_data = ValidateAddressData::from_data(knots, &data.variables);
 
     knots
         .iter_mut()
@@ -245,38 +278,9 @@ pub fn validate_addresses_in_knots(knots: &mut KnotSet) -> Result<(), InvalidAdd
                         stitch: stitch_name.clone(),
                     };
 
-                    stitch.root.validate(&current_address, &empty_knots)
+                    stitch.root.validate(&current_address, &validation_data)
                 })
                 .collect()
-        })
-        .collect()
-}
-
-/// Return an empty copy of the `KnotSet`.
-fn get_empty_knot_map(knots: &KnotSet) -> KnotSet {
-    knots
-        .iter()
-        .map(|(knot_name, knot)| {
-            let empty_stitches = knot
-                .stitches
-                .keys()
-                .map(|stitch_name| {
-                    let empty_stitch = Stitch {
-                        root: RootNodeBuilder::from_address("", "").build(),
-                        stack: Vec::new(),
-                    };
-
-                    (stitch_name.clone(), empty_stitch)
-                })
-                .collect();
-
-            let empty_knot = Knot {
-                default_stitch: knot.default_stitch.clone(),
-                stitches: empty_stitches,
-                tags: Vec::new(),
-            };
-
-            (knot_name.clone(), empty_knot)
         })
         .collect()
 }
@@ -306,17 +310,76 @@ pub mod tests {
     }
 
     #[test]
-    fn creating_empty_knots_from_base_conserves_default_stitch_names() {
+    fn creating_validation_data_sets_default_knot_names() {
         let content = "
 == tripoli
 = cinema
 -> END
+= with_family
+-> END
+
+== addis_ababa
+-> END
+= with_family
+-> END
 ";
 
         let (_, knots) = read_knots_from_string(content).unwrap();
-        let empty_knot = get_empty_knot_map(&knots);
 
-        assert_eq!(&empty_knot.get("tripoli").unwrap().default_stitch, "cinema");
+        let data = ValidateAddressData::from_data(&knots, &HashMap::new());
+
+        assert_eq!(data.knot_structure.len(), 2);
+
+        let (tripoli_default, _) = data.knot_structure.get("tripoli").unwrap();
+        let (addis_ababa_default, _) = data.knot_structure.get("addis_ababa").unwrap();
+
+        assert_eq!(tripoli_default.as_str(), "cinema");
+        assert_eq!(addis_ababa_default.as_str(), ROOT_KNOT_NAME);
+    }
+
+    #[test]
+    fn creating_validation_data_sets_stitches() {
+        let content = "
+== tripoli
+= cinema
+-> END
+= with_family
+-> END
+
+== addis_ababa
+-> END
+= with_family
+-> END
+";
+
+        let (_, knots) = read_knots_from_string(content).unwrap();
+
+        let data = ValidateAddressData::from_data(&knots, &HashMap::new());
+
+        let (_, tripoli_stitches) = data.knot_structure.get("tripoli").unwrap();
+        let (_, addis_ababa_stitches) = data.knot_structure.get("addis_ababa").unwrap();
+
+        assert_eq!(tripoli_stitches.len(), 2);
+        assert!(tripoli_stitches.contains(&"cinema".to_string()));
+        assert!(tripoli_stitches.contains(&"with_family".to_string()));
+
+        assert_eq!(addis_ababa_stitches.len(), 2);
+        assert!(addis_ababa_stitches.contains(&ROOT_KNOT_NAME.to_string()));
+        assert!(addis_ababa_stitches.contains(&"with_family".to_string()));
+    }
+
+    #[test]
+    fn creating_validation_data_sets_variable_names() {
+        let mut variables = HashMap::new();
+
+        variables.insert("counter".to_string(), Variable::Int(1));
+        variables.insert("health".to_string(), Variable::Float(75.0));
+
+        let data = ValidateAddressData::from_data(&HashMap::new(), &variables);
+
+        assert_eq!(data.variables.len(), 2);
+        assert!(data.variables.contains("counter"));
+        assert!(data.variables.contains("health"));
     }
 
     #[test]
@@ -330,11 +393,13 @@ pub mod tests {
 ";
 
         let (_, knots) = read_knots_from_string(content).unwrap();
+        let data = ValidateAddressData::from_data(&knots, &HashMap::new());
+
         let current_address = Address::from_knot("addis_ababa");
 
         let mut address = Address::Raw("tripoli".to_string());
 
-        assert!(address.validate(&current_address, &knots).is_ok());
+        assert!(address.validate(&current_address, &data).is_ok());
 
         assert_eq!(address.get_knot().unwrap(), "tripoli");
         assert_eq!(address.get_stitch().unwrap(), "$ROOT$");
@@ -352,11 +417,13 @@ pub mod tests {
 ";
 
         let (_, knots) = read_knots_from_string(content).unwrap();
+        let data = ValidateAddressData::from_data(&knots, &HashMap::new());
+
         let current_address = Address::from_knot("addis_ababa");
 
         let mut address = Address::Raw("tripoli".to_string());
 
-        assert!(address.validate(&current_address, &knots).is_ok());
+        assert!(address.validate(&current_address, &data).is_ok());
 
         assert_eq!(address.get_knot().unwrap(), "tripoli");
         assert_eq!(address.get_stitch().unwrap(), "cinema");
@@ -377,11 +444,13 @@ You find yourself in Tripoli, the capital of Libya.
 ";
 
         let (_, knots) = read_knots_from_string(content).unwrap();
+        let data = ValidateAddressData::from_data(&knots, &HashMap::new());
+
         let current_address = Address::from_knot("addis_ababa");
 
         let mut address = Address::Raw("tripoli.with_family".to_string());
 
-        assert!(address.validate(&current_address, &knots).is_ok());
+        assert!(address.validate(&current_address, &data).is_ok());
 
         assert_eq!(address.get_knot().unwrap(), "tripoli");
         assert_eq!(address.get_stitch().unwrap(), "with_family");
@@ -399,11 +468,13 @@ You find yourself in Tripoli, the capital of Libya.
 ";
 
         let (_, knots) = read_knots_from_string(content).unwrap();
+        let data = ValidateAddressData::from_data(&knots, &HashMap::new());
+
         let current_address = Address::from_knot("tripoli");
 
         let mut address = Address::Raw("with_family".to_string());
 
-        assert!(address.validate(&current_address, &knots).is_ok());
+        assert!(address.validate(&current_address, &data).is_ok());
 
         assert_eq!(address.get_knot().unwrap(), "tripoli");
         assert_eq!(address.get_stitch().unwrap(), "with_family");
@@ -421,10 +492,12 @@ You find yourself in Tripoli, the capital of Libya.
 ";
 
         let (_, knots) = read_knots_from_string(content).unwrap();
+        let data = ValidateAddressData::from_data(&knots, &HashMap::new());
+
         let current_address = Address::from_knot("rabat");
 
         assert!(Address::Raw("addis_ababa".to_string())
-            .validate(&current_address, &knots)
+            .validate(&current_address, &data)
             .is_err());
     }
 
@@ -436,14 +509,16 @@ You find yourself in Tripoli, the capital of Libya.
 ";
 
         let (_, knots) = read_knots_from_string(content).unwrap();
+        let data = ValidateAddressData::from_data(&knots, &HashMap::new());
+
         let current_address = Address::from_knot("tripoli");
 
         assert!(Address::Raw("tripoli.".to_string())
-            .validate(&current_address, &knots)
+            .validate(&current_address, &data)
             .is_err());
 
         assert!(Address::Raw(".tripoli".to_string())
-            .validate(&current_address, &knots)
+            .validate(&current_address, &data)
             .is_err());
     }
 
@@ -459,14 +534,16 @@ You find yourself in Tripoli, the capital of Libya.
 
 == addis_ababa
 You find yourself in Addis Ababa, the capital of Ethiopia.
--> END 
+-> END
 ";
 
         let (_, knots) = read_knots_from_string(content).unwrap();
+        let data = ValidateAddressData::from_data(&knots, &HashMap::new());
+
         let current_address = Address::from_knot("addis_ababa");
 
         assert!(Address::Raw("cinema".to_string())
-            .validate(&current_address, &knots)
+            .validate(&current_address, &data)
             .is_err());
     }
 
@@ -479,14 +556,16 @@ You find yourself in Tripoli, the capital of Libya.
 ";
 
         let (_, knots) = read_knots_from_string(content).unwrap();
+        let data = ValidateAddressData::from_data(&knots, &HashMap::new());
+
         let current_address = Address::from_knot("");
 
         let mut end_address = Address::Raw("END".to_string());
-        assert!(end_address.validate(&current_address, &knots).is_ok());
+        assert!(end_address.validate(&current_address, &data).is_ok());
         assert_eq!(end_address, Address::End);
 
         let mut done_address = Address::Raw("DONE".to_string());
-        assert!(done_address.validate(&current_address, &knots).is_ok());
+        assert!(done_address.validate(&current_address, &data).is_ok());
         assert_eq!(done_address, Address::End);
     }
 
@@ -502,7 +581,7 @@ You find yourself in Tripoli, the capital of Libya.
 
 == addis_ababa
 You find yourself in Addis Ababa, the capital of Ethiopia.
--> END 
+-> END
 
 ";
 
@@ -547,8 +626,8 @@ You find yourself in Tripoli, the capital of Libya.
 = cinema
 -> END
 
-== cairo 
-= airport 
+== cairo
+= airport
 You find yourself in Cairo, the capital of Egypt.
 -> END
 

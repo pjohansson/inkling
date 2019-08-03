@@ -3,7 +3,7 @@
 use crate::{
     error::{InklingError, InvalidAddressError},
     follow::FollowData,
-    knot::{get_num_visited, Address, KnotSet, ValidateAddresses},
+    knot::{get_num_visited, Address, ValidateAddressData, ValidateAddresses},
 };
 
 #[derive(Clone, Debug, PartialEq)]
@@ -52,11 +52,11 @@ impl ValidateAddresses for Variable {
     fn validate(
         &mut self,
         current_address: &Address,
-        knots: &KnotSet,
+        data: &ValidateAddressData,
     ) -> Result<(), InvalidAddressError> {
         match self {
             Variable::Address(address) | Variable::Divert(address) => {
-                address.validate(current_address, knots)
+                address.validate(current_address, data)
             }
             Variable::Bool(..) | Variable::Float(..) | Variable::Int(..) | Variable::String(..) => {
                 Ok(())

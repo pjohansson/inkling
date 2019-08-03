@@ -2,7 +2,7 @@
 
 use crate::{
     error::InvalidAddressError,
-    knot::{Address, KnotSet, ValidateAddresses},
+    knot::{Address, ValidateAddressData, ValidateAddresses},
     line::LineChunk,
 };
 
@@ -56,11 +56,11 @@ impl ValidateAddresses for Alternative {
     fn validate(
         &mut self,
         current_address: &Address,
-        knots: &KnotSet,
+        data: &ValidateAddressData,
     ) -> Result<(), InvalidAddressError> {
         self.items
             .iter_mut()
-            .map(|item| item.validate(current_address, knots))
+            .map(|item| item.validate(current_address, data))
             .collect()
     }
 
