@@ -6,7 +6,11 @@ use crate::{
     knot::{get_num_visited, Address, AddressKind, ValidateAddressData, ValidateAddresses},
 };
 
+#[cfg(feature = "serde_support")]
+use serde::{Deserialize, Serialize};
+
 #[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
 /// Variables in a story.
 ///
 /// Not all of these will evaluate to a string when used as a variable. Numbers and strings
@@ -14,7 +18,11 @@ use crate::{
 ///
 /// Variables which cannot be printed will raise errors when used as such.
 pub enum Variable {
-    /// Address to stitch, evaluates to the number of times it has been visited.
+    /// Address to a stitch or other variable.
+    /// 
+    /// If the address is another variable in the story it will evaluate to that. If it 
+    /// is a location in the story it will evaluate to the number of times it has 
+    /// been visited.
     Address(Address),
     /// True or false, evaluates to 1 for true and 0 for false.
     Bool(bool),
