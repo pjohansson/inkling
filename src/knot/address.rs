@@ -369,6 +369,12 @@ pub mod tests {
                 stitch: stitch_name.to_string(),
             })
         }
+
+        pub fn variable_unchecked(name: &str) -> Self {
+            Address::Validated(AddressKind::GlobalVariable {
+                name: name.to_string(),
+            })
+        }
     }
 
     #[test]

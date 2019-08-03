@@ -3,7 +3,7 @@
 use crate::{
     error::{InklingError, InvalidAddressError},
     follow::FollowData,
-    knot::{get_num_visited, Address, ValidateAddressData, ValidateAddresses},
+    knot::{get_num_visited, Address, AddressKind, ValidateAddressData, ValidateAddresses},
 };
 
 #[derive(Clone, Debug, PartialEq)]
@@ -32,10 +32,17 @@ impl Variable {
     /// Return a string representation of the variable.
     pub fn to_string(&self, data: &FollowData) -> Result<String, InklingError> {
         match &self {
-            Variable::Address(address) => {
-                let num_visited = get_num_visited(address, data)?;
-                Ok(format!("{}", num_visited))
-            }
+            Variable::Address(address) => match address {
+                Address::Validated(AddressKind::Location { .. }) => {
+                    let num_visited = get_num_visited(address, data)?;
+                    Ok(format!("{}", num_visited))
+                }
+                Address::Validated(AddressKind::GlobalVariable { name }) => {
+                    let variable = data.variables.get(name).unwrap();
+                    variable.to_string(data)
+                }
+                _ => unimplemented!(),
+            },
             Variable::Bool(value) => Ok(format!("{}", *value as u8)),
             Variable::Divert(..) => Err(InklingError::PrintInvalidVariable {
                 name: String::new(),
@@ -83,7 +90,7 @@ mod tests {
 
     use std::collections::HashMap;
 
-    fn mock_follow_data(knots: &[(&str, &str, u32)]) -> FollowData {
+    fn mock_follow_data(knots: &[(&str, &str, u32)], variables: &[(&str, Variable)]) -> FollowData {
         let mut knot_visit_counts = HashMap::new();
 
         for (knot, stitch, num_visited) in knots {
@@ -93,15 +100,21 @@ mod tests {
             knot_visit_counts.insert(knot.to_string(), stitch_count);
         }
 
+        let variables = variables
+            .into_iter()
+            .cloned()
+            .map(|(name, var)| (name.to_string(), var))
+            .collect();
+
         FollowData {
             knot_visit_counts,
-            variables: HashMap::new(),
+            variables,
         }
     }
 
     #[test]
     fn booleans_are_printed_as_numbers() {
-        let data = mock_follow_data(&[]);
+        let data = mock_follow_data(&[], &[]);
 
         assert_eq!(&Variable::Bool(true).to_string(&data).unwrap(), "1");
         assert_eq!(&Variable::Bool(false).to_string(&data).unwrap(), "0");
@@ -109,7 +122,7 @@ mod tests {
 
     #[test]
     fn numbers_can_be_printed() {
-        let data = mock_follow_data(&[]);
+        let data = mock_follow_data(&[], &[]);
 
         assert_eq!(&Variable::Int(5).to_string(&data).unwrap(), "5");
         assert_eq!(&Variable::Float(1.0).to_string(&data).unwrap(), "1");
@@ -122,7 +135,7 @@ mod tests {
 
     #[test]
     fn strings_are_just_cloned() {
-        let data = mock_follow_data(&[]);
+        let data = mock_follow_data(&[], &[]);
 
         assert_eq!(
             &Variable::String("two words".to_string())
@@ -133,8 +146,11 @@ mod tests {
     }
 
     #[test]
-    fn addresses_are_printed_as_their_number_of_visits() {
-        let data = mock_follow_data(&[("tripoli", "cinema", 0), ("addis_ababa", "with_family", 3)]);
+    fn addresses_are_printed_as_their_number_of_visits_if_they_are_locations() {
+        let data = mock_follow_data(
+            &[("tripoli", "cinema", 0), ("addis_ababa", "with_family", 3)],
+            &[],
+        );
 
         let tripoli = Address::from_parts_unchecked("tripoli", Some("cinema"));
         let addis_ababa = Address::from_parts_unchecked("addis_ababa", Some("with_family"));
@@ -147,8 +163,18 @@ mod tests {
     }
 
     #[test]
+    fn addresses_are_printed_as_the_contained_variables_if_they_are_variables() {
+        let data = mock_follow_data(&[], &[("population", Variable::Int(1305))]);
+
+        let address = Address::variable_unchecked("population");
+        let variable = Variable::Address(address);
+
+        assert_eq!(&variable.to_string(&data).unwrap(), "1305");
+    }
+
+    #[test]
     fn diverts_cannot_be_printed_but_yield_error() {
-        let data = mock_follow_data(&[]);
+        let data = mock_follow_data(&[], &[]);
         let address = Address::from_parts_unchecked("tripoli", Some("cinema"));
 
         assert!(Variable::Divert(address).to_string(&data).is_err());
