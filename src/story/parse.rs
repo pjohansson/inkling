@@ -745,4 +745,23 @@ VAR hazardous = true
         assert_eq!(variables.len(), 0);
     }
 
+    #[test]
+    fn reading_story_data_gets_all_global_tags_in_prelude() {
+        let content = "
+# title: test
+VAR counter = 0
+# rating: hazardous
+// Line comment
+VAR hazardous = true
+
+-> introduction
+";
+
+        let (_, _, tags) = read_story_content_from_string(content).unwrap();
+
+        assert_eq!(
+            &tags,
+            &["title: test".to_string(), "rating: hazardous".to_string()]
+        );
+    }
 }

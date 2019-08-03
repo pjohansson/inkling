@@ -32,4 +32,4 @@ pub(crate) use condition::{
 pub(crate) use line::builders::LineChunkBuilder;
 pub(crate) use line::{builders::InternalLineBuilder, Content, InternalLine, LineChunk};
 pub(crate) use parse::{parse_line, parse_variable, ParsedLineKind};
-pub(crate) use variable::Variable;
+pub use variable::Variable;

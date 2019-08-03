@@ -410,6 +410,50 @@ impl Story {
         get_num_visited(&address, &self.data).map_err(|err| err.into())
     }
 
+    /// Retrieve the value of a global variable.
+    pub fn get_variable(&self, name: &str) -> Result<Variable, InklingError> {
+        self.data
+            .variables
+            .get(name)
+            .cloned()
+            .ok_or(InklingError::InvalidVariable {
+                name: name.to_string(),
+            })
+    }
+
+    /// Retrieve the value of a global variable in its string representation.
+    ///
+    /// Will return an error if the variable contains a `Divert` value, which cannot be
+    /// printed as text.
+    pub fn get_variable_as_string(&self, name: &str) -> Result<String, InklingError> {
+        self.data
+            .variables
+            .get(name)
+            .ok_or(InklingError::InvalidVariable {
+                name: name.to_string(),
+            })
+            .and_then(|variable| variable.to_string(&self.data))
+    }
+
+    /// Set the value of a global variable.
+    ///
+    /// The assignment is type checked: a variable of integer type cannot be changed to
+    /// contain a decimal number, a string, or anything else. An error will be returned
+    /// if this is attempted.
+    pub fn set_variable<T: Into<Variable>>(
+        &mut self,
+        name: &str,
+        value: T,
+    ) -> Result<(), InklingError> {
+        self.data
+            .variables
+            .get_mut(name)
+            .ok_or(InklingError::InvalidVariable {
+                name: name.to_string(),
+            })
+            .and_then(|variable| variable.assign(value))
+    }
+
     /// Wrapper of common behavior between `start` and `resume_with_choice`.
     ///
     /// Updates the stack to the last visited address and the last presented set of choices
@@ -1243,6 +1287,18 @@ We arrived into Almaty at 9.45pm exactly.
         assert_eq!(get_num_visited(&at_home, &story.data).unwrap(), 0);
     }
 
+    #[test]
+    fn reading_story_from_string_sets_global_tags() {
+        let content = "
+
+# title: inkling
+# author: Petter Johansson
+
+";
+        let story = read_story_from_string(content).unwrap();
+
+        panic!();
+    }
 
     #[test]
     fn reading_story_from_string_sets_global_variables() {
@@ -1720,5 +1776,98 @@ Once back home we feasted on cheese.
         assert!(story
             .get_num_visited("hurry_home", Some("with_family"))
             .is_err());
+    }
+
+    #[test]
+    fn getting_variable_returns_cloned() {
+        let content = "
+
+VAR hazardous = true
+
+";
+
+        let story = read_story_from_string(content).unwrap();
+
+        assert_eq!(
+            story.get_variable("hazardous").unwrap(),
+            Variable::Bool(true)
+        );
+    }
+
+    #[test]
+    fn getting_variable_with_string_representation() {
+        let content = "
+
+VAR message = \"Good afternoon!\"
+
+";
+
+        let story = read_story_from_string(content).unwrap();
+
+        assert_eq!(
+            &story.get_variable_as_string("message").unwrap(),
+            "Good afternoon!"
+        );
+    }
+
+    #[test]
+    fn setting_variable_is_only_allowed_without_changing_type() {
+        let content = "
+
+VAR counter = 3
+
+";
+
+        let mut story = read_story_from_string(content).unwrap();
+
+        story.set_variable("counter", Variable::Int(5)).unwrap();
+        assert_eq!(
+            story.data.variables.get("counter").unwrap(),
+            &Variable::Int(5)
+        );
+
+        assert!(story.set_variable("counter", Variable::Float(5.0)).is_err());
+        assert!(story.set_variable("counter", Variable::Bool(true)).is_err());
+    }
+
+    #[test]
+    fn setting_variable_can_infer_number_boolean_and_string_types() {
+        let content = "
+
+VAR hazardous = false
+VAR counter = 3
+VAR precision = 1.23
+VAR message = \"boring text\"
+
+";
+
+        let mut story = read_story_from_string(content).unwrap();
+
+        assert!(story.set_variable("hazardous", true).is_ok());
+        assert!(story.set_variable("counter", -10).is_ok());
+        assert!(story.set_variable("precision", 5.45).is_ok());
+        assert!(story
+            .set_variable("message", "What a pleasure to see you!")
+            .is_ok());
+
+        assert_eq!(
+            story.data.variables.get("counter").unwrap(),
+            &Variable::Int(-10)
+        );
+
+        assert_eq!(
+            story.data.variables.get("hazardous").unwrap(),
+            &Variable::Bool(true)
+        );
+
+        assert_eq!(
+            story.data.variables.get("precision").unwrap(),
+            &Variable::Float(5.45)
+        );
+
+        assert_eq!(
+            story.data.variables.get("message").unwrap(),
+            &Variable::String("What a pleasure to see you!".to_string())
+        );
     }
 }

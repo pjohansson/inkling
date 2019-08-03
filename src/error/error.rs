@@ -41,6 +41,8 @@ pub enum InklingError {
         /// List of choices that were available for the selection
         presented_choices: Vec<Choice>,
     },
+    /// Used a variable name that is not present in the story as an input variable.
+    InvalidVariable { name: String },
     /// No choices or fallback choices were available in a story branch at the given address.
     OutOfChoices { address: Address },
     /// No content was available for the story to continue from.
@@ -53,6 +55,8 @@ pub enum InklingError {
     ResumeWithoutChoice,
     /// Tried to `start` a story that is already in progress.
     StartOnStoryInProgress,
+    /// Tried to assign a new type to a variable.
+    VariableTypeChange { from: Variable, to: Variable },
 }
 
 #[derive(Clone, Debug)]
@@ -179,6 +183,11 @@ impl fmt::Display for InklingError {
                 presented_choices.len(),
                 presented_choices.len() - 1
             ),
+            InvalidVariable { name } => write!(
+                f,
+                "Invalid variable: no variable with  name '{}' exists in the story",
+                name
+            ),
             OutOfChoices {
                 address: Address::Validated(AddressKind::Location { knot, stitch }),
             } => write!(
@@ -208,6 +217,13 @@ impl fmt::Display for InklingError {
             StartOnStoryInProgress => {
                 write!(f, "Called `start` on a story that is already in progress")
             }
+            VariableTypeChange { from, to } => write!(
+                f,
+                "Cannot assign a value of type '{}' to a variable of type '{}' \
+                 (variables cannot change type)",
+                to.variant_string(),
+                from.variant_string()
+            ),
         }
     }
 }

@@ -11,26 +11,45 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
-/// Variables in a story.
+/// Variable in a story.
 ///
-/// Not all of these will evaluate to a string when used as a variable. Numbers and strings
-/// make perfect sense to print: a divert to another location, not as much.
+/// Variables are typed and come in several variants, covering the basic needs of number
+/// and string processing in `inkling`. When encountered in a story the processor will
+/// parse a string from the value.
 ///
-/// Variables which cannot be printed will raise errors when used as such.
+/// Be aware though, not all variants will evaluate to a string. Numbers and strings
+/// make perfect sense to print: a divert to another location, not as much since it
+/// has no meaning in text, just in the story internals. Take care not to use variables
+/// that contain divert addresses in the text flow.
 pub enum Variable {
     /// Address to a stitch or other variable.
     ///
     /// If the address is another variable in the story it will evaluate to that. If it
     /// is a location in the story it will evaluate to the number of times it has
     /// been visited.
+    ///
+    /// # Example
+    /// If a line in the story contains the expression `{hazardous}` this will be treated
+    /// as an address to either a knot/stitch or a global variable. The processor will
+    /// take the value at the address and print that.
     Address(Address),
-    /// True or false, evaluates to 1 for true and 0 for false.
+    /// True or false.
+    ///
+    /// When printed, the string representation of `true` is the number 1 and `false`
+    /// is the number 0.
     Bool(bool),
-    /// Divert to another address, *cannot be printed*.
+    /// Divert to another address.
+    ///
+    /// This is fully internal and will never print to the story. If encountered as a variable
+    /// in the text flow it will raise an error, since it should not be there.
     Divert(Address),
     /// Decimal number.
+    ///
+    /// Will print as that number, although floating point numbers can print weirdly sometimes.
     Float(f32),
     /// Integer number.
+    ///
+    /// Will print to that number.
     Int(i32),
     /// Text string.
     String(String),
@@ -38,7 +57,7 @@ pub enum Variable {
 
 impl Variable {
     /// Return a string representation of the variable.
-    pub fn to_string(&self, data: &FollowData) -> Result<String, InklingError> {
+    pub(crate) fn to_string(&self, data: &FollowData) -> Result<String, InklingError> {
         match &self {
             Variable::Address(address) => match address {
                 Address::Validated(AddressKind::Location { .. }) => {
@@ -63,6 +82,84 @@ impl Variable {
             Variable::Int(value) => Ok(format!("{}", value)),
             Variable::String(content) => Ok(content.clone()),
         }
+    }
+
+    /// Assign a new value to the variable.
+    ///
+    /// Variables are type static: assigning a new variable type (variant) is not allowed.
+    /// This is checked before the assignment is made and an error will be raised.
+    pub fn assign<T: Into<Variable>>(&mut self, value: T) -> Result<(), InklingError> {
+        let inferred_value = value.into();
+
+        match (&self, &inferred_value) {
+            (Variable::Address(..), Variable::Address(..)) => (),
+            (Variable::Bool(..), Variable::Bool(..)) => (),
+            (Variable::Divert(..), Variable::Divert(..)) => (),
+            (Variable::Float(..), Variable::Float(..)) => (),
+            (Variable::Int(..), Variable::Int(..)) => (),
+            (Variable::String(..), Variable::String(..)) => (),
+            _ => {
+                return Err(InklingError::VariableTypeChange {
+                    from: self.clone(),
+                    to: inferred_value.clone(),
+                });
+            }
+        }
+
+        *self = inferred_value;
+
+        Ok(())
+    }
+
+    /// Get string representation of the variant.
+    pub(crate) fn variant_string(&self) -> &str {
+        match &self {
+            Variable::Address(..) => "Address",
+            Variable::Bool(..) => "Bool",
+            Variable::Divert(..) => "DivertTarget",
+            Variable::Float(..) => "Float",
+            Variable::Int(..) => "Int",
+            Variable::String(..) => "String",
+        }
+    }
+}
+
+macro_rules! impl_from {
+    ( $variant:ident; $to:ty; $( $from:ty ),+ ) => {
+        $(
+            impl From<$from> for Variable {
+                fn from(value: $from) -> Self {
+                    Variable::$variant(value as $to)
+                }
+            }
+        )*
+    }
+}
+
+impl_from![Float; f32; f32, f64];
+impl_from![Int; i32; u8, u16, u32, u64, u128, usize, i8, i16, i32, i64, i128, isize];
+
+impl From<bool> for Variable {
+    fn from(value: bool) -> Self {
+        Variable::Bool(value)
+    }
+}
+
+impl From<&str> for Variable {
+    fn from(string: &str) -> Self {
+        Variable::String(string.to_string())
+    }
+}
+
+impl From<&String> for Variable {
+    fn from(string: &String) -> Self {
+        Variable::String(string.clone())
+    }
+}
+
+impl From<String> for Variable {
+    fn from(string: String) -> Self {
+        Variable::String(string.clone())
     }
 }
 
@@ -207,5 +304,32 @@ mod tests {
         let address = Address::from_parts_unchecked("tripoli", Some("cinema"));
 
         assert!(Variable::Divert(address).to_string(&data).is_err());
+    }
+
+    #[test]
+    fn assign_variable_value_updates_inner_value() {
+        let mut variable = Variable::Int(5);
+        variable.assign(Variable::Int(10)).unwrap();
+        assert_eq!(variable, Variable::Int(10));
+    }
+
+    #[test]
+    fn assign_variable_value_can_infer_type() {
+        let mut variable = Variable::Int(5);
+
+        variable.assign(10).unwrap();
+
+        assert_eq!(variable, Variable::Int(10));
+    }
+
+    #[test]
+    fn assign_variable_value_cannot_change_variable_type() {
+        let mut variable = Variable::Int(5);
+
+        assert!(variable.assign(Variable::Bool(true)).is_err());
+        assert!(variable.assign(Variable::Float(5.0)).is_err());
+        assert!(variable
+            .assign(Variable::String("help".to_string()))
+            .is_err());
     }
 }
