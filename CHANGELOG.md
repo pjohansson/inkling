@@ -30,6 +30,9 @@
 ## 0.11.6
 
 *   Add `get_current_location` and `get_num_visited` methods for `Story`. The formers retrieves the knot and stitch name that the story is currently at. The latter the number of times a location has been visited so far in the story.
+*   Add support for global variables in text. They cannot yet be used in conditions or modified in the Ink script itself, but they will be evaluated into text when encountered in the text flow.
+*   Add `get_variable`/`set_variable` methods for `Story` with which to inspect or modify global variables.
+*   Parse global tags for the story. Can be retrieved with the `get_story_tags` method for `Story`.
 
 # 0.10.0
 

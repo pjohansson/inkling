@@ -412,6 +412,26 @@ impl Story {
         get_num_visited(&address, &self.data).map_err(|err| err.into())
     }
 
+    /// Retrieve the global tags associated with the story. 
+    /// 
+    /// # Example 
+    /// ```
+    /// # use inkling::read_story_from_string;
+    /// let content = "\
+    /// ## title: inkling
+    /// ## author: Petter Johansson
+    /// ";
+    /// 
+    /// let story = read_story_from_string(content).unwrap();
+    /// 
+    /// let tags = story.get_story_tags();
+    /// assert_eq!(&tags[0], "title: inkling");
+    /// assert_eq!(&tags[1], "author: Petter Johansson");
+    /// ```
+    pub fn get_story_tags(&self) -> Vec<String> {
+        self.tags.clone()
+    }
+
     /// Retrieve the value of a global variable.
     ///
     /// # Examples
@@ -1947,6 +1967,25 @@ VAR message = \"boring text\"
         assert_eq!(
             story.data.variables.get("message").unwrap(),
             &Variable::String("What a pleasure to see you!".to_string())
+        );
+    }
+
+    #[test]
+    fn global_tags_can_be_retrieved() {
+        let content = "
+
+# title: inkling
+# author: Petter Johansson
+
+";
+        let story = read_story_from_string(content).unwrap();
+
+        assert_eq!(
+            &story.get_story_tags(),
+            &[
+                "title: inkling".to_string(),
+                "author: Petter Johansson".to_string()
+            ]
         );
     }
 }
