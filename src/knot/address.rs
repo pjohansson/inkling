@@ -124,17 +124,6 @@ impl Address {
             }),
         }
     }
-
-    #[cfg(test)]
-    /// Get a validated address from a string.
-    pub fn from_target_address(
-        target: &str,
-        current_address: &Address,
-        knots: &KnotSet,
-    ) -> Result<Self, InvalidAddressError> {
-        let mut address = Address::Raw(target.to_string());
-        address.validate(current_address, knots).map(|_| address)
-    }
 }
 
 impl ValidateAddresses for Address {
@@ -305,6 +294,15 @@ pub mod tests {
                 stitch: String::new(),
             }
         }
+
+        /// Get an unvalidated address from parts
+        pub fn from_parts_unchecked(knot: &str, stitch: Option<&str>) -> Self {
+            let stitch_name = stitch.unwrap_or(ROOT_KNOT_NAME);
+            Address::Validated {
+                knot: knot.to_string(),
+                stitch: stitch_name.to_string(),
+            }
+        }
     }
 
     #[test]
@@ -319,41 +317,6 @@ pub mod tests {
         let empty_knot = get_empty_knot_map(&knots);
 
         assert_eq!(&empty_knot.get("tripoli").unwrap().default_stitch, "cinema");
-    }
-
-    #[test]
-    fn address_from_knot_address_returns_knot_with_default_stitch() {
-        let content = "
-== knot_one
-= stitch
-Line one.
-
-== knot_two
-Line two.
-= stitch
-Line three.
-";
-
-        let (_, knots) = read_knots_from_string(content).unwrap();
-        let current_address = Address::from_knot("knot_one");
-
-        let address = Address::from_target_address("knot_one", &current_address, &knots).unwrap();
-        assert_eq!(
-            address,
-            Address::Validated {
-                knot: "knot_one".into(),
-                stitch: "stitch".into()
-            }
-        );
-
-        let address = Address::from_target_address("knot_two", &current_address, &knots).unwrap();
-        assert_eq!(
-            address,
-            Address::Validated {
-                knot: "knot_two".into(),
-                stitch: ROOT_KNOT_NAME.into()
-            }
-        );
     }
 
     #[test]

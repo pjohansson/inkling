@@ -811,7 +811,7 @@ We hurried home to Savile Row as fast as we could.
 
         assert_eq!(
             last_address,
-            Address::from_target_address("tripoli.cinema", &current_address, &knots).unwrap()
+            Address::from_parts_unchecked("tripoli", Some("cinema"))
         );
     }
 
@@ -843,10 +843,7 @@ We hurried home to Savile Row as fast as we could.
         )
         .unwrap();
 
-        assert_eq!(
-            last_address,
-            Address::from_target_address("tripoli", &current_address, &knots).unwrap()
-        );
+        assert_eq!(last_address, Address::from_parts_unchecked("tripoli", None));
     }
 
     #[test]
@@ -869,12 +866,7 @@ We hurried home to Savile Row as fast as we could.
 
         story.follow_story_wrapper(None, &mut line_buffer).unwrap();
 
-        let address = Address::from_target_address(
-            "tripoli.cinema",
-            &story.get_current_address().unwrap(),
-            &story.knots,
-        )
-        .unwrap();
+        let address = Address::from_parts_unchecked("tripoli", Some("cinema"));
 
         assert_eq!(story.stack.last().unwrap(), &address);
     }
