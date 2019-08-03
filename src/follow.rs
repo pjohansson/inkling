@@ -1,6 +1,10 @@
 //! Results and data that is used or encountered when following, or walking through, a story.
 
-use crate::{error::InklingError, knot::Address, line::InternalChoice};
+use crate::{
+    error::InklingError,
+    knot::Address,
+    line::{InternalChoice, Variable},
+};
 
 #[cfg(feature = "serde_support")]
 use serde::{Deserialize, Serialize};
@@ -49,6 +53,8 @@ impl ChoiceInfo {
 pub struct FollowData {
     /// Number of times a knot and stitch address has been visited.
     pub knot_visit_counts: HashMap<String, HashMap<String, u32>>,
+    /// Global variables in story.
+    pub variables: HashMap<String, Variable>,
 }
 
 #[derive(Clone, Debug, PartialEq)]

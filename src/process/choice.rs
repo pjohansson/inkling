@@ -164,6 +164,7 @@ mod tests {
     fn get_empty_data() -> FollowData {
         FollowData {
             knot_visit_counts: HashMap::new(),
+            variables: HashMap::new(),
         }
     }
 
@@ -174,7 +175,10 @@ mod tests {
         let mut knot_visit_counts = HashMap::new();
         knot_visit_counts.insert(knot.to_string(), stitch_count);
 
-        FollowData { knot_visit_counts }
+        FollowData {
+            knot_visit_counts,
+            variables: HashMap::new(),
+        }
     }
 
     #[test]

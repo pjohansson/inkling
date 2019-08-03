@@ -15,6 +15,8 @@ use crate::{
 #[cfg(feature = "serde_support")]
 use serde::{Deserialize, Serialize};
 
+use std::collections::HashMap;
+
 #[derive(Clone, Debug, PartialEq)]
 /// Single line of text in a story, ready to display.
 pub struct Line {
@@ -476,6 +478,7 @@ pub fn read_story_from_string(string: &str) -> Result<Story, ParseError> {
 
     let data = FollowData {
         knot_visit_counts: get_empty_knot_counts(&knots),
+        variables: HashMap::new(),
     };
 
     Ok(Story {
@@ -585,6 +588,7 @@ mod tests {
     fn mock_follow_data(knots: &KnotSet) -> FollowData {
         FollowData {
             knot_visit_counts: get_empty_knot_counts(knots),
+            variables: HashMap::new(),
         }
     }
 
