@@ -25,6 +25,8 @@ pub enum ParseError {
 pub enum InvalidAddressError {
     /// The address is not formatted correctly.
     BadFormat { line: String },
+    /// The address does not reference a knot, stitch or variable in the story.
+    UnknownAddress { name: String },
     /// Tried to validate an address but the given current knot did not exist in the system.
     UnknownCurrentAddress { address: Address },
     /// The address references a `Knot` that is not in the story.
@@ -114,6 +116,11 @@ impl fmt::Display for InvalidAddressError {
 
         match self {
             BadFormat { line } => write!(f, "address was incorrectly formatted ('{}')", line),
+            UnknownAddress { name } => write!(
+                f,
+                "could not find knot or variable with name '{}' in the story",
+                name
+            ),
             UnknownCurrentAddress { address } => write!(
                 f,
                 "during validation an address '{:?}' that is not in the system was used as

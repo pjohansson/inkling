@@ -83,6 +83,12 @@ pub enum AddressKind {
     GlobalVariable { name: String },
 }
 
+impl From<AddressKind> for Address {
+    fn from(address: AddressKind) -> Self {
+        Address::Validated(address)
+    }
+}
+
 impl Address {
     /// Return an address from a string that is just a knot name.
     ///
@@ -181,12 +187,15 @@ impl ValidateAddresses for Address {
                 *self = Address::End;
             }
             Address::Raw(ref target) => {
-                let (knot, stitch) = match split_address_into_parts(target.trim())? {
-                    (knot, Some(stitch)) => get_full_address(knot, stitch, &data.knot_structure)?,
-                    (head, None) => get_full_address_from_head(head, current_address, data)?,
-                };
+                let address = match split_address_into_parts(target.trim())? {
+                    (knot, Some(stitch)) => {
+                        get_location_from_parts(knot, stitch, &data.knot_structure)?
+                    }
+                    (needle, None) => get_address_from_needle(needle, current_address, data)?,
+                }
+                .into();
 
-                *self = Address::Validated(AddressKind::Location { knot, stitch });
+                *self = address;
             }
             Address::Validated { .. } | Address::End => (),
         }
@@ -207,7 +216,9 @@ impl ValidateAddresses for Address {
 ///
 /// The split is done at a dot ('.') marker. If one exists, split at it and return the parts.
 /// Otherwise return the entire string.
-fn split_address_into_parts(address: &str) -> Result<(&str, Option<&str>), InvalidAddressError> {
+fn split_address_into_parts(
+    address: &str,
+) -> Result<(String, Option<String>), InvalidAddressError> {
     if let Some(i) = address.find('.') {
         let knot = address.get(..i).unwrap();
 
@@ -215,66 +226,99 @@ fn split_address_into_parts(address: &str) -> Result<(&str, Option<&str>), Inval
             line: address.to_string(),
         })?;
 
-        Ok((knot, Some(stitch)))
+        Ok((knot.to_string(), Some(stitch.to_string())))
     } else {
-        Ok((address, None))
+        Ok((address.to_string(), None))
     }
 }
 
-/// Verify and return the full address to a node.
-fn get_full_address(
-    knot_name: &str,
-    stitch_name: &str,
+/// Verify and return the full address to a stitch from its parts.
+fn get_location_from_parts(
+    knot_name: String,
+    stitch_name: String,
     knot_structure: &HashMap<String, (String, Vec<String>)>,
-) -> Result<(String, String), InvalidAddressError> {
+) -> Result<AddressKind, InvalidAddressError> {
     let (_, stitches) = knot_structure
-        .get(knot_name)
+        .get(&knot_name)
         .ok_or(InvalidAddressError::UnknownKnot {
-            knot_name: knot_name.to_string(),
+            knot_name: knot_name.clone(),
         })?;
 
-    if stitches.contains(&stitch_name.to_string()) {
-        Ok((knot_name.to_string(), stitch_name.to_string()))
+    if stitches.contains(&stitch_name) {
+        Ok(AddressKind::Location {
+            knot: knot_name,
+            stitch: stitch_name,
+        })
     } else {
         Err(InvalidAddressError::UnknownStitch {
-            knot_name: knot_name.to_string(),
-            stitch_name: stitch_name.to_string(),
+            knot_name: knot_name.clone(),
+            stitch_name: stitch_name.clone(),
         })
     }
 }
 
-/// Return the full address from either an internal address or knot name.
+/// Return a validated address from a single name.
 ///
 /// Internal addresses are relative to the current knot. If one is found in the current knot,
 /// the knot name and the address is returned. Otherwise the default stitch from a knot
 /// with the name is returned.
-fn get_full_address_from_head(
-    needle: &str,
+///
+/// If the name is not found in the current knot's stitches, or in the set of knot names,
+/// the variable listing is searched. If a match is found the address will be returned
+/// as a global variable.
+fn get_address_from_needle(
+    needle: String,
     current_address: &Address,
     data: &ValidateAddressData,
-) -> Result<(String, String), InvalidAddressError> {
-    let current_knot_name = current_address.get_knot().map_err(|_| {
-        InvalidAddressError::ValidatedWithUnvalidatedAddress {
-            needle: needle.to_string(),
-            current_address: current_address.clone(),
-        }
-    })?;
+) -> Result<AddressKind, InvalidAddressError> {
+    let (current_knot_name, current_stitches) =
+        get_knot_name_and_stitches(current_address, &data.knot_structure, &needle)?;
 
-    let (_, current_knot_stitches) = data.knot_structure.get(current_knot_name).ok_or(
-        InvalidAddressError::UnknownCurrentAddress {
-            address: current_address.clone(),
-        },
-    )?;
+    let matches_stitch_in_current_knot = current_stitches.contains(&needle);
+    let matches_knot = data.knot_structure.get(&needle);
+    let matches_variable = data.variables.contains(&needle);
 
-    if current_knot_stitches.contains(&needle.to_string()) {
-        Ok((current_knot_name.to_string(), needle.to_string()))
-    } else if let Some((default_stitch, _)) = data.knot_structure.get(needle) {
-        Ok((needle.to_string(), default_stitch.clone()))
+    if matches_stitch_in_current_knot {
+        Ok(AddressKind::Location {
+            knot: current_knot_name.to_string(),
+            stitch: needle,
+        })
+    } else if let Some((default_stitch, _)) = matches_knot {
+        Ok(AddressKind::Location {
+            knot: needle,
+            stitch: default_stitch.clone(),
+        })
+    } else if matches_variable {
+        Ok(AddressKind::GlobalVariable { name: needle })
     } else {
-        Err(InvalidAddressError::UnknownKnot {
-            knot_name: needle.to_string(),
+        Err(InvalidAddressError::UnknownAddress {
+            name: needle.clone(),
         })
     }
+}
+
+/// Get the knot name and stitches from the given address.
+fn get_knot_name_and_stitches<'a>(
+    address: &Address,
+    knot_structure: &'a HashMap<String, (String, Vec<String>)>,
+    needle: &str,
+) -> Result<(String, &'a Vec<String>), InvalidAddressError> {
+    let knot_name =
+        address
+            .get_knot()
+            .map_err(|_| InvalidAddressError::ValidatedWithUnvalidatedAddress {
+                needle: needle.to_string(),
+                current_address: address.clone(),
+            })?;
+
+    let (_, stitches) =
+        knot_structure
+            .get(knot_name)
+            .ok_or(InvalidAddressError::UnknownCurrentAddress {
+                address: address.clone(),
+            })?;
+
+    Ok((knot_name.to_string(), stitches))
 }
 
 /// Validate all addresses in knots using the `ValidateAddresses` trait.
@@ -563,6 +607,36 @@ You find yourself in Addis Ababa, the capital of Ethiopia.
         assert!(Address::Raw("cinema".to_string())
             .validate(&current_address, &data)
             .is_err());
+    }
+
+    #[test]
+    fn if_simple_address_exists_in_variables_it_is_validated_as_global() {
+        let content = "
+== addis_ababa
+You find yourself in Addis Ababa, the capital of Ethiopia.
+-> END
+";
+
+        let (_, knots) = read_knots_from_string(content).unwrap();
+
+        let variables = &[("counter".to_string(), Variable::Int(0))]
+            .into_iter()
+            .cloned()
+            .collect();
+
+        let data = ValidateAddressData::from_data(&knots, &variables);
+
+        let current_address = Address::from_knot("addis_ababa");
+
+        let mut address = Address::Raw("counter".to_string());
+        address.validate(&current_address, &data).unwrap();
+
+        assert_eq!(
+            address,
+            Address::Validated(AddressKind::GlobalVariable {
+                name: "counter".to_string()
+            })
+        );
     }
 
     #[test]
