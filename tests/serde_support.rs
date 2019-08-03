@@ -13,6 +13,8 @@ pub mod tests {
     fn serialization_saves_current_state() {
         let content = "
 
+-> passage
+
 == passage ==
 
 A crossing! Which path do you take?
