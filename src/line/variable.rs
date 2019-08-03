@@ -1,7 +1,7 @@
 //! Types of variables used in a story.
 
 use crate::{
-    error::{InklingError, InvalidAddressError},
+    error::{InklingError, InternalError, InvalidAddressError},
     follow::FollowData,
     knot::{get_num_visited, Address, AddressKind, ValidateAddressData, ValidateAddresses},
 };
@@ -19,9 +19,9 @@ use serde::{Deserialize, Serialize};
 /// Variables which cannot be printed will raise errors when used as such.
 pub enum Variable {
     /// Address to a stitch or other variable.
-    /// 
-    /// If the address is another variable in the story it will evaluate to that. If it 
-    /// is a location in the story it will evaluate to the number of times it has 
+    ///
+    /// If the address is another variable in the story it will evaluate to that. If it
+    /// is a location in the story it will evaluate to the number of times it has
     /// been visited.
     Address(Address),
     /// True or false, evaluates to 1 for true and 0 for false.
@@ -49,7 +49,10 @@ impl Variable {
                     let variable = data.variables.get(name).unwrap();
                     variable.to_string(data)
                 }
-                _ => unimplemented!(),
+                other => Err(InternalError::UseOfUnvalidatedAddress {
+                    address: other.clone(),
+                }
+                .into()),
             },
             Variable::Bool(value) => Ok(format!("{}", *value as u8)),
             Variable::Divert(..) => Err(InklingError::PrintInvalidVariable {
@@ -178,6 +181,24 @@ mod tests {
         let variable = Variable::Address(address);
 
         assert_eq!(&variable.to_string(&data).unwrap(), "1305");
+    }
+
+    #[test]
+    fn getting_string_representation_of_unvalidated_addresses_yields_error() {
+        let data = mock_follow_data(&[], &[("population", Variable::Int(1305))]);
+
+        let raw_address = Address::Raw("population".to_string());
+        let variable = Variable::Address(raw_address.clone());
+
+        match variable.to_string(&data) {
+            Err(InklingError::Internal(InternalError::UseOfUnvalidatedAddress { address })) => {
+                assert_eq!(address, raw_address);
+            }
+            other => panic!(
+                "expected `InternalError::UseOfUnvalidatedAddress` but got {:?}",
+                other
+            ),
+        }
     }
 
     #[test]
