@@ -243,7 +243,7 @@ impl Story {
     /// # Examples
     /// ```
     /// // From ‘Purge’ by Sofi Oksanen
-    /// # use inkling::{read_story_from_string, Prompt};
+    /// # use inkling::read_story_from_string;
     /// let content = "\
     /// May, 1949
     /// For the free Estonia!
@@ -286,7 +286,7 @@ impl Story {
     ///
     /// # Examples
     /// ```
-    /// # use inkling::{read_story_from_string, Prompt};
+    /// # use inkling::read_story_from_string;
     /// # let content = "\
     /// # Sam was in real trouble now. The fleet footed criminals were just about to corner her.
     /// #
@@ -325,7 +325,7 @@ impl Story {
     /// # Examples
     /// ```
     /// # use inkling::{read_story_from_string, Prompt};
-    /// let content = "
+    /// let content = "\
     /// === gesichts_apartment ===
     /// = dream
     /// Gesicht wakes up from a nightmare. Something horrible is afoot.
@@ -356,9 +356,9 @@ impl Story {
     ///
     /// # Examples
     /// ```
-    /// # use inkling::{read_story_from_string, Prompt};
+    /// # use inkling::read_story_from_string;
     /// // From ‘Sanshirō’ by Natsume Sōseki
-    /// let content = "
+    /// let content = "\
     /// === tokyo ===
     /// ## weather: hot
     /// ## sound: crowds
@@ -385,8 +385,8 @@ impl Story {
     ///
     /// # Examples
     /// ```
-    /// # use inkling::{read_story_from_string, Prompt};
-    /// # let content = "
+    /// # use inkling::read_story_from_string;
+    /// # let content = "\
     /// # -> depths
     /// # === depths ===
     /// # You enter the dungeon. Bravely or foolhardily? Who is to decide?
@@ -411,6 +411,19 @@ impl Story {
     }
 
     /// Retrieve the value of a global variable.
+    /// 
+    /// # Examples 
+    /// ```
+    /// # use inkling::{read_story_from_string, Variable};
+    /// let content = "\
+    /// VAR books_in_library = 3
+    /// VAR title = \"A Momentuous Spectacle\"
+    /// ";
+    /// 
+    /// let story = read_story_from_string(content).unwrap();
+    /// 
+    /// assert_eq!(story.get_variable("books_in_library").unwrap(), Variable::Int(3));
+    /// ```
     pub fn get_variable(&self, name: &str) -> Result<Variable, InklingError> {
         self.data
             .variables
@@ -425,6 +438,17 @@ impl Story {
     ///
     /// Will return an error if the variable contains a `Divert` value, which cannot be
     /// printed as text.
+    /// 
+    /// # Examples 
+    /// ```
+    /// # use inkling::{read_story_from_string, Variable};
+    /// # let content = "\
+    /// # VAR books_in_library = 3
+    /// # VAR title = \"A Momentuous Spectacle\"
+    /// # ";
+    /// # let story = read_story_from_string(content).unwrap();
+    /// assert_eq!(&story.get_variable_as_string("title").unwrap(), "A Momentuous Spectacle");
+    /// ```
     pub fn get_variable_as_string(&self, name: &str) -> Result<String, InklingError> {
         self.data
             .variables
@@ -435,11 +459,57 @@ impl Story {
             .and_then(|variable| variable.to_string(&self.data))
     }
 
-    /// Set the value of a global variable.
+    /// Set the value of an existing global variable.
+    ///
+    /// New variables cannot be created using this method. They have to be defined in the Ink
+    /// script file.
     ///
     /// The assignment is type checked: a variable of integer type cannot be changed to
     /// contain a decimal number, a string, or anything else. An error will be returned
     /// if this is attempted.
+    /// 
+    /// Note that this method accepts values which implement `Into<Variable>`. This is implemented 
+    /// for integers, floating point numbers, booleans and string representations, so those 
+    /// can be used without a lot of typing.
+    /// 
+    /// # Examples 
+    /// Fully specifying `Variable` type:
+    /// ```
+    /// # use inkling::{read_story_from_string, Variable};
+    /// let content = "\
+    /// VAR hunted_by_police = false
+    /// VAR num_passengers = 0
+    /// VAR price_of_ticket = 7.50
+    /// ";
+    /// 
+    /// let mut story = read_story_from_string(content).unwrap();
+    /// 
+    /// assert!(story.set_variable("num_passengers", Variable::Int(5)).is_ok());
+    /// ```
+    /// 
+    /// Inferring type from input:
+    /// ```
+    /// # use inkling::{read_story_from_string, Variable};
+    /// # let content = "\
+    /// # VAR hunted_by_police = false
+    /// # VAR num_passengers = 0
+    /// # VAR price_of_ticket = 7.50
+    /// # ";
+    /// # let mut story = read_story_from_string(content).unwrap();
+    /// assert!(story.set_variable("price_of_ticket", 3.75).is_ok());
+    /// ```
+    /// 
+    /// Trying to assign another type of variable yields an error:
+    /// ```
+    /// # use inkling::{read_story_from_string, Variable};
+    /// # let content = "\
+    /// # VAR hunted_by_police = false
+    /// # VAR num_passengers = 0
+    /// # VAR price_of_ticket = 7.50
+    /// # ";
+    /// # let mut story = read_story_from_string(content).unwrap();
+    /// assert!(story.set_variable("hunted_by_police", 10).is_err());
+    /// ```
     pub fn set_variable<T: Into<Variable>>(
         &mut self,
         name: &str,
