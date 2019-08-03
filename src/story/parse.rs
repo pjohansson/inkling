@@ -13,24 +13,30 @@ use crate::{
     error::{KnotError, KnotNameError, LineErrorKind, LineParsingError, ParseError},
     knot::{parse_stitch_from_lines, read_knot_name, read_stitch_name, Knot, KnotSet, Stitch},
     line::{parse_variable, Variable},
+    story::VariableSet,
 };
 
 use std::collections::HashMap;
 
-/// Read an Ink story from a string and return the knot data.
-pub fn read_story_content_from_string(content: &str) -> Result<KnotSet, ParseError> {
+/// Read an Ink story from a string and return knots along with the metadata.
+pub fn read_story_content_from_string(
+    content: &str,
+) -> Result<(KnotSet, VariableSet, Vec<String>), ParseError> {
     let all_lines = content.lines().collect::<Vec<_>>();
     let content_lines = remove_empty_and_comment_lines(all_lines);
 
     let (prelude_lines, knot_lines) = split_lines_into_prelude_and_knots(&content_lines);
-    let (_, root_content) = split_prelude_into_metadata_and_text(&prelude_lines);
+    let (metadata_lines, root_content) = split_prelude_into_metadata_and_text(&prelude_lines);
 
     let root_knot = parse_root_knot_from_lines(root_content)?;
     let mut knots = parse_knots_from_lines(knot_lines)?;
 
+    let tags = parse_global_tags(&metadata_lines);
+    let variables = parse_global_variables(&metadata_lines)?;
+
     knots.insert(ROOT_KNOT_NAME.to_string(), root_knot);
 
-    Ok(knots)
+    Ok((knots, variables, tags))
 }
 
 /// Parse all knots from a set of lines.
@@ -692,4 +698,51 @@ Second line.
             format!("{:?}", knot_no_tags.stitches)
         );
     }
+
+    #[test]
+    fn reading_story_data_gets_unordered_variables_in_prelude() {
+        let content = "
+# Random tag
+VAR counter = 0
+# Random tag
+// Line comment
+VAR hazardous = true
+
+-> introduction
+";
+
+        let (_, variables, _) = read_story_content_from_string(content).unwrap();
+
+        assert_eq!(variables.len(), 2);
+        assert!(variables.contains_key("counter"));
+        assert!(variables.contains_key("hazardous"));
+    }
+
+    #[test]
+    fn variables_after_first_line_of_text_are_ignored() {
+        let content = "
+VAR counter = 0
+
+-> introduction
+VAR hazardous = true
+";
+
+        let (_, variables, _) = read_story_content_from_string(content).unwrap();
+
+        assert_eq!(variables.len(), 1);
+        assert!(variables.contains_key("counter"));
+    }
+
+    #[test]
+    fn no_variables_give_empty_set() {
+        let content = "
+// Just a line comment!
+-> introduction
+";
+
+        let (_, variables, _) = read_story_content_from_string(content).unwrap();
+
+        assert_eq!(variables.len(), 0);
+    }
+
 }

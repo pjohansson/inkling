@@ -8,6 +8,7 @@ use crate::{
         get_empty_knot_counts, get_mut_stitch, get_num_visited, validate_addresses_in_knots,
         Address, KnotSet,
     },
+    line::Variable,
     process::{get_fallback_choices, prepare_choices_for_user, process_buffer},
     story::read_story_content_from_string,
 };
@@ -16,6 +17,8 @@ use crate::{
 use serde::{Deserialize, Serialize};
 
 use std::collections::HashMap;
+
+pub type VariableSet = HashMap<String, Variable>;
 
 #[derive(Clone, Debug, PartialEq)]
 /// Single line of text in a story, ready to display.
@@ -466,11 +469,11 @@ impl Story {
 /// let story: Story = read_story_from_string(content).unwrap();
 /// ```
 pub fn read_story_from_string(string: &str) -> Result<Story, ParseError> {
-    let mut knots = read_story_content_from_string(string)?;
+    let (mut knots, variables, _) = read_story_content_from_string(string)?;
 
     let data = FollowData {
         knot_visit_counts: get_empty_knot_counts(&knots),
-        variables: HashMap::new(),
+        variables,
     };
 
     validate_addresses_in_knots(&mut knots, &data)?;
@@ -1239,6 +1242,31 @@ We arrived into Almaty at 9.45pm exactly.
         assert_eq!(get_num_visited(&at_home, &story.data).unwrap(), 0);
     }
 
+
+    #[test]
+    fn reading_story_from_string_sets_global_variables() {
+        let content = "
+
+VAR counter = 0
+VAR hazardous = true
+VAR warning_message = \"ADVARSEL\"
+
+";
+
+        let story = read_story_from_string(content).unwrap();
+
+        let variables = &story.data.variables;
+        assert_eq!(variables.len(), 3);
+
+        assert_eq!(variables.get("counter").unwrap(), &Variable::Int(0));
+        assert_eq!(variables.get("hazardous").unwrap(), &Variable::Bool(true));
+
+        assert_eq!(
+            variables.get("warning_message").unwrap(),
+            &Variable::String("ADVARSEL".to_string())
+        );
+    }
+
     #[test]
     fn knots_with_non_default_root_stitch_gets_validated_addresses_that_point_to_them() {
         let content = "
@@ -1314,7 +1342,7 @@ After an arduous journey we arrived back in Almaty.
 
 ";
         let mut story = read_story_from_string(content).unwrap();
-        story.move_to("back_in_almaty", None);
+        story.move_to("back_in_almaty", None).unwrap();
 
         let mut line_buffer = Vec::new();
 
