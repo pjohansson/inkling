@@ -412,18 +412,18 @@ impl Story {
         get_num_visited(&address, &self.data).map_err(|err| err.into())
     }
 
-    /// Retrieve the global tags associated with the story. 
-    /// 
-    /// # Example 
+    /// Retrieve the global tags associated with the story.
+    ///
+    /// # Example
     /// ```
     /// # use inkling::read_story_from_string;
     /// let content = "\
     /// ## title: inkling
     /// ## author: Petter Johansson
     /// ";
-    /// 
+    ///
     /// let story = read_story_from_string(content).unwrap();
-    /// 
+    ///
     /// let tags = story.get_story_tags();
     /// assert_eq!(&tags[0], "title: inkling");
     /// assert_eq!(&tags[1], "author: Petter Johansson");
