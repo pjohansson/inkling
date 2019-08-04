@@ -42,7 +42,7 @@ Currently and likely for the foreseeable future the feature set is very limited 
 *   Choices, of sticky and non-sticky kinds, plus fallback choices
 *   Nesting choices and gather points
 *   Line text alternative sequences (sequences, cycle, once-only) and conditions
-*   Simple conditionals for which choices are presented, but only for checking against how many times knots have been visited
+*   Conditionals for displaying text and choices to user
 *   Tagging of lines and choices
 *   Optional: De/serialization of finished stories through `serde`
 
