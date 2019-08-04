@@ -34,6 +34,11 @@
 *   Add `get_variable`/`set_variable` methods for `Story` with which to inspect or modify global variables.
 *   Parse global tags for the story. Can be retrieved with the `get_story_tags` method for `Story`.
 
+## 0.11.7
+
+*   Variables can now be used in conditions.
+*   Add `equal_to`, `greater_than` and `less_than` methods for `Variable`.
+
 # 0.10.0
 
 *   Add stitches to organize stories through.

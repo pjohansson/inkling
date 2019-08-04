@@ -114,14 +114,16 @@
 //!                 except shuffle)
 //! *   Conditions: Nested, `and`/`or` linking.
 //! *   Reading:    Address validation for diverts and conditions
-//! *   Variables:  Used as text in sentences, can modify from calling program
+//! *   Variables:  Used as text in sentences and in conditions, can modify from calling program
 //!
 //! Hopefully coming:
 //!
 //! *   API:        Use `resume` method as main story processing method instead
 //!                 of `resume_with_choice` (should be `make_choice`, then `resume`)
-//! *   Variables:  Modify in the Ink script, use in conditions
+//! *   Variables:  Modify in the Ink script
 //! *   Reading:    Include statements in files
+//! *   Validation: Checking conditions for incompatible variables, namespace collisions 
+//!                 between knots, stitches and variables
 //!
 //! Unlikely features:
 //!
