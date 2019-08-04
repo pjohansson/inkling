@@ -10,6 +10,8 @@ use crate::{
     story::Choice,
 };
 
+use std::cmp::Ordering;
+
 #[derive(Clone, Debug)]
 /// Errors from running a story.
 ///
@@ -43,6 +45,12 @@ pub enum InklingError {
     },
     /// Used a variable name that is not present in the story as an input variable.
     InvalidVariable { name: String },
+    /// Tried to compare variables of incomparable types to each other.
+    InvalidVariableComparison {
+        from: Variable,
+        to: Variable,
+        comparison: Ordering,
+    },
     /// No choices or fallback choices were available in a story branch at the given address.
     OutOfChoices { address: Address },
     /// No content was available for the story to continue from.
@@ -188,6 +196,28 @@ impl fmt::Display for InklingError {
                 "Invalid variable: no variable with  name '{}' exists in the story",
                 name
             ),
+            InvalidVariableComparison {
+                from,
+                to,
+                comparison,
+            } => {
+                let operator = match comparison {
+                    Ordering::Equal => "==",
+                    Ordering::Less => ">",
+                    Ordering::Greater => "<",
+                };
+
+                write!(
+                    f,
+                    "Cannot compare variable of type '{}' to '{}' using the '{op}' operator \
+                     (comparison was: '{:?} {op} {:?}')",
+                    from.variant_string(),
+                    to.variant_string(),
+                    from,
+                    to,
+                    op = operator
+                )
+            }
             OutOfChoices {
                 address: Address::Validated(AddressKind::Location { knot, stitch }),
             } => write!(

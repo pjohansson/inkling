@@ -9,6 +9,8 @@ use crate::{
 #[cfg(feature = "serde_support")]
 use serde::{Deserialize, Serialize};
 
+use std::cmp::Ordering;
+
 #[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
 /// Variable in a story.
@@ -21,6 +23,29 @@ use serde::{Deserialize, Serialize};
 /// make perfect sense to print: a divert to another location, not as much since it
 /// has no meaning in text, just in the story internals. Take care not to use variables
 /// that contain divert addresses in the text flow.
+///
+/// # Type safety
+/// As the enum consists of variants, the compiler cannot enforce static type checking
+/// of `Variable`s. However, these variables *are* supposed to be static. Type safety
+/// is enforced at runtime when values are updated.
+///
+/// # Examples
+/// Any variant can be constructed (although `Address` and `Divert` are typically meant to
+/// be created by the story processor, not the user):
+/// ```
+/// # use inkling::Variable;
+/// let variable = Variable::Int(5);
+/// let other_variable = Variable::String("I love you!".to_string());
+/// ```
+///
+/// The `From` trait is implemented for integer, floating point, boolean and string types.
+/// ```
+/// # use inkling::Variable;
+/// assert_eq!(Variable::from(5), Variable::Int(5));
+/// assert_eq!(Variable::from(3.0), Variable::Float(3.0));
+/// assert_eq!(Variable::from(true), Variable::Bool(true));
+/// assert_eq!(Variable::from("💜"), Variable::String("💜".to_string()));
+/// ```
 pub enum Variable {
     /// Address to a stitch or other variable.
     ///
@@ -88,6 +113,38 @@ impl Variable {
     ///
     /// Variables are type static: assigning a new variable type (variant) is not allowed.
     /// This is checked before the assignment is made and an error will be raised.
+    ///
+    /// The given variable type is `Into<Variable>` which is implemented for all integer,
+    /// floating point, boolean and string types.
+    ///
+    /// # Examples
+    ///
+    /// Assigning a new value:
+    /// ```
+    /// # use inkling::Variable;
+    /// let mut variable = Variable::Bool(true);
+    ///
+    /// variable.assign(Variable::Bool(false));
+    /// assert_eq!(variable, Variable::Bool(false));
+    /// ```
+    ///
+    /// Inferring input type:
+    /// ```
+    /// # use inkling::Variable;
+    /// let mut variable = Variable::Float(13.3);
+    ///
+    /// variable.assign(5.0);
+    /// assert_eq!(variable, Variable::Float(5.0));
+    /// ```
+    ///
+    /// A new variable type cannot be assigned (not even for numeric conversions):
+    /// ```
+    /// # use inkling::Variable;
+    /// let mut variable = Variable::Int(10);
+    ///
+    /// assert!(variable.assign(Variable::Bool(true)).is_err());
+    /// assert!(variable.assign(Variable::Float(5.0)).is_err());
+    /// ```
     pub fn assign<T: Into<Variable>>(&mut self, value: T) -> Result<(), InklingError> {
         let inferred_value = value.into();
 
@@ -109,6 +166,127 @@ impl Variable {
         *self = inferred_value;
 
         Ok(())
+    }
+
+    /// Assert whether a variable is equal to another.
+    ///
+    /// Different variable variants cannot be compared to each other, with one exception:
+    /// integer and floating point numbers can be compared. If an integer is compared to
+    /// a floating point number the integer will be cast to a float, then the comparison
+    /// is made.
+    ///
+    /// # Examples
+    /// Valid comparisons:
+    /// ```
+    /// # use inkling::Variable;
+    /// assert!(Variable::Int(5).equal_to(&Variable::Int(5)).unwrap());
+    /// assert!(Variable::Int(5).equal_to(&Variable::Float(5.0)).unwrap());
+    /// assert!(!Variable::Int(5).equal_to(&Variable::Float(5.1)).unwrap());
+    /// assert!(!Variable::Bool(true).equal_to(&Variable::Bool(false)).unwrap());
+    /// ```
+    ///
+    /// Invalid comparisons between types:
+    /// ```
+    /// # use inkling::Variable;
+    /// assert!(Variable::Int(1).equal_to(&Variable::Bool(true)).is_err());
+    /// assert!(Variable::String("1".to_string()).equal_to(&Variable::Int(1)).is_err());
+    /// ```
+    pub fn equal_to(&self, other: &Variable) -> Result<bool, InklingError> {
+        use Variable::*;
+
+        match (&self, &other) {
+            (Int(val1), Int(val2)) => Ok(val1.eq(val2)),
+            (Int(val1), Float(val2)) => Ok((*val1 as f32).eq(val2)),
+            (Float(val1), Int(val2)) => Ok(val1.eq(&(*val2 as f32))),
+            (Float(val1), Float(val2)) => Ok(val1.eq(val2)),
+            (Variable::String(val1), Variable::String(val2)) => Ok(val1.eq(val2)),
+            (Bool(val1), Bool(val2)) => Ok(val1.eq(val2)),
+            (Address(val1), Address(val2)) => Ok(val1.eq(val2)),
+            (Divert(val1), Divert(val2)) => Ok(val1.eq(val2)),
+            _ => Err(InklingError::InvalidVariableComparison {
+                from: self.clone(),
+                to: other.clone(),
+                comparison: Ordering::Equal,
+            }),
+        }
+    }
+
+    /// Assert whether a numeric variable value is greater than that of another.
+    ///
+    /// This operation is only valid for `Int` and `Float` variants. Those variants can
+    /// be compared to each other. If an integer is compared to a floating point number
+    /// the integer will be cast to a float, then the comparison is made.
+    ///
+    /// # Examples
+    /// Valid comparisons between numbers:
+    /// ```
+    /// # use inkling::Variable;
+    /// assert!(Variable::Int(6).greater_than(&Variable::Int(5)).unwrap());
+    /// assert!(!Variable::Int(4).greater_than(&Variable::Int(5)).unwrap());
+    /// assert!(Variable::Int(5).greater_than(&Variable::Float(4.9)).unwrap());
+    /// assert!(Variable::Float(5.1).greater_than(&Variable::Int(5)).unwrap());
+    /// ```
+    ///
+    /// Invalid comparisons between non-numbers:
+    /// ```
+    /// # use inkling::Variable;
+    /// assert!(Variable::Int(1).greater_than(&Variable::Bool(false)).is_err());
+    /// assert!(Variable::Bool(true).greater_than(&Variable::Bool(false)).is_err());
+    /// assert!(Variable::from("hiya").greater_than(&Variable::from("hi")).is_err());
+    /// ```
+    pub fn greater_than(&self, other: &Variable) -> Result<bool, InklingError> {
+        use Variable::*;
+
+        match (&self, &other) {
+            (Int(val1), Int(val2)) => Ok(val1.gt(val2)),
+            (Int(val1), Float(val2)) => Ok((*val1 as f32).gt(val2)),
+            (Float(val1), Int(val2)) => Ok(val1.gt(&(*val2 as f32))),
+            (Float(val1), Float(val2)) => Ok(val1.gt(val2)),
+            _ => Err(InklingError::InvalidVariableComparison {
+                from: self.clone(),
+                to: other.clone(),
+                comparison: Ordering::Less,
+            }),
+        }
+    }
+
+    /// Assert whether a numeric variable value is less than that of another.
+    ///
+    /// This operation is only valid for `Int` and `Float` variants. Those variants can
+    /// be compared to each other. If an integer is compared to a floating point number
+    /// the integer will be cast to a float, then the comparison is made.
+    ///
+    /// # Examples
+    /// Valid comparisons between numbers:
+    /// ```
+    /// # use inkling::Variable;
+    /// assert!(Variable::Int(5).less_than(&Variable::Int(6)).unwrap());
+    /// assert!(!Variable::Int(5).less_than(&Variable::Int(4)).unwrap());
+    /// assert!(Variable::Int(5).less_than(&Variable::Float(5.1)).unwrap());
+    /// assert!(Variable::Float(4.9).less_than(&Variable::Int(5)).unwrap());
+    /// ```
+    ///
+    /// Invalid comparisons between non-numbers:
+    /// ```
+    /// # use inkling::Variable;
+    /// assert!(Variable::Int(0).less_than(&Variable::Bool(true)).is_err());
+    /// assert!(Variable::Bool(false).less_than(&Variable::Bool(true)).is_err());
+    /// assert!(Variable::from("hi").less_than(&Variable::from("hiya")).is_err());
+    /// ```
+    pub fn less_than(&self, other: &Variable) -> Result<bool, InklingError> {
+        use Variable::*;
+
+        match (&self, &other) {
+            (Int(val1), Int(val2)) => Ok(val1.lt(val2)),
+            (Int(val1), Float(val2)) => Ok((*val1 as f32).lt(val2)),
+            (Float(val1), Int(val2)) => Ok(val1.lt(&(*val2 as f32))),
+            (Float(val1), Float(val2)) => Ok(val1.lt(val2)),
+            _ => Err(InklingError::InvalidVariableComparison {
+                from: self.clone(),
+                to: other.clone(),
+                comparison: Ordering::Less,
+            }),
+        }
     }
 
     /// Get string representation of the variant.
@@ -331,5 +509,132 @@ mod tests {
         assert!(variable
             .assign(Variable::String("help".to_string()))
             .is_err());
+    }
+
+    #[test]
+    fn numeric_variables_can_compare_to_each_other() {
+        let int0 = Variable::Int(0);
+        let int1 = Variable::Int(1);
+
+        assert!(int1.equal_to(&int1).unwrap());
+        assert!(!int1.equal_to(&int0).unwrap());
+
+        assert!(int0.less_than(&int1).unwrap());
+        assert!(!int0.less_than(&int0).unwrap());
+        assert!(!int1.less_than(&int0).unwrap());
+
+        assert!(int1.greater_than(&int0).unwrap());
+        assert!(!int1.greater_than(&int1).unwrap());
+        assert!(!int0.greater_than(&int1).unwrap());
+
+        let float0 = Variable::Float(0.0);
+        let float1 = Variable::Float(1.0);
+
+        assert!(float1.equal_to(&float1).unwrap());
+        assert!(!float1.equal_to(&float0).unwrap());
+
+        assert!(float0.less_than(&float1).unwrap());
+        assert!(!float0.less_than(&float0).unwrap());
+        assert!(!float1.less_than(&float0).unwrap());
+
+        assert!(float1.greater_than(&float0).unwrap());
+        assert!(!float1.greater_than(&float1).unwrap());
+        assert!(!float0.greater_than(&float1).unwrap());
+    }
+
+    #[test]
+    fn integer_and_floating_point_values_can_compare_to_each_other() {
+        assert!(Variable::Int(5).equal_to(&Variable::Float(5.0)).unwrap());
+        assert!(Variable::Int(5).less_than(&Variable::Float(5.5)).unwrap());
+        assert!(Variable::Float(5.5)
+            .greater_than(&Variable::Int(5))
+            .unwrap());
+    }
+
+    #[test]
+    fn string_variables_can_do_equality_comparison_only() {
+        let string1 = Variable::String("Hello, World!".to_string());
+        let string2 = Variable::String("Hello!".to_string());
+
+        assert!(string1.equal_to(&string1).unwrap());
+        assert!(!string1.equal_to(&string2).unwrap());
+
+        assert!(string1.less_than(&string2).is_err());
+        assert!(string1.greater_than(&string2).is_err());
+    }
+
+    #[test]
+    fn boolean_variables_can_do_equality_comparison_only() {
+        let true_var = Variable::Bool(true);
+        let false_var = Variable::Bool(false);
+
+        assert!(true_var.equal_to(&true_var).unwrap());
+        assert!(!true_var.equal_to(&false_var).unwrap());
+
+        assert!(true_var.less_than(&false_var).is_err());
+        assert!(true_var.greater_than(&false_var).is_err());
+    }
+
+    #[test]
+    fn address_and_divert_variables_can_do_equality_against_their_own_variant() {
+        let address1 = Variable::Address(Address::Raw("address1".to_string()));
+        let address2 = Variable::Address(Address::Raw("address2".to_string()));
+
+        assert!(address1.equal_to(&address1).unwrap());
+        assert!(!address1.equal_to(&address2).unwrap());
+        assert!(address1.less_than(&address2).is_err());
+        assert!(address1.greater_than(&address2).is_err());
+
+        let divert1 = Variable::Divert(Address::Raw("address1".to_string()));
+        let divert2 = Variable::Divert(Address::Raw("address2".to_string()));
+
+        assert!(divert1.equal_to(&divert1).unwrap());
+        assert!(!divert1.equal_to(&divert2).unwrap());
+        assert!(divert1.less_than(&divert2).is_err());
+        assert!(divert1.greater_than(&divert2).is_err());
+    }
+
+    #[test]
+    fn except_int_and_float_variants_cannot_compare_to_other() {
+        let int = Variable::Int(5);
+        let float = Variable::Float(6.0);
+        let string = Variable::String("Hello".to_string());
+        let boolean = Variable::Bool(true);
+        let address = Variable::Address(Address::Raw("root".to_string()));
+        let divert = Variable::Divert(Address::Raw("root".to_string()));
+
+        assert!(int.equal_to(&string).is_err());
+        assert!(int.equal_to(&boolean).is_err());
+        assert!(int.equal_to(&address).is_err());
+        assert!(int.equal_to(&divert).is_err());
+
+        assert!(float.equal_to(&string).is_err());
+        assert!(float.equal_to(&boolean).is_err());
+        assert!(float.equal_to(&address).is_err());
+        assert!(float.equal_to(&divert).is_err());
+
+        assert!(string.equal_to(&int).is_err());
+        assert!(string.equal_to(&float).is_err());
+        assert!(string.equal_to(&boolean).is_err());
+        assert!(string.equal_to(&address).is_err());
+        assert!(string.equal_to(&divert).is_err());
+
+        assert!(boolean.equal_to(&int).is_err());
+        assert!(boolean.equal_to(&float).is_err());
+        assert!(boolean.equal_to(&string).is_err());
+        assert!(boolean.equal_to(&address).is_err());
+        assert!(boolean.equal_to(&divert).is_err());
+
+        assert!(address.equal_to(&int).is_err());
+        assert!(address.equal_to(&float).is_err());
+        assert!(address.equal_to(&string).is_err());
+        assert!(address.equal_to(&boolean).is_err());
+        assert!(address.equal_to(&divert).is_err());
+
+        assert!(divert.equal_to(&int).is_err());
+        assert!(divert.equal_to(&float).is_err());
+        assert!(divert.equal_to(&string).is_err());
+        assert!(divert.equal_to(&boolean).is_err());
+        assert!(divert.equal_to(&address).is_err());
     }
 }
