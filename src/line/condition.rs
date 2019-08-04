@@ -33,6 +33,7 @@
 use crate::{
     error::InvalidAddressError,
     knot::{Address, ValidateAddressData, ValidateAddresses},
+    line::Variable,
 };
 
 use std::{cmp::Ordering, error::Error};
@@ -97,6 +98,15 @@ pub enum StoryCondition {
         rhs_value: i32,
         #[cfg_attr(feature = "serde_support", serde(with = "OrderingDerive"))]
         ordering: Ordering,
+    },
+    Comparison {
+        lhs_variable: Variable,
+        rhs_variable: Variable,
+        #[cfg_attr(feature = "serde_support", serde(with = "OrderingDerive"))]
+        ordering: Ordering,
+    },
+    IsTrueLike {
+        variable: Variable,
     },
 }
 
@@ -252,6 +262,14 @@ impl ValidateAddresses for StoryCondition {
             StoryCondition::NumVisits {
                 ref mut address, ..
             } => address.validate(current_address, data),
+            StoryCondition::Comparison {
+                ref mut lhs_variable,
+                ref mut rhs_variable,
+                ..
+            } => lhs_variable
+                .validate(current_address, data)
+                .and_then(|_| rhs_variable.validate(current_address, data)),
+            StoryCondition::IsTrueLike { variable } => variable.validate(current_address, data),
         }
     }
 
@@ -259,6 +277,12 @@ impl ValidateAddresses for StoryCondition {
     fn all_addresses_are_valid(&self) -> bool {
         match self {
             StoryCondition::NumVisits { address, .. } => address.all_addresses_are_valid(),
+            StoryCondition::Comparison {
+                lhs_variable,
+                rhs_variable,
+                ..
+            } => lhs_variable.all_addresses_are_valid() && rhs_variable.all_addresses_are_valid(),
+            StoryCondition::IsTrueLike { variable } => variable.all_addresses_are_valid(),
         }
     }
 }
