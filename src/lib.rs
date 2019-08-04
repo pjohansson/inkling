@@ -122,7 +122,7 @@
 //!                 of `resume_with_choice` (should be `make_choice`, then `resume`)
 //! *   Variables:  Modify in the Ink script
 //! *   Reading:    Include statements in files
-//! *   Validation: Checking conditions for incompatible variables, namespace collisions 
+//! *   Validation: Checking conditions for incompatible variables, namespace collisions
 //!                 between knots, stitches and variables
 //!
 //! Unlikely features:

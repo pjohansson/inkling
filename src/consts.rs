@@ -94,4 +94,5 @@ pub const INCLUDE_MARKER: &'static str = "INCLUDE";
 pub const VARIABLE_MARKER: &'static str = "VAR";
 
 /// Names which cannot be used by variables, knots or stitches.
-pub const RESERVED_KEYWORDS: &[&'static str] = &["ELSE", "NOT", "TRUE", "FALSE", "AND", "OR"];
+pub const RESERVED_KEYWORDS: &[&'static str] =
+    &["ELSE", "NOT", "TRUE", "FALSE", "AND", "OR", "FUNCTION", "RETURN"];
