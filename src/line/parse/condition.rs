@@ -4,13 +4,12 @@ use std::cmp::Ordering;
 
 use crate::{
     error::{BadCondition, BadConditionKind, LineParsingError},
-    knot::Address,
     line::{
         parse::{
-            split_line_at_separator_braces, split_line_at_separator_parenthesis,
+            parse_variable, split_line_at_separator_braces, split_line_at_separator_parenthesis,
             split_line_into_groups_braces, LinePart,
         },
-        Condition, ConditionBuilder, ConditionItem, ConditionKind, StoryCondition,
+        Condition, ConditionBuilder, ConditionItem, ConditionKind, StoryCondition, Variable,
     },
 };
 
@@ -362,49 +361,43 @@ fn parse_story_condition(line: &str) -> Result<(StoryCondition, bool), BadCondit
             let head = line.get(..index).unwrap().trim();
             let tail = line.get(index + symbol_length..).unwrap().trim();
 
-            let address = get_raw_address(head)?;
+            let lhs_variable = parse_condition_variable(head)?;
 
-            let rhs_value = tail
-                .parse::<i32>()
-                .map_err(|_| BadCondition::from_kind(tail, BadConditionKind::BadValue))?
-                + adjustment;
+            let mut rhs_variable = parse_condition_variable(tail)?;
+
+            if adjustment != 0 {
+                match rhs_variable {
+                    Variable::Int(ref mut value) => *value += adjustment,
+                    Variable::Float(ref mut value) => *value += adjustment as f32,
+                    _ => (),
+                }
+            }
 
             Ok((
-                StoryCondition::NumVisits {
-                    address,
-                    rhs_value,
+                StoryCondition::Comparison {
+                    lhs_variable,
+                    rhs_variable,
                     ordering,
                 },
                 negate,
             ))
         }
         None => {
-            let address = get_raw_address(line)?;
+            let variable = parse_condition_variable(line)?;
 
-            Ok((
-                StoryCondition::NumVisits {
-                    address,
-                    rhs_value: 0,
-                    ordering: Ordering::Greater,
-                },
-                false,
-            ))
+            Ok((StoryCondition::IsTrueLike { variable }, false))
         }
     }
 }
 
-/// Parse the condition `Address`.
-fn get_raw_address(line: &str) -> Result<Address, BadCondition> {
-    let words = line.trim().split_whitespace().collect::<Vec<_>>();
-
-    if words.len() == 1 {
-        Ok(Address::Raw(words[0].to_string()))
-    } else {
-        Err(BadCondition::from_kind(
-            line,
-            BadConditionKind::CouldNotParse,
-        ))
-    }
+/// Parse a variable from a string and map any error to `BadCondition`
+fn parse_condition_variable(content: &str) -> Result<Variable, BadCondition> {
+    parse_variable(content).map_err(|err| {
+        BadCondition::from_kind(
+            content,
+            BadConditionKind::CouldNotParseVariable { err: Box::new(err) },
+        )
+    })
 }
 
 /// Verify that the head has no link and the tail has only `and` or `or` links.
@@ -447,6 +440,8 @@ fn get_unmatched_error(line: &str) -> BadCondition {
 mod tests {
     use super::*;
 
+    use crate::knot::Address;
+
     #[test]
     fn parse_line_condition_returns_condition_if_true_and_else_content() {
         let (condition, true_content, false_content) =
@@ -472,8 +467,14 @@ mod tests {
         assert_eq!(condition.items.len(), 1);
         assert!(condition.items[0].is_and());
 
-        assert_eq!(condition.story_condition(), &parse_story_condition("knot > 0").unwrap().0);
-        assert_eq!(condition.items[0].story_condition(), &parse_story_condition("other_knot > 0").unwrap().0);
+        assert_eq!(
+            condition.story_condition(),
+            &parse_story_condition("knot > 0").unwrap().0
+        );
+        assert_eq!(
+            condition.items[0].story_condition(),
+            &parse_story_condition("other_knot > 0").unwrap().0
+        );
     }
 
     #[test]
@@ -495,14 +496,6 @@ mod tests {
         let inversed_condition_word = parse_condition("knot == 2").unwrap();
 
         assert_eq!(inversed_condition_marker, inversed_condition_word);
-    }
-
-    #[test]
-    fn equivalence_between_specifying_greater_than_zero_conditions_and_implying() {
-        let condition_specified = parse_condition(&mut "knot > 0 and other_knot > 0").unwrap();
-        let condition_implied = parse_condition(&mut "knot and other_knot").unwrap();
-
-        assert_eq!(condition_specified, condition_implied);
     }
 
     #[test]
@@ -567,102 +560,210 @@ mod tests {
         let condition = parse_condition(&mut line).unwrap();
 
         assert!(condition.root.negate);
-        assert_eq!(condition.story_condition(), &parse_story_condition("knot_name > 2").unwrap().0);
+        assert_eq!(
+            condition.story_condition(),
+            &parse_story_condition("knot_name > 2").unwrap().0
+        );
     }
 
     #[test]
-    fn parsing_single_larger_than_story_condition() {
+    fn parsing_story_condition_with_single_word_returns_is_true_like_type() {
+        let mut line = "knot_name".to_string();
+
+        let (condition, _) = parse_story_condition(&mut line).unwrap();
+
+        match &condition {
+            StoryCondition::IsTrueLike { variable } => {
+                assert_eq!(
+                    variable,
+                    &Variable::Address(Address::Raw("knot_name".to_string()))
+                );
+            }
+            other => panic!("expected `StoryCondition::IsTrueLike` but got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn parsing_story_condition_with_comparison_returns_comparison_type() {
         let mut line = "knot_name > 2".to_string();
+
         let (condition, _) = parse_story_condition(&mut line).unwrap();
 
         match &condition {
-            StoryCondition::NumVisits {
-                address,
-                rhs_value,
-                ordering,
-            } => {
-                assert_eq!(address, &Address::Raw("knot_name".to_string()));
-                assert_eq!(*rhs_value, 2);
-                assert_eq!(*ordering, Ordering::Greater);
-            }
-            _ => panic!(),
+            StoryCondition::Comparison { .. } => (),
+            other => panic!("expected `StoryCondition::Comparison` but got {:?}", other),
         }
     }
 
     #[test]
-    fn parsing_single_less_than_story_condition() {
-        let mut line = "knot_name < 2".to_string();
-        let (condition, _) = parse_story_condition(&mut line).unwrap();
+    fn parsing_story_condition_with_comparison_sets_correct_ordering_operator() {
+        let mut line = "knot_name > 2".to_string();
 
-        match &condition {
-            StoryCondition::NumVisits {
-                address,
-                rhs_value,
-                ordering,
-            } => {
-                assert_eq!(address, &Address::Raw("knot_name".to_string()));
-                assert_eq!(*rhs_value, 2);
-                assert_eq!(*ordering, Ordering::Less);
-            }
-            _ => panic!(),
+        match parse_story_condition(&mut line).unwrap().0 {
+            StoryCondition::Comparison { ordering, .. } => assert_eq!(ordering, Ordering::Greater),
+            other => panic!("expected `StoryCondition::Comparison` but got {:?}", other),
         }
-    }
 
-    #[test]
-    fn parsing_single_equal_than_story_condition() {
-        let mut line = "knot_name == 2".to_string();
-        let (condition, _) = parse_story_condition(&mut line).unwrap();
-
-        match &condition {
-            StoryCondition::NumVisits {
-                address,
-                rhs_value,
-                ordering,
-            } => {
-                assert_eq!(address, &Address::Raw("knot_name".to_string()));
-                assert_eq!(*rhs_value, 2);
-                assert_eq!(*ordering, Ordering::Equal);
-            }
-            _ => panic!(),
-        }
-    }
-
-    #[test]
-    fn parsing_single_equal_to_or_greater_than_story_condition() {
         let mut line = "knot_name >= 2".to_string();
-        let (condition, _) = parse_story_condition(&mut line).unwrap();
 
-        match &condition {
-            StoryCondition::NumVisits {
-                address,
-                rhs_value,
-                ordering,
-            } => {
-                assert_eq!(address, &Address::Raw("knot_name".to_string()));
-                assert_eq!(*rhs_value, 1);
-                assert_eq!(*ordering, Ordering::Greater);
-            }
-            _ => panic!(),
+        match parse_story_condition(&mut line).unwrap().0 {
+            StoryCondition::Comparison { ordering, .. } => assert_eq!(ordering, Ordering::Greater),
+            other => panic!("expected `StoryCondition::Comparison` but got {:?}", other),
+        }
+
+        let mut line = "knot_name < 2".to_string();
+
+        match parse_story_condition(&mut line).unwrap().0 {
+            StoryCondition::Comparison { ordering, .. } => assert_eq!(ordering, Ordering::Less),
+            other => panic!("expected `StoryCondition::Comparison` but got {:?}", other),
+        }
+
+        let mut line = "knot_name <= 2".to_string();
+
+        match parse_story_condition(&mut line).unwrap().0 {
+            StoryCondition::Comparison { ordering, .. } => assert_eq!(ordering, Ordering::Less),
+            other => panic!("expected `StoryCondition::Comparison` but got {:?}", other),
+        }
+
+        let mut line = "knot_name == 2".to_string();
+
+        match parse_story_condition(&mut line).unwrap().0 {
+            StoryCondition::Comparison { ordering, .. } => assert_eq!(ordering, Ordering::Equal),
+            other => panic!("expected `StoryCondition::Comparison` but got {:?}", other),
+        }
+
+        let mut line = "knot_name != 2".to_string();
+
+        match parse_story_condition(&mut line).unwrap().0 {
+            StoryCondition::Comparison { ordering, .. } => assert_eq!(ordering, Ordering::Equal),
+            other => panic!("expected `StoryCondition::Comparison` but got {:?}", other),
         }
     }
 
     #[test]
-    fn parsing_single_equal_to_or_less_than_story_condition() {
-        let mut line = "knot_name <= 2".to_string();
+    fn parsing_story_condition_with_address_variables_sets_raw_addresses() {
+        let mut line = "knot_name > other_knot".to_string();
+
         let (condition, _) = parse_story_condition(&mut line).unwrap();
 
         match &condition {
-            StoryCondition::NumVisits {
-                address,
-                rhs_value,
-                ordering,
+            StoryCondition::Comparison {
+                ref lhs_variable,
+                ref rhs_variable,
+                ..
             } => {
-                assert_eq!(address, &Address::Raw("knot_name".to_string()));
-                assert_eq!(*rhs_value, 3);
-                assert_eq!(*ordering, Ordering::Less);
+                assert_eq!(
+                    lhs_variable,
+                    &Variable::Address(Address::Raw("knot_name".to_string()))
+                );
+                assert_eq!(
+                    rhs_variable,
+                    &Variable::Address(Address::Raw("other_knot".to_string()))
+                );
             }
-            _ => panic!(),
+            other => panic!("expected `StoryCondition::Comparison` but got {:?}", other),
         }
+    }
+
+    #[test]
+    fn parsing_story_condition_with_numbers_sets_numeric_variables() {
+        let mut line = "2 > 3.0".to_string();
+
+        let (condition, _) = parse_story_condition(&mut line).unwrap();
+
+        match &condition {
+            StoryCondition::Comparison {
+                ref lhs_variable,
+                ref rhs_variable,
+                ..
+            } => {
+                assert_eq!(lhs_variable, &Variable::Int(2));
+                assert_eq!(rhs_variable, &Variable::Float(3.0));
+            }
+            other => panic!("expected `StoryCondition::Comparison` but got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn parsing_story_condition_with_true_or_false_sets_boolean() {
+        let mut line = "true == false".to_string();
+
+        let (condition, _) = parse_story_condition(&mut line).unwrap();
+
+        match &condition {
+            StoryCondition::Comparison {
+                ref lhs_variable,
+                ref rhs_variable,
+                ..
+            } => {
+                assert_eq!(lhs_variable, &Variable::from(true));
+                assert_eq!(rhs_variable, &Variable::from(false));
+            }
+            other => panic!("expected `StoryCondition::Comparison` but got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn parsing_story_condition_with_strings_sets_string_variables() {
+        let mut line = "\"hello\" > \"world\"".to_string();
+
+        let (condition, _) = parse_story_condition(&mut line).unwrap();
+
+        match &condition {
+            StoryCondition::Comparison {
+                ref lhs_variable,
+                ref rhs_variable,
+                ..
+            } => {
+                assert_eq!(lhs_variable, &Variable::from("hello"));
+                assert_eq!(rhs_variable, &Variable::from("world"));
+            }
+            other => panic!("expected `StoryCondition::Comparison` but got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn parsing_story_condition_can_have_different_variable_types_on_each_side() {
+        let mut line = "knot > 2".to_string();
+
+        let (condition, _) = parse_story_condition(&mut line).unwrap();
+
+        match &condition {
+            StoryCondition::Comparison {
+                ref lhs_variable,
+                ref rhs_variable,
+                ..
+            } => {
+                assert_eq!(
+                    lhs_variable,
+                    &Variable::Address(Address::Raw("knot".to_string()))
+                );
+                assert_eq!(rhs_variable, &Variable::from(2));
+            }
+            other => panic!("expected `StoryCondition::Comparison` but got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn parsing_story_conditions_with_larger_than_or_equal_condition_adjusts_rhs_value() {
+        let mut line = "knot >= 2".to_string();
+        let (condition, _) = parse_story_condition(&mut line).unwrap();
+
+        let mut equiv_line = "knot > 1".to_string();
+        let (equiv_condition, _) = parse_story_condition(&mut equiv_line).unwrap();
+
+        assert_eq!(condition, equiv_condition);
+    }
+
+    #[test]
+    fn parsing_story_conditions_with_less_than_or_equal_condition_adjusts_rhs_value() {
+        let mut line = "knot <= 2".to_string();
+        let (condition, _) = parse_story_condition(&mut line).unwrap();
+
+        let mut equiv_line = "knot < 3".to_string();
+        let (equiv_condition, _) = parse_story_condition(&mut equiv_line).unwrap();
+
+        assert_eq!(condition, equiv_condition);
     }
 
     #[test]
@@ -685,24 +786,20 @@ mod tests {
         assert!(parse_story_condition("not superfluous > 3").is_err());
         assert!(parse_story_condition("no_value >").is_err());
         assert!(parse_story_condition("too_many_values > 3 2").is_err());
-        assert!(parse_story_condition("bad_value > s").is_err());
         assert!(parse_story_condition("").is_err());
     }
 
     #[test]
-    fn parsing_choice_condition_with_just_name_gives_larger_than_zero_visits_condition() {
+    fn parsing_choice_condition_with_just_name_gives_is_true_like_condition() {
         let mut line = "{knot_name} Hello, World!".to_string();
         let condition = parse_choice_condition(&mut line).unwrap().unwrap();
 
         match &condition.story_condition() {
-            StoryCondition::NumVisits {
-                address,
-                rhs_value,
-                ordering,
-            } => {
-                assert_eq!(address, &Address::Raw("knot_name".to_string()));
-                assert_eq!(*rhs_value, 0);
-                assert_eq!(*ordering, Ordering::Greater);
+            StoryCondition::IsTrueLike { variable } => {
+                assert_eq!(
+                    variable,
+                    &Variable::Address(Address::Raw("knot_name".to_string()))
+                );
             }
             _ => panic!(),
         }
@@ -738,18 +835,15 @@ mod tests {
 
         assert_eq!(condition.items.len(), 2);
 
-        match &condition.items[1].story_condition() {
-            StoryCondition::NumVisits {
-                address,
-                rhs_value,
-                ordering,
-            } => {
-                assert_eq!(address, &Address::Raw("third_knot".to_string()));
-                assert_eq!(*rhs_value, 0);
-                assert_eq!(*ordering, Ordering::Greater);
-            }
-            _ => panic!(),
-        }
+        assert_eq!(
+            condition.items[0].story_condition(),
+            &parse_story_condition("other_knot").unwrap().0
+        );
+
+        assert_eq!(
+            condition.items[1].story_condition(),
+            &parse_story_condition("third_knot").unwrap().0
+        );
     }
 
     #[test]

@@ -320,6 +320,7 @@ impl fmt::Display for BadCondition {
             ),
             BadValue => write!(f, "could not parse a number from the condition value"),
             CouldNotParse => write!(f, "incorrectly formatted condition"),
+            CouldNotParseVariable { .. } => write!(f, "could not parse variable in condition"),
             MultipleElseStatements => write!(f, "found multiple else statements in condition"),
             NoCondition => write!(f, "condition string was empty"),
             UnmatchedParenthesis => write!(f, "contained unmatched parenthesis"),
@@ -341,7 +342,7 @@ impl BadCondition {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Debug)]
 /// Variant of `Condition` parsing error.
 pub enum BadConditionKind {
     /// The first item in a condition was not `Blank` or any other item was not `And` or `Or`.
@@ -355,6 +356,8 @@ pub enum BadConditionKind {
     BadValue,
     /// Generic error.
     CouldNotParse,
+    /// Could not parse a variable.
+    CouldNotParseVariable { err: Box<LineErrorKind> },
     /// The line had multiple else statements.
     MultipleElseStatements,
     /// There was no condition in the line.
