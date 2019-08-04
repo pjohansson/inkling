@@ -472,29 +472,8 @@ mod tests {
         assert_eq!(condition.items.len(), 1);
         assert!(condition.items[0].is_and());
 
-        match &condition.story_condition() {
-            StoryCondition::NumVisits {
-                address,
-                rhs_value,
-                ordering,
-            } => {
-                assert_eq!(address, &Address::Raw("knot".to_string()));
-                assert_eq!(*rhs_value, 0);
-                assert_eq!(*ordering, Ordering::Greater);
-            }
-        }
-
-        match &condition.items[0].story_condition() {
-            StoryCondition::NumVisits {
-                address,
-                rhs_value,
-                ordering,
-            } => {
-                assert_eq!(address, &Address::Raw("other_knot".to_string()));
-                assert_eq!(*rhs_value, 0);
-                assert_eq!(*ordering, Ordering::Greater);
-            }
-        }
+        assert_eq!(condition.story_condition(), &parse_story_condition("knot > 0").unwrap().0);
+        assert_eq!(condition.items[0].story_condition(), &parse_story_condition("other_knot > 0").unwrap().0);
     }
 
     #[test]
@@ -588,18 +567,7 @@ mod tests {
         let condition = parse_condition(&mut line).unwrap();
 
         assert!(condition.root.negate);
-
-        match &condition.story_condition() {
-            StoryCondition::NumVisits {
-                address,
-                rhs_value,
-                ordering,
-            } => {
-                assert_eq!(address, &Address::Raw("knot_name".to_string()));
-                assert_eq!(*rhs_value, 2);
-                assert_eq!(*ordering, Ordering::Greater);
-            }
-        }
+        assert_eq!(condition.story_condition(), &parse_story_condition("knot_name > 2").unwrap().0);
     }
 
     #[test]
@@ -617,6 +585,7 @@ mod tests {
                 assert_eq!(*rhs_value, 2);
                 assert_eq!(*ordering, Ordering::Greater);
             }
+            _ => panic!(),
         }
     }
 
@@ -635,6 +604,7 @@ mod tests {
                 assert_eq!(*rhs_value, 2);
                 assert_eq!(*ordering, Ordering::Less);
             }
+            _ => panic!(),
         }
     }
 
@@ -653,6 +623,7 @@ mod tests {
                 assert_eq!(*rhs_value, 2);
                 assert_eq!(*ordering, Ordering::Equal);
             }
+            _ => panic!(),
         }
     }
 
@@ -671,6 +642,7 @@ mod tests {
                 assert_eq!(*rhs_value, 1);
                 assert_eq!(*ordering, Ordering::Greater);
             }
+            _ => panic!(),
         }
     }
 
@@ -689,6 +661,7 @@ mod tests {
                 assert_eq!(*rhs_value, 3);
                 assert_eq!(*ordering, Ordering::Less);
             }
+            _ => panic!(),
         }
     }
 
@@ -731,6 +704,7 @@ mod tests {
                 assert_eq!(*rhs_value, 0);
                 assert_eq!(*ordering, Ordering::Greater);
             }
+            _ => panic!(),
         }
     }
 
@@ -774,6 +748,7 @@ mod tests {
                 assert_eq!(*rhs_value, 0);
                 assert_eq!(*ordering, Ordering::Greater);
             }
+            _ => panic!(),
         }
     }
 
