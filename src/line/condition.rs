@@ -91,12 +91,39 @@ pub enum ConditionKind {
 #[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
 /// Condition to show some content in a story.
 pub enum StoryCondition {
+    /// Compares two variables from an `x > y` (or similar) comparative statement.
+    /// 
+    /// Variable `Address` variants will evaluate to their value (see the `as_value` 
+    /// method for [`Variable`][crate::line::Variable]), then compare using that.
+    /// 
+    /// Equal-to comparisons (`==`) can be made for all variable types. Less-than (`<`)
+    /// and greater-than (`>`) comparisons are only allowed for `Int` and `Float` variants.
+    /// An error is raised if another variant is used like that.
     Comparison {
+        /// Left hand side variable.
         lhs_variable: Variable,
+        /// Right hand side variable.
         rhs_variable: Variable,
+        /// Order comparison between the two.
+        /// 
+        /// Applies from the left hand side variable to the right hand side. Meaning that 
+        /// for eg. `lhs > rhs` the ordering will be `Ordering::Greater`.
         #[cfg_attr(feature = "serde_support", serde(with = "OrderingDerive"))]
         ordering: Ordering,
     },
+    /// Assert that the variable value is "true". 
+    /// 
+    /// This is evaluated differently for different variable types. 
+    /// 
+    /// *   Boolean variables evaluate directly.
+    /// *   Number variables (integers and floats) are `true` if they are non-zero.
+    /// *   String variables are `true` if they have non-zero length.
+    /// 
+    /// Variable `Address` variants will evaluate their value (see the `as_value` method 
+    /// for [`Variable`][crate::line::Variable]), then as above.
+    /// 
+    /// Variable `Divert` variants will never evaluate to `true` or `false`, but raise 
+    /// and error. They are not supposed to be used like this.
     IsTrueLike {
         variable: Variable,
     },
