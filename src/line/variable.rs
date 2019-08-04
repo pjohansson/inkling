@@ -109,6 +109,38 @@ impl Variable {
         }
     }
 
+    /// Return the value of a variable.
+    ///
+    /// If the variable is a number, boolean, string or divert a clone of the value is returned.
+    ///
+    /// If the variable is an address to another variable, we follow the address to that variable
+    /// and return the value of that. This evaluates nested variables to the end.
+    ///
+    /// If the address is to a location in the story, the number of times that location has
+    /// been visited is returned as an integer variable.
+    pub(crate) fn as_value(&self, data: &FollowData) -> Result<Variable, InklingError> {
+        match &self {
+            Variable::Address(address) => match address {
+                Address::Validated(AddressKind::Location { .. }) => {
+                    let num_visited = get_num_visited(address, data)?;
+                    Ok(Variable::Int(num_visited as i32))
+                }
+                Address::Validated(AddressKind::GlobalVariable { name }) => data
+                    .variables
+                    .get(name)
+                    .ok_or(InklingError::InvalidVariable {
+                        name: name.to_string(),
+                    })
+                    .and_then(|variable| variable.as_value(&data)),
+                other => Err(InternalError::UseOfUnvalidatedAddress {
+                    address: other.clone(),
+                }
+                .into()),
+            },
+            _ => Ok(self.clone()),
+        }
+    }
+
     /// Assign a new value to the variable.
     ///
     /// Variables are type static: assigning a new variable type (variant) is not allowed.
@@ -396,6 +428,104 @@ mod tests {
             knot_visit_counts,
             variables,
         }
+    }
+
+    #[test]
+    fn getting_value_from_all_non_address_variables_returns_the_variable() {
+        let data = mock_follow_data(&[], &[]);
+
+        assert_eq!(
+            Variable::from(5).as_value(&data).unwrap(),
+            Variable::from(5)
+        );
+
+        assert_eq!(
+            Variable::from(5.0).as_value(&data).unwrap(),
+            Variable::from(5.0)
+        );
+
+        assert_eq!(
+            Variable::from("hiya").as_value(&data).unwrap(),
+            Variable::from("hiya")
+        );
+
+        assert_eq!(
+            Variable::from(true).as_value(&data).unwrap(),
+            Variable::from(true)
+        );
+
+        let divert = Variable::Divert(Address::Raw("tripoli".to_string()));
+        assert_eq!(divert.as_value(&data).unwrap(), divert);
+    }
+
+    #[test]
+    fn getting_value_from_address_variable_of_location_gets_number_of_visits() {
+        let data = mock_follow_data(
+            &[("tripoli", "cinema", 0), ("addis_ababa", "with_family", 3)],
+            &[],
+        );
+
+        let variable_one =
+            Variable::Address(Address::from_parts_unchecked("tripoli", Some("cinema")));
+        let variable_two = Variable::Address(Address::from_parts_unchecked(
+            "addis_ababa",
+            Some("with_family"),
+        ));
+
+        assert_eq!(variable_one.as_value(&data).unwrap(), Variable::Int(0));
+        assert_eq!(variable_two.as_value(&data).unwrap(), Variable::Int(3));
+    }
+
+    #[test]
+    fn getting_value_from_address_variable_of_global_variable_gets_value_of_that() {
+        let data = mock_follow_data(&[], &[("population", Variable::Int(1305))]);
+
+        let variable = Variable::Address(Address::variable_unchecked("population"));
+
+        assert_eq!(variable.as_value(&data).unwrap(), Variable::Int(1305));
+    }
+
+    #[test]
+    fn getting_value_from_invalid_global_variable_address_yields_error() {
+        let data = mock_follow_data(&[], &[]);
+
+        let variable = Variable::Address(Address::variable_unchecked("population"));
+
+        match variable.as_value(&data) {
+            Err(InklingError::InvalidVariable { .. }) => (),
+            other => panic!(
+                "expected `InklingError::InvalidVariable` but got {:?}",
+                other
+            ),
+        }
+    }
+
+    #[test]
+    fn getting_value_from_nested_address_variables_gets_to_the_bottom() {
+        let data = mock_follow_data(
+            &[("tripoli", "cinema", 5)],
+            &[
+                (
+                    "nested1",
+                    Variable::Address(Address::from_parts_unchecked("tripoli", Some("cinema"))),
+                ),
+                (
+                    "nested2",
+                    Variable::Address(Address::variable_unchecked("nested1")),
+                ),
+            ],
+        );
+
+        let variable_direct =
+            Variable::Address(Address::from_parts_unchecked("tripoli", Some("cinema")));
+        let variable_nested_one = Variable::Address(Address::variable_unchecked("nested1"));
+        let variable_nested_two = Variable::Address(Address::variable_unchecked("nested2"));
+
+        let result = variable_direct.as_value(&data).unwrap();
+        assert_eq!(result, Variable::Int(5));
+
+        assert_eq!(variable_nested_one.as_value(&data).unwrap(), result);
+        assert_eq!(variable_nested_two.as_value(&data).unwrap(), result);
     }
 
     #[test]
