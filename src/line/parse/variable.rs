@@ -32,9 +32,13 @@ pub fn parse_variable(content: &str) -> Result<Variable, LineErrorKind> {
     } else if content.starts_with(|c: char| c.is_numeric() || c == '-' || c == '+') {
         parse_number(content)
     } else {
-        Err(LineErrorKind::InvalidVariable {
-            content: content.to_string(),
-        })
+        let address = validate_address(content.trim(), content.to_string()).map_err(|_| {
+            LineErrorKind::InvalidVariable {
+                content: content.to_string(),
+            }
+        })?;
+
+        Ok(Variable::Address(Address::Raw(address.to_string())))
     }
 }
 
@@ -98,6 +102,19 @@ mod tests {
         assert_eq!(parse_variable("false").unwrap(), Variable::Bool(false));
         assert_eq!(parse_variable("TRUE").unwrap(), Variable::Bool(true));
         assert_eq!(parse_variable("FALSE").unwrap(), Variable::Bool(false));
+    }
+
+    #[test]
+    fn parse_single_words_as_raw_addresses() {
+        assert_eq!(
+            parse_variable("knot").unwrap(),
+            Variable::Address(Address::Raw("knot".to_string()))
+        );
+    }
+
+    #[test]
+    fn multiple_words_are_invalid() {
+        assert!(parse_variable("knot other_knot").is_err());
     }
 
     #[test]
