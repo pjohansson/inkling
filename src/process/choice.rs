@@ -145,14 +145,13 @@ mod tests {
 
     use crate::{
         consts::ROOT_KNOT_NAME,
-        knot::Address,
         line::{
-            AlternativeBuilder, Condition, InternalChoice, InternalChoiceBuilder,
-            InternalLineBuilder, LineChunkBuilder, StoryCondition,
+            AlternativeBuilder, Condition, ConditionBuilder, InternalChoice, InternalChoiceBuilder,
+            InternalLineBuilder, LineChunkBuilder, StoryCondition, Variable,
         },
     };
 
-    use std::{cmp::Ordering, collections::HashMap};
+    use std::collections::HashMap;
 
     fn create_choice_extra(num_visited: u32, choice_data: InternalChoice) -> ChoiceInfo {
         ChoiceInfo {
@@ -215,23 +214,20 @@ mod tests {
         assert_eq!(displayed_choices[0].tags, tags);
     }
 
+    fn get_true_like_condition(variable: Variable, negate: bool) -> Condition {
+        let kind = StoryCondition::IsTrueLike { variable };
+
+        ConditionBuilder::from_kind(&kind.into(), negate).build()
+    }
+
     #[test]
     fn processing_choices_checks_conditions() {
         let name = "knot_name".to_string();
 
         let data = mock_data_with_single_stitch(&name, ROOT_KNOT_NAME, 1);
 
-        let fulfilled_condition = Condition::from(StoryCondition::NumVisits {
-            address: Address::from_parts_unchecked(&name, None),
-            rhs_value: 0,
-            ordering: Ordering::Greater,
-        });
-
-        let unfulfilled_condition = Condition::from(StoryCondition::NumVisits {
-            address: Address::from_parts_unchecked(&name, None),
-            rhs_value: 2,
-            ordering: Ordering::Greater,
-        });
+        let fulfilled_condition = get_true_like_condition(Variable::Bool(true), false);
+        let unfulfilled_condition = get_true_like_condition(Variable::Bool(false), false);
 
         let choice1 = InternalChoiceBuilder::from_string("Removed")
             .with_condition(&unfulfilled_condition)

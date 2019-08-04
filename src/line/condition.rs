@@ -91,14 +91,6 @@ pub enum ConditionKind {
 #[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
 /// Condition to show some content in a story.
 pub enum StoryCondition {
-    /// Use a knot (or maybe other string-like variable) to check whether its value
-    /// compares to the set condition.
-    NumVisits {
-        address: Address,
-        rhs_value: i32,
-        #[cfg_attr(feature = "serde_support", serde(with = "OrderingDerive"))]
-        ordering: Ordering,
-    },
     Comparison {
         lhs_variable: Variable,
         rhs_variable: Variable,
@@ -259,9 +251,6 @@ impl ValidateAddresses for StoryCondition {
         data: &ValidateAddressData,
     ) -> Result<(), InvalidAddressError> {
         match self {
-            StoryCondition::NumVisits {
-                ref mut address, ..
-            } => address.validate(current_address, data),
             StoryCondition::Comparison {
                 ref mut lhs_variable,
                 ref mut rhs_variable,
@@ -276,7 +265,6 @@ impl ValidateAddresses for StoryCondition {
     #[cfg(test)]
     fn all_addresses_are_valid(&self) -> bool {
         match self {
-            StoryCondition::NumVisits { address, .. } => address.all_addresses_are_valid(),
             StoryCondition::Comparison {
                 lhs_variable,
                 rhs_variable,
