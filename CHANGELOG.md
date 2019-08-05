@@ -1,3 +1,7 @@
+# 0.12.0
+
+*   Breaking change: `resume_with_choice` has been removed and replaced with the pair of `make_choice` and `resume` methods.
+
 # 0.11.0
 
 *   Resume stories with index of instead of reference to choice from the previous result.
