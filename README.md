@@ -44,11 +44,12 @@ Currently and likely for the foreseeable future the feature set is very limited 
 *   Line text alternative sequences (sequences, cycle, once-only) and conditions
 *   Conditionals for displaying text and choices to user
 *   Tagging of lines and choices
+*   Variables in choices, conditions and text
 *   Optional: De/serialization of finished stories through `serde`
 
 Likely candidates for further development:
 
-*   Variables
+*   Variable modification in scripts
 *   Includes of other files
 
 Difficult features for which I doubt my skill level to implement:
