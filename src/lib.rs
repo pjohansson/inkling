@@ -102,7 +102,6 @@
 //! # let mut story = read_story_from_string("Line").unwrap();
 //! # let mut line_buffer = Vec::new();
 //! # story.start().unwrap();
-//! # story.resume(&mut line_buffer).unwrap();
 //! while let Ok(Prompt::Choice(choices)) = story.resume(&mut line_buffer) {
 //!     // Present story text to user, then have them select a choice
 //!     # break;
