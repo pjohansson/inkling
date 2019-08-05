@@ -44,29 +44,29 @@ pub enum InklingError {
         presented_choices: Vec<Choice>,
     },
     /// Used a variable name that is not present in the story as an input variable.
-    InvalidVariable { name: String },
-    /// Tried to compare variables of incomparable types to each other.
-    InvalidVariableComparison {
-        from: Variable,
-        to: Variable,
-        comparison: Ordering,
+    InvalidVariable {
+        name: String,
     },
     /// Called `make_choice` when no choice had been requested.
     ///
     /// Likely directly at the start of a story or after a `move_to` call was made.
     MadeChoiceWithoutChoice,
     /// No choices or fallback choices were available in a story branch at the given address.
-    OutOfChoices { address: Address },
+    OutOfChoices {
+        address: Address,
+    },
     /// No content was available for the story to continue from.
     OutOfContent,
     /// Tried to print a variable that cannot be printed.
-    PrintInvalidVariable { name: String, value: Variable },
+    PrintInvalidVariable {
+        name: String,
+        value: Variable,
+    },
     /// Tried to resume a story that has not been started.
     ResumeBeforeStart,
     /// Tried to `start` a story that is already in progress.
     StartOnStoryInProgress,
-    /// Tried to assign a new type to a variable.
-    VariableTypeChange { from: Variable, to: Variable },
+    VariableError(VariableError),
 }
 
 #[derive(Clone, Debug)]
@@ -104,8 +104,39 @@ pub enum InternalError {
     UseOfUnvalidatedAddress { address: Address },
 }
 
+#[derive(Clone, Debug)]
+pub struct VariableError {
+    /// Variable that caused or detected the error.
+    variable: Variable,
+    /// Error variant.
+    kind: VariableErrorKind,
+}
+
+impl VariableError {
+    pub fn from_kind<T: Into<Variable>>(variable: T, kind: VariableErrorKind) -> Self {
+        VariableError {
+            variable: variable.into(),
+            kind,
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub enum VariableErrorKind {
+    /// Two variables could not be compared to each other like this.
+    InvalidComparison {
+        other: Variable,
+        comparison: Ordering,
+    },
+    /// A new variable type was attempted to be assigned to the current variable.
+    NonMatchingAssignment { other: Variable },
+    /// Tried to operate on the variable with an operation that is not allowed for it.
+    UnallowedOperation { other: Variable, operator: char },
+}
+
 impl Error for InklingError {}
 impl Error for InternalError {}
+impl Error for VariableError {}
 
 /// Wrapper to implement From for variants when the variant is simply encapsulated
 /// in the enum.
@@ -148,7 +179,8 @@ macro_rules! impl_from_error {
 
 impl_from_error![
     InklingError;
-    [Internal, InternalError]
+    [Internal, InternalError],
+    [VariableError, VariableError]
 ];
 
 impl_from_error![
@@ -198,28 +230,6 @@ impl fmt::Display for InklingError {
                 "Invalid variable: no variable with  name '{}' exists in the story",
                 name
             ),
-            InvalidVariableComparison {
-                from,
-                to,
-                comparison,
-            } => {
-                let operator = match comparison {
-                    Ordering::Equal => "==",
-                    Ordering::Less => ">",
-                    Ordering::Greater => "<",
-                };
-
-                write!(
-                    f,
-                    "Cannot compare variable of type '{}' to '{}' using the '{op}' operator \
-                     (comparison was: '{:?} {op} {:?}')",
-                    from.variant_string(),
-                    to.variant_string(),
-                    from,
-                    to,
-                    op = operator
-                )
-            }
             MadeChoiceWithoutChoice => write!(
                 f,
                 "Tried to make a choice, but no choice is currently active. Call `resume` \
@@ -249,13 +259,7 @@ impl fmt::Display for InklingError {
             StartOnStoryInProgress => {
                 write!(f, "Called `start` on a story that is already in progress")
             }
-            VariableTypeChange { from, to } => write!(
-                f,
-                "Cannot assign a value of type '{}' to a variable of type '{}' \
-                 (variables cannot change type)",
-                to.variant_string(),
-                from.variant_string()
-            ),
+            VariableError(err) => write!(f, "{}", err),
         }
     }
 }
@@ -367,6 +371,43 @@ impl fmt::Display for InternalError {
             UseOfUnvalidatedAddress { address } => {
                 write!(f, "Tried to use unvalidated address '{:?}'", address)
             }
+        }
+    }
+}
+
+impl fmt::Display for VariableError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        use VariableErrorKind::*;
+
+        let variable = &self.variable;
+
+        match &self.kind {
+            InvalidComparison { other, comparison } => {
+                let operator = match comparison {
+                    Ordering::Equal => "==",
+                    Ordering::Less => ">",
+                    Ordering::Greater => "<",
+                };
+
+                write!(
+                    f,
+                    "Cannot compare variable of type '{}' to '{}' using the '{op}' operator \
+                     (comparison was: '{:?} {op} {:?}')",
+                    variable.variant_string(),
+                    other.variant_string(),
+                    variable,
+                    other,
+                    op = operator
+                )
+            }
+            NonMatchingAssignment { other } => write!(
+                f,
+                "Cannot assign a value of type '{}' to a variable of type '{}' \
+                 (variables cannot change type)",
+                other.variant_string(),
+                variable.variant_string()
+            ),
+            UnallowedOperation { .. } => unimplemented!(),
         }
     }
 }

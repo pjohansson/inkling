@@ -638,7 +638,7 @@ impl Story {
             .ok_or(InklingError::InvalidVariable {
                 name: name.to_string(),
             })
-            .and_then(|variable| variable.assign(value))
+            .and_then(|variable| variable.assign(value).map_err(|err| err.into()))
     }
 
     /// Wrapper for calling `follow_story` with a prepared internal buffer.

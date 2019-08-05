@@ -1,7 +1,7 @@
 //! Types of variables used in a story.
 
 use crate::{
-    error::{InklingError, InternalError, InvalidAddressError},
+    error::{InklingError, InternalError, InvalidAddressError, VariableError, VariableErrorKind},
     follow::FollowData,
     knot::{get_num_visited, Address, AddressKind, ValidateAddressData, ValidateAddresses},
 };
@@ -181,7 +181,7 @@ impl Variable {
     /// # Errors
     /// *   [`VariableTypeChange`][crate::error::InklingError::VariableTypeChange]:
     ///     if the variable types do not match.
-    pub fn assign<T: Into<Variable>>(&mut self, value: T) -> Result<(), InklingError> {
+    pub fn assign<T: Into<Variable>>(&mut self, value: T) -> Result<(), VariableError> {
         let inferred_value = value.into();
 
         match (&self, &inferred_value) {
@@ -192,10 +192,12 @@ impl Variable {
             (Variable::Int(..), Variable::Int(..)) => (),
             (Variable::String(..), Variable::String(..)) => (),
             _ => {
-                return Err(InklingError::VariableTypeChange {
-                    from: self.clone(),
-                    to: inferred_value.clone(),
-                });
+                return Err(VariableError::from_kind(
+                    self.clone(),
+                    VariableErrorKind::NonMatchingAssignment {
+                        other: inferred_value,
+                    },
+                ));
             }
         }
 
@@ -231,7 +233,7 @@ impl Variable {
     /// # Errors
     /// *   [`InvalidVariableComparison`][crate::error::InklingError::InvalidVariableComparison]:
     ///     if the two variables cannot be compared.
-    pub fn equal_to(&self, other: &Variable) -> Result<bool, InklingError> {
+    pub fn equal_to(&self, other: &Variable) -> Result<bool, VariableError> {
         use Variable::*;
 
         match (&self, &other) {
@@ -243,11 +245,13 @@ impl Variable {
             (Bool(val1), Bool(val2)) => Ok(val1.eq(val2)),
             (Address(val1), Address(val2)) => Ok(val1.eq(val2)),
             (Divert(val1), Divert(val2)) => Ok(val1.eq(val2)),
-            _ => Err(InklingError::InvalidVariableComparison {
-                from: self.clone(),
-                to: other.clone(),
+            _ => Err(VariableError::from_kind(
+                self.clone(),
+                VariableErrorKind::InvalidComparison {
+                    other: other.clone(),
                 comparison: Ordering::Equal,
-            }),
+                },
+            )),
         }
     }
 
@@ -278,7 +282,7 @@ impl Variable {
     /// # Errors
     /// *   [`InvalidVariableComparison`][crate::error::InklingError::InvalidVariableComparison]:
     ///     if the two variables cannot be compared.
-    pub fn greater_than(&self, other: &Variable) -> Result<bool, InklingError> {
+    pub fn greater_than(&self, other: &Variable) -> Result<bool, VariableError> {
         use Variable::*;
 
         match (&self, &other) {
@@ -286,11 +290,13 @@ impl Variable {
             (Int(val1), Float(val2)) => Ok((*val1 as f32).gt(val2)),
             (Float(val1), Int(val2)) => Ok(val1.gt(&(*val2 as f32))),
             (Float(val1), Float(val2)) => Ok(val1.gt(val2)),
-            _ => Err(InklingError::InvalidVariableComparison {
-                from: self.clone(),
-                to: other.clone(),
-                comparison: Ordering::Less,
-            }),
+            _ => Err(VariableError::from_kind(
+                self.clone(),
+                VariableErrorKind::InvalidComparison {
+                    other: other.clone(),
+                    comparison: Ordering::Greater,
+                },
+            )),
         }
     }
 
@@ -321,7 +327,7 @@ impl Variable {
     /// # Errors
     /// *   [`InvalidVariableComparison`][crate::error::InklingError::InvalidVariableComparison]:
     ///     if the two variables cannot be compared.
-    pub fn less_than(&self, other: &Variable) -> Result<bool, InklingError> {
+    pub fn less_than(&self, other: &Variable) -> Result<bool, VariableError> {
         use Variable::*;
 
         match (&self, &other) {
@@ -329,11 +335,13 @@ impl Variable {
             (Int(val1), Float(val2)) => Ok((*val1 as f32).lt(val2)),
             (Float(val1), Int(val2)) => Ok(val1.lt(&(*val2 as f32))),
             (Float(val1), Float(val2)) => Ok(val1.lt(val2)),
-            _ => Err(InklingError::InvalidVariableComparison {
-                from: self.clone(),
-                to: other.clone(),
+            _ => Err(VariableError::from_kind(
+                self.clone(),
+                VariableErrorKind::InvalidComparison {
+                    other: other.clone(),
                 comparison: Ordering::Less,
-            }),
+                },
+            )),
         }
     }
 

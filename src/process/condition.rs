@@ -1,7 +1,7 @@
 //! Checking of `Condition`s which determine whether content will be displayed.
 
 use crate::{
-    error::InklingError,
+    error::{InklingError, VariableError, VariableErrorKind},
     follow::FollowData,
     line::{Condition, StoryCondition, Variable},
 };
@@ -25,16 +25,20 @@ pub fn check_condition(condition: &Condition, data: &FollowData) -> Result<bool,
                 Ordering::Less => lhs.less_than(&rhs),
             }
         }
+        .map_err(|err| err.into()),
         StoryCondition::IsTrueLike { variable } => match variable.as_value(data)? {
             Variable::Bool(value) => Ok(value),
             Variable::Float(value) => Ok(value != 0.0),
             Variable::Int(value) => Ok(value != 0),
             Variable::String(s) => Ok(s.len() > 0),
-            Variable::Divert(..) => Err(InklingError::InvalidVariableComparison {
-                from: variable.clone(),
-                to: Variable::Bool(true),
-                comparison: Ordering::Equal,
-            }),
+            Variable::Divert(..) => Err(VariableError::from_kind(
+                variable.clone(),
+                VariableErrorKind::InvalidComparison {
+                    other: Variable::Bool(true),
+                    comparison: Ordering::Equal,
+                },
+            )
+            .into()),
             Variable::Address(..) => unreachable!("`as_value` will not return an `Address`"),
         },
     };
