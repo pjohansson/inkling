@@ -21,7 +21,8 @@ You enter a dark room.
     let mut story = read_story_from_string(content).unwrap();
     let mut line_buffer = Vec::new();
 
-    let result = story.start(&mut line_buffer).unwrap();
+    story.start().unwrap();
+    let result = story.resume(&mut line_buffer).unwrap();
 
     let choices = result.get_choices().unwrap();
 
@@ -96,8 +97,10 @@ You head back.
     let mut story = read_story_from_string(content).unwrap();
     let mut line_buffer = Vec::new();
 
+    story.start().unwrap();
+
     let choices = story
-        .start(&mut line_buffer)
+        .resume(&mut line_buffer)
         .unwrap()
         .get_choices()
         .unwrap();
@@ -181,8 +184,10 @@ You head back.
     let mut story = read_story_from_string(content).unwrap();
     let mut line_buffer = Vec::new();
 
+    story.start().unwrap();
+
     let choices = story
-        .start(&mut line_buffer)
+        .resume(&mut line_buffer)
         .unwrap()
         .get_choices()
         .unwrap();
@@ -265,8 +270,10 @@ You head back.
     let mut story = read_story_from_string(content).unwrap();
     let mut line_buffer = Vec::new();
 
+    story.start().unwrap();
+
     let choices = story
-        .start(&mut line_buffer)
+        .resume(&mut line_buffer)
         .unwrap()
         .get_choices()
         .unwrap();
@@ -346,7 +353,8 @@ You pick the torch up and head back.
     let mut story = read_story_from_string(content).unwrap();
     let mut line_buffer = Vec::new();
 
-    story.start(&mut line_buffer).unwrap();
+    story.start().unwrap();
+    story.resume(&mut line_buffer).unwrap();
 
     assert_eq!(
         &line_buffer[0].text,
@@ -420,7 +428,8 @@ You pick the torch up and head back.
     let mut story = read_story_from_string(content).unwrap();
     let mut line_buffer = Vec::new();
 
-    story.start(&mut line_buffer).unwrap();
+    story.start().unwrap();
+    story.resume(&mut line_buffer).unwrap();
 
     story.make_choice(0).unwrap();
 
@@ -499,7 +508,8 @@ A crossing! Which path do you take?
     let mut story = read_story_from_string(content).unwrap();
     let mut line_buffer = Vec::new();
 
-    story.start(&mut line_buffer).unwrap();
+    story.start().unwrap();
+    story.resume(&mut line_buffer).unwrap();
 
     story.make_choice(0).unwrap();
 

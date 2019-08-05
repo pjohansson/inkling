@@ -18,7 +18,8 @@ from Nantucket. {|||||We're besties.}
     let mut story = read_story_from_string(content).unwrap();
     let mut line_buffer = Vec::new();
 
-    story.start(&mut line_buffer).unwrap();
+    story.start().unwrap();
+    story.resume(&mut line_buffer).unwrap();
 
     story.make_choice(0).unwrap();
     story.resume(&mut line_buffer).unwrap();
@@ -77,8 +78,10 @@ You meet with Aaron.
     let mut story = read_story_from_string(content).unwrap();
     let mut line_buffer = Vec::new();
 
+    story.start().unwrap();
+
     let choices = story
-        .start(&mut line_buffer)
+        .resume(&mut line_buffer)
         .unwrap()
         .get_choices()
         .unwrap();
@@ -130,7 +133,8 @@ I {nantucket: {nantucket > 1: {nantucket > 2: many times | twice } | once } | ha
     let mut story = read_story_from_string(content).unwrap();
     let mut line_buffer = Vec::new();
 
-    story.start(&mut line_buffer).unwrap();
+    story.start().unwrap();
+    story.resume(&mut line_buffer).unwrap();
 
     assert_eq!(
         &line_buffer[0].text,

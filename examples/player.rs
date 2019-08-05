@@ -33,11 +33,10 @@ fn main() -> Result<(), io::Error> {
 
 fn play_story(mut story: Story) -> Result<(), InklingError> {
     let mut line_buffer = Vec::new();
-    let mut result = story.start(&mut line_buffer)?;
+    story.start()?;
 
-    print_lines(&line_buffer);
-
-    while let Prompt::Choice(choices) = result {
+    while let Prompt::Choice(choices) = story.resume(&mut line_buffer)? {
+        print_lines(&line_buffer);
         line_buffer.clear();
 
         let choice = ask_user_for_choice(&choices).unwrap_or_else(|| {
@@ -47,8 +46,6 @@ fn play_story(mut story: Story) -> Result<(), InklingError> {
 
         println!("");
         story.make_choice(choice)?;
-        result = story.resume(&mut line_buffer)?;
-        print_lines(&line_buffer);
     }
 
     Ok(())

@@ -39,7 +39,8 @@ You head back.
         let mut story = read_story_from_string(content).unwrap();
         let mut line_buffer = Vec::new();
 
-        story.start(&mut line_buffer).unwrap();
+        story.start().unwrap();
+        story.resume(&mut line_buffer).unwrap();
 
         let serialized_without_torch = serde_json::to_string(&story).unwrap();
         let mut state_without_torch: Story =

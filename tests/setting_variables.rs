@@ -15,7 +15,8 @@ The latest measurement is {value} {unit}.
     let mut story = read_story_from_string(content).unwrap();
     let mut line_buffer = Vec::new();
 
-    story.start(&mut line_buffer).unwrap();
+    story.start().unwrap();
+    story.resume(&mut line_buffer).unwrap();
 
     assert_eq!(
         &line_buffer[0].text,
@@ -40,7 +41,8 @@ The latest measurement is {value} {unit}.
 
     story.set_variable("value", 15000.0).unwrap();
 
-    story.start(&mut line_buffer).unwrap();
+    story.start().unwrap();
+    story.resume(&mut line_buffer).unwrap();
 
     assert_eq!(
         &line_buffer[0].text,
@@ -69,7 +71,8 @@ The latest measurement is {value} {unit}. {value < threshold: Not terrible, not 
     let mut story = read_story_from_string(content).unwrap();
     let mut line_buffer = Vec::new();
 
-    story.start(&mut line_buffer).unwrap();
+    story.start().unwrap();
+    story.resume(&mut line_buffer).unwrap();
 
     assert_eq!(
         &line_buffer[0].text,
@@ -109,7 +112,8 @@ The latest measurement is {value} {unit}. {not is_hazardous: Not terrible, not g
     let mut story = read_story_from_string(content).unwrap();
     let mut line_buffer = Vec::new();
 
-    story.start(&mut line_buffer).unwrap();
+    story.start().unwrap();
+    story.resume(&mut line_buffer).unwrap();
 
     assert_eq!(
         &line_buffer[0].text,
