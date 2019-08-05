@@ -86,7 +86,9 @@ pub struct Story {
 /// let mut story = read_story_from_string(content).unwrap();
 /// let mut line_buffer = Vec::new();
 ///
-/// match story.start(&mut line_buffer).unwrap() {
+/// story.start().unwrap();
+///
+/// match story.resume(&mut line_buffer).unwrap() {
 ///     Prompt::Choice(choice_set) => {
 ///         println!("Choose:");
 ///         for (i, choice) in choice_set.iter().enumerate() {
@@ -118,7 +120,9 @@ impl Prompt {
     /// let mut story = read_story_from_string(content).unwrap();
     /// let mut line_buffer = Vec::new();
     ///
-    /// if let Some(choices) = story.start(&mut line_buffer).unwrap().get_choices() {
+    /// story.start().unwrap();
+    ///
+    /// if let Some(choices) = story.resume(&mut line_buffer).unwrap().get_choices() {
     ///     /* do what you want */
     /// }
     /// ```
@@ -156,7 +160,8 @@ impl Story {
     /// let mut story: Story = read_story_from_string(content).unwrap();
     /// let mut line_buffer = Vec::new();
     ///
-    /// story.start(&mut line_buffer);
+    /// story.start();
+    /// story.resume(&mut line_buffer);
     ///
     /// assert_eq!(line_buffer.last().unwrap().text, "on the empty sky.\n");
     /// ```
@@ -202,7 +207,8 @@ impl Story {
     /// # ";
     /// # let mut story = read_story_from_string(content).unwrap();
     /// # let mut line_buffer = Vec::new();
-    /// # story.start(&mut line_buffer).unwrap();
+    /// # story.start().unwrap();
+    /// # story.resume(&mut line_buffer).unwrap();
     /// story.move_to("mirandas_den", Some("meeting")).unwrap();
     /// # line_buffer.clear();
     /// story.resume(&mut line_buffer).unwrap();
@@ -251,7 +257,9 @@ impl Story {
     /// let mut story = read_story_from_string(content).unwrap();
     /// let mut line_buffer = Vec::new();
     ///
-    /// if let Prompt::Choice(choices) = story.start(&mut line_buffer).unwrap() {
+    /// story.start().unwrap();
+    ///
+    /// if let Prompt::Choice(choices) = story.resume(&mut line_buffer).unwrap() {
     ///     story.make_choice(0).unwrap();
     ///     story.resume(&mut line_buffer);
     /// }
@@ -310,7 +318,8 @@ impl Story {
     ///
     /// // Let’s skip ahead!
     /// story.move_to("chapter_one", None).unwrap();
-    /// story.start(&mut line_buffer).unwrap();
+    /// story.start().unwrap();
+    /// story.resume(&mut line_buffer).unwrap();
     ///
     /// assert_eq!(&line_buffer[0].text, "1992, western Estonia\n");
     /// ```
@@ -410,7 +419,8 @@ impl Story {
     /// # ";
     /// # let mut story = read_story_from_string(content).unwrap();
     /// # let mut line_buffer = Vec::new();
-    /// # story.start(&mut line_buffer).unwrap();
+    /// # story.start().unwrap();
+    /// # story.resume(&mut line_buffer).unwrap();
     /// # story.move_to("depths", None).unwrap();
     /// # story.resume(&mut line_buffer).unwrap();
     /// let num_visited = story.get_num_visited("depths", None).unwrap();

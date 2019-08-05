@@ -45,8 +45,11 @@
 //! // We will supply a buffer for the story to read content into
 //! let mut line_buffer = Vec::new();
 //!
-//! // Start the story processing: it will return once it encounters the branching choice
-//! let result = story.start(&mut line_buffer).unwrap();
+//! // Mark the story as being prepared by calling `start`
+//! story.start().unwrap();
+//!
+//! // Begin the story processing: it will return once it encounters the branching choice
+//! let result = story.resume(&mut line_buffer).unwrap();
 //!
 //! assert_eq!(&line_buffer[0].text, "Hello, World!\n");
 //! ```
@@ -58,7 +61,8 @@
 //! # let story_content = "Hello, World!\n*Hello[ back!] right back at you!";
 //! # let mut story = read_story_from_string(story_content).unwrap();
 //! # let mut line_buffer = Vec::new();
-//! # let result = story.start(&mut line_buffer).unwrap();
+//! # story.start().unwrap();
+//! # let result = story.resume(&mut line_buffer).unwrap();
 //! use inkling::Prompt;
 //!
 //! // The story provided us with the choice in the result
@@ -76,9 +80,9 @@
 //! # let story_content = "Hello, World!\n*Hello[ back!] right back at you!";
 //! # let mut story = read_story_from_string(story_content).unwrap();
 //! # let mut line_buffer = Vec::new();
-//! # story.start(&mut line_buffer).unwrap();
-//! // Resume by supplying the selected choice index and calling `resume`
-//!
+//! # story.start().unwrap();
+//! # let result = story.resume(&mut line_buffer).unwrap();
+//! // Resume by supplying a selected choice index and calling `resume`
 //! story.make_choice(0).unwrap();
 //!
 //! match story.resume(&mut line_buffer).unwrap() {
@@ -97,7 +101,8 @@
 //! # use inkling::{read_story_from_string, Prompt};
 //! # let mut story = read_story_from_string("Line").unwrap();
 //! # let mut line_buffer = Vec::new();
-//! # story.start(&mut line_buffer).unwrap();
+//! # story.start().unwrap();
+//! # story.resume(&mut line_buffer).unwrap();
 //! while let Ok(Prompt::Choice(choices)) = story.resume(&mut line_buffer) {
 //!     // Present story text to user, then have them select a choice
 //!     # break;

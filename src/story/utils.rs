@@ -17,7 +17,8 @@ use super::story::LineBuffer;
 /// let mut story = read_story_from_string(content).unwrap();
 /// let mut line_buffer = Vec::new();
 ///
-/// story.start(&mut line_buffer);
+/// story.start();
+/// story.resume(&mut line_buffer);
 ///
 /// let text = copy_lines_into_string(&line_buffer);
 /// assert_eq!(&text, content);
