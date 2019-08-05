@@ -80,6 +80,7 @@
 //! // Resume by supplying the selected choice index and calling `resume`
 //!
 //! story.make_choice(0).unwrap();
+//!
 //! match story.resume(&mut line_buffer).unwrap() {
 //!     Prompt::Done => (),
 //!     _ => unreachable!(),

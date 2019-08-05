@@ -65,8 +65,6 @@ pub struct Story {
     tags: Vec<String>,
     /// Set of last choices presented to the user.
     last_choices: Option<Vec<Choice>>,
-    /// Whether a choice has to be made.
-    requires_choice: bool,
     /// Choice that has been set to resume the story with.
     selected_choice: Option<usize>,
     /// Whether or not the story has been started.
@@ -210,14 +208,10 @@ impl Story {
     /// *   `InklingError::ResumeWithoutChoice` is returned if the story is not currently
     ///     at a branching point.
     pub fn make_choice(&mut self, selection: usize) -> Result<(), InklingError> {
-        if !self.requires_choice {
-            return Err(InklingError::ResumeWithoutChoice);
-        }
-
         let index = self
             .last_choices
             .as_ref()
-            .ok_or(StackError::NoLastChoices.into())
+            .ok_or(InklingError::ResumeWithoutChoice)
             .and_then(|last_choices| {
                 last_choices
                     .get(selection)
@@ -229,7 +223,6 @@ impl Story {
             })?;
 
         self.selected_choice.replace(index);
-        self.requires_choice = false;
         self.last_choices = None;
 
         Ok(())
@@ -276,7 +269,6 @@ impl Story {
 
         self.update_last_stack(&to_address);
 
-        self.requires_choice = false;
         self.last_choices = None;
 
         Ok(())
@@ -578,7 +570,6 @@ impl Story {
         match result {
             Prompt::Choice(choices) => {
                 self.last_choices.replace(choices.clone());
-                self.requires_choice = true;
 
                 Ok(Prompt::Choice(choices))
             }
@@ -631,7 +622,6 @@ pub fn read_story_from_string(string: &str) -> Result<Story, ParseError> {
         data,
         tags,
         last_choices: None,
-        requires_choice: false,
         selected_choice: None,
         in_progress: false,
     })
@@ -1028,21 +1018,8 @@ We hurried home to Savile Row as fast as we could.
     }
 
     #[test]
-    fn make_choice_flips_the_requires_choice_boolean() {
-        let mut story = read_story_from_string("").unwrap();
-        story.last_choices.replace(mock_last_choices(&[("", 0)]));
-
-        story.requires_choice = true;
-
-        story.make_choice(0).unwrap();
-
-        assert!(!story.requires_choice);
-    }
-
-    #[test]
     fn make_choice_sets_the_choice_index_from_the_last_choices_set() {
         let mut story = read_story_from_string("").unwrap();
-        story.requires_choice = true;
         story
             .last_choices
             .replace(mock_last_choices(&[("", 2), ("", 4)]));
@@ -1055,7 +1032,6 @@ We hurried home to Savile Row as fast as we could.
     #[test]
     fn make_choice_resets_last_choices_vector() {
         let mut story = read_story_from_string("").unwrap();
-        story.requires_choice = true;
         story.last_choices.replace(mock_last_choices(&[("", 0)]));
 
         story.make_choice(0).unwrap();
@@ -1066,7 +1042,6 @@ We hurried home to Savile Row as fast as we could.
     #[test]
     fn make_choice_yields_an_error_if_a_choice_has_not_been_prompted() {
         let mut story = read_story_from_string("").unwrap();
-        story.requires_choice = false;
 
         match story.make_choice(0) {
             Err(InklingError::ResumeWithoutChoice) => (),
@@ -1080,7 +1055,6 @@ We hurried home to Savile Row as fast as we could.
     #[test]
     fn make_choice_yields_an_error_if_choice_index_is_not_in_last_choices_set() {
         let mut story = read_story_from_string("").unwrap();
-        story.requires_choice = true;
 
         let last_choices = mock_last_choices(&[("Choice 1", 0), ("Choice 2", 2)]);
         story.last_choices.replace(last_choices.clone());
@@ -1094,17 +1068,6 @@ We hurried home to Savile Row as fast as we could.
                 assert_eq!(presented_choices, last_choices);
             }
             other => panic!("expected `InklingError::InvalidChoice` but got {:?}", other),
-        }
-    }
-
-    #[test]
-    fn make_choice_yields_an_internal_error_if_a_choice_is_required_but_no_choices_are_set() {
-        let mut story = read_story_from_string("").unwrap();
-        story.requires_choice = true;
-
-        match story.make_choice(0) {
-            Err(InklingError::Internal(..)) => (),
-            other => panic!("expected `InklingError::Internal` but got {:?}", other),
         }
     }
 
