@@ -49,15 +49,15 @@ pub fn evaluate_expression(
 }
 
 /// Nest inner operations based on order of precedence in operations.
-/// 
-/// Subitems which multiply, divide or take the remainder with their next item are grouped 
-/// in `Operand::Nested` containers as single units, to be evaluated as a whole before 
-/// addition and subtraction. 
-/// 
+///
+/// Subitems which multiply, divide or take the remainder with their next item are grouped
+/// in `Operand::Nested` containers as single units, to be evaluated as a whole before
+/// addition and subtraction.
+///
 /// This operation corresponds to inserting parenthesis around these groups.
-/// 
-/// # Notes 
-/// *   This function does *not* recurse into nested expressions to apply order of operations 
+///
+/// # Notes
+/// *   This function does *not* recurse into nested expressions to apply order of operations
 ///     for them. This has to be done separately, as those items are created.
 pub fn apply_order_of_operations(expression: &Expression) -> Expression {
     split_expression_into_groups_of_same_precedence(expression)
@@ -81,8 +81,8 @@ fn get_value(operand: &Operand, data: &FollowData) -> Result<Variable, InklingEr
 }
 
 /// Split the expression items into groups, divided by addition and subtraction.
-/// 
-/// This groups multiplied, divided with and remainder or items, while added and subtracted 
+///
+/// This groups multiplied, divided with and remainder or items, while added and subtracted
 /// items remain alone.
 fn split_expression_into_groups_of_same_precedence(
     expression: &Expression,
@@ -113,8 +113,8 @@ fn split_expression_into_groups_of_same_precedence(
 }
 
 /// Create `Variable` or `Nested` variants from a group.
-/// 
-/// If the group contains a single item it will be returned as an `Operand::Variable` object. 
+///
+/// If the group contains a single item it will be returned as an `Operand::Variable` object.
 /// If not, a `Operand::Nested` object is constructed from all items.
 fn get_maybe_nested_operand_from_group(group: Vec<(Operation, Operand)>) -> (Operation, Operand) {
     if group.len() == 1 {

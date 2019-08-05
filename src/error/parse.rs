@@ -208,6 +208,7 @@ impl fmt::Display for LineParsingError {
 
         match &self.kind {
             BadCondition(err) => write!(f, "Could not parse a condition: {}", err),
+            BadExpression => unimplemented!(),
             EmptyDivert => write!(f, "Encountered a divert statement with no address",),
             EmptyExpression => write!(f, "Found an empty embraced expression ({{}})"),
             ExpectedEndOfLine { tail } => write!(
@@ -273,6 +274,8 @@ pub enum KnotNameError {
 pub enum LineErrorKind {
     /// Condition was invalid.
     BadCondition(BadCondition),
+    /// Could not read a numerical expression.
+    BadExpression,
     /// Found a divert marker but no address.
     EmptyDivert,
     /// Found an empty expression (embraced part of line)
