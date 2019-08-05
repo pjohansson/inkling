@@ -134,8 +134,9 @@ impl Story {
     /// Start walking through the story while reading all lines into the supplied buffer.
     ///
     /// Returns either when the story reached an end or when a set of choices was encountered,
-    /// which requires the user to select one. Make a choice by calling `make_choice`, then
-    /// resume the story flow with `resume`.
+    /// which requires the user to select one. Make a choice by calling 
+    /// [`make_choice`][crate::story::Story::make_choice()], then resume the story flow with 
+    /// [`resume`][crate::story::Story::resume()].
     ///
     /// # Notes
     /// The input line buffer is not cleared before reading new lines into it.
@@ -173,11 +174,12 @@ impl Story {
         self.follow_story_wrapper(None, line_buffer)
     }
 
-    /// Resume the story flow.
+    /// Resume the story flow while reading all encountered lines into the supplied buffer.
     ///
-    /// Starts walking through the story from the knot and stitch that the story was moved
-    /// to. Works exactly like `start`, except that this cannot be called before the story
-    /// has been started (mirroring how `start` cannot be called on a story in progress).
+    /// Returns either when the story reached an end or when a set of choices was encountered,
+    /// which requires the user to select one. Make a choice by calling 
+    /// [`make_choice`][crate::story::Story::make_choice()], then continue the text flow 
+    /// by calling this method.
     ///
     /// # Examples
     /// ```
@@ -225,8 +227,9 @@ impl Story {
     ///
     /// The `selection` index corresponds to the index in the list of choices that was
     /// previously returned when the branching point was reached. This list can be retrieved
-    /// again by calling `resume` on the story before making a choice: once a choice has been
-    /// successfully made, a call to `resume` will continue the text flow from that branch.
+    /// again by calling [`resume`][crate::story::Story::resume()] on the story before making 
+    /// a choice: once a choice has been successfully made, a call to `resume` will continue 
+    /// the text flow from that branch.
     ///
     /// # Examples
     /// ```
@@ -285,6 +288,9 @@ impl Story {
     /// A move can be performed at any time, before or after starting the story. It
     /// simply updates the current internal address in the story to the given address.
     /// If no stitch name is given the default stitch from the root will be selected.
+    /// 
+    /// After moving to a new location, call [`resume`][crate::story::Story::resume()] 
+    /// to continue the text flow from that point.
     ///
     /// # Examples
     /// ```
