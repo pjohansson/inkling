@@ -19,6 +19,7 @@
 mod alternative;
 mod choice;
 mod condition;
+mod expression;
 mod line;
 pub(crate) mod parse;
 mod variable;
