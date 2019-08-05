@@ -136,7 +136,8 @@ impl Story {
     /// Start walking through the story while reading all lines into the supplied buffer.
     ///
     /// Returns either when the story reached an end or when a set of choices was encountered,
-    /// which requires the user to select one. Continue the story with `resume_with_choice`.
+    /// which requires the user to select one. Make a choice by calling `make_choice`, then
+    /// resume the story flow with `resume`.
     ///
     /// # Notes
     /// The input line buffer is not cleared before reading new lines into it.
@@ -549,7 +550,7 @@ impl Story {
             .and_then(|variable| variable.assign(value))
     }
 
-    /// Wrapper of common behavior between `start` and `resume_with_choice`.
+    /// Wrapper of common behavior between `start` and `resume`.
     ///
     /// Updates the stack to the last visited address and the last presented set of choices
     /// if encountered.

@@ -77,9 +77,10 @@
 //! # let mut story = read_story_from_string(story_content).unwrap();
 //! # let mut line_buffer = Vec::new();
 //! # story.start(&mut line_buffer).unwrap();
-//! // Resume by supplying the selected choice index
+//! // Resume by supplying the selected choice index and calling `resume`
 //!
-//! match story.resume_with_choice(0, &mut line_buffer).unwrap() {
+//! story.make_choice(0).unwrap();
+//! match story.resume(&mut line_buffer).unwrap() {
 //!     Prompt::Done => (),
 //!     _ => unreachable!(),
 //! }
@@ -91,9 +92,14 @@
 //! ## Story loop
 //! The idea is that story processing should be as simple as this loop:
 //!
-//! ```ignore
-//! while let Ok(Prompt::Choice(choices)) = story.resume_with_choice(..) {
+//! ```
+//! # use inkling::{read_story_from_string, Prompt};
+//! # let mut story = read_story_from_string("Line").unwrap();
+//! # let mut line_buffer = Vec::new();
+//! # story.start(&mut line_buffer).unwrap();
+//! while let Ok(Prompt::Choice(choices)) = story.resume(&mut line_buffer) {
 //!     // Present story text to user, then have them select a choice
+//!     # break;
 //! }
 //! ```
 //!
@@ -118,8 +124,6 @@
 //!
 //! Hopefully coming:
 //!
-//! *   API:        Use `resume` method as main story processing method instead
-//!                 of `resume_with_choice` (should be `make_choice`, then `resume`)
 //! *   Variables:  Modify in the Ink script
 //! *   Reading:    Include statements in files
 //! *   Validation: Checking conditions for incompatible variables, namespace collisions
