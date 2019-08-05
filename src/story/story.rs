@@ -67,6 +67,8 @@ pub struct Story {
     last_choices: Option<Vec<Choice>>,
     /// Whether a choice has to be made.
     requires_choice: bool,
+    /// Choice that has been set to resume the story with.
+    selected_choice: Option<usize>,
     /// Whether or not the story has been started.
     in_progress: bool,
 }
@@ -233,6 +235,47 @@ impl Story {
         self.follow_story_wrapper(Some(index), line_buffer)
     }
 
+    /// Make a choice from a given set of options.
+    ///
+    /// The `selection` index corresponds to the index in the list of choices that was
+    /// previously returned when the branching point was reached. This list can be retrieved
+    /// again by calling `resume` on the story before making a choice: once a choice has been
+    /// successfully made, a call to `resume` will continue the text flow from that branch.
+    ///
+    /// # Examples
+    /// ```
+    /// panic!("write example");
+    /// ```
+    ///
+    /// # Errors
+    /// *   `InklingError::ResumeWithoutChoice` is returned if the story is not currently
+    ///     at a branching point.
+    pub fn make_choice(&mut self, selection: usize) -> Result<(), InklingError> {
+        if !self.requires_choice {
+            return Err(InklingError::ResumeWithoutChoice);
+        }
+
+        let index = self
+            .last_choices
+            .as_ref()
+            .ok_or(StackError::NoLastChoices.into())
+            .and_then(|last_choices| {
+                last_choices
+                    .get(selection)
+                    .ok_or(InklingError::InvalidChoice {
+                        selection,
+                        presented_choices: last_choices.clone(),
+                    })
+                    .map(|choice| choice.index)
+            })?;
+
+        self.selected_choice.replace(index);
+        self.requires_choice = false;
+        self.last_choices = None;
+
+        Ok(())
+    }
+
     /// Move the story to another knot or stitch.
     ///
     /// A move can be performed at any time, before or after starting the story. It
@@ -280,7 +323,7 @@ impl Story {
         Ok(())
     }
 
-    /// Resume the story after a move.
+    /// Resume the story flow.
     ///
     /// Starts walking through the story from the knot and stitch that the story was moved
     /// to. Works exactly like `start`, except that this cannot be called before the story
@@ -628,6 +671,7 @@ pub fn read_story_from_string(string: &str) -> Result<Story, ParseError> {
         tags,
         last_choices: None,
         requires_choice: false,
+        selected_choice: None,
         in_progress: false,
     })
 }
@@ -728,6 +772,17 @@ mod tests {
         knot::{get_num_visited, increment_num_visited, ValidateAddresses},
         story::parse::tests::read_knots_from_string,
     };
+
+    fn mock_last_choices(choices: &[(&str, usize)]) -> Vec<Choice> {
+        choices
+            .iter()
+            .map(|(text, index)| Choice {
+                text: text.to_string(),
+                tags: Vec::new(),
+                index: *index,
+            })
+            .collect()
+    }
 
     fn mock_follow_data(knots: &KnotSet) -> FollowData {
         FollowData {
@@ -1012,54 +1067,104 @@ We hurried home to Savile Row as fast as we could.
     }
 
     #[test]
-    fn following_story_wrapper_updates_stack_to_last_address() {
-        let content = "
-== addis_ababa
--> tripoli.cinema
+    fn make_choice_flips_the_requires_choice_boolean() {
+        let mut story = read_story_from_string("").unwrap();
+        story.last_choices.replace(mock_last_choices(&[("", 0)]));
 
-== tripoli
+        story.requires_choice = true;
 
-= cinema
--> END
+        story.make_choice(0).unwrap();
 
-= visit_family
--> END
-";
-
-        let mut story = read_story_from_string(content).unwrap();
-        story.move_to("addis_ababa", None).unwrap();
-
-        let mut line_buffer = Vec::new();
-
-        story.follow_story_wrapper(None, &mut line_buffer).unwrap();
-
-        let address = Address::from_parts_unchecked("tripoli", Some("cinema"));
-
-        assert_eq!(story.stack.last().unwrap(), &address);
+        assert!(!story.requires_choice);
     }
 
     #[test]
-    fn choice_index_is_used_to_resume_story_with() {
+    fn make_choice_sets_the_choice_index_from_the_last_choices_set() {
+        let mut story = read_story_from_string("").unwrap();
+        story.requires_choice = true;
+        story
+            .last_choices
+            .replace(mock_last_choices(&[("", 2), ("", 4)]));
+
+        story.make_choice(1).unwrap();
+
+        assert_eq!(story.selected_choice, Some(4));
+    }
+
+    #[test]
+    fn make_choice_resets_last_choices_vector() {
+        let mut story = read_story_from_string("").unwrap();
+        story.requires_choice = true;
+        story.last_choices.replace(mock_last_choices(&[("", 0)]));
+
+        story.make_choice(0).unwrap();
+
+        assert!(story.last_choices.is_none());
+    }
+
+    #[test]
+    fn make_choice_yields_an_error_if_a_choice_has_not_been_prompted() {
+        let mut story = read_story_from_string("").unwrap();
+        story.requires_choice = false;
+
+        match story.make_choice(0) {
+            Err(InklingError::ResumeWithoutChoice) => (),
+            other => panic!(
+                "expected `InklingError::ResumeWithoutChoice` but got {:?}",
+                other
+            ),
+        }
+    }
+
+    #[test]
+    fn make_choice_yields_an_error_if_choice_index_is_not_in_last_choices_set() {
+        let mut story = read_story_from_string("").unwrap();
+        story.requires_choice = true;
+
+        let last_choices = mock_last_choices(&[("Choice 1", 0), ("Choice 2", 2)]);
+        story.last_choices.replace(last_choices.clone());
+
+        match story.make_choice(2) {
+            Err(InklingError::InvalidChoice {
+                selection,
+                presented_choices,
+            }) => {
+                assert_eq!(selection, 2);
+                assert_eq!(presented_choices, last_choices);
+            }
+            other => panic!("expected `InklingError::InvalidChoice` but got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn make_choice_yields_an_internal_error_if_a_choice_is_required_but_no_choices_are_set() {
+        let mut story = read_story_from_string("").unwrap();
+        story.requires_choice = true;
+
+        match story.make_choice(0) {
+            Err(InklingError::Internal(..)) => (),
+            other => panic!("expected `InklingError::Internal` but got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn calling_resume_continues_the_text_flow_with_the_choice_that_was_made() {
         let content = "
-== tripoli
-*   Cinema
-    You watched a horror movie in the cinema.
-*   Visit family
-    A visit to your family did you good.
+\"To be, or not to be ...\"
+*   [To be]
+*   [Not to be]
+    \"Not to be.\" – Jack Slater
 ";
 
         let mut story = read_story_from_string(content).unwrap();
-        story.move_to("tripoli", None).unwrap();
-
         let mut line_buffer = Vec::new();
 
         story.start(&mut line_buffer).unwrap();
-        story.resume_with_choice(1, &mut line_buffer).unwrap();
+        story.make_choice(1).unwrap();
 
-        assert_eq!(
-            &line_buffer[1].text,
-            "A visit to your family did you good.\n"
-        );
+        story.resume(&mut line_buffer).unwrap();
+
+        assert_eq!(&line_buffer[1].text, "\"Not to be.\" – Jack Slater\n");
     }
 
     #[test]
