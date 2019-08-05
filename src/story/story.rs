@@ -170,14 +170,13 @@ impl Story {
         self.follow_story_wrapper(None, line_buffer)
     }
 
-    #[deprecated]
-    /// Resume the story with a choice from the given set.
+    /// Make a choice from a given set of options.
     ///
-    /// The story continues until it reaches a dead end or another set of choices
-    /// is encountered.
+    /// The `selection` index corresponds to the index in the list of choices that was
+    /// previously returned when the branching point was reached. This list can be retrieved
+    /// again by calling `resume` on the story before making a choice: once a choice has been
+    /// successfully made, a call to `resume` will continue the text flow from that branch.
     ///
-    /// # Notes
-    /// The input line buffer is not cleared before reading new lines into it.
     /// # Examples
     /// ```
     /// # use inkling::{read_story_from_string, Prompt};
@@ -199,53 +198,11 @@ impl Story {
     /// let mut line_buffer = Vec::new();
     ///
     /// if let Prompt::Choice(choices) = story.start(&mut line_buffer).unwrap() {
-    ///     story.resume_with_choice(0, &mut line_buffer);
+    ///     story.make_choice(0).unwrap();
+    ///     story.resume(&mut line_buffer);
     /// }
     ///
     /// assert_eq!(line_buffer.last().unwrap().text, "“Miao!”\n");
-    /// ```
-    pub fn resume_with_choice(
-        &mut self,
-        selection: usize,
-        line_buffer: &mut LineBuffer,
-    ) -> Result<Prompt, InklingError> {
-        if !self.in_progress {
-            return Err(InklingError::ResumeBeforeStart);
-        }
-
-        if !self.requires_choice {
-            return Err(InklingError::ResumeWithoutChoice);
-        }
-
-        let index = self
-            .last_choices
-            .as_ref()
-            .ok_or(StackError::NoLastChoices.into())
-            .and_then(|last_choices| {
-                last_choices
-                    .get(selection)
-                    .ok_or(InklingError::InvalidChoice {
-                        selection,
-                        presented_choices: last_choices.clone(),
-                    })
-                    .map(|choice| choice.index)
-            })?;
-
-        self.requires_choice = false;
-
-        self.follow_story_wrapper(Some(index), line_buffer)
-    }
-
-    /// Make a choice from a given set of options.
-    ///
-    /// The `selection` index corresponds to the index in the list of choices that was
-    /// previously returned when the branching point was reached. This list can be retrieved
-    /// again by calling `resume` on the story before making a choice: once a choice has been
-    /// successfully made, a call to `resume` will continue the text flow from that branch.
-    ///
-    /// # Examples
-    /// ```
-    /// panic!("write example");
     /// ```
     ///
     /// # Errors
