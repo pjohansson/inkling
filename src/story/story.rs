@@ -641,7 +641,7 @@ impl Story {
             .and_then(|variable| variable.assign(value))
     }
 
-    /// Wrapper of common behavior between `start` and `resume`.
+    /// Wrapper for calling `follow_story` with a prepared internal buffer.
     ///
     /// Updates the stack to the last visited address and the last presented set of choices
     /// if encountered.
