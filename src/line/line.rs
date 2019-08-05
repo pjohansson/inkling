@@ -52,6 +52,7 @@ pub struct LineChunk {
     pub condition: Option<Condition>,
     /// Set of line content which will be processed in order.
     pub items: Vec<Content>,
+    /// Set of line content which will be processed in order if a condition is set and is `false`.
     pub else_items: Vec<Content>,
 }
 
@@ -65,9 +66,11 @@ pub enum Content {
     Divert(Address),
     /// Null content.
     Empty,
+    /// Nested `LineChunk` to evaluate.
     Nested(LineChunk),
     /// String of regular text content in the line.
     Text(String),
+    /// Variable to evaluate into text.
     Variable(Variable),
 }
 

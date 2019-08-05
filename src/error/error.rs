@@ -105,11 +105,12 @@ pub enum InternalError {
 }
 
 #[derive(Clone, Debug)]
+/// Error from invalid variable assignments or operations.
 pub struct VariableError {
     /// Variable that caused or detected the error.
-    variable: Variable,
+    pub variable: Variable,
     /// Error variant.
-    kind: VariableErrorKind,
+    pub kind: VariableErrorKind,
 }
 
 impl VariableError {
@@ -122,16 +123,34 @@ impl VariableError {
 }
 
 #[derive(Clone, Debug)]
+/// Error variant for variable type errors.
 pub enum VariableErrorKind {
+    /// Divided with or took the remainer from 0.
+    DividedByZero {
+        /// Zero-valued variable in the operation.
+        other: Variable,
+        /// Character representation of the operation that caused the error (`/`, `%`).
+        operator: char,
+    },
     /// Two variables could not be compared to each other like this.
     InvalidComparison {
+        /// Other variable in the comparison.
         other: Variable,
+        /// Type of comparison betweeen `variable` and `other`.
         comparison: Ordering,
     },
-    /// A new variable type was attempted to be assigned to the current variable.
-    NonMatchingAssignment { other: Variable },
     /// Tried to operate on the variable with an operation that is not allowed for it.
-    UnallowedOperation { other: Variable, operator: char },
+    NonAllowedOperation {
+        /// Other variable in the operation.
+        other: Variable,
+        /// Character representation of operation (`+`, `-`, `*`, `/`, `%`).
+        operator: char,
+    },
+    /// A new variable type was attempted to be assigned to the current variable.
+    NonMatchingAssignment {
+        /// Variable that was to be assigned but has non-matching type.
+        other: Variable,
+    },
 }
 
 impl Error for InklingError {}
@@ -382,6 +401,11 @@ impl fmt::Display for VariableError {
         let variable = &self.variable;
 
         match &self.kind {
+            DividedByZero { other, operator } => write!(
+                f,
+                "Attempted to divide by 0 in the operation '{:?} {} {:?}",
+                variable, operator, other
+            ),
             InvalidComparison { other, comparison } => {
                 let operator = match comparison {
                     Ordering::Equal => "==",
@@ -400,6 +424,7 @@ impl fmt::Display for VariableError {
                     op = operator
                 )
             }
+            NonAllowedOperation { .. } => unimplemented!(),
             NonMatchingAssignment { other } => write!(
                 f,
                 "Cannot assign a value of type '{}' to a variable of type '{}' \
@@ -407,7 +432,6 @@ impl fmt::Display for VariableError {
                 other.variant_string(),
                 variable.variant_string()
             ),
-            UnallowedOperation { .. } => unimplemented!(),
         }
     }
 }

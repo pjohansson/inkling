@@ -5,12 +5,10 @@ mod error;
 mod parse;
 
 pub(crate) use error::IncorrectNodeStackError;
-pub use error::InklingError;
+pub use error::{InklingError, VariableError, VariableErrorKind};
 pub use parse::ParseError;
 
-pub(crate) use error::{
-    InternalError, ProcessError, ProcessErrorKind, StackError, VariableError, VariableErrorKind,
-};
+pub(crate) use error::{InternalError, ProcessError, ProcessErrorKind, StackError};
 pub(crate) use parse::{
     BadCondition, BadConditionKind, InvalidAddressError, KnotError, KnotNameError, LineErrorKind,
     LineParsingError,

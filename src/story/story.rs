@@ -625,7 +625,7 @@ impl Story {
     /// # Errors
     /// *   [`InvalidVariable`][crate::error::InklingError::InvalidVariable]: if the name
     ///     does not refer to a global variable that exists in the story.
-    /// *   [`VariableTypeChange`][crate::error::InklingError::VariableTypeChange]: if
+    /// *   [`VariableError`][crate::error::InklingError::VariableError]: if
     ///     the existing variable has a different type to the input variable.
     pub fn set_variable<T: Into<Variable>>(
         &mut self,

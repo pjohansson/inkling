@@ -179,18 +179,20 @@ impl Variable {
     /// ```
     ///
     /// # Errors
-    /// *   [`VariableTypeChange`][crate::error::InklingError::VariableTypeChange]:
+    /// *   [`NonMatchingAssignment`][crate::error::VariableErrorKind::NonMatchingAssignment]:
     ///     if the variable types do not match.
     pub fn assign<T: Into<Variable>>(&mut self, value: T) -> Result<(), VariableError> {
+        use Variable::*;
+
         let inferred_value = value.into();
 
         match (&self, &inferred_value) {
-            (Variable::Address(..), Variable::Address(..)) => (),
-            (Variable::Bool(..), Variable::Bool(..)) => (),
-            (Variable::Divert(..), Variable::Divert(..)) => (),
-            (Variable::Float(..), Variable::Float(..)) => (),
-            (Variable::Int(..), Variable::Int(..)) => (),
-            (Variable::String(..), Variable::String(..)) => (),
+            (Address(..), Address(..)) => (),
+            (Bool(..), Bool(..)) => (),
+            (Divert(..), Divert(..)) => (),
+            (Float(..), Float(..)) => (),
+            (Int(..), Int(..)) => (),
+            (String(..), String(..)) => (),
             _ => {
                 return Err(VariableError::from_kind(
                     self.clone(),
@@ -204,6 +206,278 @@ impl Variable {
         *self = inferred_value;
 
         Ok(())
+    }
+
+    /// Add the value of a variable to that of another.
+    ///
+    /// This operation is valid for integer, floating point and string variables.
+    /// Integer and floating point variables simply adds the numbers together. String
+    /// variables concatenate their strings.
+    ///
+    /// Integer and floating point values can be added to one another. If so, the integer
+    /// is cast into a floating point number before the operation and the variable is returned
+    /// as a floating point type.
+    ///
+    /// # Examples
+    /// ## Numeric addition
+    /// ```
+    /// # use inkling::Variable;
+    /// assert_eq!(
+    ///     Variable::Int(1).add(&Variable::Int(2)).unwrap(),
+    ///     Variable::Int(3)
+    /// );
+    ///
+    /// assert_eq!(
+    ///     Variable::Float(1.0).add(&Variable::Float(2.0)).unwrap(),
+    ///     Variable::Float(3.0)
+    /// );
+    ///
+    /// assert_eq!(
+    ///     Variable::Int(1).add(&Variable::Float(2.0)).unwrap(),
+    ///     Variable::Float(3.0)
+    /// );
+    /// ```
+    ///
+    /// ## String concatenation
+    /// ```
+    /// # use inkling::Variable;
+    /// let string1 = Variable::from("hi");
+    /// let string2 = Variable::from("ya!");
+    ///
+    /// assert_eq!(
+    ///     string1.add(&string2).unwrap(),
+    ///     Variable::String("hiya!".to_string())
+    /// );
+    /// ```
+    ///
+    /// # Errors
+    /// *   [`NonAllowedOperation`][crate::error::VariableErrorKind::NonAllowedOperation]:
+    ///     if the variables cannot perform this operation.
+    pub fn add(&self, other: &Variable) -> Result<Variable, VariableError> {
+        use Variable::*;
+
+        match (&self, other) {
+            (Int(val1), Int(val2)) => Ok(Int(val1 + val2)),
+            (Int(val1), Float(val2)) => Ok(Float(*val1 as f32 + val2)),
+            (Float(val1), Int(val2)) => Ok(Float(val1 + *val2 as f32)),
+            (Float(val1), Float(val2)) => Ok(Float(val1 + val2)),
+            (String(s1), String(s2)) => Ok(String(format!("{}{}", s1, s2))),
+            _ => Err(VariableError::from_kind(
+                self.clone(),
+                VariableErrorKind::NonAllowedOperation {
+                    other: other.clone(),
+                    operator: '+',
+                },
+            )),
+        }
+    }
+
+    /// Subtract the value of a variable from that of another.
+    ///
+    /// This operation is valid for integer and floating point variables.
+    ///
+    /// Integer and floating point values can be subtracted from one another. If so, the integer
+    /// is cast into a floating point number before the operation and the variable is returned
+    /// as a floating point type.
+    ///
+    /// # Examples
+    /// ```
+    /// # use inkling::Variable;
+    /// assert_eq!(
+    ///     Variable::Int(1).subtract(&Variable::Int(2)).unwrap(),
+    ///     Variable::Int(-1)
+    /// );
+    ///
+    /// assert_eq!(
+    ///     Variable::Float(1.0).subtract(&Variable::Float(2.0)).unwrap(),
+    ///     Variable::Float(-1.0)
+    /// );
+    ///
+    /// assert_eq!(
+    ///     Variable::Int(1).subtract(&Variable::Float(2.0)).unwrap(),
+    ///     Variable::Float(-1.0)
+    /// );
+    /// ```
+    ///
+    /// # Errors
+    /// *   [`NonAllowedOperation`][crate::error::VariableErrorKind::NonAllowedOperation]:
+    ///     if the variables cannot perform this operation.
+    pub fn subtract(&self, other: &Variable) -> Result<Variable, VariableError> {
+        use Variable::*;
+
+        match (&self, other) {
+            (Int(val1), Int(val2)) => Ok(Int(val1 - val2)),
+            (Int(val1), Float(val2)) => Ok(Float(*val1 as f32 - val2)),
+            (Float(val1), Int(val2)) => Ok(Float(val1 - *val2 as f32)),
+            (Float(val1), Float(val2)) => Ok(Float(val1 - val2)),
+            _ => Err(VariableError::from_kind(
+                self.clone(),
+                VariableErrorKind::NonAllowedOperation {
+                    other: other.clone(),
+                    operator: '-',
+                },
+            )),
+        }
+    }
+
+    /// Multiply the value of a variable with that of another.
+    ///
+    /// This operation is valid for integer and floating point variables.
+    ///
+    /// Integer and floating point values can be multiplied with one another. If so, the integer
+    /// is cast into a floating point number before the operation and the variable is returned
+    /// as a floating point type.
+    ///
+    /// # Examples
+    /// ```
+    /// # use inkling::Variable;
+    /// assert_eq!(
+    ///     Variable::Int(2).multiply(&Variable::Int(3)).unwrap(),
+    ///     Variable::Int(6)
+    /// );
+    ///
+    /// assert_eq!(
+    ///     Variable::Float(2.0).multiply(&Variable::Float(3.0)).unwrap(),
+    ///     Variable::Float(6.0)
+    /// );
+    ///
+    /// assert_eq!(
+    ///     Variable::Int(2).multiply(&Variable::Float(3.0)).unwrap(),
+    ///     Variable::Float(6.0)
+    /// );
+    /// ```
+    ///
+    /// # Errors
+    /// *   [`NonAllowedOperation`][crate::error::VariableErrorKind::NonAllowedOperation]:
+    ///     if the variables cannot perform this operation.
+    pub fn multiply(&self, other: &Variable) -> Result<Variable, VariableError> {
+        use Variable::*;
+
+        match (&self, other) {
+            (Int(val1), Int(val2)) => Ok(Int(val1 * val2)),
+            (Int(val1), Float(val2)) => Ok(Float(*val1 as f32 * val2)),
+            (Float(val1), Int(val2)) => Ok(Float(val1 * *val2 as f32)),
+            (Float(val1), Float(val2)) => Ok(Float(val1 * val2)),
+            _ => Err(VariableError::from_kind(
+                self.clone(),
+                VariableErrorKind::NonAllowedOperation {
+                    other: other.clone(),
+                    operator: '*',
+                },
+            )),
+        }
+    }
+
+    /// Divide the value of a variable with that of another.
+    ///
+    /// This operation is valid for integer and floating point variables.
+    ///
+    /// Integer and floating point values can be divided with one another. If so, the integer
+    /// is cast into a floating point number before the operation and the variable is returned
+    /// as a floating point type.
+    ///
+    /// # Examples
+    /// ```
+    /// # use inkling::Variable;
+    /// assert_eq!(
+    ///     Variable::Int(5).divide(&Variable::Int(2)).unwrap(),
+    ///     Variable::Int(2)
+    /// );
+    ///
+    /// assert_eq!(
+    ///     Variable::Float(5.0).divide(&Variable::Float(2.0)).unwrap(),
+    ///     Variable::Float(2.5)
+    /// );
+    ///
+    /// assert_eq!(
+    ///     Variable::Int(5).divide(&Variable::Float(2.0)).unwrap(),
+    ///     Variable::Float(2.5)
+    /// );
+    /// ```
+    ///
+    /// # Errors
+    /// *   [`NonAllowedOperation`][crate::error::VariableErrorKind::NonAllowedOperation]:
+    ///     if the variables cannot perform this operation.
+    /// *   [`DividedByZero`][crate::error::VariableErrorKind::DividedByZero]:
+    ///     if the `other` variable value was 0.
+    pub fn divide(&self, other: &Variable) -> Result<Variable, VariableError> {
+        use Variable::*;
+
+        match (&self, other) {
+            (_, Int(0)) => Err(VariableErrorKind::DividedByZero {
+                other: other.clone(),
+                operator: '/',
+            }),
+            (_, Float(v)) if *v == 0.0 => Err(VariableErrorKind::DividedByZero {
+                other: other.clone(),
+                operator: '/',
+            }),
+            (Int(val1), Int(val2)) => Ok(Int(val1 / val2)),
+            (Int(val1), Float(val2)) => Ok(Float(*val1 as f32 / val2)),
+            (Float(val1), Int(val2)) => Ok(Float(val1 / *val2 as f32)),
+            (Float(val1), Float(val2)) => Ok(Float(val1 / val2)),
+            _ => Err(VariableErrorKind::NonAllowedOperation {
+                other: other.clone(),
+                operator: '/',
+            }),
+        }
+        .map_err(|kind| VariableError::from_kind(self.clone(), kind))
+    }
+
+    /// Find the remainder after dividing the value of a variable with that of another.
+    ///
+    /// This operation is valid for integer and floating point variables.
+    ///
+    /// Integer and floating point values can perform this operation with one another. If so,
+    /// the integer is cast into a floating point number before the operation and the variable
+    /// is returned as a floating point type.
+    ///
+    /// # Examples
+    /// ```
+    /// # use inkling::Variable;
+    /// assert_eq!(
+    ///     Variable::Int(5).remainder(&Variable::Int(2)).unwrap(),
+    ///     Variable::Int(1)
+    /// );
+    ///
+    /// assert_eq!(
+    ///     Variable::Float(5.0).remainder(&Variable::Float(2.0)).unwrap(),
+    ///     Variable::Float(1.0)
+    /// );
+    ///
+    /// assert_eq!(
+    ///     Variable::Int(5).remainder(&Variable::Float(2.0)).unwrap(),
+    ///     Variable::Float(1.0)
+    /// );
+    /// ```
+    ///
+    /// # Errors
+    /// *   [`NonAllowedOperation`][crate::error::VariableErrorKind::NonAllowedOperation]:
+    ///     if the variables cannot perform this operation.
+    /// *   [`DividedByZero`][crate::error::VariableErrorKind::DividedByZero]:
+    ///     if the `other` variable value was 0.
+    pub fn remainder(&self, other: &Variable) -> Result<Variable, VariableError> {
+        use Variable::*;
+
+        match (&self, other) {
+            (_, Int(0)) => Err(VariableErrorKind::DividedByZero {
+                other: other.clone(),
+                operator: '%',
+            }),
+            (_, Float(v)) if *v == 0.0 => Err(VariableErrorKind::DividedByZero {
+                other: other.clone(),
+                operator: '%',
+            }),
+            (Int(val1), Int(val2)) => Ok(Int(val1 % val2)),
+            (Int(val1), Float(val2)) => Ok(Float(*val1 as f32 % val2)),
+            (Float(val1), Int(val2)) => Ok(Float(val1 % *val2 as f32)),
+            (Float(val1), Float(val2)) => Ok(Float(val1 % val2)),
+            _ => Err(VariableErrorKind::NonAllowedOperation {
+                other: other.clone(),
+                operator: '%',
+            }),
+        }
+        .map_err(|kind| VariableError::from_kind(self.clone(), kind))
     }
 
     /// Assert whether a variable is equal to another.
@@ -231,7 +505,7 @@ impl Variable {
     /// ```
     ///
     /// # Errors
-    /// *   [`InvalidVariableComparison`][crate::error::InklingError::InvalidVariableComparison]:
+    /// *   [`InvalidComparison`][crate::error::VariableErrorKind::InvalidComparison]:
     ///     if the two variables cannot be compared.
     pub fn equal_to(&self, other: &Variable) -> Result<bool, VariableError> {
         use Variable::*;
@@ -249,7 +523,7 @@ impl Variable {
                 self.clone(),
                 VariableErrorKind::InvalidComparison {
                     other: other.clone(),
-                comparison: Ordering::Equal,
+                    comparison: Ordering::Equal,
                 },
             )),
         }
@@ -280,7 +554,7 @@ impl Variable {
     /// ```
     ///
     /// # Errors
-    /// *   [`InvalidVariableComparison`][crate::error::InklingError::InvalidVariableComparison]:
+    /// *   [`InvalidComparison`][crate::error::VariableErrorKind::InvalidComparison]:
     ///     if the two variables cannot be compared.
     pub fn greater_than(&self, other: &Variable) -> Result<bool, VariableError> {
         use Variable::*;
@@ -325,7 +599,7 @@ impl Variable {
     /// ```
     ///
     /// # Errors
-    /// *   [`InvalidVariableComparison`][crate::error::InklingError::InvalidVariableComparison]:
+    /// *   [`InvalidComparison`][crate::error::VariableErrorKind::InvalidComparison]:
     ///     if the two variables cannot be compared.
     pub fn less_than(&self, other: &Variable) -> Result<bool, VariableError> {
         use Variable::*;
@@ -339,7 +613,7 @@ impl Variable {
                 self.clone(),
                 VariableErrorKind::InvalidComparison {
                     other: other.clone(),
-                comparison: Ordering::Less,
+                    comparison: Ordering::Less,
                 },
             )),
         }
@@ -790,5 +1064,14 @@ mod tests {
         assert!(divert.equal_to(&string).is_err());
         assert!(divert.equal_to(&boolean).is_err());
         assert!(divert.equal_to(&address).is_err());
+    }
+
+    #[test]
+    fn dividing_by_infinity_yields_error() {
+        assert!(Variable::from(1).divide(&0.into()).is_err());
+        assert!(Variable::from(1.0).divide(&0.0.into()).is_err());
+
+        assert!(Variable::from(1).remainder(&0.into()).is_err());
+        assert!(Variable::from(1.0).remainder(&0.0.into()).is_err());
     }
 }
