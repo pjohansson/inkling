@@ -51,6 +51,10 @@ pub enum InklingError {
         to: Variable,
         comparison: Ordering,
     },
+    /// Called `make_choice` when no choice had been requested.
+    ///
+    /// Likely directly at the start of a story or after a `move_to` call was made.
+    MadeChoiceWithoutChoice,
     /// No choices or fallback choices were available in a story branch at the given address.
     OutOfChoices { address: Address },
     /// No content was available for the story to continue from.
@@ -59,8 +63,6 @@ pub enum InklingError {
     PrintInvalidVariable { name: String, value: Variable },
     /// Tried to resume a story that has not been started.
     ResumeBeforeStart,
-    /// Tried to resume a story with a choice, but no choice was prompted.
-    ResumeWithoutChoice,
     /// Tried to `start` a story that is already in progress.
     StartOnStoryInProgress,
     /// Tried to assign a new type to a variable.
@@ -218,6 +220,11 @@ impl fmt::Display for InklingError {
                     op = operator
                 )
             }
+            MadeChoiceWithoutChoice => write!(
+                f,
+                "Tried to make a choice, but no choice is currently active. Call `resume` \
+                 and assert that a branching choice is returned before calling this again."
+            ),
             OutOfChoices {
                 address: Address::Validated(AddressKind::Location { knot, stitch }),
             } => write!(
@@ -239,11 +246,6 @@ impl fmt::Display for InklingError {
                 name, value
             ),
             ResumeBeforeStart => write!(f, "Tried to resume a story that has not yet been started"),
-            ResumeWithoutChoice => write!(
-                f,
-                "Tried to resume a story with a choice after moving to a new knot, where \
-                 no choices have yet been encountered"
-            ),
             StartOnStoryInProgress => {
                 write!(f, "Called `start` on a story that is already in progress")
             }

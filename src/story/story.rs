@@ -159,6 +159,10 @@ impl Story {
     ///
     /// assert_eq!(line_buffer.last().unwrap().text, "on the empty sky.\n");
     /// ```
+    ///
+    /// # Errors
+    /// *   [`StartOnStoryInProgress`][crate::error::InklingError::StartOnStoryInProgress]:
+    ///     if called twice for the same story.
     pub fn start(&mut self, line_buffer: &mut LineBuffer) -> Result<Prompt, InklingError> {
         if self.in_progress {
             return Err(InklingError::StartOnStoryInProgress);
@@ -167,6 +171,54 @@ impl Story {
         self.in_progress = true;
 
         self.follow_story_wrapper(None, line_buffer)
+    }
+
+    /// Resume the story flow.
+    ///
+    /// Starts walking through the story from the knot and stitch that the story was moved
+    /// to. Works exactly like `start`, except that this cannot be called before the story
+    /// has been started (mirroring how `start` cannot be called on a story in progress).
+    ///
+    /// # Examples
+    /// ```
+    /// # use inkling::read_story_from_string;
+    /// # let content = "\
+    /// # Sam was in real trouble now. The fleet footed criminals were just about to corner her.
+    /// #
+    /// # *   [Climb the fire escape]
+    /// #     She clattered up the rackety fire escape.
+    /// # *   [Bluff]
+    /// #     To hell with running. Sam turned around with a cocksure smirk on her lips.
+    /// #  
+    /// # === mirandas_den ===
+    /// # = bar
+    /// # The room was thick with smoke and the smell of noir.
+    /// #
+    /// # = meeting
+    /// # Miranda was waiting in her office.
+    /// # She had questions and Sam for once had answers.
+    /// # ";
+    /// # let mut story = read_story_from_string(content).unwrap();
+    /// # let mut line_buffer = Vec::new();
+    /// # story.start(&mut line_buffer).unwrap();
+    /// story.move_to("mirandas_den", Some("meeting")).unwrap();
+    /// # line_buffer.clear();
+    /// story.resume(&mut line_buffer).unwrap();
+    ///
+    /// assert_eq!(&line_buffer[0].text, "Miranda was waiting in her office.\n");
+    /// ```
+    ///
+    /// # Errors
+    /// *   [`ResumeBeforeStart`][crate::error::InklingError::ResumeBeforeStart]:
+    ///     if called before the `start` method was called on the story.
+    pub fn resume(&mut self, line_buffer: &mut LineBuffer) -> Result<Prompt, InklingError> {
+        if !self.in_progress {
+            return Err(InklingError::ResumeBeforeStart);
+        }
+
+        let selection = self.selected_choice.take();
+
+        self.follow_story_wrapper(selection, line_buffer)
     }
 
     /// Make a choice from a given set of options.
@@ -205,13 +257,13 @@ impl Story {
     /// ```
     ///
     /// # Errors
-    /// *   `InklingError::ResumeWithoutChoice` is returned if the story is not currently
-    ///     at a branching point.
+    /// *   [`MadeChoiceWithoutChoice`][crate::error::InklingError::MadeChoiceWithoutChoice]:
+    ///     if the story is not currently at a branching point.
     pub fn make_choice(&mut self, selection: usize) -> Result<(), InklingError> {
         let index = self
             .last_choices
             .as_ref()
-            .ok_or(InklingError::ResumeWithoutChoice)
+            .ok_or(InklingError::MadeChoiceWithoutChoice)
             .and_then(|last_choices| {
                 last_choices
                     .get(selection)
@@ -233,9 +285,6 @@ impl Story {
     /// A move can be performed at any time, before or after starting the story. It
     /// simply updates the current internal address in the story to the given address.
     /// If no stitch name is given the default stitch from the root will be selected.
-    ///
-    /// The story will not resume automatically after the move. To do this, use
-    /// the `resume` method whenever you are ready.
     ///
     /// # Examples
     /// ```
@@ -259,6 +308,10 @@ impl Story {
     ///
     /// assert_eq!(&line_buffer[0].text, "1992, western Estonia\n");
     /// ```
+    ///
+    /// # Errors
+    /// *   [`InvalidAddress`][crate::error::InklingError::InvalidAddress]: if the knot
+    ///     or stitch name does not specify an existing location in the story.
     pub fn move_to(&mut self, knot: &str, stitch: Option<&str>) -> Result<(), InklingError> {
         let to_address = Address::from_parts(knot, stitch, &self.knots).map_err(|_| {
             InklingError::InvalidAddress {
@@ -272,50 +325,6 @@ impl Story {
         self.last_choices = None;
 
         Ok(())
-    }
-
-    /// Resume the story flow.
-    ///
-    /// Starts walking through the story from the knot and stitch that the story was moved
-    /// to. Works exactly like `start`, except that this cannot be called before the story
-    /// has been started (mirroring how `start` cannot be called on a story in progress).
-    ///
-    /// # Examples
-    /// ```
-    /// # use inkling::read_story_from_string;
-    /// # let content = "\
-    /// # Sam was in real trouble now. The fleet footed criminals were just about to corner her.
-    /// #
-    /// # *   [Climb the fire escape]
-    /// #     She clattered up the rackety fire escape.
-    /// # *   [Bluff]
-    /// #     To hell with running. Sam turned around with a cocksure smirk on her lips.
-    /// #  
-    /// # === mirandas_den ===
-    /// # = bar
-    /// # The room was thick with smoke and the smell of noir.
-    /// #
-    /// # = meeting
-    /// # Miranda was waiting in her office.
-    /// # She had questions and Sam for once had answers.
-    /// # ";
-    /// # let mut story = read_story_from_string(content).unwrap();
-    /// # let mut line_buffer = Vec::new();
-    /// # story.start(&mut line_buffer).unwrap();
-    /// story.move_to("mirandas_den", Some("meeting")).unwrap();
-    /// # line_buffer.clear();
-    /// story.resume(&mut line_buffer).unwrap();
-    ///
-    /// assert_eq!(&line_buffer[0].text, "Miranda was waiting in her office.\n");
-    /// ```
-    pub fn resume(&mut self, line_buffer: &mut LineBuffer) -> Result<Prompt, InklingError> {
-        if !self.in_progress {
-            return Err(InklingError::ResumeBeforeStart);
-        }
-
-        let selection = self.selected_choice.take();
-
-        self.follow_story_wrapper(selection, line_buffer)
     }
 
     /// Get the knot and stitch (if applicable) that the story is at currently.
@@ -369,6 +378,10 @@ impl Story {
     /// assert_eq!(&tags[0], "weather: hot");
     /// assert_eq!(&tags[1], "sound: crowds");
     /// ```
+    ///
+    /// # Errors
+    /// *   [`InvalidAddress`][crate::error::InklingError::InvalidAddress]: if the name
+    ///     does not refer to a knot that exists in the story.
     pub fn get_knot_tags(&self, knot_name: &str) -> Result<Vec<String>, InklingError> {
         self.knots
             .get(knot_name)
@@ -397,6 +410,10 @@ impl Story {
     /// let num_visited = story.get_num_visited("depths", None).unwrap();
     /// assert_eq!(num_visited, 2);
     /// ```
+    ///
+    /// # Errors
+    /// *   [`InvalidAddress`][crate::error::InklingError::InvalidAddress]: if the knot
+    ///     or stitch name does not specify an existing location in the story.
     pub fn get_num_visited(&self, knot: &str, stitch: Option<&str>) -> Result<u32, InklingError> {
         let address = Address::from_parts(knot, stitch, &self.knots).map_err(|_| {
             InklingError::InvalidAddress {
@@ -442,6 +459,10 @@ impl Story {
     ///
     /// assert_eq!(story.get_variable("books_in_library").unwrap(), Variable::Int(3));
     /// ```
+    ///
+    /// # Errors
+    /// *   [`InvalidVariable`][crate::error::InklingError::InvalidVariable]: if the name
+    ///     does not refer to a global variable that exists in the story.
     pub fn get_variable(&self, name: &str) -> Result<Variable, InklingError> {
         self.data
             .variables
@@ -467,6 +488,10 @@ impl Story {
     /// # let story = read_story_from_string(content).unwrap();
     /// assert_eq!(&story.get_variable_as_string("title").unwrap(), "A Momentuous Spectacle");
     /// ```
+    ///
+    /// # Errors
+    /// *   [`InvalidVariable`][crate::error::InklingError::InvalidVariable]: if the name
+    ///     does not refer to a global variable that exists in the story.
     pub fn get_variable_as_string(&self, name: &str) -> Result<String, InklingError> {
         self.data
             .variables
@@ -528,6 +553,12 @@ impl Story {
     /// # let mut story = read_story_from_string(content).unwrap();
     /// assert!(story.set_variable("hunted_by_police", 10).is_err());
     /// ```
+    ///
+    /// # Errors
+    /// *   [`InvalidVariable`][crate::error::InklingError::InvalidVariable]: if the name
+    ///     does not refer to a global variable that exists in the story.
+    /// *   [`VariableTypeChange`][crate::error::InklingError::VariableTypeChange]: if
+    ///     the existing variable has a different type to the input variable.
     pub fn set_variable<T: Into<Variable>>(
         &mut self,
         name: &str,
@@ -1044,9 +1075,9 @@ We hurried home to Savile Row as fast as we could.
         let mut story = read_story_from_string("").unwrap();
 
         match story.make_choice(0) {
-            Err(InklingError::ResumeWithoutChoice) => (),
+            Err(InklingError::MadeChoiceWithoutChoice) => (),
             other => panic!(
-                "expected `InklingError::ResumeWithoutChoice` but got {:?}",
+                "expected `InklingError::MadeChoiceWithoutChoice` but got {:?}",
                 other
             ),
         }

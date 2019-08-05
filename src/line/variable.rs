@@ -177,6 +177,10 @@ impl Variable {
     /// assert!(variable.assign(Variable::Bool(true)).is_err());
     /// assert!(variable.assign(Variable::Float(5.0)).is_err());
     /// ```
+    ///
+    /// # Errors
+    /// *   [`VariableTypeChange`][crate::error::InklingError::VariableTypeChange]:
+    ///     if the variable types do not match.
     pub fn assign<T: Into<Variable>>(&mut self, value: T) -> Result<(), InklingError> {
         let inferred_value = value.into();
 
@@ -223,6 +227,10 @@ impl Variable {
     /// assert!(Variable::Int(1).equal_to(&Variable::Bool(true)).is_err());
     /// assert!(Variable::String("1".to_string()).equal_to(&Variable::Int(1)).is_err());
     /// ```
+    ///
+    /// # Errors
+    /// *   [`InvalidVariableComparison`][crate::error::InklingError::InvalidVariableComparison]:
+    ///     if the two variables cannot be compared.
     pub fn equal_to(&self, other: &Variable) -> Result<bool, InklingError> {
         use Variable::*;
 
@@ -266,6 +274,10 @@ impl Variable {
     /// assert!(Variable::Bool(true).greater_than(&Variable::Bool(false)).is_err());
     /// assert!(Variable::from("hiya").greater_than(&Variable::from("hi")).is_err());
     /// ```
+    ///
+    /// # Errors
+    /// *   [`InvalidVariableComparison`][crate::error::InklingError::InvalidVariableComparison]:
+    ///     if the two variables cannot be compared.
     pub fn greater_than(&self, other: &Variable) -> Result<bool, InklingError> {
         use Variable::*;
 
@@ -305,6 +317,10 @@ impl Variable {
     /// assert!(Variable::Bool(false).less_than(&Variable::Bool(true)).is_err());
     /// assert!(Variable::from("hi").less_than(&Variable::from("hiya")).is_err());
     /// ```
+    ///
+    /// # Errors
+    /// *   [`InvalidVariableComparison`][crate::error::InklingError::InvalidVariableComparison]:
+    ///     if the two variables cannot be compared.
     pub fn less_than(&self, other: &Variable) -> Result<bool, InklingError> {
         use Variable::*;
 
