@@ -20,11 +20,20 @@ from Nantucket. {|||||We're besties.}
 
     story.start(&mut line_buffer).unwrap();
 
-    story.resume_with_choice(0, &mut line_buffer).unwrap();
-    story.resume_with_choice(0, &mut line_buffer).unwrap();
-    story.resume_with_choice(0, &mut line_buffer).unwrap();
-    story.resume_with_choice(0, &mut line_buffer).unwrap();
-    story.resume_with_choice(0, &mut line_buffer).unwrap();
+    story.make_choice(0).unwrap();
+    story.resume(&mut line_buffer).unwrap();
+
+    story.make_choice(0).unwrap();
+    story.resume(&mut line_buffer).unwrap();
+
+    story.make_choice(0).unwrap();
+    story.resume(&mut line_buffer).unwrap();
+
+    story.make_choice(0).unwrap();
+    story.resume(&mut line_buffer).unwrap();
+
+    story.make_choice(0).unwrap();
+    story.resume(&mut line_buffer).unwrap();
 
     assert_eq!(
         &line_buffer[0].text,
@@ -77,8 +86,10 @@ You meet with Aaron.
     assert_eq!(choices.len(), 1);
     assert_eq!(&choices[0].text, "Hi!");
 
+    story.make_choice(0).unwrap();
+
     let choices = story
-        .resume_with_choice(0, &mut line_buffer)
+        .resume(&mut line_buffer)
         .unwrap()
         .get_choices()
         .unwrap();
@@ -87,8 +98,10 @@ You meet with Aaron.
     assert_eq!(&choices[0].text, "Hi again!");
     assert_eq!(&choices[1].text, "Oh, you again");
 
+    story.make_choice(0).unwrap();
+
     let choices = story
-        .resume_with_choice(0, &mut line_buffer)
+        .resume(&mut line_buffer)
         .unwrap()
         .get_choices()
         .unwrap();
@@ -124,24 +137,30 @@ I {nantucket: {nantucket > 1: {nantucket > 2: many times | twice } | once } | ha
         "I have never met a comrade from Nantucket.\n"
     );
 
+    story.make_choice(0).unwrap();
+
     line_buffer.clear();
-    story.resume_with_choice(0, &mut line_buffer).unwrap();
+    story.resume(&mut line_buffer).unwrap();
 
     assert_eq!(
         &line_buffer[0].text,
         "I once met with a comrade from Nantucket.\n"
     );
 
+    story.make_choice(0).unwrap();
+
     line_buffer.clear();
-    story.resume_with_choice(0, &mut line_buffer).unwrap();
+    story.resume(&mut line_buffer).unwrap();
 
     assert_eq!(
         &line_buffer[0].text,
         "I twice met with a comrade from Nantucket.\n"
     );
 
+    story.make_choice(0).unwrap();
+
     line_buffer.clear();
-    story.resume_with_choice(0, &mut line_buffer).unwrap();
+    story.resume(&mut line_buffer).unwrap();
 
     assert_eq!(
         &line_buffer[0].text,

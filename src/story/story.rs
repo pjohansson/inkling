@@ -170,6 +170,7 @@ impl Story {
         self.follow_story_wrapper(None, line_buffer)
     }
 
+    #[deprecated]
     /// Resume the story with a choice from the given set.
     ///
     /// The story continues until it reaches a dead end or another set of choices
@@ -362,7 +363,9 @@ impl Story {
             return Err(InklingError::ResumeBeforeStart);
         }
 
-        self.follow_story_wrapper(None, line_buffer)
+        let selection = self.selected_choice.take();
+
+        self.follow_story_wrapper(selection, line_buffer)
     }
 
     /// Get the knot and stitch (if applicable) that the story is at currently.
@@ -1168,31 +1171,30 @@ We hurried home to Savile Row as fast as we could.
     }
 
     #[test]
-    fn choice_index_is_converted_to_internal_branch_index_to_account_for_filtered_choices() {
+    fn following_story_wrapper_updates_stack_to_last_address() {
         let content = "
-== tripoli
-*   Cinema
-    You watched a horror movie in the cinema.
-*   {addis_ababa} Call Kinfe.
-*   Visit family
-    A visit to your family did you good.
-
 == addis_ababa
+-> tripoli.cinema
+
+== tripoli
+
+= cinema
+-> END
+
+= visit_family
 -> END
 ";
 
         let mut story = read_story_from_string(content).unwrap();
-        story.move_to("tripoli", None).unwrap();
+        story.move_to("addis_ababa", None).unwrap();
 
         let mut line_buffer = Vec::new();
 
-        story.start(&mut line_buffer).unwrap();
-        story.resume_with_choice(1, &mut line_buffer).unwrap();
+        story.follow_story_wrapper(None, &mut line_buffer).unwrap();
 
-        assert_eq!(
-            &line_buffer[1].text,
-            "A visit to your family did you good.\n"
-        );
+        let address = Address::from_parts_unchecked("tripoli", Some("cinema"));
+
+        assert_eq!(story.stack.last().unwrap(), &address);
     }
 
     #[test]
@@ -1203,18 +1205,22 @@ We hurried home to Savile Row as fast as we could.
 *   ->
     Fallback choice
 ";
-
         let mut story = read_story_from_string(content).unwrap();
         story.move_to("knot", None).unwrap();
 
-        let mut buffer = Vec::new();
+        let mut line_buffer = Vec::new();
 
-        let choices = story.start(&mut buffer).unwrap().get_choices().unwrap();
+        let choices = story
+            .start(&mut line_buffer)
+            .unwrap()
+            .get_choices()
+            .unwrap();
         assert_eq!(choices.len(), 1);
 
-        story.resume_with_choice(0, &mut buffer).unwrap();
+        story.make_choice(0).unwrap();
+        story.resume(&mut line_buffer).unwrap();
 
-        assert_eq!(&buffer[1].text, "Fallback choice\n");
+        assert_eq!(&line_buffer[1].text, "Fallback choice\n");
     }
 
     #[test]
@@ -1296,8 +1302,9 @@ We decided to go to the <>
         let mut buffer = Vec::new();
 
         story.start(&mut buffer).unwrap();
+        story.make_choice(0).unwrap();
 
-        match story.resume_with_choice(0, &mut buffer) {
+        match story.resume(&mut buffer) {
             Err(InklingError::OutOfChoices { .. }) => (),
             Err(err) => panic!("expected `OutOfChoices` error but got {:?}", err),
             Ok(_) => panic!("expected an error but got an Ok"),
@@ -1329,33 +1336,6 @@ We decided to go to the <>
     }
 
     #[test]
-    fn when_an_invalid_choices_is_made_to_resume_the_story_an_invalid_choice_error_is_yielded() {
-        let content = "
-== knot 
-*   Choice 1
-";
-
-        let mut story = read_story_from_string(content).unwrap();
-        story.move_to("knot", None).unwrap();
-
-        let mut line_buffer = Vec::new();
-
-        story.start(&mut line_buffer).unwrap();
-
-        match story.resume_with_choice(1, &mut line_buffer) {
-            Err(InklingError::InvalidChoice {
-                selection,
-                presented_choices,
-            }) => {
-                assert_eq!(selection, 1);
-                assert_eq!(presented_choices.len(), 1);
-                assert_eq!(&presented_choices[0].text, "Choice 1");
-            }
-            other => panic!("expected `InklingError::InvalidChoice` but got {:?}", other),
-        }
-    }
-
-    #[test]
     fn starting_a_story_is_only_allowed_once() {
         let mut story = read_story_from_string("Line 1").unwrap();
         let mut line_buffer = Vec::new();
@@ -1370,10 +1350,10 @@ We decided to go to the <>
 
     #[test]
     fn cannot_resume_on_a_story_that_has_not_started() {
-        let mut story = read_story_from_string("* Choice 1").unwrap();
+        let mut story = read_story_from_string("").unwrap();
         let mut line_buffer = Vec::new();
 
-        match story.resume_with_choice(0, &mut line_buffer) {
+        match story.resume(&mut line_buffer) {
             Err(InklingError::ResumeBeforeStart) => (),
             _ => panic!("did not raise `ResumeBeforeStart` error"),
         }
@@ -1625,85 +1605,6 @@ After an arduous journey we arrived back in Almaty.
     }
 
     #[test]
-    fn after_a_resume_is_made_the_choice_can_be_made_as_usual() {
-        let content = "
-
-== back_in_almaty
-
-After an arduous journey we arrived back in Almaty.
-
-*   We hurried home as fast as we could. 
-    -> END
-*   But we decided our trip wasn't done yet.
-    We immediately left the city. 
-
-";
-        let mut story = read_story_from_string(content).unwrap();
-        story.move_to("back_in_almaty", None).unwrap();
-
-        let mut line_buffer = Vec::new();
-
-        story
-            .start(&mut line_buffer)
-            .unwrap()
-            .get_choices()
-            .unwrap();
-
-        line_buffer.clear();
-        story
-            .resume(&mut line_buffer)
-            .unwrap()
-            .get_choices()
-            .unwrap();
-        story
-            .resume(&mut line_buffer)
-            .unwrap()
-            .get_choices()
-            .unwrap();
-        story
-            .resume(&mut line_buffer)
-            .unwrap()
-            .get_choices()
-            .unwrap();
-        story
-            .resume(&mut line_buffer)
-            .unwrap()
-            .get_choices()
-            .unwrap();
-
-        story.resume_with_choice(1, &mut line_buffer).unwrap();
-
-        assert_eq!(line_buffer.len(), 2);
-        assert_eq!(
-            &line_buffer[0].text,
-            "But we decided our trip wasn't done yet.\n"
-        );
-        assert_eq!(&line_buffer[1].text, "We immediately left the city.\n");
-    }
-
-    #[test]
-    fn resume_cannot_be_called_on_an_unstarted_story() {
-        let content = "
-
-== back_in_almaty
-After an arduous journey we arrived back in Almaty.
-
-";
-        let mut story = read_story_from_string(content).unwrap();
-        story.move_to("back_in_almaty", None).unwrap();
-
-        let mut line_buffer = Vec::new();
-
-        match story.resume(&mut line_buffer) {
-            Err(InklingError::ResumeBeforeStart) => (),
-            other => panic!(
-                "expected `InklingError::ResumeBeforeStart` but got {:?}",
-                other
-            ),
-        }
-    }
-
-    #[test]
     fn story_can_be_moved_to_another_address() {
         let content = "
 
@@ -1823,36 +1724,6 @@ Once back home we feasted on cheese.
 
         assert!(story.move_to("fin", None).is_err());
         assert!(story.move_to("hurry_home", Some("not_at_home")).is_err());
-    }
-
-    #[test]
-    fn resume_with_choice_cannot_be_called_directly_after_a_move() {
-        let content = "
-
-We arrived into Almaty at 9.45pm exactly.
-*   That was the end of our trip. -> fin
-
-== hurry_home
-We hurried home as fast as we could. 
-
-== fin
--> END
-
-";
-
-        let mut story = read_story_from_string(content).unwrap();
-        let mut line_buffer = Vec::new();
-
-        story.start(&mut line_buffer).unwrap();
-        story.move_to("hurry_home", None).unwrap();
-
-        match story.resume_with_choice(0, &mut line_buffer) {
-            Err(InklingError::ResumeWithoutChoice) => (),
-            other => panic!(
-                "expected `InklingError::ResumeWithoutChoice` but got {:?}",
-                other
-            ),
-        }
     }
 
     #[test]

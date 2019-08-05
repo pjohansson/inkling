@@ -30,8 +30,10 @@ You enter a dark room.
     assert_eq!(&choices[1].text, "Pray no grues are hiding.");
     assert_eq!(&choices[2].text, "Turn back and leave.");
 
+    story.make_choice(1).unwrap();
+
     let choices = story
-        .resume_with_choice(1, &mut line_buffer)
+        .resume(&mut line_buffer)
         .unwrap()
         .get_choices()
         .unwrap();
@@ -40,8 +42,10 @@ You enter a dark room.
     assert_eq!(&choices[0].text, "Light your last torch.");
     assert_eq!(&choices[1].text, "Turn back and leave.");
 
+    story.make_choice(1).unwrap();
+
     let choices = story
-        .resume_with_choice(1, &mut line_buffer)
+        .resume(&mut line_buffer)
         .unwrap()
         .get_choices()
         .unwrap();
@@ -50,8 +54,10 @@ You enter a dark room.
     assert_eq!(&choices[0].text, "Light your last torch.");
     assert_eq!(&choices[1].text, "Turn back and leave.");
 
+    story.make_choice(0).unwrap();
+
     let choices = story
-        .resume_with_choice(0, &mut line_buffer)
+        .resume(&mut line_buffer)
         .unwrap()
         .get_choices()
         .unwrap();
@@ -99,16 +105,20 @@ You head back.
     assert_eq!(&choices[0].text, "Left");
     assert_eq!(&choices[1].text, "Right");
 
+    story.make_choice(1).unwrap();
+
     let choices = story
-        .resume_with_choice(1, &mut line_buffer)
+        .resume(&mut line_buffer)
         .unwrap()
         .get_choices()
         .unwrap();
 
     assert_eq!(&choices[0].text, "Head back.");
 
+    story.make_choice(0).unwrap();
+
     let choices = story
-        .resume_with_choice(0, &mut line_buffer)
+        .resume(&mut line_buffer)
         .unwrap()
         .get_choices()
         .unwrap();
@@ -116,8 +126,10 @@ You head back.
     assert_eq!(&choices[0].text, "Left");
     assert_eq!(&choices[1].text, "Right");
 
+    story.make_choice(0).unwrap();
+
     let choices = story
-        .resume_with_choice(0, &mut line_buffer)
+        .resume(&mut line_buffer)
         .unwrap()
         .get_choices()
         .unwrap();
@@ -125,8 +137,10 @@ You head back.
     assert_eq!(&choices[0].text, "Left");
     assert_eq!(&choices[1].text, "Right");
 
+    story.make_choice(1).unwrap();
+
     let choices = story
-        .resume_with_choice(1, &mut line_buffer)
+        .resume(&mut line_buffer)
         .unwrap()
         .get_choices()
         .unwrap();
@@ -176,16 +190,20 @@ You head back.
     assert_eq!(&choices[0].text, "Left");
     assert_eq!(&choices[1].text, "Right");
 
+    story.make_choice(1).unwrap();
+
     let choices = story
-        .resume_with_choice(1, &mut line_buffer)
+        .resume(&mut line_buffer)
         .unwrap()
         .get_choices()
         .unwrap();
 
     assert_eq!(&choices[0].text, "Head back.");
 
+    story.make_choice(0).unwrap();
+
     let choices = story
-        .resume_with_choice(0, &mut line_buffer)
+        .resume(&mut line_buffer)
         .unwrap()
         .get_choices()
         .unwrap();
@@ -193,8 +211,10 @@ You head back.
     assert_eq!(&choices[0].text, "Left");
     assert_eq!(&choices[1].text, "Right");
 
+    story.make_choice(0).unwrap();
+
     let choices = story
-        .resume_with_choice(0, &mut line_buffer)
+        .resume(&mut line_buffer)
         .unwrap()
         .get_choices()
         .unwrap();
@@ -202,8 +222,10 @@ You head back.
     assert_eq!(&choices[0].text, "Left");
     assert_eq!(&choices[1].text, "Right");
 
+    story.make_choice(1).unwrap();
+
     let choices = story
-        .resume_with_choice(1, &mut line_buffer)
+        .resume(&mut line_buffer)
         .unwrap()
         .get_choices()
         .unwrap();
@@ -252,16 +274,20 @@ You head back.
     assert_eq!(&choices[0].text, "Left");
     assert_eq!(&choices[1].text, "Right");
 
+    story.make_choice(1).unwrap();
+
     let choices = story
-        .resume_with_choice(1, &mut line_buffer)
+        .resume(&mut line_buffer)
         .unwrap()
         .get_choices()
         .unwrap();
 
     assert_eq!(&choices[0].text, "Head back.");
 
+    story.make_choice(0).unwrap();
+
     let choices = story
-        .resume_with_choice(0, &mut line_buffer)
+        .resume(&mut line_buffer)
         .unwrap()
         .get_choices()
         .unwrap();
@@ -269,8 +295,10 @@ You head back.
     assert_eq!(&choices[0].text, "Left");
     assert_eq!(&choices[1].text, "Right");
 
+    story.make_choice(0).unwrap();
+
     let choices = story
-        .resume_with_choice(0, &mut line_buffer)
+        .resume(&mut line_buffer)
         .unwrap()
         .get_choices()
         .unwrap();
@@ -278,8 +306,10 @@ You head back.
     assert_eq!(&choices[0].text, "Left");
     assert_eq!(&choices[1].text, "Right");
 
+    story.make_choice(1).unwrap();
+
     let choices = story
-        .resume_with_choice(1, &mut line_buffer)
+        .resume(&mut line_buffer)
         .unwrap()
         .get_choices()
         .unwrap();
@@ -323,16 +353,20 @@ You pick the torch up and head back.
         "A crossing! Which path do you take?\n"
     );
 
+    story.make_choice(0).unwrap();
+
     line_buffer.clear();
-    story.resume_with_choice(0, &mut line_buffer).unwrap();
+    story.resume(&mut line_buffer).unwrap();
 
     assert_eq!(
         &line_buffer[0].text,
         "In a small chamber further in you find a torch.\n"
     );
 
+    story.make_choice(0).unwrap();
+
     line_buffer.clear();
-    story.resume_with_choice(0, &mut line_buffer).unwrap();
+    story.resume(&mut line_buffer).unwrap();
 
     assert_eq!(
         &line_buffer[0].text,
@@ -343,8 +377,10 @@ You pick the torch up and head back.
         "A crossing! Which path do you take?\n"
     );
 
+    story.make_choice(0).unwrap();
+
     line_buffer.clear();
-    story.resume_with_choice(0, &mut line_buffer).unwrap();
+    story.resume(&mut line_buffer).unwrap();
 
     assert_eq!(&line_buffer[0].text, "This chamber used to hold a torch. ");
     assert_eq!(
@@ -386,8 +422,10 @@ You pick the torch up and head back.
 
     story.start(&mut line_buffer).unwrap();
 
+    story.make_choice(0).unwrap();
+
     line_buffer.clear();
-    story.resume_with_choice(0, &mut line_buffer).unwrap();
+    story.resume(&mut line_buffer).unwrap();
 
     assert_eq!(
         &line_buffer[0].text,
@@ -402,8 +440,10 @@ You pick the torch up and head back.
         "A crossing! Which path do you take?\n"
     );
 
+    story.make_choice(0).unwrap();
+
     line_buffer.clear();
-    story.resume_with_choice(0, &mut line_buffer).unwrap();
+    story.resume(&mut line_buffer).unwrap();
 
     assert_eq!(&line_buffer[0].text, "This chamber used to hold a torch.\n");
     assert_eq!(
@@ -415,8 +455,10 @@ You pick the torch up and head back.
         "A crossing! Which path do you take?\n"
     );
 
+    story.make_choice(0).unwrap();
+
     line_buffer.clear();
-    story.resume_with_choice(0, &mut line_buffer).unwrap();
+    story.resume(&mut line_buffer).unwrap();
 
     assert_eq!(&line_buffer[0].text, "This chamber used to hold a torch.\n");
     assert_eq!(
@@ -459,16 +501,20 @@ A crossing! Which path do you take?
 
     story.start(&mut line_buffer).unwrap();
 
+    story.make_choice(0).unwrap();
+
     line_buffer.clear();
-    story.resume_with_choice(0, &mut line_buffer).unwrap();
+    story.resume(&mut line_buffer).unwrap();
 
     assert_eq!(
         &line_buffer[0].text,
         "In a small chamber further in you find a torch. "
     );
 
+    story.make_choice(0).unwrap();
+
     line_buffer.clear();
-    story.resume_with_choice(0, &mut line_buffer).unwrap();
+    story.resume(&mut line_buffer).unwrap();
 
     assert_eq!(&line_buffer[0].text, "This chamber used to hold a torch. ");
 }

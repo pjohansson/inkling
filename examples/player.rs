@@ -46,7 +46,8 @@ fn play_story(mut story: Story) -> Result<(), InklingError> {
         });
 
         println!("");
-        result = story.resume_with_choice(choice, &mut line_buffer)?;
+        story.make_choice(choice)?;
+        result = story.resume(&mut line_buffer)?;
         print_lines(&line_buffer);
     }
 

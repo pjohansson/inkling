@@ -258,7 +258,9 @@ The fight barely lasts a moment before Gesicht sedates him with a large dose of 
     );
     assert_eq!(&choices[1].text, "The fugitive desperately fights back.");
 
-    story.resume_with_choice(1, &mut line_buffer).unwrap();
+    story.make_choice(1).unwrap();
+
+    story.resume(&mut line_buffer).unwrap();
     assert_eq!(
         line_buffer.last().unwrap().text,
         "“What was the point in all that?”\n"
@@ -274,12 +276,10 @@ fn following_a_choice_adds_a_copy_of_the_choice_line_to_the_buffer() {
     let mut story = read_story_from_string(content).unwrap();
     let mut line_buffer = Vec::new();
 
-    story
-        .start(&mut line_buffer)
-        .unwrap()
-        .get_choices()
-        .unwrap();
-    story.resume_with_choice(0, &mut line_buffer).unwrap();
+    story.start(&mut line_buffer).unwrap();
+
+    story.make_choice(0).unwrap();
+    story.resume(&mut line_buffer).unwrap();
 
     assert_eq!(line_buffer.len(), 1);
     assert_eq!(&line_buffer[0].text, "Gesicht took the fugitive in.\n");
@@ -302,22 +302,16 @@ A robot in a frilly apron welcomes him in.
     let mut story = read_story_from_string(content).unwrap();
     let mut line_buffer = Vec::new();
 
-    story
-        .start(&mut line_buffer)
-        .unwrap()
-        .get_choices()
-        .unwrap();
-    story
-        .resume_with_choice(0, &mut line_buffer)
-        .unwrap()
-        .get_choices()
-        .unwrap();
-    story
-        .resume_with_choice(1, &mut line_buffer)
-        .unwrap()
-        .get_choices()
-        .unwrap();
-    story.resume_with_choice(0, &mut line_buffer).unwrap();
+    story.start(&mut line_buffer).unwrap();
+
+    story.make_choice(0).unwrap();
+    story.resume(&mut line_buffer).unwrap();
+
+    story.make_choice(1).unwrap();
+    story.resume(&mut line_buffer).unwrap();
+
+    story.make_choice(0).unwrap();
+    story.resume(&mut line_buffer).unwrap();
 
     assert_eq!(
         line_buffer.last().unwrap().text,
@@ -342,12 +336,10 @@ Gesicht notices that a destroyed patrol bot is being thrown away.
     let mut story = read_story_from_string(content).unwrap();
     let mut line_buffer = Vec::new();
 
-    story
-        .start(&mut line_buffer)
-        .unwrap()
-        .get_choices()
-        .unwrap();
-    story.resume_with_choice(0, &mut line_buffer).unwrap();
+    story.start(&mut line_buffer).unwrap();
+
+    story.make_choice(0).unwrap();
+    story.resume(&mut line_buffer).unwrap();
 
     assert_eq!(
         line_buffer.last().unwrap().text,
@@ -397,12 +389,14 @@ The elevator doors swung open.
         .unwrap()
         .get_choices()
         .unwrap();
-    line_buffer.clear();
 
     assert_eq!(&choices[0].text, "Enter");
 
+    story.make_choice(0).unwrap();
+    line_buffer.clear();
+
     let choices = story
-        .resume_with_choice(0, &mut line_buffer)
+        .resume(&mut line_buffer)
         .unwrap()
         .get_choices()
         .unwrap();
@@ -411,11 +405,12 @@ The elevator doors swung open.
         line_buffer[0].text,
         "He entered the storage where Brau 1589 was kept.\n"
     );
-    line_buffer.clear();
 
     assert_eq!(&choices[0].text, "“Brau 1589...”");
 
-    story.resume_with_choice(0, &mut line_buffer).unwrap();
+    line_buffer.clear();
+    story.make_choice(0).unwrap();
+    story.resume(&mut line_buffer).unwrap();
 
     assert_eq!(line_buffer[0].text, "“Brau 1589,” he said.\n");
 }
@@ -444,15 +439,13 @@ They travelled to his apartment by car.
     let mut story = read_story_from_string(content).unwrap();
     let mut line_buffer = Vec::new();
 
-    story
-        .start(&mut line_buffer)
-        .unwrap()
-        .get_choices()
-        .unwrap();
+    story.start(&mut line_buffer).unwrap();
+
+    story.make_choice(0).unwrap();
     line_buffer.clear();
 
     let choices = story
-        .resume_with_choice(0, &mut line_buffer)
+        .resume(&mut line_buffer)
         .unwrap()
         .get_choices()
         .unwrap();
@@ -462,7 +455,8 @@ They travelled to his apartment by car.
         "“Your opponents all wear the same pancreatic suits."
     );
 
-    story.resume_with_choice(0, &mut line_buffer).unwrap();
+    story.make_choice(0).unwrap();
+    story.resume(&mut line_buffer).unwrap();
 
     assert_eq!(
         &line_buffer.last().unwrap().text,
@@ -485,17 +479,14 @@ North no. 2 is standing in the bed room as the old man wakes up from his dream.
     let mut story = read_story_from_string(content).unwrap();
     let mut line_buffer = Vec::new();
 
-    story
-        .start(&mut line_buffer)
-        .unwrap()
-        .get_choices()
-        .unwrap();
+    story.start(&mut line_buffer).unwrap();
 
-    story.resume_with_choice(1, &mut line_buffer).unwrap();
+    story.make_choice(1).unwrap();
+    story.resume(&mut line_buffer).unwrap();
 
     // Here the same choice is used again but is not valid, because only one option
     // is available in the branch.
-    let result = story.resume_with_choice(1, &mut line_buffer);
+    let result = story.make_choice(1);
 
     match result {
         Err(InklingError::InvalidChoice {

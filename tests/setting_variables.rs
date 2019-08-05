@@ -79,7 +79,8 @@ The latest measurement is {value} {unit}. {value < threshold: Not terrible, not 
     story.set_variable("value", 15000.0).unwrap();
 
     line_buffer.clear();
-    story.resume_with_choice(0, &mut line_buffer).unwrap();
+    story.make_choice(0).unwrap();
+    story.resume(&mut line_buffer).unwrap();
 
     assert_eq!(
         &line_buffer[0].text,
@@ -119,7 +120,8 @@ The latest measurement is {value} {unit}. {not is_hazardous: Not terrible, not g
     story.set_variable("is_hazardous", true).unwrap();
 
     line_buffer.clear();
-    story.resume_with_choice(0, &mut line_buffer).unwrap();
+    story.make_choice(0).unwrap();
+    story.resume(&mut line_buffer).unwrap();
 
     assert_eq!(
         &line_buffer[0].text,
