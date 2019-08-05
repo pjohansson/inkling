@@ -14,6 +14,7 @@
 mod alternative;
 mod choice;
 mod condition;
+mod expression;
 mod gather;
 mod kind;
 mod line;
@@ -23,6 +24,7 @@ mod variable;
 pub(self) use alternative::parse_alternative;
 pub(self) use choice::parse_choice;
 pub(self) use condition::{parse_choice_condition, parse_line_condition};
+pub(self) use expression::parse_expression;
 pub(self) use gather::parse_gather;
 pub use kind::{parse_line, ParsedLineKind};
 pub(self) use kind::{parse_markers_and_text, split_at_divert_marker};

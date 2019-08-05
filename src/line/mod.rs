@@ -19,7 +19,7 @@
 mod alternative;
 mod choice;
 mod condition;
-mod expression;
+pub mod expression;
 mod line;
 pub(crate) mod parse;
 mod variable;
@@ -29,6 +29,7 @@ pub(crate) use choice::{InternalChoice, InternalChoiceBuilder};
 pub(crate) use condition::{
     Condition, ConditionBuilder, ConditionItem, ConditionKind, StoryCondition,
 };
+pub(crate) use expression::{evaluate_expression, Expression};
 #[cfg(test)]
 pub(crate) use line::builders::LineChunkBuilder;
 pub(crate) use line::{builders::InternalLineBuilder, Content, InternalLine, LineChunk};
