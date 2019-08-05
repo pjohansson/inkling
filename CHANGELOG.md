@@ -1,5 +1,6 @@
 # 0.12.0
 
+*   Breaking change: `start` does not begin the text processing. Instead, use `resume` after `start` has been called.
 *   Breaking change: `resume_with_choice` has been removed and replaced with the pair of `make_choice` and `resume` methods.
 
 # 0.11.0
