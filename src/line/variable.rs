@@ -151,7 +151,7 @@ impl Variable {
     ///
     /// # Examples
     ///
-    /// Assigning a new value:
+    /// ## Assigning a new value
     /// ```
     /// # use inkling::Variable;
     /// let mut variable = Variable::Bool(true);
@@ -160,7 +160,7 @@ impl Variable {
     /// assert_eq!(variable, Variable::Bool(false));
     /// ```
     ///
-    /// Inferring input type:
+    /// ## Inferring input type
     /// ```
     /// # use inkling::Variable;
     /// let mut variable = Variable::Float(13.3);
@@ -169,7 +169,7 @@ impl Variable {
     /// assert_eq!(variable, Variable::Float(5.0));
     /// ```
     ///
-    /// A new variable type cannot be assigned (not even for numeric conversions):
+    /// ## Invalid other variable type assignment
     /// ```
     /// # use inkling::Variable;
     /// let mut variable = Variable::Int(10);
@@ -212,7 +212,7 @@ impl Variable {
     /// is made.
     ///
     /// # Examples
-    /// Valid comparisons:
+    /// ## Valid comparisons
     /// ```
     /// # use inkling::Variable;
     /// assert!(Variable::Int(5).equal_to(&Variable::Int(5)).unwrap());
@@ -221,7 +221,7 @@ impl Variable {
     /// assert!(!Variable::Bool(true).equal_to(&Variable::Bool(false)).unwrap());
     /// ```
     ///
-    /// Invalid comparisons between types:
+    /// ## Invalid comparisons between types
     /// ```
     /// # use inkling::Variable;
     /// assert!(Variable::Int(1).equal_to(&Variable::Bool(true)).is_err());
@@ -258,7 +258,7 @@ impl Variable {
     /// the integer will be cast to a float, then the comparison is made.
     ///
     /// # Examples
-    /// Valid comparisons between numbers:
+    /// ## Valid comparisons between numbers
     /// ```
     /// # use inkling::Variable;
     /// assert!(Variable::Int(6).greater_than(&Variable::Int(5)).unwrap());
@@ -267,7 +267,7 @@ impl Variable {
     /// assert!(Variable::Float(5.1).greater_than(&Variable::Int(5)).unwrap());
     /// ```
     ///
-    /// Invalid comparisons between non-numbers:
+    /// ## Invalid comparisons between non-numbers
     /// ```
     /// # use inkling::Variable;
     /// assert!(Variable::Int(1).greater_than(&Variable::Bool(false)).is_err());
@@ -301,7 +301,7 @@ impl Variable {
     /// the integer will be cast to a float, then the comparison is made.
     ///
     /// # Examples
-    /// Valid comparisons between numbers:
+    /// ## Valid comparisons between numbers
     /// ```
     /// # use inkling::Variable;
     /// assert!(Variable::Int(5).less_than(&Variable::Int(6)).unwrap());
@@ -310,7 +310,7 @@ impl Variable {
     /// assert!(Variable::Float(4.9).less_than(&Variable::Int(5)).unwrap());
     /// ```
     ///
-    /// Invalid comparisons between non-numbers:
+    /// ## Invalid comparisons between non-numbers
     /// ```
     /// # use inkling::Variable;
     /// assert!(Variable::Int(0).less_than(&Variable::Bool(true)).is_err());

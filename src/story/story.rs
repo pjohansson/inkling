@@ -135,15 +135,9 @@ impl Prompt {
 }
 
 impl Story {
-    /// Start walking through the story while reading all lines into the supplied buffer.
+    /// Mark the story as being ready to start the text flow processing.
     ///
-    /// Returns either when the story reached an end or when a set of choices was encountered,
-    /// which requires the user to select one. Make a choice by calling
-    /// [`make_choice`][crate::story::Story::make_choice()], then resume the story flow with
-    /// [`resume`][crate::story::Story::resume()].
-    ///
-    /// # Notes
-    /// The input line buffer is not cleared before reading new lines into it.
+    /// Must be called before the first call to [`resume`][crate::story::Story::resume()].
     ///
     /// # Examples
     /// ```
@@ -163,7 +157,7 @@ impl Story {
     /// story.start();
     /// story.resume(&mut line_buffer);
     ///
-    /// assert_eq!(line_buffer.last().unwrap().text, "on the empty sky.\n");
+    /// assert_eq!(line_buffer[0].text, "Only in silence the word,\n");
     /// ```
     ///
     /// # Errors
@@ -179,14 +173,71 @@ impl Story {
         Ok(())
     }
 
-    /// Resume the story flow while reading all encountered lines into the supplied buffer.
+    /// Resume the story text flow while reading all encountered lines into the supplied buffer.
+    ///
+    /// Should be called to resume the flow after the story has been started with
+    /// [`start`][crate::story::Story::start()], a choice was made with
+    /// [`make_choice`][crate::story::Story::make_choice()] or the
+    /// [`move_to`][crate::story::Story::move_to()] method was called to change the story
+    /// location.
     ///
     /// Returns either when the story reached an end or when a set of choices was encountered,
     /// which requires the user to select one. Make a choice by calling
-    /// [`make_choice`][crate::story::Story::make_choice()], then continue the text flow
-    /// by calling this method.
+    /// [`make_choice`][crate::story::Story::make_choice()].
+    ///
+    /// # Notes
+    /// This method does not clear the input `line_buffer` vector before reading more lines
+    /// into it. Clearing that buffer has to be done by the caller.
     ///
     /// # Examples
+    /// ## Starting the story processing
+    /// ```
+    /// # use inkling::{read_story_from_string, Story};
+    /// # let content = "\
+    /// # Only in silence the word,
+    /// # only in dark the light,
+    /// # only in dying life:
+    /// # bright the hawk’s flight
+    /// # on the empty sky.
+    /// # ";
+    /// #
+    /// # let mut story = read_story_from_string(content).unwrap();
+    /// # let mut line_buffer = Vec::new();
+    /// #
+    /// story.start();
+    /// story.resume(&mut line_buffer);
+    ///
+    /// assert_eq!(line_buffer[0].text, "Only in silence the word,\n");
+    /// assert_eq!(line_buffer[1].text, "only in dark the light,\n");
+    /// assert_eq!(line_buffer[2].text, "only in dying life:\n");
+    /// assert_eq!(line_buffer[3].text, "bright the hawk’s flight\n");
+    /// assert_eq!(line_buffer[4].text, "on the empty sky.\n");
+    /// ```
+    ///
+    /// ## Making a choice and resuming the flow
+    /// ```
+    /// # use inkling::read_story_from_string;
+    /// let content = "\
+    /// The next destination in our strenuous journey was ...
+    /// *   Rabat[]!
+    /// *   Addis Ababa[]!
+    /// ";
+    ///
+    /// // ... setup
+    /// # let mut story = read_story_from_string(content).unwrap();
+    /// # let mut line_buffer = Vec::new();
+    /// #
+    /// # story.start();
+    /// # story.resume(&mut line_buffer);
+    ///
+    /// line_buffer.clear();
+    /// story.make_choice(0).unwrap();
+    /// story.resume(&mut line_buffer).unwrap();
+    ///
+    /// assert_eq!(&line_buffer[0].text, "Rabat!\n");
+    /// ```
+    ///
+    /// ## Moving to a new knot
     /// ```
     /// # use inkling::read_story_from_string;
     /// # let content = "\
@@ -254,10 +305,10 @@ impl Story {
     ///     sneeze, awakening the house keeper sleeping in the neighbouring room.
     /// ";
     ///
-    /// let mut story = read_story_from_string(content).unwrap();
-    /// let mut line_buffer = Vec::new();
-    ///
-    /// story.start().unwrap();
+    /// // ... setup
+    /// # let mut story = read_story_from_string(content).unwrap();
+    /// # let mut line_buffer = Vec::new();
+    /// # story.start().unwrap();
     ///
     /// if let Prompt::Choice(choices) = story.resume(&mut line_buffer).unwrap() {
     ///     story.make_choice(0).unwrap();
@@ -313,8 +364,9 @@ impl Story {
     /// Aliide Truu stared at the fly and the fly stared right back at her.
     /// ";
     ///
-    /// let mut story = read_story_from_string(content).unwrap();
-    /// let mut line_buffer = Vec::new();
+    /// // ... setup
+    /// # let mut story = read_story_from_string(content).unwrap();
+    /// # let mut line_buffer = Vec::new();
     ///
     /// // Let’s skip ahead!
     /// story.move_to("chapter_one", None).unwrap();
@@ -532,7 +584,7 @@ impl Story {
     /// can be used without a lot of typing.
     ///
     /// # Examples
-    /// Fully specifying `Variable` type:
+    /// ## Fully specifying variable type
     /// ```
     /// # use inkling::{read_story_from_string, Variable};
     /// let content = "\
@@ -546,7 +598,7 @@ impl Story {
     /// assert!(story.set_variable("num_passengers", Variable::Int(5)).is_ok());
     /// ```
     ///
-    /// Inferring type from input:
+    /// ## Inferring type from input
     /// ```
     /// # use inkling::{read_story_from_string, Variable};
     /// # let content = "\
@@ -558,7 +610,7 @@ impl Story {
     /// assert!(story.set_variable("price_of_ticket", 3.75).is_ok());
     /// ```
     ///
-    /// Trying to assign another type of variable yields an error:
+    /// ## Invalid assignment of different type
     /// ```
     /// # use inkling::{read_story_from_string, Variable};
     /// # let content = "\
