@@ -3,7 +3,10 @@
 use crate::{
     error::{ProcessError, ProcessErrorKind},
     follow::{EncounteredEvent, FollowData, LineDataBuffer, LineText},
-    line::{Alternative, AlternativeKind, Content, InternalLine, LineChunk},
+    line::{
+        evaluate_expression, Alternative, AlternativeKind, Content, Expression, InternalLine,
+        LineChunk,
+    },
     process::check_condition,
 };
 
@@ -74,7 +77,11 @@ fn process_content(
             buffer.push(' ');
             Ok(EncounteredEvent::Done)
         }
-        Content::Expression(expression) => unimplemented!(),
+        Content::Expression(expression) => {
+            let variable = evaluate_expression(&expression, data)?;
+            buffer.push_str(&variable.to_string(data)?);
+            Ok(EncounteredEvent::Done)
+        }
         Content::Nested(chunk) => process_chunk(chunk, buffer, data),
         Content::Text(string) => {
             buffer.push_str(string);
@@ -151,8 +158,8 @@ pub mod tests {
     use crate::{
         knot::Address,
         line::{
-            parse::parse_internal_line, AlternativeBuilder, ConditionBuilder, ConditionKind,
-            LineChunkBuilder, Variable,
+            expression::Operand, parse::parse_internal_line, AlternativeBuilder, ConditionBuilder,
+            ConditionKind, LineChunkBuilder, Variable,
         },
     };
 
@@ -228,6 +235,23 @@ pub mod tests {
         process_content(&mut item, &mut buffer, &data).unwrap();
 
         assert_eq!(&buffer, "Hello, World!");
+    }
+
+    #[test]
+    fn expression_evaluates_into_variable_and_prints_it() {
+        let mut buffer = String::new();
+        let data = mock_data_with_single_stitch("", "", 0);
+
+        let expression = Expression {
+            head: Operand::Variable(5.into()),
+            tail: Vec::new(),
+        };
+
+        let mut item = Content::Expression(expression);
+
+        process_content(&mut item, &mut buffer, &data).unwrap();
+
+        assert_eq!(&buffer, "5");
     }
 
     #[test]
