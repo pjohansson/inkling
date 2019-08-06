@@ -25,8 +25,6 @@ enum VariableText {
     Conditional,
     /// An expression to evaluate and display the result of.
     Expression,
-    /// Content stored in a variable.
-    Variable,
 }
 
 /// Parse an `InternalLine` from a string.
@@ -119,11 +117,6 @@ fn parse_embraced_line(content: &str) -> Result<Content, LineParsingError> {
 
             Ok(Content::Expression(expression))
         }
-        VariableText::Variable => {
-            let address = validate_address(content.trim(), content.to_string())?;
-
-            Ok(Content::Variable(Variable::Address(Address::Raw(address))))
-        }
     }
 }
 
@@ -138,10 +131,8 @@ fn determine_kind(content: &str) -> Result<VariableText, LineParsingError> {
         Ok(VariableText::Conditional)
     } else if split_line_at_separator_braces(content, "|", Some(1))?.len() > 1 {
         Ok(VariableText::Alternative)
-    } else if contains_mathematical_operator(content)? {
-        Ok(VariableText::Expression)
     } else {
-        Ok(VariableText::Variable)
+        Ok(VariableText::Expression)
     }
 }
 
@@ -498,10 +489,14 @@ mod tests {
     }
 
     #[test]
-    fn parse_embraced_line_as_variable_parses_addresses() {
+    fn parse_embraced_line_with_variable_parses_as_expression() {
         match parse_embraced_line("root").unwrap() {
-            Content::Variable(Variable::Address(address)) => {
-                assert_eq!(address, Address::Raw("root".to_string()));
+            Content::Expression(expression) => {
+                let address = Address::Raw("root".to_string());
+                assert_eq!(
+                    expression.head,
+                    Operand::Variable(Variable::Address(address))
+                );
             }
             other => panic!(
                 "expected `Content::Nested(Variable::Address)` but got {:?}",
@@ -510,8 +505,12 @@ mod tests {
         }
 
         match parse_embraced_line("root.stitch").unwrap() {
-            Content::Variable(Variable::Address(address)) => {
-                assert_eq!(address, Address::Raw("root.stitch".to_string()));
+            Content::Expression(expression) => {
+                let address = Address::Raw("root.stitch".to_string());
+                assert_eq!(
+                    expression.head,
+                    Operand::Variable(Variable::Address(address))
+                );
             }
             other => panic!(
                 "expected `Content::Nested(Variable::Address)` but got {:?}",
@@ -579,18 +578,6 @@ mod tests {
         assert_eq!(determine_kind("*").unwrap(), VariableText::Expression);
         assert_eq!(determine_kind("/").unwrap(), VariableText::Expression);
         assert_eq!(determine_kind("%").unwrap(), VariableText::Expression);
-    }
-
-    #[test]
-    fn expression_with_mathematical_operators_inside_string_is_variable() {
-        assert_eq!(determine_kind("\"+\"").unwrap(), VariableText::Variable);
-    }
-
-    #[test]
-    fn expression_which_is_neither_alternative_or_condition_is_variable() {
-        assert_eq!(determine_kind("one").unwrap(), VariableText::Variable);
-        assert_eq!(determine_kind("one.two").unwrap(), VariableText::Variable);
-        assert_eq!(determine_kind("one.two").unwrap(), VariableText::Variable);
     }
 
     #[test]

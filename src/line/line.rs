@@ -72,8 +72,6 @@ pub enum Content {
     Nested(LineChunk),
     /// String of regular text content in the line.
     Text(String),
-    /// Variable to evaluate into text.
-    Variable(Variable),
 }
 
 impl InternalLine {
@@ -165,7 +163,6 @@ impl ValidateAddresses for Content {
             Content::Empty | Content::Text(..) => Ok(()),
             Content::Expression(expression) => expression.validate(current_address, data),
             Content::Nested(chunk) => chunk.validate(current_address, data),
-            Content::Variable(variable) => variable.validate(current_address, data),
         }
     }
 
@@ -177,7 +174,6 @@ impl ValidateAddresses for Content {
             Content::Empty | Content::Text(..) => true,
             Content::Expression(expression) => expression.all_addresses_are_valid(),
             Content::Nested(chunk) => chunk.all_addresses_are_valid(),
-            Content::Variable(variable) => variable.all_addresses_are_valid(),
         }
     }
 }
