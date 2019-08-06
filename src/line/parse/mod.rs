@@ -14,7 +14,7 @@
 mod alternative;
 mod choice;
 mod condition;
-mod expression;
+pub(self) mod expression;
 mod gather;
 mod kind;
 mod line;

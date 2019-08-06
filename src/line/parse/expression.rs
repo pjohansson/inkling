@@ -13,7 +13,7 @@ use crate::{
 };
 
 /// List of valid mathematical operators.
-const OPERATORS: &[char] = &['+', '-', '*', '/', '%'];
+pub const MATHEMATICAL_OPERATORS: &[char] = &['+', '-', '*', '/', '%'];
 
 /// Parse a mathematical `Expression` from a string.
 ///
@@ -216,7 +216,7 @@ fn split_leading_operator(content: &str) -> (&str, &str) {
     let index = if content
         .chars()
         .next()
-        .map(|c| OPERATORS.contains(&c))
+        .map(|c| MATHEMATICAL_OPERATORS.contains(&c))
         .unwrap_or(false)
     {
         1

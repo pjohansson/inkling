@@ -6,8 +6,11 @@ use crate::{
     knot::Address,
     line::{
         parse::{
-            parse_alternative, parse_line_condition, split_line_at_separator_braces,
-            split_line_into_groups_braces, LinePart,
+            parse_alternative, parse_expression, parse_line_condition,
+            utils::{
+                split_line_at_separator_braces, split_line_at_separator_quotes,
+                split_line_into_groups_braces, LinePart,
+            },
         },
         Content, InternalLine, InternalLineBuilder, LineChunk, Variable,
     },
@@ -20,6 +23,8 @@ enum VariableText {
     Alternative,
     /// Content which will be display if (or if not) conditions are fulfilled.
     Conditional,
+    /// An expression to evaluate and display the result of.
+    Expression,
     /// Content stored in a variable.
     Variable,
 }
@@ -108,6 +113,12 @@ fn parse_embraced_line(content: &str) -> Result<Content, LineParsingError> {
 
             Ok(Content::Nested(chunk))
         }
+        VariableText::Expression => {
+            let expression = parse_expression(content)
+                .map_err(|kind| LineParsingError::from_kind(content, kind.into()))?;
+
+            Ok(Content::Expression(expression))
+        }
         VariableText::Variable => {
             let address = validate_address(content.trim(), content.to_string())?;
 
@@ -127,9 +138,25 @@ fn determine_kind(content: &str) -> Result<VariableText, LineParsingError> {
         Ok(VariableText::Conditional)
     } else if split_line_at_separator_braces(content, "|", Some(1))?.len() > 1 {
         Ok(VariableText::Alternative)
+    } else if contains_mathematical_operator(content)? {
+        Ok(VariableText::Expression)
     } else {
         Ok(VariableText::Variable)
     }
+}
+
+fn contains_mathematical_operator(content: &str) -> Result<bool, LineParsingError> {
+    use crate::line::parse::expression::MATHEMATICAL_OPERATORS;
+
+    for c in MATHEMATICAL_OPERATORS.iter() {
+        let groups = split_line_at_separator_quotes(content, &format!("{}", c), Some(1))?;
+
+        if groups.len() > 1 {
+            return Ok(true);
+        }
+    }
+
+    Ok(false)
 }
 
 /// Parse and remove glue markers from either side.
@@ -231,7 +258,9 @@ pub fn validate_address(line: &str, backup_line: String) -> Result<String, LineP
 mod tests {
     use super::*;
 
-    use crate::{knot::Address, process::line::tests::get_processed_chunk};
+    use crate::{
+        knot::Address, line::expression::Operand, process::line::tests::get_processed_chunk,
+    };
 
     #[test]
     fn simple_text_string_parses_into_chunk_with_single_item() {
@@ -469,7 +498,7 @@ mod tests {
     }
 
     #[test]
-    fn parse_embraced_line_as_variable_parses_to_address() {
+    fn parse_embraced_line_as_variable_parses_addresses() {
         match parse_embraced_line("root").unwrap() {
             Content::Variable(Variable::Address(address)) => {
                 assert_eq!(address, Address::Raw("root".to_string()));
@@ -488,6 +517,16 @@ mod tests {
                 "expected `Content::Nested(Variable::Address)` but got {:?}",
                 other
             ),
+        }
+    }
+
+    #[test]
+    fn parse_embraced_line_expression() {
+        match parse_embraced_line("2 + 3").unwrap() {
+            Content::Expression(expression) => {
+                assert_eq!(expression.head, Operand::Variable(2.into()));
+            }
+            other => panic!("expected `Content::Expression` but got {:?}", other),
         }
     }
 
@@ -531,6 +570,20 @@ mod tests {
             determine_kind("one|two").unwrap(),
             VariableText::Alternative
         );
+    }
+
+    #[test]
+    fn expression_with_mathematical_operators_is_expression() {
+        assert_eq!(determine_kind("+").unwrap(), VariableText::Expression);
+        assert_eq!(determine_kind("-").unwrap(), VariableText::Expression);
+        assert_eq!(determine_kind("*").unwrap(), VariableText::Expression);
+        assert_eq!(determine_kind("/").unwrap(), VariableText::Expression);
+        assert_eq!(determine_kind("%").unwrap(), VariableText::Expression);
+    }
+
+    #[test]
+    fn expression_with_mathematical_operators_inside_string_is_variable() {
+        assert_eq!(determine_kind("\"+\"").unwrap(), VariableText::Variable);
     }
 
     #[test]
