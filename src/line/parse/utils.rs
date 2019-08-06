@@ -38,6 +38,17 @@ pub fn split_line_at_separator_parenthesis<'a>(
     split_line_at_separator(content, separator, max_splits, '(', ')')
 }
 
+/// Return line split at a separator, ignoring separators inside double quotes.
+///
+/// Wrapper around `split_line_at_separator` with double quotes as open and close.
+pub fn split_line_at_separator_quotes<'a>(
+    content: &'a str,
+    separator: &str,
+    max_splits: Option<usize>,
+) -> Result<Vec<&'a str>, LineParsingError> {
+    split_line_at_separator(content, separator, max_splits, '"', '"')
+}
+
 /// Return line split at a separator.
 ///
 /// # Notes
@@ -210,6 +221,9 @@ fn get_brace_level_zero_ranges(
 ///
 /// Any given variant of opening and closing characters can be used.
 ///
+/// If the opening and closing characters are identical the nesting level toggles between
+/// zero and one every time the character is encountered.
+///
 /// # Notes
 /// *   Braces can be preceeded with backslashes ('\') in which case they do not
 ///     count as nesting braces.
@@ -244,6 +258,10 @@ fn get_brace_level_of_line(
             }
 
             prev.replace(byte);
+
+            if open == close {
+                *brace_level = *brace_level % 2;
+            }
 
             Some(Ok(*brace_level))
         })
@@ -574,6 +592,14 @@ mod tests {
         assert_eq!(
             &get_brace_level_of_line("Hello\\{, \\}World!", '{', '}').unwrap(),
             &vec![0; 17],
+        );
+    }
+
+    #[test]
+    fn same_open_and_close_character_simply_toggles_levels_on_and_off() {
+        assert_eq!(
+            &get_brace_level_of_line("\"one\"zero\"one\"zero\"one\"", '"', '"').unwrap(),
+            &[1, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0]
         );
     }
 }
