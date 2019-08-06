@@ -189,7 +189,8 @@ fn read_next_operation_string(buffer: &mut String) -> Result<String, ExpressionE
     let index = loop {
         let haystack = tail.get(last_index..).unwrap();
 
-        let i = get_closest_split_index(haystack)?;
+        let i = get_closest_split_index(haystack)
+            .map_err(|_| ExpressionErrorKind::UnmatchedParenthesis)?;
 
         let index = i + last_index;
 

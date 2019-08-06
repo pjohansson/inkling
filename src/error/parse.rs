@@ -73,10 +73,20 @@ impl LineParsingError {
     }
 }
 
+#[derive(Clone, Debug)]
+/// Error from parsing `Expression` objects from strings.
+pub struct ExpressionError {
+    /// Content of string that could not parse into a valid `Expression`.
+    pub content: String,
+    /// Kind of error.
+    pub kind: ExpressionErrorKind,
+}
+
 impl Error for ParseError {}
 impl Error for InvalidAddressError {}
 impl Error for KnotError {}
 impl Error for LineParsingError {}
+impl Error for ExpressionError {}
 
 impl_from_error![
     ParseError;
@@ -255,6 +265,37 @@ impl fmt::Display for LineParsingError {
     }
 }
 
+impl fmt::Display for ExpressionError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        use ExpressionErrorKind::*;
+
+        match &self.kind {
+            Empty => write!(f, "cannot parse expression from empty string"),
+            InvalidHead { head } => write!(
+                f,
+                "cannot parse expression from string '{}': no left hand side value before '{}'",
+                self.content, head
+            ),
+            InvalidVariable(err) => write!(
+                f,
+                "cannot parse expression from string '{}': invalid variable: {}",
+                self.content, err
+            ),
+            NoOperator { content } => write!(
+                f,
+                "cannot parse expression from string '{}': no mathematical operator before \
+                 operand '{}'",
+                self.content, content
+            ),
+            UnmatchedParenthesis => write!(
+                f,
+                "cannot parse expression from string '{}': found unmatched parenthesis",
+                self.content,
+            ),
+        }
+    }
+}
+
 #[derive(Clone, Debug)]
 /// Invalid knot or stitch name.
 pub enum KnotNameError {
@@ -313,24 +354,17 @@ pub struct BadCondition {
 }
 
 #[derive(Clone, Debug)]
-pub struct ExpressionError {
-    pub content: String,
-    pub kind: ExpressionErrorKind,
-}
-
-#[derive(Clone, Debug)]
 pub enum ExpressionErrorKind {
+    /// Empty expression string.
     Empty,
-    CouldNotParse(Box<LineParsingError>),
+    /// The expression `head` was preceeded with an invalid operator ('*', '/', '%').
     InvalidHead { head: String },
+    /// Could not parse variable inside expression.
     InvalidVariable(Box<LineParsingError>),
+    /// Encountered a string in the tail with no leading mathematical operator.
     NoOperator { content: String },
-}
-
-impl From<LineParsingError> for ExpressionErrorKind {
-    fn from(err: LineParsingError) -> Self {
-        ExpressionErrorKind::CouldNotParse(Box::new(err))
-    }
+    /// Expression had unmatched parenthesis brackets.
+    UnmatchedParenthesis,
 }
 
 impl fmt::Display for BadCondition {
