@@ -74,6 +74,7 @@ fn process_content(
             buffer.push(' ');
             Ok(EncounteredEvent::Done)
         }
+        Content::Expression(expression) => unimplemented!(),
         Content::Nested(chunk) => process_chunk(chunk, buffer, data),
         Content::Text(string) => {
             buffer.push_str(string);

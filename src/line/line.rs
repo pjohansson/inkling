@@ -3,7 +3,7 @@
 use crate::{
     error::InvalidAddressError,
     knot::{Address, ValidateAddressData, ValidateAddresses},
-    line::{Alternative, Condition, Variable},
+    line::{Alternative, Condition, Expression, Variable},
 };
 
 #[cfg(feature = "serde_support")]
@@ -66,6 +66,8 @@ pub enum Content {
     Divert(Address),
     /// Null content.
     Empty,
+    /// Expression to evaluate.
+    Expression(Expression),
     /// Nested `LineChunk` to evaluate.
     Nested(LineChunk),
     /// String of regular text content in the line.
@@ -161,6 +163,7 @@ impl ValidateAddresses for Content {
             Content::Alternative(alternative) => alternative.validate(current_address, data),
             Content::Divert(address) => address.validate(current_address, data),
             Content::Empty | Content::Text(..) => Ok(()),
+            Content::Expression(expression) => expression.validate(current_address, data),
             Content::Nested(chunk) => chunk.validate(current_address, data),
             Content::Variable(variable) => variable.validate(current_address, data),
         }
@@ -172,6 +175,7 @@ impl ValidateAddresses for Content {
             Content::Alternative(ref alternative) => alternative.all_addresses_are_valid(),
             Content::Divert(ref address) => address.all_addresses_are_valid(),
             Content::Empty | Content::Text(..) => true,
+            Content::Expression(expression) => expression.all_addresses_are_valid(),
             Content::Nested(chunk) => chunk.all_addresses_are_valid(),
             Content::Variable(variable) => variable.all_addresses_are_valid(),
         }

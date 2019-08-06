@@ -1,6 +1,11 @@
 //! Expressions of numerical work or string concatenation of variables.
 
-use crate::{error::InklingError, follow::FollowData, line::Variable};
+use crate::{
+    error::{InklingError, InvalidAddressError},
+    follow::FollowData,
+    knot::{Address, ValidateAddressData, ValidateAddresses},
+    line::Variable,
+};
 
 #[derive(Clone, Debug, PartialEq)]
 /// Single mathematical expression.
@@ -146,6 +151,51 @@ fn get_maybe_nested_operand_from_group(group: Vec<(Operator, Operand)>) -> (Oper
                 (*operation, Operand::Nested(Box::new(expression)))
             })
             .unwrap()
+    }
+}
+
+impl ValidateAddresses for Expression {
+    fn validate(
+        &mut self,
+        current_address: &Address,
+        data: &ValidateAddressData,
+    ) -> Result<(), InvalidAddressError> {
+        self.head.validate(current_address, data).and_then(|_| {
+            self.tail
+                .iter_mut()
+                .map(|(_, operand)| operand.validate(current_address, data))
+                .collect()
+        })
+    }
+
+    #[cfg(test)]
+    fn all_addresses_are_valid(&self) -> bool {
+        self.head.all_addresses_are_valid()
+            && self
+                .tail
+                .iter()
+                .all(|(_, operand)| operand.all_addresses_are_valid())
+    }
+}
+
+impl ValidateAddresses for Operand {
+    fn validate(
+        &mut self,
+        current_address: &Address,
+        data: &ValidateAddressData,
+    ) -> Result<(), InvalidAddressError> {
+        match self {
+            Operand::Nested(ref mut expression) => expression.validate(current_address, data),
+            Operand::Variable(ref mut variable) => variable.validate(current_address, data),
+        }
+    }
+
+    #[cfg(test)]
+    fn all_addresses_are_valid(&self) -> bool {
+        match &self {
+            Operand::Nested(expression) => expression.all_addresses_are_valid(),
+            Operand::Variable(variable) => variable.all_addresses_are_valid(),
+        }
     }
 }
 
