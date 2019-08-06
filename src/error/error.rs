@@ -424,7 +424,16 @@ impl fmt::Display for VariableError {
                     op = operator
                 )
             }
-            NonAllowedOperation { .. } => unimplemented!(),
+            NonAllowedOperation { other, operator } => write!(
+                f,
+                "Operation '{op}' is not allowed between variables of type '{}' and '{}' \
+                 (operation was: '{:?} {op} {:?}')",
+                variable.variant_string(),
+                other.variant_string(),
+                variable,
+                other,
+                op = operator
+            ),
             NonMatchingAssignment { other } => write!(
                 f,
                 "Cannot assign a value of type '{}' to a variable of type '{}' \

@@ -219,7 +219,7 @@ impl fmt::Display for LineParsingError {
 
         match &self.kind {
             BadCondition(err) => write!(f, "Could not parse a condition: {}", err),
-            BadExpression(err) => unimplemented!(),
+            BadExpression(err) => write!(f, "Could not parse an expression: {}", err),
             EmptyDivert => write!(f, "Encountered a divert statement with no address",),
             EmptyExpression => write!(f, "Found an empty embraced expression ({{}})"),
             ExpectedEndOfLine { tail } => write!(
