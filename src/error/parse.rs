@@ -92,7 +92,8 @@ impl_from_error![
 
 impl_from_error![
     LineErrorKind;
-    [BadCondition, BadCondition]
+    [BadCondition, BadCondition],
+    [BadExpression, ExpressionError]
 ];
 
 impl fmt::Display for ParseError {
@@ -208,7 +209,7 @@ impl fmt::Display for LineParsingError {
 
         match &self.kind {
             BadCondition(err) => write!(f, "Could not parse a condition: {}", err),
-            BadExpression => unimplemented!(),
+            BadExpression(err) => unimplemented!(),
             EmptyDivert => write!(f, "Encountered a divert statement with no address",),
             EmptyExpression => write!(f, "Found an empty embraced expression ({{}})"),
             ExpectedEndOfLine { tail } => write!(
@@ -275,7 +276,7 @@ pub enum LineErrorKind {
     /// Condition was invalid.
     BadCondition(BadCondition),
     /// Could not read a numerical expression.
-    BadExpression,
+    BadExpression(ExpressionError),
     /// Found a divert marker but no address.
     EmptyDivert,
     /// Found an empty expression (embraced part of line)
@@ -309,6 +310,27 @@ pub struct BadCondition {
     content: String,
     /// Error variant.
     kind: BadConditionKind,
+}
+
+#[derive(Clone, Debug)]
+pub struct ExpressionError {
+    pub content: String,
+    pub kind: ExpressionErrorKind,
+}
+
+#[derive(Clone, Debug)]
+pub enum ExpressionErrorKind {
+    Empty,
+    CouldNotParse(Box<LineParsingError>),
+    InvalidHead { head: String },
+    InvalidVariable(Box<LineParsingError>),
+    NoOperator { content: String },
+}
+
+impl From<LineParsingError> for ExpressionErrorKind {
+    fn from(err: LineParsingError) -> Self {
+        ExpressionErrorKind::CouldNotParse(Box::new(err))
+    }
 }
 
 impl fmt::Display for BadCondition {

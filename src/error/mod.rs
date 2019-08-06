@@ -2,7 +2,7 @@
 
 #[macro_use]
 mod error;
-mod parse;
+pub(crate) mod parse;
 
 pub(crate) use error::IncorrectNodeStackError;
 pub use error::{InklingError, VariableError, VariableErrorKind};

@@ -1,41 +1,115 @@
+//! Parse `Expression` objects.
+
 use crate::{
-    error::{LineErrorKind, LineParsingError},
+    error::{
+        parse::{ExpressionError, ExpressionErrorKind},
+        LineParsingError,
+    },
     line::{
-        expression::{apply_order_of_operations, Operand, Operation},
+        expression::{apply_order_of_operations, Operand, Operator},
         parse::{parse_variable, split_line_at_separator_parenthesis},
         Expression,
     },
 };
 
+/// List of valid mathematical operators.
 const OPERATORS: &[char] = &['+', '-', '*', '/', '%'];
 
-pub fn parse_expression(content: &str) -> Result<Expression, LineParsingError> {
+/// Parse a mathematical `Expression` from a string.
+///
+/// The expression may be a numerical expression or string concatenation.
+///
+/// Numerical expressions may use the standard mathematical operators and parenthesis.
+/// Terms within parenthesis will be grouped together into single units, and order
+/// of operator precedence is applied to group multiplication, division and remainder
+/// operations together before addition and subtraction.
+///
+/// String concatenation should only use addition.
+pub fn parse_expression(content: &str) -> Result<Expression, ExpressionError> {
     split_line_into_operation_terms(content)
         .and_then(|operations| parse_expression_from_operation_terms(operations))
         .map(|expression| apply_order_of_operations(&expression))
+        .map_err(|kind| ExpressionError {
+            content: content.to_string(),
+            kind,
+        })
 }
 
+/// Parse a list of operation terms into a single `Expression`.
+///
+/// If the list is empty, return an `ExpressionErrorKind::Empty` error. If it is a single
+/// term, that term will be the head of the expression. Additional terms are added along
+/// with their leading operators to the expression tail.
+///
+/// The head may be preceeded by either `+` or `-` (ie. be on the form `+a` or `-a`).
+/// A minus will add a negative multiplier after the head, which takes care for the negation.
+///
+/// # Notes
+/// *   The list is split into a head and tail. This function wants all strings in the tail
+///     to lead with a mathematical operator (be on the form `+ a` etc.), which is always
+///     the case from a call to `split_line_into_operation_terms`.
 fn parse_expression_from_operation_terms(
     mut operation_strings: Vec<String>,
-) -> Result<Expression, LineParsingError> {
+) -> Result<Expression, ExpressionErrorKind> {
     operation_strings
         .split_first_mut()
-        .map(|(head_string, tail_strings)| {
-            let head = parse_operand(head_string.trim())?;
+        .ok_or(ExpressionErrorKind::Empty)
+        .and_then(|(head_string, tail_strings)| {
+            let (head, head_multiplier) = get_head_operand_and_multiplier(head_string)?;
 
-            let tail = tail_strings
+            let mut tail = tail_strings
                 .into_iter()
-                .map(|mut content| {
-                    let operator = split_off_operator(&mut content);
-                    let operand = parse_operand(content.trim())?;
-
-                    Ok((operator, operand))
-                })
+                .map(|content| get_tail_operator_and_operand(content))
                 .collect::<Result<Vec<_>, _>>()?;
+
+            if let Some(multiplier) = head_multiplier {
+                tail.insert(0, multiplier);
+            }
 
             Ok(Expression { head, tail })
         })
-        .unwrap()
+}
+
+/// Parse the head term for its value and possible negation.
+///
+/// The negation comes from terms on the form `-a` or similar. For this case we return
+/// the head operand along with a `* -1` multiplier to negate it.
+///
+/// Terms on the form `+a` just resolve into `a` while terms with other leading operators
+/// like `*`, `/` and `%` yield and error since they cannot be applied without a left hand
+/// side value.
+fn get_head_operand_and_multiplier(
+    content: &str,
+) -> Result<(Operand, Option<(Operator, Operand)>), ExpressionErrorKind> {
+    let mut buffer = content.to_string();
+
+    let multiplier = match split_off_operator(&mut buffer) {
+        Some(Operator::Subtract) => {
+            let operand = Operand::Variable((-1).into());
+            Ok(Some((Operator::Multiply, operand)))
+        }
+        Some(Operator::Add) | None => Ok(None),
+        _ => Err(ExpressionErrorKind::InvalidHead {
+            head: content.to_string(),
+        }),
+    }?;
+
+    let head = parse_operand(buffer.trim())?;
+
+    Ok((head, multiplier))
+}
+
+/// Parse a tail term for its leading operator and operand.
+fn get_tail_operator_and_operand(
+    content: &mut String,
+) -> Result<(Operator, Operand), ExpressionErrorKind> {
+    let operator = split_off_operator(content).ok_or(ExpressionErrorKind::NoOperator {
+        content: content.to_string(),
+    })?;
+
+    let operand = parse_operand(content.trim())?;
+
+    Ok((operator, operand))
 }
 
 /// Split a line with a mathematical expression in text into its terms.
@@ -46,13 +120,12 @@ fn parse_expression_from_operation_terms(
 ///
 /// For the expression `a + b * (c + d) - e` this returns `["a ", "+ b ", "* (c + d) ", "- e"]`.
 /// For the expression `a + "one-term" - b` it returns `["a ", "+ \"one-term\" ", "- b"].
-fn split_line_into_operation_terms(content: &str) -> Result<Vec<String>, LineParsingError> {
+fn split_line_into_operation_terms(content: &str) -> Result<Vec<String>, ExpressionErrorKind> {
     let mut buffer = content.trim().to_string();
     let mut operations = Vec::new();
 
     while !buffer.trim().is_empty() {
-        let operation_string = read_next_operation_string(&mut buffer)
-            .map_err(|kind| LineParsingError::from_kind(content, kind))?;
+        let operation_string = read_next_operation_string(&mut buffer)?;
 
         operations.push(operation_string);
     }
@@ -63,16 +136,18 @@ fn split_line_into_operation_terms(content: &str) -> Result<Vec<String>, LinePar
 /// Parse the `Operand` from an expression.
 ///
 /// Assumes that the given string is trimmed of whitespace from both ends.
-fn parse_operand(content: &str) -> Result<Operand, LineParsingError> {
+fn parse_operand(content: &str) -> Result<Operand, ExpressionErrorKind> {
     if content.starts_with('(') && content.ends_with(')') && content.len() > 1 {
         let inner = content.get(1..content.bytes().len() - 1).unwrap();
-        let expression = parse_expression(inner)?;
 
-        Ok(Operand::Nested(Box::new(expression)))
+        parse_expression(inner)
+            .map(|expression| Operand::Nested(Box::new(expression)))
+            .map_err(|err| err.kind)
     } else {
         parse_variable(content)
-            .map_err(|kind| LineParsingError::from_kind(content, kind))
             .map(|variable| Operand::Variable(variable))
+            .map_err(|kind| LineParsingError::from_kind(content, kind))
+            .map_err(|err| ExpressionErrorKind::InvalidVariable(Box::new(err)))
     }
 }
 
@@ -80,19 +155,21 @@ fn parse_operand(content: &str) -> Result<Operand, LineParsingError> {
 ///
 /// Assumes to be called on lines for which operators were definitely found. This should
 /// always be the case, since we split the lines where we find the operators.
-fn split_off_operator(buffer: &mut String) -> Operation {
-    buffer
-        .drain(..1)
-        .next()
-        .map(|c| match c {
-            '+' => Operation::Add,
-            '-' => Operation::Subtract,
-            '*' => Operation::Multiply,
-            '/' => Operation::Divide,
-            '%' => Operation::Remainder,
-            _ => unreachable!(),
-        })
-        .unwrap()
+fn split_off_operator(buffer: &mut String) -> Option<Operator> {
+    let operator = buffer.chars().next().and_then(|c| match c {
+        '+' => Some(Operator::Add),
+        '-' => Some(Operator::Subtract),
+        '*' => Some(Operator::Multiply),
+        '/' => Some(Operator::Divide),
+        '%' => Some(Operator::Remainder),
+        _ => None,
+    });
+
+    if operator.is_some() {
+        buffer.drain(..1);
+    }
+
+    operator
 }
 
 /// Split the string corresponding to the next whole operation from the buffer.
@@ -103,7 +180,7 @@ fn split_off_operator(buffer: &mut String) -> Operation {
 /// For an input buffer of `a + (b * c) - d` this returns `a `, leaving the buffer as
 /// `+ (b * c) - d`. Operating again on the buffer returns `+ (b * c) `, leaving `- d`.
 /// A final operation drains the buffer completely and returns `- d`.
-fn read_next_operation_string(buffer: &mut String) -> Result<String, LineErrorKind> {
+fn read_next_operation_string(buffer: &mut String) -> Result<String, ExpressionErrorKind> {
     let (head, tail) = split_leading_operator(&buffer);
     let head_size = head.len();
 
@@ -112,7 +189,7 @@ fn read_next_operation_string(buffer: &mut String) -> Result<String, LineErrorKi
     let index = loop {
         let haystack = tail.get(last_index..).unwrap();
 
-        let i = get_closest_split_index(haystack).map_err(|_| LineErrorKind::BadExpression)?;
+        let i = get_closest_split_index(haystack)?;
 
         let index = i + last_index;
 
@@ -170,6 +247,7 @@ mod tests {
 
     use crate::{
         follow::FollowData,
+        knot::Address,
         line::{evaluate_expression, Variable},
     };
 
@@ -215,7 +293,7 @@ mod tests {
 
         assert_eq!(
             expression.tail[0],
-            (Operation::Add, Operand::Variable(Variable::Int(2)))
+            (Operator::Add, Operand::Variable(Variable::Int(2)))
         );
     }
 
@@ -258,6 +336,18 @@ mod tests {
     }
 
     #[test]
+    fn parenthesis_can_nest_several_levels_at_once() {
+        let data = mock_follow_data(&[], &[]);
+
+        let expression = parse_expression("((((1 + 2))))").unwrap();
+
+        assert_eq!(
+            evaluate_expression(&expression, &data).unwrap(),
+            Variable::Int(3),
+        );
+    }
+
+    #[test]
     fn strings_can_be_inside_expressions() {
         let data = mock_follow_data(&[], &[]);
 
@@ -267,6 +357,83 @@ mod tests {
             evaluate_expression(&expression, &data).unwrap(),
             Variable::String("string".to_string())
         );
+    }
+
+    #[test]
+    fn parsing_expression_from_no_terms_yields_empty_error() {
+        match parse_expression_from_operation_terms(vec![]) {
+            Err(ExpressionErrorKind::Empty) => (),
+            other => panic!("expected `ExpressionErrorKind::Empty` but got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn parsing_expression_from_single_term_yields_single_term_expression() {
+        let expression = parse_expression_from_operation_terms(vec!["a".to_string()]).unwrap();
+
+        assert_eq!(
+            expression.head,
+            Operand::Variable(Variable::Address(Address::Raw("a".to_string())))
+        );
+    }
+
+    #[test]
+    fn parsing_expression_from_single_term_with_leading_plus_gives_regular_expression() {
+        let expression = parse_expression_from_operation_terms(vec!["+a".to_string()]).unwrap();
+
+        let expression_equiv =
+            parse_expression_from_operation_terms(vec!["a".to_string()]).unwrap();
+
+        assert_eq!(expression, expression_equiv);
+    }
+
+    #[test]
+    fn parsing_expression_from_single_negated_term_creates_multiplication_by_negative_one() {
+        let expression =
+            parse_expression_from_operation_terms(vec!["-a ".to_string(), "+ 1".to_string()])
+                .unwrap();
+
+        let expression_equiv = parse_expression_from_operation_terms(vec![
+            "a ".to_string(),
+            "* -1".to_string(),
+            "+ 1".to_string(),
+        ])
+        .unwrap();
+
+        assert_eq!(expression, expression_equiv);
+    }
+
+    #[test]
+    fn parsing_expression_from_single_term_with_leading_mul_div_or_rem_marker_yields_error() {
+        match parse_expression_from_operation_terms(vec!["*a".to_string()]) {
+            Err(ExpressionErrorKind::InvalidHead { head }) => {
+                assert_eq!(head, "*a");
+            }
+            other => panic!(
+                "expected `ExpressionErrorKind::InvalidHead` but got {:?}",
+                other
+            ),
+        }
+
+        match parse_expression_from_operation_terms(vec!["/a".to_string()]) {
+            Err(ExpressionErrorKind::InvalidHead { head }) => {
+                assert_eq!(head, "/a");
+            }
+            other => panic!(
+                "expected `ExpressionErrorKind::InvalidHead` but got {:?}",
+                other
+            ),
+        }
+
+        match parse_expression_from_operation_terms(vec!["%a".to_string()]) {
+            Err(ExpressionErrorKind::InvalidHead { head }) => {
+                assert_eq!(head, "%a");
+            }
+            other => panic!(
+                "expected `ExpressionErrorKind::InvalidHead` but got {:?}",
+                other
+            ),
+        }
     }
 
     #[test]

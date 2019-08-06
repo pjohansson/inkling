@@ -1,19 +1,34 @@
+//! Expressions of numerical work or string concatenation of variables.
+
 use crate::{error::InklingError, follow::FollowData, line::Variable};
 
 #[derive(Clone, Debug, PartialEq)]
+/// Single mathematical expression.
+///
+/// Consists of a head operand after which pairs of operators and operands appear.
+/// In an expression `a + b + c`, `a` will be the head operand, with `+ b` and `+ c`
+/// forming the tail.
 pub struct Expression {
+    /// Head term of expression.
     pub head: Operand,
-    pub tail: Vec<(Operation, Operand)>,
+    /// Tail terms of expression along with the operators operating on them.
+    pub tail: Vec<(Operator, Operand)>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
+/// Operand of an operation.
 pub enum Operand {
+    /// Nested inner expression from a parenthesis.
     Nested(Box<Expression>),
+    /// Variable with a value.
     Variable(Variable),
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub enum Operation {
+/// Mathematical operator applied to a term.
+///
+/// In strings these operators are assigned to values on the right of them.
+pub enum Operator {
     Add,
     Subtract,
     Multiply,
@@ -21,7 +36,7 @@ pub enum Operation {
     Remainder,
 }
 
-/// Evaluate an expression, producing a single `Variable` value.
+/// Evaluate an expression from start to finish, producing a single `Variable` value.
 pub fn evaluate_expression(
     expression: &Expression,
     data: &FollowData,
@@ -37,11 +52,11 @@ pub fn evaluate_expression(
                 let rhs_variable = operand?;
 
                 match operation {
-                    Operation::Add => lhs_variable.add(&rhs_variable),
-                    Operation::Subtract => lhs_variable.subtract(&rhs_variable),
-                    Operation::Multiply => lhs_variable.multiply(&rhs_variable),
-                    Operation::Divide => lhs_variable.divide(&rhs_variable),
-                    Operation::Remainder => lhs_variable.remainder(&rhs_variable),
+                    Operator::Add => lhs_variable.add(&rhs_variable),
+                    Operator::Subtract => lhs_variable.subtract(&rhs_variable),
+                    Operator::Multiply => lhs_variable.multiply(&rhs_variable),
+                    Operator::Divide => lhs_variable.divide(&rhs_variable),
+                    Operator::Remainder => lhs_variable.remainder(&rhs_variable),
                 }
                 .map_err(|err| err.into())
             },
@@ -86,8 +101,8 @@ fn get_value(operand: &Operand, data: &FollowData) -> Result<Variable, InklingEr
 /// items remain alone.
 fn split_expression_into_groups_of_same_precedence(
     expression: &Expression,
-) -> Vec<Vec<(Operation, Operand)>> {
-    let mut items = vec![(Operation::Add, expression.head.clone())];
+) -> Vec<Vec<(Operator, Operand)>> {
+    let mut items = vec![(Operator::Add, expression.head.clone())];
     items.extend_from_slice(&expression.tail);
 
     let mut groups = Vec::new();
@@ -95,7 +110,7 @@ fn split_expression_into_groups_of_same_precedence(
 
     for (operation, operand) in items {
         match operation {
-            Operation::Add | Operation::Subtract if !group.is_empty() => {
+            Operator::Add | Operator::Subtract if !group.is_empty() => {
                 groups.push(group);
                 group = Vec::new();
             }
@@ -116,7 +131,7 @@ fn split_expression_into_groups_of_same_precedence(
 ///
 /// If the group contains a single item it will be returned as an `Operand::Variable` object.
 /// If not, a `Operand::Nested` object is constructed from all items.
-fn get_maybe_nested_operand_from_group(group: Vec<(Operation, Operand)>) -> (Operation, Operand) {
+fn get_maybe_nested_operand_from_group(group: Vec<(Operator, Operand)>) -> (Operator, Operand) {
     if group.len() == 1 {
         group[0].clone()
     } else {
@@ -142,7 +157,7 @@ mod tests {
 
     use std::collections::HashMap;
 
-    fn get_simple_expression(head: Variable, tail: &[(Operation, Variable)]) -> Expression {
+    fn get_simple_expression(head: Variable, tail: &[(Operator, Variable)]) -> Expression {
         let tail = tail
             .iter()
             .cloned()
@@ -193,7 +208,7 @@ mod tests {
         let data = mock_follow_data(&[], &[]);
 
         let expression =
-            get_simple_expression(Variable::Int(1), &[(Operation::Add, Variable::Int(2))]);
+            get_simple_expression(Variable::Int(1), &[(Operator::Add, Variable::Int(2))]);
 
         assert_eq!(
             evaluate_expression(&expression, &data).unwrap(),
@@ -209,10 +224,10 @@ mod tests {
         let expression = get_simple_expression(
             Variable::Float(1.0),
             &[
-                (Operation::Add, Variable::Float(2.0)),
-                (Operation::Subtract, Variable::Float(-2.0)),
-                (Operation::Multiply, Variable::Float(-3.0)),
-                (Operation::Divide, Variable::Float(5.0)),
+                (Operator::Add, Variable::Float(2.0)),
+                (Operator::Subtract, Variable::Float(-2.0)),
+                (Operator::Multiply, Variable::Float(-3.0)),
+                (Operator::Divide, Variable::Float(5.0)),
             ],
         );
 
@@ -240,7 +255,7 @@ mod tests {
 
         let nested_expression = get_simple_expression(
             Variable::Int(1),
-            &[(Operation::Multiply, Variable::Float(3.9))],
+            &[(Operator::Multiply, Variable::Float(3.9))],
         );
 
         let nested = Operand::Nested(Box::new(nested_expression.clone()));
@@ -263,10 +278,10 @@ mod tests {
         let expression = get_simple_expression(
             1.into(),
             &[
-                (Operation::Add, 1.into()),
-                (Operation::Subtract, 2.into()),
-                (Operation::Subtract, 3.into()),
-                (Operation::Add, 4.into()),
+                (Operator::Add, 1.into()),
+                (Operator::Subtract, 2.into()),
+                (Operator::Subtract, 3.into()),
+                (Operator::Add, 4.into()),
             ],
         );
 
@@ -281,17 +296,17 @@ mod tests {
         let expression = get_simple_expression(
             1.into(),
             &[
-                (Operation::Add, 1.into()),
-                (Operation::Multiply, 2.into()),
-                (Operation::Multiply, 3.into()),
+                (Operator::Add, 1.into()),
+                (Operator::Multiply, 2.into()),
+                (Operator::Multiply, 3.into()),
             ],
         );
 
         let nested_expression = get_simple_expression(
             1.into(),
             &[
-                (Operation::Multiply, 2.into()),
-                (Operation::Multiply, 3.into()),
+                (Operator::Multiply, 2.into()),
+                (Operator::Multiply, 3.into()),
             ],
         );
 
@@ -299,7 +314,7 @@ mod tests {
 
         let ooo_expression = apply_order_of_operations(&expression);
 
-        assert_eq!(ooo_expression.tail[0], (Operation::Add, nested));
+        assert_eq!(ooo_expression.tail[0], (Operator::Add, nested));
     }
 
     #[test]
@@ -308,26 +323,26 @@ mod tests {
         let expression = get_simple_expression(
             1.into(),
             &[
-                (Operation::Add, 1.into()),
-                (Operation::Multiply, 2.into()),
-                (Operation::Add, 3.into()),
-                (Operation::Multiply, 4.into()),
+                (Operator::Add, 1.into()),
+                (Operator::Multiply, 2.into()),
+                (Operator::Add, 3.into()),
+                (Operator::Multiply, 4.into()),
             ],
         );
 
         let nested_expression_one =
-            get_simple_expression(1.into(), &[(Operation::Multiply, 2.into())]);
+            get_simple_expression(1.into(), &[(Operator::Multiply, 2.into())]);
 
         let nested_expression_two =
-            get_simple_expression(3.into(), &[(Operation::Multiply, 4.into())]);
+            get_simple_expression(3.into(), &[(Operator::Multiply, 4.into())]);
 
         let nested_one = Operand::Nested(Box::new(nested_expression_one));
         let nested_two = Operand::Nested(Box::new(nested_expression_two));
 
         let ooo_expression = apply_order_of_operations(&expression);
 
-        assert_eq!(ooo_expression.tail[0], (Operation::Add, nested_one));
-        assert_eq!(ooo_expression.tail[1], (Operation::Add, nested_two));
+        assert_eq!(ooo_expression.tail[0], (Operator::Add, nested_one));
+        assert_eq!(ooo_expression.tail[1], (Operator::Add, nested_two));
     }
 
     #[test]
@@ -336,8 +351,8 @@ mod tests {
         let expression = get_simple_expression(
             1.into(),
             &[
-                (Operation::Multiply, 1.into()),
-                (Operation::Multiply, 2.into()),
+                (Operator::Multiply, 1.into()),
+                (Operator::Multiply, 2.into()),
             ],
         );
 
