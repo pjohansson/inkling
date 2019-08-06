@@ -329,6 +329,22 @@ mod tests {
     }
 
     #[test]
+    fn variables_may_be_multibyte_characters() {
+        assert_eq!(
+            split_line_into_operation_terms("a + 한글 / (e + g)").unwrap(),
+            &["a ", "+ 한글 ", "/ (e + g)"]
+        );
+    }
+
+    #[test]
+    fn string_terms_may_contain_multibyte_characters_without_affecting_behavior() {
+        assert_eq!(
+            split_line_into_operation_terms("a + \"word-with-한글\" + b").unwrap(),
+            &["a ", "+ \"word-with-한글\" ", "+ b"]
+        );
+    }
+
+    #[test]
     fn string_terms_can_come_first_and_last() {
         assert_eq!(
             split_line_into_operation_terms("\"one\" + \"two\"").unwrap(),
