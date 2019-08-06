@@ -14,3 +14,13 @@ pub enum OrderingDerive {
     Less,
     Greater,
 }
+
+#[derive(Clone, Debug, PartialEq)]
+/// Information about the origin of an item.
+///
+/// To be used to present errors when during parsing or runtime, allowing access to where
+/// the error originated from.
+pub struct MetaData {
+    /// Which line in the original story the item originated from.
+    pub line_index: usize,
+}

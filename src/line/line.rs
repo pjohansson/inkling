@@ -4,6 +4,7 @@ use crate::{
     error::InvalidAddressError,
     knot::{Address, ValidateAddressData, ValidateAddresses},
     line::{Alternative, Condition, Expression},
+    utils::MetaData,
 };
 
 #[cfg(feature = "serde_support")]
@@ -27,6 +28,8 @@ pub struct InternalLine {
     pub glue_begin: bool,
     /// Whether or not the line is glued to the next line.
     pub glue_end: bool,
+    /// Information about the origin of this line in the story file or text.
+    pub meta_data: MetaData,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -84,6 +87,7 @@ impl InternalLine {
             tags: Vec::new(),
             glue_begin: false,
             glue_end: false,
+            meta_data: MetaData { line_index: 0 },
         }
     }
 
@@ -213,6 +217,7 @@ pub mod builders {
                 tags: self.tags,
                 glue_begin: self.glue_begin,
                 glue_end: self.glue_end,
+                meta_data: MetaData { line_index: 0 },
             }
         }
 
