@@ -10,20 +10,20 @@ use crate::{
 const OPERATORS: &[char] = &['+', '-', '*', '/', '%'];
 
 pub fn parse_expression(content: &str) -> Result<Expression, LineParsingError> {
-    split_line_into_operations(content)
-        .and_then(|operations| parse_expression_from_operations(operations))
+    split_line_into_operation_terms(content)
+        .and_then(|operations| parse_expression_from_operation_terms(operations))
         .map(|expression| apply_order_of_operations(&expression))
 }
 
-fn parse_expression_from_operations(
+fn parse_expression_from_operation_terms(
     mut operation_strings: Vec<String>,
 ) -> Result<Expression, LineParsingError> {
     operation_strings
         .split_first_mut()
-        .map(|(head_string, tail_items)| {
+        .map(|(head_string, tail_strings)| {
             let head = parse_operand(head_string.trim())?;
 
-            let tail = tail_items
+            let tail = tail_strings
                 .into_iter()
                 .map(|mut content| {
                     let operator = split_off_operator(&mut content);
@@ -36,6 +36,28 @@ fn parse_expression_from_operations(
             Ok(Expression { head, tail })
         })
         .unwrap()
+}
+
+/// Split a line with a mathematical expression in text into its terms.
+///
+/// For `n` operations this returns `n + 1` terms, where the first in the returned string
+/// is the single root value without an operator (a '+' is implied), and the remaining
+/// `n` terms contain the operator and operand.
+///
+/// For the expression `a + b * (c + d) - e` this returns `["a ", "+ b ", "* (c + d) ", "- e"]`.
+/// For the expression `a + "one-term" - b` it returns `["a ", "+ \"one-term\" ", "- b"].
+fn split_line_into_operation_terms(content: &str) -> Result<Vec<String>, LineParsingError> {
+    let mut buffer = content.trim().to_string();
+    let mut operations = Vec::new();
+
+    while !buffer.trim().is_empty() {
+        let operation_string = read_next_operation_string(&mut buffer)
+            .map_err(|kind| LineParsingError::from_kind(content, kind))?;
+
+        operations.push(operation_string);
+    }
+
+    Ok(operations)
 }
 
 /// Parse the `Operand` from an expression.
@@ -52,20 +74,6 @@ fn parse_operand(content: &str) -> Result<Operand, LineParsingError> {
             .map_err(|kind| LineParsingError::from_kind(content, kind))
             .map(|variable| Operand::Variable(variable))
     }
-}
-
-fn split_line_into_operations(content: &str) -> Result<Vec<String>, LineParsingError> {
-    let mut buffer = content.trim().to_string();
-    let mut operations = Vec::new();
-
-    while !buffer.trim().is_empty() {
-        let operation_string = read_next_operation_string(&mut buffer)
-            .map_err(|kind| LineParsingError::from_kind(content, kind))?;
-
-        operations.push(operation_string);
-    }
-
-    Ok(operations)
 }
 
 /// Split off the initial operator and return its type.
@@ -91,8 +99,12 @@ fn split_off_operator(buffer: &mut String) -> Operation {
 ///
 /// Splits occur when mathematical operators '+', '-', '*', '/' and '%' are encountered
 /// outside of parenthesis and strings (marked by '""' marks).
+///
+/// For an input buffer of `a + (b * c) - d` this returns `a `, leaving the buffer as
+/// `+ (b * c) - d`. Operating again on the buffer returns `+ (b * c) `, leaving `- d`.
+/// A final operation drains the buffer completely and returns `- d`.
 fn read_next_operation_string(buffer: &mut String) -> Result<String, LineErrorKind> {
-    let (head, tail) = get_without_starting_match(&buffer);
+    let (head, tail) = split_leading_operator(&buffer);
     let head_size = head.len();
 
     let mut last_index = 0;
@@ -119,10 +131,10 @@ fn read_next_operation_string(buffer: &mut String) -> Result<String, LineErrorKi
     Ok(buffer.drain(..index + head_size).collect())
 }
 
-/// Trim last leading mathematical operator from line.
+/// Trim leading mathematical operator from line.
 ///
 /// Assumes that the given string is trimmed from the start.
-fn get_without_starting_match(content: &str) -> (&str, &str) {
+fn split_leading_operator(content: &str) -> (&str, &str) {
     let index = if content
         .chars()
         .next()
@@ -258,34 +270,87 @@ mod tests {
     }
 
     #[test]
-    fn reading_next_operation_string_excludes_markers_inside_strings() {
-        let mut buffer = "\"string-with-+-*/%-markers\" + \"ta+-il\"".to_string();
+    fn empty_string_splits_into_no_strings() {
+        assert!(split_line_into_operation_terms("").unwrap().is_empty());
+        assert!(split_line_into_operation_terms("    ").unwrap().is_empty());
+    }
 
-        assert_eq!(
-            read_next_operation_string(&mut buffer).unwrap(),
-            "\"string-with-+-*/%-markers\" "
-        );
+    #[test]
+    fn string_with_single_term_splits_into_single_term_list() {
+        assert_eq!(split_line_into_operation_terms("a").unwrap(), &["a"]);
+    }
 
+    #[test]
+    fn string_with_pure_number_operations_splits_cleanly_into_parts() {
         assert_eq!(
-            read_next_operation_string(&mut buffer).unwrap(),
-            "+ \"ta+-il\""
+            split_line_into_operation_terms("a + b * c - d / e + f % g").unwrap(),
+            &["a ", "+ b ", "* c ", "- d ", "/ e ", "+ f ", "% g"]
         );
     }
 
     #[test]
-    fn unmatched_quotation_marks_return_entire_strings_from_last_operator() {
-        let mut buffer = "\"unmatched string".to_string();
-
+    fn whitespace_is_trimmed_from_ends_when_splitting_into_terms() {
         assert_eq!(
-            read_next_operation_string(&mut buffer).unwrap(),
-            "\"unmatched string"
+            split_line_into_operation_terms("    a + b    ").unwrap(),
+            &["a ", "+ b"]
+        );
+    }
+
+    #[test]
+    fn string_with_parenthesis_as_terms_keep_them_whole() {
+        assert_eq!(
+            split_line_into_operation_terms("a + (b * (c - d)) / (e + g)").unwrap(),
+            &["a ", "+ (b * (c - d)) ", "/ (e + g)"]
+        );
+    }
+
+    #[test]
+    fn whitespace_between_operators_is_not_needed() {
+        assert_eq!(
+            split_line_into_operation_terms("a+(b*(c-d))/(e+g)").unwrap(),
+            &["a", "+(b*(c-d))", "/(e+g)"]
+        );
+    }
+
+    #[test]
+    fn string_that_starts_with_mathematical_operator_returns_the_whole_term_as_first() {
+        assert_eq!(
+            split_line_into_operation_terms("+ a - b").unwrap(),
+            &["+ a ", "- b"]
+        );
+    }
+
+    #[test]
+    fn operators_inside_string_terms_do_not_split() {
+        assert_eq!(
+            split_line_into_operation_terms("a + \"word-with-dash\" + b").unwrap(),
+            &["a ", "+ \"word-with-dash\" ", "+ b"]
+        );
+    }
+
+    #[test]
+    fn string_terms_can_come_first_and_last() {
+        assert_eq!(
+            split_line_into_operation_terms("\"one\" + \"two\"").unwrap(),
+            &["\"one\" ", "+ \"two\""]
+        );
+    }
+
+    #[test]
+    fn ummatched_string_quotes_keeps_all_content_from_opening_quote_as_one() {
+        assert_eq!(
+            split_line_into_operation_terms("\"one + \"two\"").unwrap(),
+            &["\"one + \"two\""]
         );
 
-        let mut buffer = "unmatched string\"".to_string();
+        assert_eq!(
+            split_line_into_operation_terms("\"one\" + two\"").unwrap(),
+            &["\"one\" ", "+ two\""]
+        );
 
         assert_eq!(
-            read_next_operation_string(&mut buffer).unwrap(),
-            "unmatched string\""
+            split_line_into_operation_terms("\"one\" + word-with-dash\"").unwrap(),
+            &["\"one\" ", "+ word", "-with", "-dash\""]
         );
     }
 }
