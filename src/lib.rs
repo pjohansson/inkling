@@ -126,6 +126,8 @@
 //! *   Conditions: Nested, `and`/`or` linking, can check against variables
 //! *   Reading:    Address validation for diverts and conditions
 //! *   Variables:  Used as text in sentences and in conditions, can modify from calling program
+//! *   Mathematics: In line text, using numbers, parenthesis and variables for all numerical
+//!                  calculations. Strings can be concatenated using the `+` operator.
 //!
 //! Hopefully coming:
 //!
@@ -139,7 +141,6 @@
 //! *   Structure:  Threads and tunnels (maybe?)
 //! *   Program:    Defining functions in the Ink story file, "advanced state tracking,"
 //!                 calling Rust functions from the script to get variables
-//! *   Mathematics: I'm not yet sure that I want to write a calculator
 //!
 //! # De/serializing stories
 //! Enable the `serde_support` feature to derive `Deserialize` and `Serialize` for all

@@ -3,6 +3,11 @@
 *   Breaking change: `start` does not begin the text processing. Instead, use `resume` after `start` has been called.
 *   Breaking change: `resume_with_choice` has been removed and replaced with the pair of `make_choice` and `resume` methods.
 
+## 0.12.1
+
+*   Mathematical expressions are in. `{a + 3 * (b + c)}` in a line will evaluate to the expected value for variables `a`, `b`, and `c`.
+*   Strings can be concatenated using an expression with the add operator: `"str" + "ing" == "string"`.
+
 # 0.11.0
 
 *   Resume stories with index of instead of reference to choice from the previous result.
