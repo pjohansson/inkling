@@ -7,7 +7,11 @@ use crate::{
     line::Variable,
 };
 
+#[cfg(feature = "serde_support")]
+use serde::{Deserialize, Serialize};
+
 #[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
 /// Single mathematical expression.
 ///
 /// Consists of a head operand after which pairs of operators and operands appear.
@@ -21,6 +25,7 @@ pub struct Expression {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
 /// Operand of an operation.
 pub enum Operand {
     /// Nested inner expression from a parenthesis.
@@ -30,6 +35,7 @@ pub enum Operand {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
+#[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
 /// Mathematical operator applied to a term.
 ///
 /// In strings these operators are assigned to values on the right of them.
