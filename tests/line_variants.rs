@@ -225,7 +225,10 @@ Float calculation works better:
     story.start().unwrap();
     story.resume(&mut line_buffer).unwrap();
 
-    assert_eq!(&line_buffer[1].text, "(3 - 13) / 3 + 5 = 2 which should be 1.66666...!\n");
+    assert_eq!(
+        &line_buffer[1].text,
+        "(3 - 13) / 3 + 5 = 2 which should be 1.66666...!\n"
+    );
     assert_eq!(&line_buffer[3].text, "(3 - 13) / 3 + 5 = 1.6666667!\n");
 }
 
@@ -252,11 +255,17 @@ VAR b = 5
     story.start().unwrap();
     story.resume(&mut line_buffer).unwrap();
 
-    assert_eq!(&line_buffer[0].text, "Before updating `a`: a = 3, b = 5, a + b = 8.\n");
+    assert_eq!(
+        &line_buffer[0].text,
+        "Before updating `a`: a = 3, b = 5, a + b = 8.\n"
+    );
 
-    story.set_variable("a", 7);
+    story.set_variable("a", 7).unwrap();
     story.make_choice(0).unwrap();
     story.resume(&mut line_buffer).unwrap();
 
-    assert_eq!(&line_buffer[1].text, "After updating `a`: a = 7, b = 5, a + b = 12.\n");
+    assert_eq!(
+        &line_buffer[1].text,
+        "After updating `a`: a = 7, b = 5, a + b = 12.\n"
+    );
 }

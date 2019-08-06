@@ -7,12 +7,9 @@ use crate::{
     line::{
         parse::{
             parse_alternative, parse_expression, parse_line_condition,
-            utils::{
-                split_line_at_separator_braces, split_line_at_separator_quotes,
-                split_line_into_groups_braces, LinePart,
-            },
+            utils::{split_line_at_separator_braces, split_line_into_groups_braces, LinePart},
         },
-        Content, InternalLine, InternalLineBuilder, LineChunk, Variable,
+        Content, InternalLine, InternalLineBuilder, LineChunk,
     },
 };
 
@@ -136,20 +133,6 @@ fn determine_kind(content: &str) -> Result<VariableText, LineParsingError> {
     }
 }
 
-fn contains_mathematical_operator(content: &str) -> Result<bool, LineParsingError> {
-    use crate::line::parse::expression::MATHEMATICAL_OPERATORS;
-
-    for c in MATHEMATICAL_OPERATORS.iter() {
-        let groups = split_line_at_separator_quotes(content, &format!("{}", c), Some(1))?;
-
-        if groups.len() > 1 {
-            return Ok(true);
-        }
-    }
-
-    Ok(false)
-}
-
 /// Parse and remove glue markers from either side.
 ///
 /// Enclosed whitespace within these markers is retained. Markers that are placed further
@@ -250,7 +233,9 @@ mod tests {
     use super::*;
 
     use crate::{
-        knot::Address, line::expression::Operand, process::line::tests::get_processed_chunk,
+        knot::Address,
+        line::{expression::Operand, Variable},
+        process::line::tests::get_processed_chunk,
     };
 
     #[test]

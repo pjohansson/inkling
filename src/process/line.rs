@@ -3,10 +3,7 @@
 use crate::{
     error::{ProcessError, ProcessErrorKind},
     follow::{EncounteredEvent, FollowData, LineDataBuffer, LineText},
-    line::{
-        evaluate_expression, Alternative, AlternativeKind, Content, Expression, InternalLine,
-        LineChunk,
-    },
+    line::{evaluate_expression, Alternative, AlternativeKind, Content, InternalLine, LineChunk},
     process::check_condition,
 };
 
@@ -155,7 +152,7 @@ pub mod tests {
         knot::Address,
         line::{
             expression::Operand, parse::parse_internal_line, AlternativeBuilder, ConditionBuilder,
-            ConditionKind, LineChunkBuilder, Variable,
+            ConditionKind, Expression, LineChunkBuilder, Variable,
         },
     };
 

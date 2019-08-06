@@ -3,7 +3,7 @@
 use crate::{
     error::InvalidAddressError,
     knot::{Address, ValidateAddressData, ValidateAddresses},
-    line::{Alternative, Condition, Expression, Variable},
+    line::{Alternative, Condition, Expression},
 };
 
 #[cfg(feature = "serde_support")]

@@ -38,6 +38,7 @@ pub fn split_line_at_separator_parenthesis<'a>(
     split_line_at_separator(content, separator, max_splits, '(', ')')
 }
 
+#[allow(dead_code)]
 /// Return line split at a separator, ignoring separators inside double quotes.
 ///
 /// Wrapper around `split_line_at_separator` with double quotes as open and close.
