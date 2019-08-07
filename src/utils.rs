@@ -1,7 +1,7 @@
 //! Utilities and derives used elsewhere in the library.
 
 #[cfg(feature = "serde_support")]
-use serde::*;
+use serde::{Deserialize, Serialize};
 #[cfg(feature = "serde_support")]
 use std::cmp::Ordering;
 
@@ -16,6 +16,7 @@ pub enum OrderingDerive {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
 /// Information about the origin of an item.
 ///
 /// To be used to present errors when during parsing or runtime, allowing access to where
