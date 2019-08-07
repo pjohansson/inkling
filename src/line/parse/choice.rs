@@ -10,13 +10,17 @@ use crate::{
         },
         Content, InternalChoice, InternalChoiceBuilder, InternalLine, ParsedLineKind,
     },
+    utils::MetaData,
 };
 
 /// Parse a `ParsedLineKind::Choice` from a line if the line represents a choice.
-pub fn parse_choice(content: &str) -> Result<Option<ParsedLineKind>, LineParsingError> {
+pub fn parse_choice(
+    content: &str,
+    meta_data: &MetaData,
+) -> Result<Option<ParsedLineKind>, LineParsingError> {
     parse_choice_markers_and_text(content)?
         .map(|(level, is_sticky, line)| {
-            parse_choice_data(line)
+            parse_choice_data(line, meta_data)
                 .map(|mut choice_data| {
                     choice_data.is_sticky = is_sticky;
                     (level, choice_data)
@@ -31,24 +35,27 @@ pub fn parse_choice(content: &str) -> Result<Option<ParsedLineKind>, LineParsing
 /// The line should not contain the markers used to determine whether a line of content
 /// represents a choice. It should only contain the part of the line which represents
 /// the choice text.
-fn parse_choice_data(content: &str) -> Result<InternalChoice, LineParsingError> {
+fn parse_choice_data(
+    content: &str,
+    meta_data: &MetaData,
+) -> Result<InternalChoice, LineParsingError> {
     let mut buffer = content.to_string();
     let choice_conditions = parse_choice_condition(&mut buffer)?;
 
     let (selection_text_line, display_text_line) = parse_choice_line_variants(&buffer)?;
 
     let (without_divert, _) = split_at_divert_marker(&selection_text_line);
-    let selection_text = parse_internal_line(without_divert)?;
+    let selection_text = parse_internal_line(without_divert, meta_data)?;
 
     let is_fallback = is_choice_fallback(&selection_text);
 
-    let display_text = match parse_internal_line(&display_text_line) {
+    let display_text = match parse_internal_line(&display_text_line, meta_data) {
         Err(LineParsingError {
             kind: LineErrorKind::EmptyDivert,
             ..
         }) if is_fallback => {
             let (without_divert, _) = split_at_divert_marker(&display_text_line);
-            parse_internal_line(without_divert)
+            parse_internal_line(without_divert, meta_data)
         }
         result => result,
     }?;
@@ -151,7 +158,7 @@ pub(crate) mod tests {
 
     impl InternalChoice {
         pub fn from_string(line: &str) -> Self {
-            parse_choice_data(line).unwrap()
+            parse_choice_data(line, &().into()).unwrap()
         }
     }
 
@@ -220,8 +227,8 @@ pub(crate) mod tests {
 
     #[test]
     fn simple_lines_parse_into_choices_with_same_display_and_selection_texts() {
-        let choice = parse_choice_data("Choice line").unwrap();
-        let comparison = parse_internal_line("Choice line").unwrap();
+        let choice = parse_choice_data("Choice line", &().into()).unwrap();
+        let comparison = parse_internal_line("Choice line", &().into()).unwrap();
 
         assert_eq!(*choice.selection_text.borrow(), comparison);
         assert_eq!(choice.display_text, comparison);
@@ -229,89 +236,108 @@ pub(crate) mod tests {
 
     #[test]
     fn choices_can_be_parsed_with_alternatives_in_selection_text() {
-        let choice = parse_choice_data("Hi! {One|Two}").unwrap();
+        let choice = parse_choice_data("Hi! {One|Two}", &().into()).unwrap();
         assert_eq!(
             *choice.selection_text.borrow(),
-            parse_internal_line("Hi! {One|Two}").unwrap(),
+            parse_internal_line("Hi! {One|Two}", &().into()).unwrap(),
         );
     }
 
     #[test]
     fn braces_with_backslash_are_not_conditions() {
-        let choice = parse_choice_data("\\{One|Two}").unwrap();
+        let choice = parse_choice_data("\\{One|Two}", &().into()).unwrap();
         assert_eq!(
             *choice.selection_text.borrow(),
-            parse_internal_line("{One|Two}").unwrap(),
+            parse_internal_line("{One|Two}", &().into()).unwrap(),
         );
     }
 
     #[test]
     fn alternatives_can_be_within_brackets() {
-        let choice = parse_choice_data("[{One|Two}]").unwrap();
+        let choice = parse_choice_data("[{One|Two}]", &().into()).unwrap();
         assert_eq!(
             *choice.selection_text.borrow(),
-            parse_internal_line("{One|Two}").unwrap(),
+            parse_internal_line("{One|Two}", &().into()).unwrap(),
         );
     }
 
     #[test]
     fn choice_with_variants_set_selection_and_display_text_separately() {
-        let choice = parse_choice_data("Selection[] plus display").unwrap();
+        let choice = parse_choice_data("Selection[] plus display", &().into()).unwrap();
 
         assert_eq!(
             *choice.selection_text.borrow(),
-            parse_internal_line("Selection").unwrap()
+            parse_internal_line("Selection", &().into()).unwrap()
         );
         assert_eq!(
             choice.display_text,
-            parse_internal_line("Selection plus display").unwrap()
+            parse_internal_line("Selection plus display", &().into()).unwrap()
         );
 
-        let choice = parse_choice_data("[Separate selection]And display").unwrap();
+        let choice = parse_choice_data("[Separate selection]And display", &().into()).unwrap();
 
         assert_eq!(
             *choice.selection_text.borrow(),
-            parse_internal_line("Separate selection").unwrap()
+            parse_internal_line("Separate selection", &().into()).unwrap()
         );
         assert_eq!(
             choice.display_text,
-            parse_internal_line("And display").unwrap()
+            parse_internal_line("And display", &().into()).unwrap()
         );
     }
 
     #[test]
     fn choice_with_no_selection_text_but_divert_is_fallback() {
-        assert!(parse_choice_data("-> world").unwrap().is_fallback);
-        assert!(parse_choice_data(" -> world").unwrap().is_fallback);
+        assert!(
+            parse_choice_data("-> world", &().into())
+                .unwrap()
+                .is_fallback
+        );
+        assert!(
+            parse_choice_data(" -> world", &().into())
+                .unwrap()
+                .is_fallback
+        );
     }
 
     #[test]
     fn choice_which_is_fallback_can_have_empty_divert() {
-        assert!(parse_choice_data("->").expect("one").is_fallback);
-        assert!(parse_choice_data(" -> ").expect("two").is_fallback);
+        assert!(
+            parse_choice_data("->", &().into())
+                .expect("one")
+                .is_fallback
+        );
+        assert!(
+            parse_choice_data(" -> ", &().into())
+                .expect("two")
+                .is_fallback
+        );
     }
 
     #[test]
     fn choices_without_displayed_text_can_have_regular_text() {
-        let choice = parse_choice_data("[]").unwrap();
-
-        assert!(choice.is_fallback);
-
-        assert_eq!(choice.display_text, parse_internal_line("").unwrap());
-
-        let choice = parse_choice_data("[] Some text").unwrap();
+        let choice = parse_choice_data("[]", &().into()).unwrap();
 
         assert!(choice.is_fallback);
 
         assert_eq!(
             choice.display_text,
-            parse_internal_line(" Some text").unwrap()
+            parse_internal_line("", &().into()).unwrap()
+        );
+
+        let choice = parse_choice_data("[] Some text", &().into()).unwrap();
+
+        assert!(choice.is_fallback);
+
+        assert_eq!(
+            choice.display_text,
+            parse_internal_line(" Some text", &().into()).unwrap()
         );
     }
 
     #[test]
     fn choices_can_be_parsed_with_conditions() {
-        let choice = parse_choice_data("{knot_name} Hello, World!").unwrap();
+        let choice = parse_choice_data("{knot_name} Hello, World!", &().into()).unwrap();
         assert!(choice.condition.is_some());
     }
 

@@ -16,10 +16,11 @@
 
 use crate::{
     consts::{KNOT_MARKER, RESERVED_KEYWORDS, STITCH_MARKER},
-    error::{KnotError, KnotNameError, LineParsingError},
+    error::{KnotError, KnotNameError},
     follow::{EncounteredEvent, FollowData, FollowResult, LineDataBuffer},
     line::parse_line,
     node::{parse_root_node, Follow, RootNode, Stack},
+    utils::MetaData,
 };
 
 #[cfg(feature = "serde_support")]
@@ -48,6 +49,8 @@ pub struct Knot {
     pub stitches: HashMap<String, Stitch>,
     /// Tags associated with this knot.
     pub tags: Vec<String>,
+    /// Information about the origin of this knot in the story file or text.
+    pub meta_data: MetaData,
 }
 
 #[derive(Debug)]
@@ -55,10 +58,11 @@ pub struct Knot {
 /// Stitches contain the actual story content and are grouped in larger `Knot`s.
 pub struct Stitch {
     /// Graph of story content, which may or may not branch.
-    // pub(crate) root: DialogueNode,
-    pub(crate) root: RootNode,
+    pub root: RootNode,
     /// Last recorded position inside the `root` graph of content.
-    pub(crate) stack: Stack,
+    pub stack: Stack,
+    /// Information about the origin of this stitch in the story file or text.
+    pub meta_data: MetaData,
 }
 
 impl Stitch {
@@ -101,13 +105,18 @@ impl Stitch {
 
 /// Parse a set of input lines into a `Stitch`.
 pub fn parse_stitch_from_lines(
-    lines: &[&str],
+    lines: &[(&str, MetaData)],
     knot: &str,
     stitch: &str,
-) -> Result<Stitch, LineParsingError> {
+    meta_data: MetaData,
+) -> Result<Stitch, KnotError> {
+    if lines.is_empty() {
+        return Err(KnotError::EmptyStitch);
+    }
+
     let parsed_lines = lines
         .into_iter()
-        .map(|line| parse_line(line))
+        .map(|(line, meta_data)| parse_line(line, meta_data))
         .collect::<Result<Vec<_>, _>>()?;
 
     let root = parse_root_node(&parsed_lines, knot, stitch);
@@ -115,6 +124,7 @@ pub fn parse_stitch_from_lines(
     Ok(Stitch {
         root,
         stack: vec![0],
+        meta_data,
     })
 }
 
@@ -214,12 +224,13 @@ mod tests {
             Ok(Stitch {
                 root,
                 stack: vec![0],
+                meta_data: MetaData { line_index: 0 },
             })
         }
     }
 
     fn parse_lines(s: &str) -> Result<Vec<ParsedLineKind>, LineParsingError> {
-        s.lines().map(|line| parse_line(line)).collect()
+        s.lines().map(|line| parse_line(line, &().into())).collect()
     }
 
     fn mock_follow_data(stitch: &Stitch) -> FollowData {
@@ -239,12 +250,27 @@ mod tests {
 
     #[test]
     fn parsing_stitch_sets_root_node_address() {
-        let stitch = parse_stitch_from_lines(&[], "tripoli", "cinema").unwrap();
+        let stitch =
+            parse_stitch_from_lines(&[("", ().into())], "tripoli", "cinema", ().into()).unwrap();
 
         assert_eq!(
             stitch.root.address,
             Address::from_parts_unchecked("tripoli", Some("cinema")),
         );
+    }
+
+    #[test]
+    fn parsing_empty_stitch_yields_error() {
+        assert!(parse_stitch_from_lines(&[], "tripoli", "cinema", ().into()).is_err());
+    }
+
+    #[test]
+    fn parsing_stitch_sets_meta_data_from_given() {
+        let stitch =
+            parse_stitch_from_lines(&[("", ().into())], "tripoli", "cinema", MetaData::from(10))
+                .unwrap();
+
+        assert_eq!(stitch.meta_data.line_index, 10);
     }
 
     #[test]

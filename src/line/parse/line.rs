@@ -9,8 +9,9 @@ use crate::{
             parse_alternative, parse_expression, parse_line_condition,
             utils::{split_line_at_separator_braces, split_line_into_groups_braces, LinePart},
         },
-        Content, InternalLine, InternalLineBuilder, LineChunk,
+        Content, InternalLine, LineChunk,
     },
+    utils::MetaData,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -25,7 +26,10 @@ enum VariableText {
 }
 
 /// Parse an `InternalLine` from a string.
-pub fn parse_internal_line(content: &str) -> Result<InternalLine, LineParsingError> {
+pub fn parse_internal_line(
+    content: &str,
+    meta_data: &MetaData,
+) -> Result<InternalLine, LineParsingError> {
     let mut buffer = content.to_string();
 
     let tags = parse_tags(&mut buffer);
@@ -33,19 +37,19 @@ pub fn parse_internal_line(content: &str) -> Result<InternalLine, LineParsingErr
 
     let (glue_begin, glue_end) = parse_line_glue(&mut buffer, divert.is_some());
 
-    let chunk = parse_chunk(&buffer)?;
-
-    let mut builder = InternalLineBuilder::from_chunk(chunk);
+    let mut chunk = parse_chunk(&buffer)?;
 
     if let Some(address) = divert {
-        builder.set_divert(&address);
+        chunk.items.push(Content::Divert(Address::Raw(address)));
     }
 
-    builder.set_glue_begin(glue_begin);
-    builder.set_glue_end(glue_end);
-    builder.set_tags(&tags);
-
-    Ok(builder.build())
+    Ok(InternalLine {
+        chunk,
+        tags,
+        glue_begin,
+        glue_end,
+        meta_data: meta_data.clone(),
+    })
 }
 
 /// Parse a `LineChunk` object from a string.
@@ -277,7 +281,7 @@ mod tests {
 
     #[test]
     fn internal_line_with_divert_before_more_content_yields_error() {
-        match parse_internal_line("Hello, -> world and {One|Two -> not_world}!") {
+        match parse_internal_line("Hello, -> world and {One|Two -> not_world}!", &().into()) {
             Err(LineParsingError {
                 kind: LineErrorKind::ExpectedEndOfLine { tail },
                 ..
@@ -293,8 +297,11 @@ mod tests {
 
     #[test]
     fn string_in_internal_line_with_divert_marker_inside_braces_and_at_end_is_valid() {
-        let line = parse_internal_line("Hello, {One|Two -> not_world|three -> not_world} -> world")
-            .unwrap();
+        let line = parse_internal_line(
+            "Hello, {One|Two -> not_world|three -> not_world} -> world",
+            &().into(),
+        )
+        .unwrap();
 
         assert_eq!(
             line.chunk.items.last().unwrap(),
@@ -398,26 +405,26 @@ mod tests {
 
     #[test]
     fn glue_markers_add_glue_on_either_side_of_a_full_line() {
-        let line = parse_internal_line("Hello, World!").unwrap();
+        let line = parse_internal_line("Hello, World!", &().into()).unwrap();
         assert!(!line.glue_begin);
         assert!(!line.glue_end);
 
-        let line = parse_internal_line("<> Hello, World!").unwrap();
+        let line = parse_internal_line("<> Hello, World!", &().into()).unwrap();
         assert!(line.glue_begin);
         assert!(!line.glue_end);
 
-        let line = parse_internal_line("Hello, World! <>").unwrap();
+        let line = parse_internal_line("Hello, World! <>", &().into()).unwrap();
         assert!(!line.glue_begin);
         assert!(line.glue_end);
 
-        let line = parse_internal_line("<> Hello, World! <>").unwrap();
+        let line = parse_internal_line("<> Hello, World! <>", &().into()).unwrap();
         assert!(line.glue_begin);
         assert!(line.glue_end);
     }
 
     #[test]
     fn glue_markers_are_trimmed_from_line() {
-        let line = parse_internal_line("<> Hello, World! <>").unwrap();
+        let line = parse_internal_line("<> Hello, World! <>", &().into()).unwrap();
         assert_eq!(
             line.chunk.items[0],
             Content::Text(" Hello, World! ".to_string())
@@ -426,7 +433,7 @@ mod tests {
 
     #[test]
     fn diverts_are_parsed_if_there_is_glue() {
-        let line = parse_internal_line("Hello <> -> world").unwrap();
+        let line = parse_internal_line("Hello <> -> world", &().into()).unwrap();
         assert_eq!(
             line.chunk.items[1],
             Content::Divert(Address::Raw("world".to_string()))
@@ -435,13 +442,22 @@ mod tests {
 
     #[test]
     fn diverts_act_as_glue_for_full_line() {
-        let line = parse_internal_line("Hello -> world").unwrap();
+        let line = parse_internal_line("Hello -> world", &().into()).unwrap();
         assert!(line.glue_end);
     }
 
     #[test]
+    fn parse_internal_line_sets_meta_data() {
+        let meta_data = MetaData::from(10);
+
+        let line = parse_internal_line("Hello -> world", &meta_data).unwrap();
+
+        assert_eq!(line.meta_data, meta_data);
+    }
+
+    #[test]
     fn tags_are_split_off_from_string_and_added_to_full_line_when_parsed() {
-        let line = parse_internal_line("Hello, World! # tag one # tag two").unwrap();
+        let line = parse_internal_line("Hello, World! # tag one # tag two", &().into()).unwrap();
 
         assert_eq!(line.tags.len(), 2);
         assert_eq!(&line.tags[0], "tag one");

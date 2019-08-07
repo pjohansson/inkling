@@ -1,6 +1,6 @@
 //! Choice which branches the story.
 
-use crate::line::{Condition, InternalLine};
+use crate::{line::{Condition, InternalLine}, utils::MetaData};
 
 use std::{cell::RefCell, rc::Rc};
 
@@ -44,6 +44,8 @@ pub struct InternalChoice {
     pub is_sticky: bool,
     /// Fallback choices are, in order, automatically followed if no other choices are available.
     pub is_fallback: bool,
+    /// Information about the origin of this choice in the story file or text.
+    pub meta_data: MetaData,
 }
 
 /// Builder for constructing an `InternalChoice`.
@@ -89,12 +91,15 @@ impl InternalChoiceBuilder {
             self.selection_text.tags = tags.clone();
         }
 
+        let meta_data = self.display_text.meta_data.clone();
+
         InternalChoice {
             selection_text: Rc::new(RefCell::new(self.selection_text)),
             display_text: self.display_text,
             condition: self.condition,
             is_sticky: self.is_sticky,
             is_fallback: self.is_fallback,
+            meta_data,
         }
     }
 

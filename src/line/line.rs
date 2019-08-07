@@ -182,12 +182,9 @@ impl ValidateAddresses for Content {
     }
 }
 
+#[cfg(test)]
 pub mod builders {
     //! Builders for line structures.
-    //!
-    //! For testing purposes most of these structs implement additional functions when
-    //! the `test` profile is activated. These functions are not meant to be used internally
-    //! except by tests, since they do not perform any validation of the content.
 
     use super::*;
 
@@ -220,33 +217,8 @@ pub mod builders {
                 meta_data: MetaData { line_index: 0 },
             }
         }
-
-        /// Add a divert item at the end of the internal `LineChunk`.
-        pub fn set_divert(&mut self, address: &str) {
-            self.chunk
-                .items
-                .push(Content::Divert(Address::Raw(address.to_string())));
-        }
-
-        /// Set whether the line glues to the previous line.
-        pub fn set_glue_begin(&mut self, glue: bool) {
-            self.glue_begin = glue;
-        }
-
-        /// Set whether the line glues to the next line.
-        pub fn set_glue_end(&mut self, glue: bool) {
-            self.glue_end = glue;
-        }
-
-        /// Set the input tags to the object.
-        ///
-        /// Note that this replaces the current tags, it does not extend it.
-        pub fn set_tags(&mut self, tags: &[String]) {
-            self.tags = tags.to_vec();
-        }
     }
 
-    #[cfg(test)]
     /// Builder for constructing a `LineChunk`.
     ///
     /// # Notes
@@ -255,7 +227,6 @@ pub mod builders {
         items: Vec<Content>,
     }
 
-    #[cfg(test)]
     impl LineChunkBuilder {
         /// Create an empty builder.
         pub fn new() -> Self {

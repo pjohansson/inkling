@@ -14,6 +14,7 @@ use crate::{
     knot::{parse_stitch_from_lines, read_knot_name, read_stitch_name, Knot, KnotSet, Stitch},
     line::{parse_variable, Variable},
     story::VariableSet,
+    utils::MetaData,
 };
 
 use std::collections::HashMap;
@@ -22,7 +23,19 @@ use std::collections::HashMap;
 pub fn read_story_content_from_string(
     content: &str,
 ) -> Result<(KnotSet, VariableSet, Vec<String>), ParseError> {
-    let all_lines = content.lines().collect::<Vec<_>>();
+    let all_lines = content
+        .lines()
+        .enumerate()
+        .map(|(i, line)| {
+            (
+                line,
+                MetaData {
+                    line_index: i as u32,
+                },
+            )
+        })
+        .collect::<Vec<_>>();
+
     let content_lines = remove_empty_and_comment_lines(all_lines);
 
     let (prelude_lines, knot_lines) = split_lines_into_prelude_and_knots(&content_lines);
@@ -40,7 +53,7 @@ pub fn read_story_content_from_string(
 }
 
 /// Parse all knots from a set of lines.
-fn parse_knots_from_lines(lines: Vec<&str>) -> Result<KnotSet, ParseError> {
+fn parse_knots_from_lines(lines: Vec<(&str, MetaData)>) -> Result<KnotSet, ParseError> {
     let knot_line_sets = divide_lines_at_marker(lines, KNOT_MARKER);
 
     let knots = knot_line_sets
@@ -52,7 +65,7 @@ fn parse_knots_from_lines(lines: Vec<&str>) -> Result<KnotSet, ParseError> {
 }
 
 /// Parse the root knot from a set of lines.
-fn parse_root_knot_from_lines(lines: Vec<&str>) -> Result<Knot, KnotError> {
+fn parse_root_knot_from_lines(lines: Vec<(&str, MetaData)>) -> Result<Knot, KnotError> {
     let stitches = get_stitches_from_lines(lines, ROOT_KNOT_NAME)?
         .into_iter()
         .collect();
@@ -61,17 +74,20 @@ fn parse_root_knot_from_lines(lines: Vec<&str>) -> Result<Knot, KnotError> {
         default_stitch: ROOT_KNOT_NAME.to_string(),
         stitches,
         tags: Vec::new(),
+        meta_data: MetaData { line_index: 0 },
     })
 }
 
 /// Parse a single `Knot` from a set of lines.
 ///
 /// Creates `Stitch`es and their node tree of branching content. Returns the knot and its name.
-fn get_knot_from_lines(lines: Vec<&str>) -> Result<(String, Knot), KnotError> {
+fn get_knot_from_lines(lines: Vec<(&str, MetaData)>) -> Result<(String, Knot), KnotError> {
     let (head, mut tail) = lines
         .split_first()
         .map(|(head, tail)| (head, tail.to_vec()))
-        .ok_or(KnotError::Empty)?;
+        .ok_or(KnotError::EmptyKnot)?;
+
+    let (head, meta_data) = head;
 
     let knot_name = read_knot_name(head)?;
     let tags = get_knot_tags(&mut tail);
@@ -85,13 +101,14 @@ fn get_knot_from_lines(lines: Vec<&str>) -> Result<(String, Knot), KnotError> {
             default_stitch,
             stitches,
             tags,
+            meta_data: meta_data.clone(),
         },
     ))
 }
 
 /// Parse all stitches from a set of lines.
 fn get_stitches_from_lines(
-    lines: Vec<&str>,
+    lines: Vec<(&str, MetaData)>,
     knot_name: &str,
 ) -> Result<Vec<(String, Stitch)>, KnotError> {
     let knot_stitch_sets = divide_lines_at_marker(lines, STITCH_MARKER);
@@ -99,6 +116,7 @@ fn get_stitches_from_lines(
     knot_stitch_sets
         .into_iter()
         .enumerate()
+        .filter(|(_, lines)| !lines.is_empty())
         .map(|(stitch_index, lines)| get_stitch_from_lines(lines, stitch_index, knot_name))
         .collect::<Result<Vec<_>, _>>()
 }
@@ -106,15 +124,15 @@ fn get_stitches_from_lines(
 /// Parse knot tags from lines until the first line with content.
 ///
 /// The lines which contain tags are split off of the input list.
-fn get_knot_tags(lines: &mut Vec<&str>) -> Vec<String> {
+fn get_knot_tags(lines: &mut Vec<(&str, MetaData)>) -> Vec<String> {
     if let Some(i) = lines
         .iter()
-        .map(|line| line.trim_start())
+        .map(|(line, _)| line.trim_start())
         .position(|line| !(line.is_empty() || line.starts_with('#')))
     {
         lines
             .drain(..i)
-            .map(|line| line.trim())
+            .map(|(line, _)| line.trim())
             .filter(|line| !line.is_empty())
             .map(|line| line.trim_start_matches("#").trim_start().to_string())
             .collect()
@@ -128,14 +146,14 @@ fn get_knot_tags(lines: &mut Vec<&str>) -> Vec<String> {
 /// If a stitch name is found, return it too. This should be found for all stitches except
 /// possibly the first in a set, since we split the knot line content where the names are found.
 fn get_stitch_from_lines(
-    mut lines: Vec<&str>,
+    mut lines: Vec<(&str, MetaData)>,
     stitch_index: usize,
     knot_name: &str,
 ) -> Result<(String, Stitch), KnotError> {
-    let stitch_name =
-        get_stitch_name(&mut lines).map(|name| get_stitch_identifier(name, stitch_index))?;
+    let (stitch_name, meta_data) = get_stitch_name_and_meta_data(&mut lines)
+        .map(|(name, meta_data)| (get_stitch_identifier(name, stitch_index), meta_data))?;
 
-    let content = parse_stitch_from_lines(&lines, knot_name, &stitch_name)?;
+    let content = parse_stitch_from_lines(&lines, knot_name, &stitch_name, meta_data)?;
 
     Ok((stitch_name, content))
 }
@@ -144,27 +162,30 @@ fn get_stitch_from_lines(
 fn get_default_stitch_and_hash_map_tuple(
     stitches: Vec<(String, Stitch)>,
 ) -> Result<(String, HashMap<String, Stitch>), KnotError> {
-    let (default_name, _) = stitches.first().ok_or(KnotError::Empty)?;
+    let (default_name, _) = stitches.first().ok_or(KnotError::EmptyKnot)?;
 
     Ok((default_name.clone(), stitches.into_iter().collect()))
 }
 
-/// Read stitch name from the first line in a set.
+/// Read stitch name and metadata from the first line in a set.
 ///
 /// If the name was present, remove that line from the vector and return the name.
 /// Otherwise return `None`.
-fn get_stitch_name(lines: &mut Vec<&str>) -> Result<Option<String>, KnotError> {
-    let name_line = lines.first().ok_or(KnotError::Empty)?;
+fn get_stitch_name_and_meta_data(
+    lines: &mut Vec<(&str, MetaData)>,
+) -> Result<(Option<String>, MetaData), KnotError> {
+    let (name_line, meta_data) = lines.first().cloned().ok_or(KnotError::EmptyStitch)?;
 
     match read_stitch_name(name_line) {
         Ok(name) => {
             lines.remove(0);
-            Ok(Some(name))
+
+            Ok((Some(name), meta_data))
         }
         Err(KnotError::InvalidName {
             kind: KnotNameError::NoNamePresent,
             ..
-        }) => Ok(None),
+        }) => Ok((None, meta_data)),
         Err(err) => Err(err),
     }
 }
@@ -186,12 +207,15 @@ fn get_stitch_identifier(name: Option<String>, stitch_index: usize) -> String {
 }
 
 /// Split a set of lines where they start with a marker.
-fn divide_lines_at_marker<'a>(mut content: Vec<&'a str>, marker: &str) -> Vec<Vec<&'a str>> {
+fn divide_lines_at_marker<'a>(
+    mut content: Vec<(&'a str, MetaData)>,
+    marker: &str,
+) -> Vec<Vec<(&'a str, MetaData)>> {
     let mut buffer = Vec::new();
 
     while let Some(i) = content
         .iter()
-        .rposition(|line| line.trim_start().starts_with(marker))
+        .rposition(|(line, _)| line.trim_start().starts_with(marker))
     {
         buffer.push(content.split_off(i));
     }
@@ -208,25 +232,23 @@ fn divide_lines_at_marker<'a>(mut content: Vec<&'a str>, marker: &str) -> Vec<Ve
 /// Should at some point be removed since we ultimately want to return errors from parsing
 /// lines along with their original line numbers, which are thrown away by filtering some
 /// of them.
-fn remove_empty_and_comment_lines(content: Vec<&str>) -> Vec<&str> {
+fn remove_empty_and_comment_lines(content: Vec<(&str, MetaData)>) -> Vec<(&str, MetaData)> {
     content
         .into_iter()
-        .enumerate()
-        .inspect(|(i, line)| {
+        .inspect(|(line, meta_data)| {
             if line.starts_with(TODO_COMMENT_MARKER) {
-                eprintln!("{} (line {})", &line, i + 1);
+                eprintln!("{} (line {})", &line, meta_data.line_index + 1);
             }
         })
-        .map(|(_, line)| line)
-        .filter(|line| {
+        .filter(|(line, _)| {
             !(line.starts_with(LINE_COMMENT_MARKER) || line.starts_with(TODO_COMMENT_MARKER))
         })
-        .filter(|line| !line.trim().is_empty())
-        .map(|line| {
+        .filter(|(line, _)| !line.trim().is_empty())
+        .map(|(line, meta_data)| {
             if let Some(i) = line.find("//") {
-                line.get(..i).unwrap()
+                (line.get(..i).unwrap(), meta_data)
             } else {
-                line
+                (line, meta_data)
             }
         })
         .collect()
@@ -235,10 +257,12 @@ fn remove_empty_and_comment_lines(content: Vec<&str>) -> Vec<&str> {
 /// Split given list of lines into a prelude and knot content.
 ///
 /// The prelude contains metadata and the root knot, which the story will start from.
-fn split_lines_into_prelude_and_knots<'a>(lines: &[&'a str]) -> (Vec<&'a str>, Vec<&'a str>) {
+fn split_lines_into_prelude_and_knots<'a>(
+    lines: &[(&'a str, MetaData)],
+) -> (Vec<(&'a str, MetaData)>, Vec<(&'a str, MetaData)>) {
     if let Some(i) = lines
         .iter()
-        .position(|line| line.trim_start().starts_with(KNOT_MARKER))
+        .position(|(line, _)| line.trim_start().starts_with(KNOT_MARKER))
     {
         let (prelude, knots) = lines.split_at(i);
         (prelude.to_vec(), knots.to_vec())
@@ -248,7 +272,9 @@ fn split_lines_into_prelude_and_knots<'a>(lines: &[&'a str]) -> (Vec<&'a str>, V
 }
 
 /// Split prelude content into metadata and root text content.
-fn split_prelude_into_metadata_and_text<'a>(lines: &[&'a str]) -> (Vec<&'a str>, Vec<&'a str>) {
+fn split_prelude_into_metadata_and_text<'a>(
+    lines: &[(&'a str, MetaData)],
+) -> (Vec<(&'a str, MetaData)>, Vec<(&'a str, MetaData)>) {
     // Add spaces after all keywords (except line comment) to search for whole words.
     let metadata_keywords = &[
         format!("{} ", CONST_MARKER),
@@ -261,11 +287,15 @@ fn split_prelude_into_metadata_and_text<'a>(lines: &[&'a str]) -> (Vec<&'a str>,
 
     const METADATA_CHARS: &[char] = &[TAG_MARKER];
 
-    if let Some(i) = lines.iter().map(|line| line.trim_start()).position(|line| {
-        metadata_keywords.iter().all(|key| !line.starts_with(key))
-            && METADATA_CHARS.iter().all(|&c| !line.starts_with(c))
-            && !line.is_empty()
-    }) {
+    if let Some(i) = lines
+        .iter()
+        .map(|(line, _)| line.trim_start())
+        .position(|line| {
+            metadata_keywords.iter().all(|key| !line.starts_with(key))
+                && METADATA_CHARS.iter().all(|&c| !line.starts_with(c))
+                && !line.is_empty()
+        })
+    {
         let (metadata, text) = lines.split_at(i);
         (metadata.to_vec(), text.to_vec())
     } else {
@@ -274,20 +304,22 @@ fn split_prelude_into_metadata_and_text<'a>(lines: &[&'a str]) -> (Vec<&'a str>,
 }
 
 /// Parse global tags from a set of metadata lines in the prelude.
-fn parse_global_tags(lines: &[&str]) -> Vec<String> {
+fn parse_global_tags(lines: &[(&str, MetaData)]) -> Vec<String> {
     lines
         .iter()
-        .map(|line| line.trim())
+        .map(|(line, _)| line.trim())
         .filter(|line| line.starts_with(TAG_MARKER))
         .map(|line| line.get(1..).unwrap().trim().to_string())
         .collect()
 }
 
 /// Parse global variables from a set of metadata lines in the prelude.
-fn parse_global_variables(lines: &[&str]) -> Result<HashMap<String, Variable>, LineParsingError> {
+fn parse_global_variables(
+    lines: &[(&str, MetaData)],
+) -> Result<HashMap<String, Variable>, LineParsingError> {
     lines
         .iter()
-        .map(|line| line.trim())
+        .map(|(line, _)| line.trim())
         .filter(|line| line.starts_with(VARIABLE_MARKER))
         .map(|line| {
             parse_variable_with_name(line).map_err(|err| LineParsingError::from_kind(line, err))
@@ -328,9 +360,25 @@ pub mod tests {
     pub fn read_knots_from_string(content: &str) -> Result<KnotSet, ParseError> {
         let lines = content
             .lines()
-            .filter(|line| !line.trim().is_empty())
+            .enumerate()
+            .filter(|(_, line)| !line.trim().is_empty())
+            .map(|(i, line)| (line, MetaData::from(i)))
             .collect();
+
         parse_knots_from_lines(lines)
+    }
+
+    fn enumerate<'a>(lines: &[&'a str]) -> Vec<(&'a str, MetaData)> {
+        lines
+            .into_iter()
+            .map(|line| *line)
+            .enumerate()
+            .map(|(i, line)| (line, MetaData::from(i)))
+            .collect()
+    }
+
+    fn denumerate<'a, T>(lines: Vec<(&'a str, T)>) -> Vec<&'a str> {
+        lines.into_iter().map(|(line, _)| line).collect()
     }
 
     #[test]
@@ -344,10 +392,10 @@ pub mod tests {
             "Line one.",
         ];
 
-        let (prelude, knots) = split_lines_into_prelude_and_knots(lines);
+        let (prelude, knots) = split_lines_into_prelude_and_knots(&enumerate(lines));
 
         assert_eq!(
-            &prelude,
+            &denumerate(prelude),
             &[
                 "Prelude content ",
                 "comes before ",
@@ -355,7 +403,7 @@ pub mod tests {
                 ""
             ]
         );
-        assert_eq!(&knots, &["=== here ===", "Line one."]);
+        assert_eq!(&denumerate(knots), &["=== here ===", "Line one."]);
     }
 
     #[test]
@@ -367,10 +415,13 @@ pub mod tests {
             "The first regular string.",
         ];
 
-        let (metadata, text) = split_prelude_into_metadata_and_text(lines);
+        let (metadata, text) = split_prelude_into_metadata_and_text(&enumerate(lines));
 
-        assert_eq!(&metadata, &["# All prelude content", "", "# comes before"]);
-        assert_eq!(&text, &["The first regular string."]);
+        assert_eq!(
+            &denumerate(metadata),
+            &["# All prelude content", "", "# comes before"]
+        );
+        assert_eq!(&denumerate(text), &["The first regular string."]);
     }
 
     #[test]
@@ -385,10 +436,10 @@ pub mod tests {
             "Regular line.",
         ];
 
-        let (metadata, text) = split_prelude_into_metadata_and_text(lines);
+        let (metadata, text) = split_prelude_into_metadata_and_text(&enumerate(lines));
 
         assert_eq!(metadata.len(), 6);
-        assert_eq!(&text, &["Regular line."]);
+        assert_eq!(&denumerate(text), &["Regular line."]);
     }
 
     #[test]
@@ -401,7 +452,7 @@ pub mod tests {
             "TODO: comment",
         ];
 
-        assert_eq!(&parse_global_tags(lines), &["Tag", "Tag two"]);
+        assert_eq!(&parse_global_tags(&enumerate(lines)), &["Tag", "Tag two"]);
     }
 
     #[test]
@@ -413,7 +464,7 @@ pub mod tests {
             "VAR string = \"two words\"",
         ];
 
-        let variables = parse_global_variables(lines).unwrap();
+        let variables = parse_global_variables(&enumerate(lines)).unwrap();
 
         assert_eq!(variables.len(), 2);
         assert_eq!(variables.get("float").unwrap(), &Variable::Float(1.0));
@@ -427,21 +478,21 @@ pub mod tests {
     fn regular_lines_can_start_with_variable_divert_or_text() {
         let lines = &["# Tag", "Regular line."];
 
-        let (_, text) = split_prelude_into_metadata_and_text(lines);
+        let (_, text) = split_prelude_into_metadata_and_text(&enumerate(lines));
 
-        assert_eq!(&text, &["Regular line."]);
+        assert_eq!(&denumerate(text), &["Regular line."]);
 
         let lines_divert = &["# Tag", "-> divert"];
 
-        let (_, divert) = split_prelude_into_metadata_and_text(lines_divert);
+        let (_, divert) = split_prelude_into_metadata_and_text(&enumerate(lines_divert));
 
-        assert_eq!(divert, &["-> divert"]);
+        assert_eq!(&denumerate(divert), &["-> divert"]);
 
         let lines_variable = &["# Tag", "{variable}"];
 
-        let (_, variable) = split_prelude_into_metadata_and_text(lines_variable);
+        let (_, variable) = split_prelude_into_metadata_and_text(&enumerate(lines_variable));
 
-        assert_eq!(variable, &["{variable}"]);
+        assert_eq!(&denumerate(variable), &["{variable}"]);
     }
 
     #[test]
@@ -478,7 +529,7 @@ Second line.
 
     #[test]
     fn divide_into_knots_splits_given_lines_at_knot_markers() {
-        let content = vec![
+        let content = enumerate(&[
             "== Knot one ",
             "Line 1",
             "Line 2",
@@ -486,7 +537,7 @@ Second line.
             "=== Knot two ===",
             "Line 3",
             "",
-        ];
+        ]);
 
         let knot_lines = divide_lines_at_marker(content.clone(), KNOT_MARKER);
 
@@ -496,7 +547,7 @@ Second line.
 
     #[test]
     fn divide_into_knots_adds_content_from_nameless_knots_first() {
-        let content = vec!["Line 1", "Line 2", "== Knot one ", "Line 3"];
+        let content = enumerate(&["Line 1", "Line 2", "== Knot one ", "Line 3"]);
 
         let knot_lines = divide_lines_at_marker(content.clone(), KNOT_MARKER);
 
@@ -506,7 +557,7 @@ Second line.
 
     #[test]
     fn divide_into_stitches_splits_lines_at_markers() {
-        let content = vec![
+        let content = enumerate(&[
             "Line 1",
             "= Stitch one ",
             "Line 2",
@@ -515,7 +566,7 @@ Second line.
             "= Stitch two",
             "Line 4",
             "",
-        ];
+        ]);
 
         let knot_lines = divide_lines_at_marker(content.clone(), STITCH_MARKER);
 
@@ -535,8 +586,11 @@ Second line.
             "TODO but not without a colon!",
         ];
 
-        let lines = remove_empty_and_comment_lines(content.clone());
-        assert_eq!(&lines, &[content[0].clone(), content[5].clone()]);
+        let lines = remove_empty_and_comment_lines(enumerate(&content));
+        assert_eq!(
+            &denumerate(lines),
+            &[content[0].clone(), content[5].clone()]
+        );
     }
 
     #[test]
@@ -546,14 +600,14 @@ Second line.
             "Line with no comment marker",
         ];
 
-        let lines = remove_empty_and_comment_lines(content.clone());
-        assert_eq!(lines[0], "Line before comment marker ");
-        assert_eq!(lines[1], "Line with no comment marker");
+        let lines = remove_empty_and_comment_lines(enumerate(&content));
+        assert_eq!(lines[0].0, "Line before comment marker ");
+        assert_eq!(lines[1].0, "Line with no comment marker");
     }
 
     #[test]
     fn parsing_knot_from_lines_gets_name() {
-        let content = vec!["== Knot_name ==", "Line 1", "Line 2"];
+        let content = enumerate(&["== Knot_name ==", "Line 1", "Line 2"]);
 
         let (name, _) = get_knot_from_lines(content).unwrap();
         assert_eq!(&name, "Knot_name");
@@ -561,7 +615,7 @@ Second line.
 
     #[test]
     fn parsing_knot_from_lines_without_stitches_sets_content_in_default_named_stitch() {
-        let content = vec!["== Knot_name ==", "Line 1", "Line 2"];
+        let content = enumerate(&["== Knot_name ==", "Line 1", "Line 2"]);
 
         let (_, knot) = get_knot_from_lines(content).unwrap();
 
@@ -574,23 +628,25 @@ Second line.
 
     #[test]
     fn parsing_a_stitch_gets_name_if_present_else_default_root_name_if_index_is_zero() {
-        let (name, _) = get_stitch_from_lines(vec!["= stitch_name =", "Line 1"], 0, "").unwrap();
+        let (name, _) =
+            get_stitch_from_lines(enumerate(&["= stitch_name =", "Line 1"]), 0, "").unwrap();
         assert_eq!(name, "stitch_name".to_string());
 
-        let (name, _) = get_stitch_from_lines(vec!["Line 1"], 0, "").unwrap();
+        let (name, _) = get_stitch_from_lines(enumerate(&["Line 1"]), 0, "").unwrap();
         assert_eq!(name, ROOT_KNOT_NAME);
     }
 
     #[test]
     fn parsing_stitch_from_lines_sets_address_in_root_node() {
-        let (_, stitch) = get_stitch_from_lines(vec!["= cinema", "Line 1"], 0, "tripoli").unwrap();
+        let (_, stitch) =
+            get_stitch_from_lines(enumerate(&["= cinema", "Line 1"]), 0, "tripoli").unwrap();
 
         assert_eq!(
             stitch.root.address,
             Address::from_parts_unchecked("tripoli", Some("cinema"))
         );
 
-        let (_, stitch) = get_stitch_from_lines(vec!["Line 1"], 0, "tripoli").unwrap();
+        let (_, stitch) = get_stitch_from_lines(enumerate(&["Line 1"]), 0, "tripoli").unwrap();
 
         assert_eq!(
             stitch.root.address,
@@ -600,16 +656,24 @@ Second line.
 
     #[test]
     fn parsing_a_stitch_gets_all_content_regardless_of_whether_name_is_present() {
-        let (_, content) = get_stitch_from_lines(vec!["= stitch_name =", "Line 1"], 0, "").unwrap();
+        let (_, content) =
+            get_stitch_from_lines(enumerate(&["= stitch_name =", "Line 1"]), 0, "").unwrap();
         assert_eq!(content.root.items.len(), 1);
 
-        let (_, content) = get_stitch_from_lines(vec!["Line 1"], 0, "").unwrap();
+        let (_, content) = get_stitch_from_lines(enumerate(&["Line 1"]), 0, "").unwrap();
         assert_eq!(content.root.items.len(), 1);
     }
 
     #[test]
     fn parsing_a_knot_from_lines_sets_stitches_in_hash_map() {
-        let lines = vec!["== knot_name", "= stitch_one", "= stitch_two"];
+        let lines = enumerate(&[
+            "== knot_name",
+            "= stitch_one",
+            "Line one",
+            "= stitch_two",
+            "Line two",
+        ]);
+
         let (_, knot) = get_knot_from_lines(lines).unwrap();
 
         assert_eq!(knot.stitches.len(), 2);
@@ -619,13 +683,14 @@ Second line.
 
     #[test]
     fn knot_with_root_content_gets_default_knot_as_first_stitch() {
-        let lines = vec![
+        let lines = enumerate(&[
             "== knot_name",
             "Line 1",
             "= stitch_one",
             "Line 2",
             "= stitch_two",
-        ];
+            "Line 3",
+        ]);
 
         let (_, knot) = get_knot_from_lines(lines).unwrap();
         assert_eq!(&knot.default_stitch, ROOT_KNOT_NAME);
@@ -633,10 +698,12 @@ Second line.
 
     #[test]
     fn root_knot_parses_stitch_without_a_name() {
-        let lines = vec!["Line 1", "Line 2"];
+        let lines = enumerate(&["Line 1", "Line 2"]);
 
         let root = parse_root_knot_from_lines(lines.clone()).unwrap();
-        let comparison = parse_stitch_from_lines(&lines, ROOT_KNOT_NAME, ROOT_KNOT_NAME).unwrap();
+
+        let comparison =
+            parse_stitch_from_lines(&lines, ROOT_KNOT_NAME, ROOT_KNOT_NAME, ().into()).unwrap();
 
         assert_eq!(
             format!("{:?}", root.stitches.get(ROOT_KNOT_NAME).unwrap()),
@@ -646,7 +713,7 @@ Second line.
 
     #[test]
     fn root_knot_may_have_stitches() {
-        let lines = vec!["Line 1", "= Stitch", "Line 2"];
+        let lines = enumerate(&["Line 1", "= Stitch", "Line 2"]);
 
         let root = parse_root_knot_from_lines(lines).unwrap();
 
@@ -655,7 +722,13 @@ Second line.
 
     #[test]
     fn knot_with_no_root_content_gets_default_knot_as_first_stitch() {
-        let lines = vec!["== knot_name", "= stitch_one", "Line 1", "= stitch_two"];
+        let lines = enumerate(&[
+            "== knot_name",
+            "= stitch_one",
+            "Line 1",
+            "= stitch_two",
+            "Line 2",
+        ]);
 
         let (_, knot) = get_knot_from_lines(lines).unwrap();
         assert_eq!(&knot.default_stitch, "stitch_one");
@@ -663,7 +736,7 @@ Second line.
 
     #[test]
     fn knot_parses_tags_from_name_until_first_line_without_octothorpe() {
-        let lines = vec!["== knot_name", "# Tag one", "# Tag two", "Line 1"];
+        let lines = enumerate(&["== knot_name", "# Tag one", "# Tag two", "Line 1"]);
 
         let (_, knot) = get_knot_from_lines(lines).unwrap();
         assert_eq!(&knot.tags, &["Tag one".to_string(), "Tag two".to_string()]);
@@ -671,7 +744,7 @@ Second line.
 
     #[test]
     fn knot_tags_ignore_empty_lines() {
-        let lines = vec!["== knot_name", "", "# Tag one", "", "# Tag two", "Line 1"];
+        let lines = enumerate(&["== knot_name", "", "# Tag one", "", "# Tag two", "Line 1"]);
 
         let (_, knot) = get_knot_from_lines(lines).unwrap();
         assert_eq!(&knot.tags, &["Tag one".to_string(), "Tag two".to_string()]);
@@ -679,7 +752,7 @@ Second line.
 
     #[test]
     fn if_no_tags_are_set_the_tags_are_empty() {
-        let lines = vec!["== knot_name", "Line 1"];
+        let lines = enumerate(&["== knot_name", "Line 1"]);
 
         let (_, knot) = get_knot_from_lines(lines).unwrap();
         assert!(knot.tags.is_empty());
@@ -687,8 +760,11 @@ Second line.
 
     #[test]
     fn tags_do_not_disturb_remaining_content() {
-        let lines_with_tags = vec!["== knot_name", "# Tag one", "# Tag two", "", "Line 1"];
-        let lines_without_tags = vec!["== knot_name", "Line 1"];
+        let lines_with_tags = enumerate(&["== knot_name", "# Tag one", "# Tag two", "", "Line 1"]);
+        let lines_without_tags = vec![
+            ("== knot_name", MetaData::from(0)),
+            ("Line 1", MetaData::from(4)),
+        ];
 
         let (_, knot_tags) = get_knot_from_lines(lines_with_tags).unwrap();
         let (_, knot_no_tags) = get_knot_from_lines(lines_without_tags).unwrap();
@@ -763,5 +839,26 @@ VAR hazardous = true
             &tags,
             &["title: test".to_string(), "rating: hazardous".to_string()]
         );
+    }
+
+    #[test]
+    fn reading_story_data_sets_knot_line_starting_line_indices_including_prelude_content() {
+        let content = "\
+# title: line_counting
+VAR line_count = 0
+
+-> root
+
+== root
+One line.
+
+== second
+Second line.
+";
+
+        let (knots, _, _) = read_story_content_from_string(content).unwrap();
+
+        assert_eq!(knots.get("root").unwrap().meta_data.line_index, 5);
+        assert_eq!(knots.get("second").unwrap().meta_data.line_index, 8);
     }
 }

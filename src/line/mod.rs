@@ -20,7 +20,7 @@ mod alternative;
 mod choice;
 mod condition;
 pub mod expression;
-mod line;
+pub(crate) mod line;
 pub(crate) mod parse;
 mod variable;
 
@@ -32,6 +32,6 @@ pub(crate) use condition::{
 pub(crate) use expression::{evaluate_expression, Expression};
 #[cfg(test)]
 pub(crate) use line::builders::LineChunkBuilder;
-pub(crate) use line::{builders::InternalLineBuilder, Content, InternalLine, LineChunk};
+pub(crate) use line::{Content, InternalLine, LineChunk};
 pub(crate) use parse::{parse_line, parse_variable, ParsedLineKind};
 pub use variable::Variable;
