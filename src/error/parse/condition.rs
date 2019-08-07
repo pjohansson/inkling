@@ -4,20 +4,20 @@ use std::{error::Error, fmt};
 
 use crate::error::parse::LineErrorKind;
 
-impl Error for BadCondition {}
+impl Error for ConditionError {}
 
 #[derive(Clone, Debug)]
 /// Error from parsing `Condition` objects.
-pub struct BadCondition {
+pub struct ConditionError {
     /// Content of string that caused the error.
     content: String,
     /// Error variant.
-    kind: BadConditionKind,
+    kind: ConditionErrorKind,
 }
 
 #[derive(Clone, Debug)]
 /// Variant of `Condition` parsing error.
-pub enum BadConditionKind {
+pub enum ConditionErrorKind {
     /// The first item in a condition was not `Blank` or any other item was not `And` or `Or`.
     ///
     /// This is an internal consistency check from parsing a condition. Every subsequent
@@ -39,9 +39,9 @@ pub enum BadConditionKind {
     UnmatchedParenthesis,
 }
 
-impl fmt::Display for BadCondition {
+impl fmt::Display for ConditionError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        use BadConditionKind::*;
+        use ConditionErrorKind::*;
 
         match self.kind {
             BadLink => write!(
@@ -61,10 +61,10 @@ impl fmt::Display for BadCondition {
     }
 }
 
-impl BadCondition {
+impl ConditionError {
     /// Quickly construct an error from the kind and line.
-    pub fn from_kind<T: Into<String>>(content: T, kind: BadConditionKind) -> Self {
-        BadCondition {
+    pub fn from_kind<T: Into<String>>(content: T, kind: ConditionErrorKind) -> Self {
+        ConditionError {
             content: content.into(),
             kind,
         }

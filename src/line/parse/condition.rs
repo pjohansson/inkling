@@ -3,7 +3,7 @@
 use std::cmp::Ordering;
 
 use crate::{
-    error::{BadCondition, BadConditionKind, LineParsingError},
+    error::{ConditionError, ConditionErrorKind, LineParsingError},
     line::{
         parse::{
             parse_variable, split_line_at_separator_braces, split_line_at_separator_parenthesis,
@@ -90,7 +90,7 @@ pub fn parse_choice_condition(line: &mut String) -> Result<Option<Condition>, Li
 /// be `&&` or `||` respectively), since chained conditions need them. These splits will
 /// not be done within enclosed parenthesis: all grouped conditions inside those will be
 /// treated as whole.
-fn parse_condition(content: &str) -> Result<Condition, BadCondition> {
+fn parse_condition(content: &str) -> Result<Condition, ConditionError> {
     let mut buffer = content.to_string();
 
     let mut items: Vec<(Link, ConditionItem)> = Vec::new();
@@ -132,9 +132,9 @@ fn parse_condition(content: &str) -> Result<Condition, BadCondition> {
 
             builder.build()
         })
-        .ok_or(BadCondition::from_kind(
+        .ok_or(ConditionError::from_kind(
             content,
-            BadConditionKind::NoCondition,
+            ConditionErrorKind::NoCondition,
         ))
 }
 
@@ -146,7 +146,7 @@ fn parse_condition(content: &str) -> Result<Condition, BadCondition> {
 /// If not `true`, `false` or nested, it will be parsed as a single condition.
 ///
 /// An extra negation comes from conditions with `!=` markers.
-fn parse_condition_kind(content: &str) -> Result<(ConditionKind, bool), BadCondition> {
+fn parse_condition_kind(content: &str) -> Result<(ConditionKind, bool), ConditionError> {
     if &content.trim().to_lowercase() == "true" {
         Ok((ConditionKind::True, false))
     } else if &content.trim().to_lowercase() == "false" {
@@ -162,7 +162,7 @@ fn parse_condition_kind(content: &str) -> Result<(ConditionKind, bool), BadCondi
         Ok((ConditionKind::Nested(Box::new(condition)), false))
     } else {
         let (condition, inner_negate) = parse_story_condition(content)
-            .map_err(|_| BadCondition::from_kind(content, BadConditionKind::CouldNotParse))?;
+            .map_err(|_| ConditionError::from_kind(content, ConditionErrorKind::CouldNotParse))?;
 
         Ok((ConditionKind::Single(condition), inner_negate))
     }
@@ -172,14 +172,14 @@ fn parse_condition_kind(content: &str) -> Result<(ConditionKind, bool), BadCondi
 ///
 /// This stems from conditional line content being on the format `{condition: if true | else }`.
 /// When a conditional is encountered we split these into separate parts for parsing.
-fn split_line_condition_content(content: &str) -> Result<(&str, &str, &str), BadCondition> {
+fn split_line_condition_content(content: &str) -> Result<(&str, &str, &str), ConditionError> {
     let parts = split_line_at_separator_braces(content, ":", Some(1))
         .map_err(|_| get_unmatched_error(content))?;
 
     let (head, tail) = match parts.len() {
-        1 => Err(BadCondition::from_kind(
+        1 => Err(ConditionError::from_kind(
             content,
-            BadConditionKind::NoCondition,
+            ConditionErrorKind::NoCondition,
         )),
         2 => Ok((parts[0], parts[1])),
         _ => unreachable!(),
@@ -191,9 +191,9 @@ fn split_line_condition_content(content: &str) -> Result<(&str, &str, &str), Bad
     match variational_parts.len() {
         1 => Ok((head, variational_parts[0], "")),
         2 => Ok((head, variational_parts[0], variational_parts[1])),
-        _ => Err(BadCondition::from_kind(
+        _ => Err(ConditionError::from_kind(
             content,
-            BadConditionKind::MultipleElseStatements,
+            ConditionErrorKind::MultipleElseStatements,
         )),
     }
 }
@@ -212,7 +212,7 @@ fn split_line_condition_content(content: &str) -> Result<(&str, &str, &str), Bad
 /// *   A backslash '\\' can be used in front of a curly brace to denote that it's not
 ///     a condition.
 /// *   The condition strings are returned without the enclosing braces.
-fn split_choice_conditions_off_string(content: &mut String) -> Result<Vec<String>, BadCondition> {
+fn split_choice_conditions_off_string(content: &mut String) -> Result<Vec<String>, ConditionError> {
     let (head, backslash_adjustor) = content
         .find("\\{")
         .and_then(|i| content.get(..i))
@@ -294,7 +294,7 @@ fn split_off_negation(content: &mut String) -> bool {
 ///
 /// # Notes
 /// *   Will not split when `and` or `or` appear inside words.
-fn read_next_condition_string(buffer: &mut String) -> Result<String, BadCondition> {
+fn read_next_condition_string(buffer: &mut String) -> Result<String, ConditionError> {
     let (head, tail) = get_without_starting_match(&buffer);
     let head_size = head.len();
 
@@ -344,7 +344,7 @@ fn get_split_index(content: &str, separator: &str) -> Result<usize, LineParsingE
 /// # Notes
 /// *   Assumes that any preceeding `not` has been trimmed from the conditional. The
 ///     negation will come purely from a `!=` marker.
-fn parse_story_condition(line: &str) -> Result<(StoryCondition, bool), BadCondition> {
+fn parse_story_condition(line: &str) -> Result<(StoryCondition, bool), ConditionError> {
     let ordering_search = line
         .find("==")
         .map(|i| (i, Ordering::Equal, 0, 2, false))
@@ -390,32 +390,38 @@ fn parse_story_condition(line: &str) -> Result<(StoryCondition, bool), BadCondit
     }
 }
 
-/// Parse a variable from a string and map any error to `BadCondition`
-fn parse_condition_variable(content: &str) -> Result<Variable, BadCondition> {
+/// Parse a variable from a string and map any error to `ConditionError`
+fn parse_condition_variable(content: &str) -> Result<Variable, ConditionError> {
     parse_variable(content).map_err(|err| {
-        BadCondition::from_kind(
+        ConditionError::from_kind(
             content,
-            BadConditionKind::CouldNotParseVariable { err: Box::new(err) },
+            ConditionErrorKind::CouldNotParseVariable { err: Box::new(err) },
         )
     })
 }
 
 /// Verify that the head has no link and the tail has only `and` or `or` links.
-fn validate_items<T>(items: &[(Link, T)], content: &str) -> Result<(), BadCondition> {
+fn validate_items<T>(items: &[(Link, T)], content: &str) -> Result<(), ConditionError> {
     items
         .split_first()
         .map(|((first_link, _), tail)| {
             match first_link {
                 Link::Blank => (),
                 _ => {
-                    return Err(BadCondition::from_kind(content, BadConditionKind::BadLink));
+                    return Err(ConditionError::from_kind(
+                        content,
+                        ConditionErrorKind::BadLink,
+                    ));
                 }
             }
 
             for (link, _) in tail {
                 match link {
                     Link::Blank => {
-                        return Err(BadCondition::from_kind(content, BadConditionKind::BadLink));
+                        return Err(ConditionError::from_kind(
+                            content,
+                            ConditionErrorKind::BadLink,
+                        ));
                     }
                     _ => (),
                 }
@@ -427,13 +433,13 @@ fn validate_items<T>(items: &[(Link, T)], content: &str) -> Result<(), BadCondit
 }
 
 /// Create a `LineParsingError` with given line from a `BadChoice`.
-fn get_line_error_from_bad_choice(line: &str, err: BadCondition) -> LineParsingError {
+fn get_line_error_from_bad_choice(line: &str, err: ConditionError) -> LineParsingError {
     LineParsingError::from_kind(line, err.into())
 }
 
-/// Create a `BadCondition` error for unmatched parenthesis in condition.
-fn get_unmatched_error(line: &str) -> BadCondition {
-    BadCondition::from_kind(line, BadConditionKind::UnmatchedParenthesis)
+/// Create a `ConditionError` error for unmatched parenthesis in condition.
+fn get_unmatched_error(line: &str) -> ConditionError {
+    ConditionError::from_kind(line, ConditionErrorKind::UnmatchedParenthesis)
 }
 
 #[cfg(test)]

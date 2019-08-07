@@ -1,6 +1,9 @@
 //! Choice which branches the story.
 
-use crate::{line::{Condition, InternalLine}, utils::MetaData};
+use crate::{
+    line::{Condition, InternalLine},
+    utils::MetaData,
+};
 
 use std::{cell::RefCell, rc::Rc};
 

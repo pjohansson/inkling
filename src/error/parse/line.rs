@@ -4,7 +4,7 @@ use std::{error::Error, fmt};
 
 use crate::{
     consts::{CHOICE_MARKER, STICKY_CHOICE_MARKER},
-    error::parse::{BadCondition, ExpressionError},
+    error::parse::{ConditionError, ExpressionError},
 };
 
 impl Error for LineParsingError {}
@@ -22,7 +22,7 @@ pub struct LineParsingError {
 /// Variants of line errors.
 pub enum LineErrorKind {
     /// Condition was invalid.
-    BadCondition(BadCondition),
+    ConditionError(ConditionError),
     /// Could not read a numerical expression.
     BadExpression(ExpressionError),
     /// Found a divert marker but no address.
@@ -63,7 +63,7 @@ impl LineParsingError {
 
 impl_from_error![
     LineErrorKind;
-    [BadCondition, BadCondition],
+    [ConditionError, ConditionError],
     [BadExpression, ExpressionError]
 ];
 
@@ -72,7 +72,7 @@ impl fmt::Display for LineParsingError {
         use LineErrorKind::*;
 
         match &self.kind {
-            BadCondition(err) => write!(f, "Could not parse a condition: {}", err),
+            ConditionError(err) => write!(f, "Could not parse a condition: {}", err),
             BadExpression(err) => write!(f, "Could not parse an expression: {}", err),
             EmptyDivert => write!(f, "Encountered a divert statement with no address",),
             EmptyExpression => write!(f, "Found an empty embraced expression ({{}})"),
