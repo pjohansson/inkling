@@ -2,7 +2,7 @@
 
 use crate::{
     consts::{DIVERT_MARKER, GLUE_MARKER, TAG_MARKER},
-    error::{LineError, LineErrorKind},
+    error::LineErrorKind,
     knot::Address,
     line::{
         parse::{
@@ -26,7 +26,10 @@ enum VariableText {
 }
 
 /// Parse an `InternalLine` from a string.
-pub fn parse_internal_line(content: &str, meta_data: &MetaData) -> Result<InternalLine, LineError> {
+pub fn parse_internal_line(
+    content: &str,
+    meta_data: &MetaData,
+) -> Result<InternalLine, LineErrorKind> {
     let mut buffer = content.to_string();
 
     let tags = parse_tags(&mut buffer);
@@ -50,7 +53,7 @@ pub fn parse_internal_line(content: &str, meta_data: &MetaData) -> Result<Intern
 }
 
 /// Parse a `LineChunk` object from a string.
-pub fn parse_chunk(content: &str) -> Result<LineChunk, LineError> {
+pub fn parse_chunk(content: &str) -> Result<LineChunk, LineErrorKind> {
     Ok(LineChunk {
         condition: None,
         items: parse_line_content(content)?,
@@ -58,7 +61,7 @@ pub fn parse_chunk(content: &str) -> Result<LineChunk, LineError> {
     })
 }
 
-fn parse_line_content(content: &str) -> Result<Vec<Content>, LineError> {
+fn parse_line_content(content: &str) -> Result<Vec<Content>, LineErrorKind> {
     split_line_into_groups_braces(content)?
         .into_iter()
         .map(|group| match group {
@@ -70,7 +73,7 @@ fn parse_line_content(content: &str) -> Result<Vec<Content>, LineError> {
 }
 
 /// Parse and add text and divert items to a `LineChunkBuilder`.
-fn get_text_items(content: &str) -> Result<Vec<Content>, LineError> {
+fn get_text_items(content: &str) -> Result<Vec<Content>, LineErrorKind> {
     let mut buffer = content.to_string();
     let mut items = Vec::new();
 
@@ -89,7 +92,7 @@ fn get_text_items(content: &str) -> Result<Vec<Content>, LineError> {
     Ok(items)
 }
 
-fn parse_embraced_line(content: &str) -> Result<Content, LineError> {
+fn parse_embraced_line(content: &str) -> Result<Content, LineErrorKind> {
     match determine_kind(content)? {
         VariableText::Alternative => {
             let alternative = parse_alternative(content)?;
@@ -110,8 +113,7 @@ fn parse_embraced_line(content: &str) -> Result<Content, LineError> {
             Ok(Content::Nested(chunk))
         }
         VariableText::Expression => {
-            let expression = parse_expression(content)
-                .map_err(|kind| LineError::from_kind(content, kind.into()))?;
+            let expression = parse_expression(content)?;
 
             Ok(Content::Expression(expression))
         }
@@ -119,12 +121,9 @@ fn parse_embraced_line(content: &str) -> Result<Content, LineError> {
 }
 
 /// Determine which kind of variable content is in an embraced string.
-fn determine_kind(content: &str) -> Result<VariableText, LineError> {
+fn determine_kind(content: &str) -> Result<VariableText, LineErrorKind> {
     if content.trim().is_empty() {
-        Err(LineError::from_kind(
-            content,
-            LineErrorKind::EmptyExpression,
-        ))
+        Err(LineErrorKind::EmptyExpression)
     } else if split_line_at_separator_braces(content, ":", Some(1))?.len() > 1 {
         Ok(VariableText::Conditional)
     } else if split_line_at_separator_braces(content, "|", Some(1))?.len() > 1 {
@@ -172,9 +171,7 @@ fn parse_tags(line: &mut String) -> Vec<String> {
 }
 
 /// Split diverts off the given line and return it separately if found.
-fn split_off_end_divert(line: &mut String) -> Result<Option<String>, LineError> {
-    let backup_line = line.clone();
-
+fn split_off_end_divert(line: &mut String) -> Result<Option<String>, LineErrorKind> {
     let splits = split_line_at_separator_braces(&line, DIVERT_MARKER, None)?;
 
     match splits.len() {
@@ -182,16 +179,13 @@ fn split_off_end_divert(line: &mut String) -> Result<Option<String>, LineError> 
         2 => {
             let head_length = splits.get(0).unwrap().len();
 
-            let address = validate_address(splits[1].trim(), backup_line)?;
+            let address = validate_address(splits[1].trim())?;
             line.truncate(head_length);
             line.push(' ');
 
             Ok(Some(address))
         }
-        _ => Err(LineError::from_kind(
-            line.clone(),
-            LineErrorKind::FoundTunnel,
-        )),
+        _ => Err(LineErrorKind::FoundTunnel),
     }
 }
 
@@ -199,7 +193,7 @@ fn split_off_end_divert(line: &mut String) -> Result<Option<String>, LineError> 
 ///
 /// # Notes
 /// *   Expectes the input line to be trimmed of whitespace from the edges.
-pub fn validate_address(line: &str, backup_line: String) -> Result<String, LineError> {
+pub fn validate_address(line: &str) -> Result<String, LineErrorKind> {
     if line.contains(|c: char| c.is_whitespace()) {
         let tail = line
             .splitn(2, |c: char| c.is_whitespace())
@@ -208,21 +202,12 @@ pub fn validate_address(line: &str, backup_line: String) -> Result<String, LineE
             .unwrap()
             .to_string();
 
-        Err(LineError::from_kind(
-            backup_line,
-            LineErrorKind::ExpectedEndOfLine { tail },
-        ))
+        Err(LineErrorKind::ExpectedEndOfLine { tail })
     } else if line.is_empty() {
-        Err(LineError {
-            kind: LineErrorKind::EmptyDivert,
-            line: backup_line,
-        })
+        Err(LineErrorKind::EmptyDivert)
     } else if line.contains(|c: char| !(c.is_alphanumeric() || c == '_' || c == '.')) {
-        Err(LineError {
-            kind: LineErrorKind::InvalidAddress {
-                address: line.to_string(),
-            },
-            line: backup_line,
+        Err(LineErrorKind::InvalidAddress {
+            address: line.to_string(),
         })
     } else {
         Ok(line.to_string())
@@ -279,10 +264,7 @@ mod tests {
     #[test]
     fn internal_line_with_divert_before_more_content_yields_error() {
         match parse_internal_line("Hello, -> world and {One|Two -> not_world}!", &().into()) {
-            Err(LineError {
-                kind: LineErrorKind::ExpectedEndOfLine { tail },
-                ..
-            }) => {
+            Err(LineErrorKind::ExpectedEndOfLine { tail }) => {
                 assert_eq!(&tail, "and {One|Two -> not_world}!");
             }
             other => panic!(
@@ -357,46 +339,38 @@ mod tests {
     #[test]
     fn empty_divert_address_yields_error() {
         match parse_chunk("-> ") {
-            Err(LineError {
-                kind: LineErrorKind::EmptyDivert,
-                line,
-            }) => {
-                assert_eq!(line, "-> ");
-            }
-            other => panic!("expected `LineError` but got {:?}", other),
+            Err(LineErrorKind::EmptyDivert) => (),
+            other => panic!("expected `LineErrorKind::EmptyDivert` but got {:?}", other),
         }
     }
 
     #[test]
     fn multiple_diverts_in_a_chunk_yields_error() {
         match parse_chunk("-> hello -> world") {
-            Err(LineError {
-                kind: LineErrorKind::FoundTunnel,
-                ..
-            }) => (),
-            other => panic!("expected `LineError` but got {:?}", other),
+            Err(LineErrorKind::FoundTunnel) => (),
+            other => panic!("expected `LineErrorKind::FoundTunnel` but got {:?}", other),
         }
     }
 
     #[test]
     fn divert_address_must_be_valid() {
         match parse_chunk("-> hello$world") {
-            Err(LineError {
-                kind: LineErrorKind::InvalidAddress { address },
-                ..
-            }) => assert_eq!(&address, "hello$world"),
-            other => panic!("expected `LineError` but got {:?}", other),
+            Err(LineErrorKind::InvalidAddress { address }) => assert_eq!(&address, "hello$world"),
+            other => panic!(
+                "expected `LineErrorKind::InvalidAddress` but got {:?}",
+                other
+            ),
         }
     }
 
     #[test]
     fn divert_address_must_be_a_single_word() {
         match parse_chunk("-> hello world") {
-            Err(LineError {
-                kind: LineErrorKind::ExpectedEndOfLine { tail },
-                ..
-            }) => assert_eq!(&tail, "world"),
-            other => panic!("expected `LineError` but got {:?}", other),
+            Err(LineErrorKind::ExpectedEndOfLine { tail }) => assert_eq!(&tail, "world"),
+            other => panic!(
+                "expected `LineErrorKind::ExpectedEndOfLine` but got {:?}",
+                other
+            ),
         }
     }
 

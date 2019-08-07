@@ -2,7 +2,7 @@
 
 use crate::{
     consts::{CHOICE_MARKER, STICKY_CHOICE_MARKER},
-    error::{LineError, LineErrorKind},
+    error::LineErrorKind,
     line::{
         parse::{
             parse_choice_condition, parse_internal_line, parse_markers_and_text,
@@ -17,7 +17,7 @@ use crate::{
 pub fn parse_choice(
     content: &str,
     meta_data: &MetaData,
-) -> Result<Option<ParsedLineKind>, LineError> {
+) -> Result<Option<ParsedLineKind>, LineErrorKind> {
     parse_choice_markers_and_text(content)?
         .map(|(level, is_sticky, line)| {
             parse_choice_data(line, meta_data)
@@ -35,7 +35,7 @@ pub fn parse_choice(
 /// The line should not contain the markers used to determine whether a line of content
 /// represents a choice. It should only contain the part of the line which represents
 /// the choice text.
-fn parse_choice_data(content: &str, meta_data: &MetaData) -> Result<InternalChoice, LineError> {
+fn parse_choice_data(content: &str, meta_data: &MetaData) -> Result<InternalChoice, LineErrorKind> {
     let mut buffer = content.to_string();
     let choice_conditions = parse_choice_condition(&mut buffer)?;
 
@@ -47,10 +47,7 @@ fn parse_choice_data(content: &str, meta_data: &MetaData) -> Result<InternalChoi
     let is_fallback = is_choice_fallback(&selection_text);
 
     let display_text = match parse_internal_line(&display_text_line, meta_data) {
-        Err(LineError {
-            kind: LineErrorKind::EmptyDivert,
-            ..
-        }) if is_fallback => {
+        Err(LineErrorKind::EmptyDivert) if is_fallback => {
             let (without_divert, _) = split_at_divert_marker(&display_text_line);
             parse_internal_line(without_divert, meta_data)
         }
@@ -86,7 +83,7 @@ fn is_choice_fallback(selection_text: &InternalLine) -> bool {
 /// Return the number of markers along with whether the choice was sticky and the remaining line.
 pub fn parse_choice_markers_and_text(
     content: &str,
-) -> Result<Option<(u32, bool, &str)>, LineError> {
+) -> Result<Option<(u32, bool, &str)>, LineErrorKind> {
     let is_sticky = marker_exists_before_text(content, STICKY_CHOICE_MARKER);
     let is_not_sticky = marker_exists_before_text(content, CHOICE_MARKER);
 
@@ -95,10 +92,7 @@ pub fn parse_choice_markers_and_text(
         (true, false) => Some(STICKY_CHOICE_MARKER),
         (false, true) => Some(CHOICE_MARKER),
         (true, true) => {
-            return Err(LineError {
-                kind: LineErrorKind::StickyAndNonSticky,
-                line: content.to_string(),
-            });
+            return Err(LineErrorKind::StickyAndNonSticky);
         }
     };
 
@@ -121,15 +115,12 @@ fn marker_exists_before_text(line: &str, marker: char) -> bool {
 /// These are demarcated by `[]` brackets. Content before the bracket is both selection
 /// and display text. Content inside the bracket is only for the selection and content
 /// after the bracket only for display.
-fn parse_choice_line_variants(line: &str) -> Result<(String, String), LineError> {
+fn parse_choice_line_variants(line: &str) -> Result<(String, String), LineErrorKind> {
     match (line.find('['), line.find(']')) {
         (Some(i), Some(j)) if i < j => {
             // Ensure that we don't have more brackets
             if line.rfind('[').unwrap() != i || line.rfind(']').unwrap() != j {
-                return Err(LineError {
-                    kind: LineErrorKind::UnmatchedBrackets,
-                    line: line.to_string(),
-                });
+                return Err(LineErrorKind::UnmatchedBrackets);
             }
 
             let head = line.get(..i).unwrap();
@@ -142,10 +133,7 @@ fn parse_choice_line_variants(line: &str) -> Result<(String, String), LineError>
             Ok((selection_text, display_text))
         }
         (None, None) => Ok((line.to_string(), line.to_string())),
-        _ => Err(LineError {
-            kind: LineErrorKind::UnmatchedBrackets,
-            line: line.to_string(),
-        }),
+        _ => Err(LineErrorKind::UnmatchedBrackets),
     }
 }
 

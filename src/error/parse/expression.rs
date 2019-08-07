@@ -2,7 +2,7 @@
 
 use std::{error::Error, fmt};
 
-use crate::error::parse::LineError;
+use crate::error::parse::LineErrorKind;
 
 impl Error for ExpressionError {}
 
@@ -22,7 +22,7 @@ pub enum ExpressionErrorKind {
     /// The expression `head` was preceeded with an invalid operator ('*', '/', '%').
     InvalidHead { head: String },
     /// Could not parse variable inside expression.
-    InvalidVariable(Box<LineError>),
+    InvalidVariable(Box<LineErrorKind>),
     /// Encountered a string in the tail with no leading mathematical operator.
     NoOperator { content: String },
     /// Expression had unmatched parenthesis brackets.
@@ -40,11 +40,12 @@ impl fmt::Display for ExpressionError {
                 "cannot parse expression from string '{}': no left hand side value before '{}'",
                 self.content, head
             ),
-            InvalidVariable(err) => write!(
-                f,
-                "cannot parse expression from string '{}': invalid variable: {}",
-                self.content, err
-            ),
+            InvalidVariable(..) => unimplemented!(),
+            // InvalidVariable(err) => write!(
+            //     f,
+            //     "cannot parse expression from string '{}': invalid variable: {}",
+            //     self.content, err
+            // ),
             NoOperator { content } => write!(
                 f,
                 "cannot parse expression from string '{}': no mathematical operator before \

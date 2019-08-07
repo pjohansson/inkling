@@ -21,22 +21,20 @@ pub fn parse_variable(content: &str) -> Result<Variable, LineErrorKind> {
         ))
     } else if content.starts_with(DIVERT_MARKER) {
         let inner = content.get(DIVERT_MARKER.len()..).unwrap().trim();
-        let address = validate_address(inner, content.to_string()).map_err(|_| {
-            LineErrorKind::InvalidVariableDivert {
+        let address =
+            validate_address(inner).map_err(|_| LineErrorKind::InvalidVariableDivert {
                 address: inner.to_string(),
                 content: content.to_string(),
-            }
-        })?;
+            })?;
 
         Ok(Variable::Divert(Address::Raw(address)))
     } else if content.starts_with(|c: char| c.is_numeric() || c == '-' || c == '+') {
         parse_number(content)
     } else {
-        let address = validate_address(content.trim(), content.to_string()).map_err(|_| {
-            LineErrorKind::InvalidVariable {
+        let address =
+            validate_address(content.trim()).map_err(|_| LineErrorKind::InvalidVariable {
                 content: content.to_string(),
-            }
-        })?;
+            })?;
 
         Ok(Variable::Address(Address::Raw(address.to_string())))
     }

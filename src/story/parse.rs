@@ -319,9 +319,15 @@ fn parse_global_variables(
 ) -> Result<HashMap<String, Variable>, LineError> {
     lines
         .iter()
-        .map(|(line, _)| line.trim())
-        .filter(|line| line.starts_with(VARIABLE_MARKER))
-        .map(|line| parse_variable_with_name(line).map_err(|err| LineError::from_kind(line, err)))
+        .map(|(line, meta_data)| (line.trim(), meta_data))
+        .filter(|(line, _)| line.starts_with(VARIABLE_MARKER))
+        .map(|(line, meta_data)| {
+            parse_variable_with_name(line).map_err(|kind| LineError {
+                line: line.to_string(),
+                kind,
+                meta_data: meta_data.clone(),
+            })
+        })
         .collect()
 }
 

@@ -54,15 +54,18 @@ impl ParsedLineKind {
 
 /// Parse a line into a `ParsedLineKind` object.
 pub fn parse_line(content: &str, meta_data: &MetaData) -> Result<ParsedLineKind, LineError> {
-    if let Some(choice) = parse_choice(content, meta_data)? {
-        Ok(choice)
-    } else if let Some(gather) = parse_gather(content, meta_data)? {
-        Ok(gather)
+    if let Some(choice) = parse_choice(content, meta_data).transpose() {
+        choice
+    } else if let Some(gather) = parse_gather(content, meta_data).transpose() {
+        gather
     } else {
-        let line = parse_internal_line(content, meta_data)?;
-
-        Ok(ParsedLineKind::Line(line))
+        parse_internal_line(content, meta_data).map(|line| ParsedLineKind::Line(line))
     }
+    .map_err(|kind| LineError {
+        line: content.to_string(),
+        kind,
+        meta_data: meta_data.clone(),
+    })
 }
 
 /// Count leading markers and return the number and a string without them.

@@ -5,6 +5,7 @@ use std::{error::Error, fmt};
 use crate::{
     consts::{CHOICE_MARKER, STICKY_CHOICE_MARKER},
     error::parse::{ConditionError, ExpressionError},
+    utils::MetaData,
 };
 
 impl Error for LineError {}
@@ -16,6 +17,8 @@ pub struct LineError {
     pub line: String,
     /// Kind of error.
     pub kind: LineErrorKind,
+    /// Information about the origin of the line that caused this error.
+    pub meta_data: MetaData,
 }
 
 #[derive(Clone, Debug)]
@@ -49,16 +52,6 @@ pub enum LineErrorKind {
     UnmatchedBraces,
     /// Found unmatched square brackets.
     UnmatchedBrackets,
-}
-
-impl LineError {
-    /// Constructor of error from some string and kind.
-    pub fn from_kind<T: Into<String>>(line: T, kind: LineErrorKind) -> Self {
-        LineError {
-            line: line.into(),
-            kind,
-        }
-    }
 }
 
 impl_from_error![
