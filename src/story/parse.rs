@@ -10,7 +10,10 @@ use crate::{
         CONST_MARKER, EXTERNAL_FUNCTION_MARKER, INCLUDE_MARKER, KNOT_MARKER, LINE_COMMENT_MARKER,
         ROOT_KNOT_NAME, STITCH_MARKER, TAG_MARKER, TODO_COMMENT_MARKER, VARIABLE_MARKER,
     },
-    error::{KnotError, KnotNameError, LineError, LineErrorKind, ParseError},
+    error::{
+        parse::{PreludeError, PreludeErrorKind},
+        KnotError, KnotNameError, ParseError,
+    },
     knot::{parse_stitch_from_lines, read_knot_name, read_stitch_name, Knot, KnotSet, Stitch},
     line::{parse_variable, Variable},
     story::VariableSet,
@@ -316,13 +319,13 @@ fn parse_global_tags(lines: &[(&str, MetaData)]) -> Vec<String> {
 /// Parse global variables from a set of metadata lines in the prelude.
 fn parse_global_variables(
     lines: &[(&str, MetaData)],
-) -> Result<HashMap<String, Variable>, LineError> {
+) -> Result<HashMap<String, Variable>, PreludeError> {
     lines
         .iter()
         .map(|(line, meta_data)| (line.trim(), meta_data))
         .filter(|(line, _)| line.starts_with(VARIABLE_MARKER))
         .map(|(line, meta_data)| {
-            parse_variable_with_name(line).map_err(|kind| LineError {
+            parse_variable_with_name(line).map_err(|kind| PreludeError {
                 line: line.to_string(),
                 kind,
                 meta_data: meta_data.clone(),
@@ -334,22 +337,23 @@ fn parse_global_variables(
 /// Parse a single variable line into the variable name and initial value.
 ///
 /// Variable lines are on the form `VAR variable_name = initial_value`.
-fn parse_variable_with_name(line: &str) -> Result<(String, Variable), LineErrorKind> {
+fn parse_variable_with_name(line: &str) -> Result<(String, Variable), PreludeErrorKind> {
     line.find('=')
-        .ok_or_else(|| unimplemented!())
+        .ok_or_else(|| PreludeErrorKind::NoVariableAssignment)
         .and_then(|i| {
             let start = VARIABLE_MARKER.len();
             let variable_name = line.get(start..i).unwrap().trim().to_string();
 
             if variable_name.is_empty() {
-                Err(LineErrorKind::NoVariableName)
+                Err(PreludeErrorKind::NoVariableName)
             } else {
                 Ok((i, variable_name))
             }
         })
         .and_then(|(i, variable_name)| {
-            let variable_value = parse_variable(line.get(i + 1..).unwrap().trim())?;
-            Ok((variable_name, variable_value))
+            parse_variable(line.get(i + 1..).unwrap().trim())
+                .map(|value| (variable_name, value))
+                .map_err(|err| err.into())
         })
 }
 

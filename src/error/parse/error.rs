@@ -2,7 +2,7 @@
 //!
 use std::{error::Error, fmt};
 
-use crate::error::parse::{InvalidAddressError, KnotError, LineError};
+use crate::error::parse::{InvalidAddressError, KnotError, LineError, PreludeError};
 
 impl Error for ParseError {}
 
@@ -17,6 +17,8 @@ pub enum ParseError {
     LineError(LineError),
     /// An invalid address was encountered when parsing the story.
     InvalidAddress(InvalidAddressError),
+    /// Could not parse a line in the prelude.
+    PreludeError(PreludeError),
 }
 
 impl fmt::Display for ParseError {
@@ -28,6 +30,7 @@ impl fmt::Display for ParseError {
             InvalidAddress(err) => write!(f, "{}", err),
             KnotError(err) => write!(f, "{}", err),
             LineError(err) => write!(f, "{}", err),
+            PreludeError(err) => write!(f, "{}", err),
         }
     }
 }
@@ -36,5 +39,6 @@ impl_from_error![
     ParseError;
     [InvalidAddress, InvalidAddressError],
     [KnotError, KnotError],
-    [LineError, LineError]
+    [LineError, LineError],
+    [PreludeError, PreludeError]
 ];

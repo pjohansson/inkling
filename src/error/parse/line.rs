@@ -4,7 +4,7 @@ use std::{error::Error, fmt};
 
 use crate::{
     consts::{CHOICE_MARKER, STICKY_CHOICE_MARKER},
-    error::parse::{ConditionError, ExpressionError, VariableError},
+    error::parse::{ConditionError, ExpressionError},
     utils::MetaData,
 };
 
@@ -38,10 +38,6 @@ pub enum LineErrorKind {
     FoundTunnel,
     /// Found an address with invalid characters.
     InvalidAddress { address: String },
-    /// Could not parse a variable.
-    InvalidVariable(VariableError),
-    /// No variable name after a VAR statement.
-    NoVariableName,
     /// A choice has both non-sticky and sticky markers.
     StickyAndNonSticky,
     /// Found unmatched curly braces.
@@ -53,8 +49,7 @@ pub enum LineErrorKind {
 impl_from_error![
     LineErrorKind;
     [ConditionError, ConditionError],
-    [BadExpression, ExpressionError],
-    [InvalidVariable, VariableError]
+    [BadExpression, ExpressionError]
 ];
 
 impl fmt::Display for LineError {
@@ -83,11 +78,6 @@ impl fmt::Display for LineError {
                  contains invalid characters",
                 address
             ),
-            InvalidVariable { .. } => unimplemented!(),
-            // InvalidVariable { content } => {
-            //     write!(f, "Could not parse a variable from '{}'", content)
-            // }
-            NoVariableName => write!(f, "No variable name for variable assignment"),
             StickyAndNonSticky => write!(
                 f,
                 "Encountered a line which has both non-sticky ('{}') and sticky ('{}') \
