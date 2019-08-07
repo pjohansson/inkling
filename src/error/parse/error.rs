@@ -2,7 +2,7 @@
 //!
 use std::{error::Error, fmt};
 
-use crate::error::parse::{InvalidAddressError, KnotError, LineParsingError};
+use crate::error::parse::{InvalidAddressError, KnotError, LineError};
 
 impl Error for ParseError {}
 
@@ -14,7 +14,7 @@ pub enum ParseError {
     /// Could not construct a `Knot` or `Stitch` as the content was read.
     KnotError(KnotError),
     /// Could not parse a individual line outside of knots.
-    LineError(LineParsingError),
+    LineError(LineError),
     /// An invalid address was encountered when parsing the story.
     InvalidAddress(InvalidAddressError),
 }
@@ -36,5 +36,5 @@ impl_from_error![
     ParseError;
     [InvalidAddress, InvalidAddressError],
     [KnotError, KnotError],
-    [LineError, LineParsingError]
+    [LineError, LineError]
 ];

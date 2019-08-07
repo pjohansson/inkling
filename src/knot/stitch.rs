@@ -207,7 +207,7 @@ mod tests {
     use super::*;
 
     use crate::{
-        error::{LineParsingError, ParseError},
+        error::{LineError, ParseError},
         knot::{get_num_visited, Address},
         line::{InternalLine, ParsedLineKind},
     };
@@ -229,7 +229,7 @@ mod tests {
         }
     }
 
-    fn parse_lines(s: &str) -> Result<Vec<ParsedLineKind>, LineParsingError> {
+    fn parse_lines(s: &str) -> Result<Vec<ParsedLineKind>, LineError> {
         s.lines().map(|line| parse_line(line, &().into())).collect()
     }
 

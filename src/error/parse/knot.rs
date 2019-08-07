@@ -2,7 +2,7 @@
 
 use std::{error::Error, fmt};
 
-use crate::error::parse::LineParsingError;
+use crate::error::parse::LineError;
 
 impl Error for KnotError {}
 
@@ -21,7 +21,7 @@ pub enum KnotError {
         kind: KnotNameError,
     },
     /// Could not parse a line inside a not.
-    LineError(LineParsingError),
+    LineError(LineError),
 }
 
 #[derive(Clone, Debug)]
@@ -41,7 +41,7 @@ pub enum KnotNameError {
 
 impl_from_error![
     KnotError;
-    [LineError, LineParsingError]
+    [LineError, LineError]
 ];
 
 impl fmt::Display for KnotError {

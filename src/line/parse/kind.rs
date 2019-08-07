@@ -2,7 +2,7 @@
 
 use crate::{
     consts::DIVERT_MARKER,
-    error::LineParsingError,
+    error::LineError,
     line::{
         parse::{parse_choice, parse_gather, parse_internal_line},
         InternalChoice, InternalLine,
@@ -53,7 +53,7 @@ impl ParsedLineKind {
 }
 
 /// Parse a line into a `ParsedLineKind` object.
-pub fn parse_line(content: &str, meta_data: &MetaData) -> Result<ParsedLineKind, LineParsingError> {
+pub fn parse_line(content: &str, meta_data: &MetaData) -> Result<ParsedLineKind, LineError> {
     if let Some(choice) = parse_choice(content, meta_data)? {
         Ok(choice)
     } else if let Some(gather) = parse_gather(content, meta_data)? {

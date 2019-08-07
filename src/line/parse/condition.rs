@@ -3,7 +3,7 @@
 use std::cmp::Ordering;
 
 use crate::{
-    error::{ConditionError, ConditionErrorKind, LineParsingError},
+    error::{ConditionError, ConditionErrorKind, LineError},
     line::{
         parse::{
             parse_variable, split_line_at_separator_braces, split_line_at_separator_parenthesis,
@@ -36,9 +36,7 @@ enum Link {
 /// *   Choices have a separate way of marking conditions for them to be presented. See
 ///     `parse_choice_conditions` for such parsing. Of course, line content within a choice
 ///     may be marked up using conditions that will use this format.
-pub fn parse_line_condition(
-    line: &str,
-) -> Result<(Condition, &str, Option<&str>), LineParsingError> {
+pub fn parse_line_condition(line: &str) -> Result<(Condition, &str, Option<&str>), LineError> {
     let (condition_content, true_content, false_content) = split_line_condition_content(line)
         .map_err(|err| get_line_error_from_bad_choice(line, err))?;
 
@@ -61,7 +59,7 @@ pub fn parse_line_condition(
 /// Choices can lead with multiple conditions. Every condition is contained inside
 /// `{}` bracket pairs and may be whitespace separated. This function reads all conditions
 /// until no bracket pairs are left in the leading part of the line.
-pub fn parse_choice_condition(line: &mut String) -> Result<Option<Condition>, LineParsingError> {
+pub fn parse_choice_condition(line: &mut String) -> Result<Option<Condition>, LineError> {
     let conditions = split_choice_conditions_off_string(line)
         .map_err(|err| get_line_error_from_bad_choice(line.as_str(), err))?
         .into_iter()
@@ -319,7 +317,7 @@ fn get_without_starting_match(content: &str) -> (&str, &str) {
 }
 
 /// Return the lowest index for any `and`/`or` keyword in the line.
-fn get_closest_split_index(content: &str) -> Result<usize, LineParsingError> {
+fn get_closest_split_index(content: &str) -> Result<usize, LineError> {
     let buffer = content.to_lowercase();
 
     get_split_index(&buffer, " and ")
@@ -332,7 +330,7 @@ fn get_closest_split_index(content: &str) -> Result<usize, LineParsingError> {
 }
 
 /// Return the lowest index for the given separator keyword in the line.
-fn get_split_index(content: &str, separator: &str) -> Result<usize, LineParsingError> {
+fn get_split_index(content: &str, separator: &str) -> Result<usize, LineError> {
     split_line_at_separator_parenthesis(content, separator, Some(1))
         .map(|parts| parts[0].as_bytes().len())
 }
@@ -432,9 +430,9 @@ fn validate_items<T>(items: &[(Link, T)], content: &str) -> Result<(), Condition
         .unwrap_or(Ok(()))
 }
 
-/// Create a `LineParsingError` with given line from a `BadChoice`.
-fn get_line_error_from_bad_choice(line: &str, err: ConditionError) -> LineParsingError {
-    LineParsingError::from_kind(line, err.into())
+/// Create a `LineError` with given line from a `BadChoice`.
+fn get_line_error_from_bad_choice(line: &str, err: ConditionError) -> LineError {
+    LineError::from_kind(line, err.into())
 }
 
 /// Create a `ConditionError` error for unmatched parenthesis in condition.

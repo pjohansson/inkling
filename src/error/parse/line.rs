@@ -7,11 +7,11 @@ use crate::{
     error::parse::{ConditionError, ExpressionError},
 };
 
-impl Error for LineParsingError {}
+impl Error for LineError {}
 
 #[derive(Clone, Debug)]
 /// Error from parsing individual lines in a story.
-pub struct LineParsingError {
+pub struct LineError {
     /// Line that caused the error.
     pub line: String,
     /// Kind of error.
@@ -51,10 +51,10 @@ pub enum LineErrorKind {
     UnmatchedBrackets,
 }
 
-impl LineParsingError {
+impl LineError {
     /// Constructor of error from some string and kind.
     pub fn from_kind<T: Into<String>>(line: T, kind: LineErrorKind) -> Self {
-        LineParsingError {
+        LineError {
             line: line.into(),
             kind,
         }
@@ -67,7 +67,7 @@ impl_from_error![
     [BadExpression, ExpressionError]
 ];
 
-impl fmt::Display for LineParsingError {
+impl fmt::Display for LineError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         use LineErrorKind::*;
 

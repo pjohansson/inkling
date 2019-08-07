@@ -2,7 +2,7 @@
 
 use crate::{
     consts::GATHER_MARKER,
-    error::LineParsingError,
+    error::LineError,
     line::{
         parse::{parse_internal_line, parse_markers_and_text, split_at_divert_marker},
         ParsedLineKind,
@@ -14,7 +14,7 @@ use crate::{
 pub fn parse_gather(
     content: &str,
     meta_data: &MetaData,
-) -> Result<Option<ParsedLineKind>, LineParsingError> {
+) -> Result<Option<ParsedLineKind>, LineError> {
     let (line_without_divert, line_from_divert) = split_at_divert_marker(content);
 
     parse_markers_and_text(line_without_divert, GATHER_MARKER)

@@ -10,7 +10,7 @@ use crate::{
         CONST_MARKER, EXTERNAL_FUNCTION_MARKER, INCLUDE_MARKER, KNOT_MARKER, LINE_COMMENT_MARKER,
         ROOT_KNOT_NAME, STITCH_MARKER, TAG_MARKER, TODO_COMMENT_MARKER, VARIABLE_MARKER,
     },
-    error::{KnotError, KnotNameError, LineErrorKind, LineParsingError, ParseError},
+    error::{KnotError, KnotNameError, LineError, LineErrorKind, ParseError},
     knot::{parse_stitch_from_lines, read_knot_name, read_stitch_name, Knot, KnotSet, Stitch},
     line::{parse_variable, Variable},
     story::VariableSet,
@@ -316,14 +316,12 @@ fn parse_global_tags(lines: &[(&str, MetaData)]) -> Vec<String> {
 /// Parse global variables from a set of metadata lines in the prelude.
 fn parse_global_variables(
     lines: &[(&str, MetaData)],
-) -> Result<HashMap<String, Variable>, LineParsingError> {
+) -> Result<HashMap<String, Variable>, LineError> {
     lines
         .iter()
         .map(|(line, _)| line.trim())
         .filter(|line| line.starts_with(VARIABLE_MARKER))
-        .map(|line| {
-            parse_variable_with_name(line).map_err(|err| LineParsingError::from_kind(line, err))
-        })
+        .map(|line| parse_variable_with_name(line).map_err(|err| LineError::from_kind(line, err)))
         .collect()
 }
 
