@@ -2,11 +2,11 @@
 
 use std::{error::Error, fmt};
 
-use crate::error::parse::LineErrorKind;
+use crate::error::parse::VariableError;
 
 impl Error for ConditionError {}
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 /// Error from parsing `Condition` objects.
 pub struct ConditionError {
     /// Content of string that caused the error.
@@ -15,7 +15,7 @@ pub struct ConditionError {
     kind: ConditionErrorKind,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 /// Variant of `Condition` parsing error.
 pub enum ConditionErrorKind {
     /// The first item in a condition was not `Blank` or any other item was not `And` or `Or`.
@@ -30,7 +30,7 @@ pub enum ConditionErrorKind {
     /// Generic error.
     CouldNotParse,
     /// Could not parse a variable.
-    CouldNotParseVariable { err: Box<LineErrorKind> },
+    CouldNotParseVariable(Box<VariableError>),
     /// The line had multiple else statements.
     MultipleElseStatements,
     /// There was no condition in the line.
@@ -43,7 +43,7 @@ impl fmt::Display for ConditionError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         use ConditionErrorKind::*;
 
-        match self.kind {
+        match &self.kind {
             BadLink => write!(
                 f,
                 "internal error: did not correctly partition conditions into parts separated \
@@ -51,7 +51,9 @@ impl fmt::Display for ConditionError {
             ),
             BadValue => write!(f, "could not parse a number from the condition value"),
             CouldNotParse => write!(f, "incorrectly formatted condition"),
-            CouldNotParseVariable { .. } => write!(f, "could not parse variable in condition"),
+            CouldNotParseVariable(err) => {
+                write!(f, "could not parse variable in condition: {}", err)
+            }
             MultipleElseStatements => write!(f, "found multiple else statements in condition"),
             NoCondition => write!(f, "condition string was empty"),
             UnmatchedParenthesis => write!(f, "contained unmatched parenthesis"),

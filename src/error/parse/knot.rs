@@ -6,7 +6,7 @@ use crate::error::parse::LineError;
 
 impl Error for KnotError {}
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 /// Error from parsing a `Knot` or `Stitch` in a story.
 pub enum KnotError {
     /// Knot has no content.

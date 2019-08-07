@@ -4,13 +4,13 @@ use std::{error::Error, fmt};
 
 use crate::{
     consts::{CHOICE_MARKER, STICKY_CHOICE_MARKER},
-    error::parse::{ConditionError, ExpressionError},
+    error::parse::{ConditionError, ExpressionError, VariableError},
     utils::MetaData,
 };
 
 impl Error for LineError {}
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 /// Error from parsing individual lines in a story.
 pub struct LineError {
     /// Line that caused the error.
@@ -21,7 +21,7 @@ pub struct LineError {
     pub meta_data: MetaData,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 /// Variants of line errors.
 pub enum LineErrorKind {
     /// Condition was invalid.
@@ -39,11 +39,7 @@ pub enum LineErrorKind {
     /// Found an address with invalid characters.
     InvalidAddress { address: String },
     /// Could not parse a variable.
-    InvalidVariable { content: String },
-    /// Divert variable contained an invalid address.
-    InvalidVariableDivert { address: String, content: String },
-    /// Number variable contained a number that could not be parsed.
-    InvalidVariableNumber { content: String },
+    InvalidVariable(VariableError),
     /// No variable name after a VAR statement.
     NoVariableName,
     /// A choice has both non-sticky and sticky markers.
@@ -57,7 +53,8 @@ pub enum LineErrorKind {
 impl_from_error![
     LineErrorKind;
     [ConditionError, ConditionError],
-    [BadExpression, ExpressionError]
+    [BadExpression, ExpressionError],
+    [InvalidVariable, VariableError]
 ];
 
 impl fmt::Display for LineError {
@@ -86,17 +83,10 @@ impl fmt::Display for LineError {
                  contains invalid characters",
                 address
             ),
-            InvalidVariable { content } => {
-                write!(f, "Could not parse a variable from '{}'", content)
-            }
-            InvalidVariableDivert { address, content } => write!(
-                f,
-                "Invalid divert address '{}' when parsing variable from '{}'",
-                address, content
-            ),
-            InvalidVariableNumber { content } => {
-                write!(f, "Invalid number '{}' when parsing variable", content)
-            }
+            InvalidVariable { .. } => unimplemented!(),
+            // InvalidVariable { content } => {
+            //     write!(f, "Could not parse a variable from '{}'", content)
+            // }
             NoVariableName => write!(f, "No variable name for variable assignment"),
             StickyAndNonSticky => write!(
                 f,

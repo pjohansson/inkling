@@ -387,7 +387,7 @@ fn parse_condition_variable(content: &str) -> Result<Variable, ConditionError> {
     parse_variable(content).map_err(|err| {
         ConditionError::from_kind(
             content,
-            ConditionErrorKind::CouldNotParseVariable { err: Box::new(err) },
+            ConditionErrorKind::CouldNotParseVariable(Box::new(err)),
         )
     })
 }

@@ -336,9 +336,7 @@ fn parse_global_variables(
 /// Variable lines are on the form `VAR variable_name = initial_value`.
 fn parse_variable_with_name(line: &str) -> Result<(String, Variable), LineErrorKind> {
     line.find('=')
-        .ok_or(LineErrorKind::InvalidVariable {
-            content: line.to_string(),
-        })
+        .ok_or_else(|| unimplemented!())
         .and_then(|i| {
             let start = VARIABLE_MARKER.len();
             let variable_name = line.get(start..i).unwrap().trim().to_string();
