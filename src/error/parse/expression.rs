@@ -1,4 +1,4 @@
-//! Errors from parsing stories, knots, stitches and lines.
+//! Errors from parsing expressions in lines.
 
 use std::{error::Error, fmt};
 

@@ -1,4 +1,4 @@
-//! Errors from parsing stories, knots, stitches and lines.
+//! Errors from parsing knots and stitches.
 
 use std::{error::Error, fmt};
 
@@ -6,15 +6,20 @@ use crate::error::parse::LineParsingError;
 
 impl Error for KnotError {}
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 /// Error from parsing a `Knot` or `Stitch` in a story.
 pub enum KnotError {
     /// Knot has no content.
-    Empty,
-    /// Stitch has no content.
+    EmptyKnot,
+    /// Stitch in knot has no content.
     EmptyStitch,
-    /// Could not parse a name for the knot. The offending string is encapsulated.
-    InvalidName { line: String, kind: KnotNameError },
+    /// Could not parse a name for knot or stitch.
+    InvalidName {
+        /// Line that was tried to parse into a name.
+        line: String,
+        /// Kind of error.
+        kind: KnotNameError,
+    },
     /// Could not parse a line inside a not.
     LineError(LineParsingError),
 }
@@ -41,7 +46,6 @@ impl_from_error![
 
 impl fmt::Display for KnotError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        use KnotError::Empty as EmptyKnot;
         use KnotError::*;
         use KnotNameError::Empty as EmptyKnotName;
         use KnotNameError::*;
