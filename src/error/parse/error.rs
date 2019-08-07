@@ -2,7 +2,7 @@
 //!
 use std::{error::Error, fmt};
 
-use crate::error::parse::{InvalidAddressError, KnotError, LineError, PreludeError};
+use crate::error::parse::{InvalidAddressError, KnotErrorKind, LineError, PreludeError};
 
 impl Error for ParseError {}
 
@@ -12,7 +12,7 @@ pub enum ParseError {
     /// Attempted to construct a story from an empty file/string.
     Empty,
     /// Could not construct a `Knot` or `Stitch` as the content was read.
-    KnotError(KnotError),
+    KnotErrorKind(KnotErrorKind),
     /// Could not parse a individual line outside of knots.
     LineError(LineError),
     /// An invalid address was encountered when parsing the story.
@@ -28,7 +28,7 @@ impl fmt::Display for ParseError {
         match self {
             Empty => write!(f, "Tried to read from an empty file or string"),
             InvalidAddress(err) => write!(f, "{}", err),
-            KnotError(err) => write!(f, "{}", err),
+            KnotErrorKind(err) => write!(f, "{}", err),
             LineError(err) => write!(f, "{}", err),
             PreludeError(err) => write!(f, "{}", err),
         }
@@ -38,7 +38,7 @@ impl fmt::Display for ParseError {
 impl_from_error![
     ParseError;
     [InvalidAddress, InvalidAddressError],
-    [KnotError, KnotError],
+    [KnotErrorKind, KnotErrorKind],
     [LineError, LineError],
     [PreludeError, PreludeError]
 ];

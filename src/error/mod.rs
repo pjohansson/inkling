@@ -10,6 +10,6 @@ pub use parse::ParseError;
 
 pub(crate) use error::{InternalError, ProcessError, ProcessErrorKind, StackError};
 pub(crate) use parse::{
-    ConditionError, ConditionErrorKind, InvalidAddressError, KnotError, KnotNameError, LineError,
-    LineErrorKind,
+    ConditionError, ConditionErrorKind, InvalidAddressError, KnotErrorKind, KnotNameError,
+    LineError, LineErrorKind,
 };

@@ -4,11 +4,11 @@ use std::{error::Error, fmt};
 
 use crate::error::parse::LineError;
 
-impl Error for KnotError {}
+impl Error for KnotErrorKind {}
 
 #[derive(Debug)]
 /// Error from parsing a `Knot` or `Stitch` in a story.
-pub enum KnotError {
+pub enum KnotErrorKind {
     /// Knot has no content.
     EmptyKnot,
     /// Stitch in knot has no content.
@@ -40,13 +40,13 @@ pub enum KnotNameError {
 }
 
 impl_from_error![
-    KnotError;
+    KnotErrorKind;
     [LineError, LineError]
 ];
 
-impl fmt::Display for KnotError {
+impl fmt::Display for KnotErrorKind {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        use KnotError::*;
+        use KnotErrorKind::*;
         use KnotNameError::Empty as EmptyKnotName;
         use KnotNameError::*;
 
