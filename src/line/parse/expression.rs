@@ -146,7 +146,7 @@ fn parse_operand(content: &str) -> Result<Operand, ExpressionErrorKind> {
     } else {
         parse_variable(content)
             .map(|variable| Operand::Variable(variable))
-            .map_err(|err| ExpressionErrorKind::InvalidVariable(Box::new(err)))
+            .map_err(|err| ExpressionErrorKind::InvalidVariable(err))
     }
 }
 

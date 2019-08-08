@@ -30,7 +30,7 @@ pub enum ConditionErrorKind {
     /// Generic error.
     CouldNotParse,
     /// Could not parse a variable.
-    CouldNotParseVariable(Box<VariableError>),
+    CouldNotParseVariable(VariableError),
     /// The line had multiple else statements.
     MultipleElseStatements,
     /// There was no condition in the line.

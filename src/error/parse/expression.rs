@@ -22,7 +22,7 @@ pub enum ExpressionErrorKind {
     /// The expression `head` was preceeded with an invalid operator ('*', '/', '%').
     InvalidHead { head: String },
     /// Could not parse variable inside expression.
-    InvalidVariable(Box<VariableError>),
+    InvalidVariable(VariableError),
     /// Encountered a string in the tail with no leading mathematical operator.
     NoOperator { content: String },
     /// Expression had unmatched parenthesis brackets.
