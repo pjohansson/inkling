@@ -28,12 +28,12 @@ pub fn read_story_content_from_string(
 ) -> Result<(KnotSet, VariableSet, Vec<String>), ParseError> {
     let all_lines = content
         .lines()
-        .enumerate()
-        .map(|(i, line)| {
+        .zip(0..)
+        .map(|(line, line_index)| {
             (
                 line,
                 MetaData {
-                    line_index: i as u32,
+                    line_index,
                 },
             )
         })
