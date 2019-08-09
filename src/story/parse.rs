@@ -12,7 +12,7 @@ use crate::{
     },
     error::{
         parse::{KnotError, ParseError, PreludeError, PreludeErrorKind},
-        KnotErrorKind, KnotNameError, ReadErrorKind,
+        KnotErrorKind, KnotNameError, ReadError,
     },
     knot::{parse_stitch_from_lines, read_knot_name, read_stitch_name, Knot, KnotSet, Stitch},
     line::{parse_variable, Variable},
@@ -25,7 +25,7 @@ use std::collections::HashMap;
 /// Read an Ink story from a string and return knots along with the metadata.
 pub fn read_story_content_from_string(
     content: &str,
-) -> Result<(KnotSet, VariableSet, Vec<String>), ReadErrorKind> {
+) -> Result<(KnotSet, VariableSet, Vec<String>), ReadError> {
     let all_lines = content
         .lines()
         .zip(0..)
@@ -45,7 +45,7 @@ pub fn read_story_content_from_string(
         .or(knot_lines.first())
         .or(prelude_lines.last())
         .map(|(_, meta_data)| meta_data.clone())
-        .ok_or(ReadErrorKind::Empty)?;
+        .ok_or(ReadError::Empty)?;
 
     let root_knot = parse_root_knot_from_lines(root_lines, root_meta_data)
         .map_err(|error| knot_errors.push(error));
@@ -1006,14 +1006,14 @@ VAR = 0
 ";
 
         match read_story_content_from_string(content) {
-            Err(ReadErrorKind::ParseError(error)) => {
+            Err(ReadError::ParseError(error)) => {
                 assert_eq!(error.prelude_errors.len(), 1);
                 assert_eq!(error.knot_errors.len(), 2);
 
                 assert_eq!(error.knot_errors[0].line_errors.len(), 3);
                 assert_eq!(error.knot_errors[1].line_errors.len(), 1);
             }
-            other => panic!("expected `ReadErrorKind::ParseError` but got {:?}", other),
+            other => panic!("expected `ReadError::ParseError` but got {:?}", other),
         }
     }
 }

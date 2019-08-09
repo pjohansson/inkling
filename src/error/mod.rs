@@ -7,7 +7,7 @@ pub(self) mod utils;
 
 pub(crate) use error::IncorrectNodeStackError;
 pub use error::{InklingError, VariableError, VariableErrorKind};
-pub use parse::ReadErrorKind;
+pub use parse::ReadError;
 
 pub(crate) use error::{InternalError, ProcessError, ProcessErrorKind, StackError};
 pub(crate) use parse::{

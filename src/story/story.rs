@@ -2,7 +2,7 @@
 
 use crate::{
     consts::ROOT_KNOT_NAME,
-    error::{InklingError, ReadErrorKind, StackError},
+    error::{InklingError, ReadError, StackError},
     follow::{ChoiceInfo, EncounteredEvent, FollowData, LineDataBuffer},
     knot::{
         get_empty_knot_counts, get_mut_stitch, get_num_visited, validate_addresses_in_knots,
@@ -699,7 +699,7 @@ impl Story {
 ///
 /// let story: Story = read_story_from_string(content).unwrap();
 /// ```
-pub fn read_story_from_string(string: &str) -> Result<Story, ReadErrorKind> {
+pub fn read_story_from_string(string: &str) -> Result<Story, ReadError> {
     let (mut knots, variables, tags) = read_story_content_from_string(string)?;
 
     let data = FollowData {
