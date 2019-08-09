@@ -1,4 +1,4 @@
-use inkling::error::ParseError;
+use inkling::error::ReadErrorKind;
 use inkling::*;
 
 #[test]
@@ -14,7 +14,7 @@ fn knot_names_in_diverts_are_validated() {
 ";
 
     match read_story_from_string(content) {
-        Err(ParseError::InvalidAddress(..)) => (),
+        Err(ReadErrorKind::InvalidAddress(..)) => (),
         _ => panic!(),
     }
 }
@@ -32,7 +32,7 @@ fn stitch_names_in_diverts_are_validated() {
 ";
 
     match read_story_from_string(content) {
-        Err(ParseError::InvalidAddress(..)) => (),
+        Err(ReadErrorKind::InvalidAddress(..)) => (),
         _ => panic!(),
     }
 }
@@ -51,7 +51,7 @@ Welcome to Duck Burg!
 ";
 
     match read_story_from_string(content) {
-        Err(ParseError::InvalidAddress(..)) => (),
+        Err(ReadErrorKind::InvalidAddress(..)) => (),
         _ => panic!(),
     }
 }
@@ -70,7 +70,7 @@ Welcome to Duck Burg!
 ";
 
     match read_story_from_string(content) {
-        Err(ParseError::InvalidAddress(..)) => (),
+        Err(ReadErrorKind::InvalidAddress(..)) => (),
         _ => panic!(),
     }
 }
@@ -88,7 +88,7 @@ Welcome to Duck Burg! {We live here.|We headed to Uncle Scrooge's money bin. -> 
 ";
 
     match read_story_from_string(content) {
-        Err(ParseError::InvalidAddress(..)) => (),
+        Err(ReadErrorKind::InvalidAddress(..)) => (),
         _ => panic!(),
     }
 }
@@ -107,7 +107,7 @@ fn diverts_in_nested_branches_are_validated() {
 ";
 
     match read_story_from_string(content) {
-        Err(ParseError::InvalidAddress(..)) => (),
+        Err(ReadErrorKind::InvalidAddress(..)) => (),
         _ => panic!(),
     }
 }
@@ -126,7 +126,7 @@ fn condition_addresses_are_validated() {
 ";
 
     match read_story_from_string(content) {
-        Err(ParseError::InvalidAddress(..)) => (),
+        Err(ReadErrorKind::InvalidAddress(..)) => (),
         _ => panic!(),
     }
 }

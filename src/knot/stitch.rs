@@ -109,62 +109,72 @@ pub fn parse_stitch_from_lines(
     knot: &str,
     stitch: &str,
     meta_data: MetaData,
-) -> Result<Stitch, KnotErrorKind> {
+) -> Result<Stitch, Vec<KnotErrorKind>> {
     if lines.is_empty() {
-        return Err(KnotErrorKind::EmptyStitch);
+        return Err(vec![KnotErrorKind::EmptyStitch {
+            name: Some(stitch.to_string()),
+            meta_data: meta_data.clone(),
+        }]);
     }
 
-    let parsed_lines = lines
+    let mut parsed_lines = Vec::new();
+    let mut line_errors = Vec::new();
+
+    for result in lines
         .into_iter()
         .map(|(line, meta_data)| parse_line(line, meta_data))
-        .collect::<Result<Vec<_>, _>>()?;
+    {
+        match result {
+            Ok(parsed_line) => parsed_lines.push(parsed_line),
+            Err(line_error) => line_errors.push(KnotErrorKind::from(line_error)),
+        }
+    }
 
-    let root = parse_root_node(&parsed_lines, knot, stitch);
+    if line_errors.is_empty() {
+        let root = parse_root_node(&parsed_lines, knot, stitch);
 
-    Ok(Stitch {
-        root,
-        stack: vec![0],
-        meta_data,
-    })
+        Ok(Stitch {
+            root,
+            stack: vec![0],
+            meta_data,
+        })
+    } else {
+        Err(line_errors)
+    }
 }
 
 /// Read a knot name from a non-parsed string which contains text markers for a knot.
+///
 /// The name is validated before returning.
-pub fn read_knot_name(line: &str) -> Result<String, KnotErrorKind> {
+pub fn read_knot_name(line: &str) -> Result<String, KnotNameError> {
     if line.trim_start().starts_with(KNOT_MARKER) {
         read_name_with_marker(line)
     } else {
-        Err(KnotErrorKind::InvalidName {
-            line: line.to_string(),
-            kind: KnotNameError::NoNamePresent,
-        }
-        .into())
+        Err(KnotNameError::Empty)
     }
 }
 
 /// Read a stitch name from a non-parsed string which contains text markers for a stitch.
+///
 /// The name is validated before returning.
-pub fn read_stitch_name(line: &str) -> Result<String, KnotErrorKind> {
+pub fn read_stitch_name(line: &str) -> Result<String, KnotNameError> {
     if line.trim_start().starts_with(STITCH_MARKER) && !line.trim_start().starts_with(KNOT_MARKER) {
         read_name_with_marker(line)
     } else {
-        Err(KnotErrorKind::InvalidName {
-            line: line.to_string(),
-            kind: KnotNameError::NoNamePresent,
-        }
-        .into())
+        Err(KnotNameError::Empty)
     }
 }
 
-/// Read a name beginning with the given knot or stitch marker. The name is validated
-/// before returning.
+/// Read a name beginning with the given knot or stitch marker.
+///
+/// The name is validated before returning.
 ///
 /// # Notes
 ///  *  Uses the [stitch marker][crate::consts::STITCH_MARKER] to trim extraneous markers
 ///     from the line before validating the name. Since the stitch marker is a subset
 ///     of the knot marker this will trim both types, but any other marker will not be
 ///     trimmed from the line.
-fn read_name_with_marker(line: &str) -> Result<String, KnotErrorKind> {
+fn read_name_with_marker(line: &str) -> Result<String, KnotNameError> {
     let trimmed_name = line
         .trim_start_matches(STITCH_MARKER)
         .trim_end_matches(STITCH_MARKER)
@@ -174,28 +184,16 @@ fn read_name_with_marker(line: &str) -> Result<String, KnotErrorKind> {
         .chars()
         .find(|&c| !(c.is_alphanumeric() || c == '_'))
     {
-        let kind = if c.is_whitespace() {
-            KnotNameError::ContainsWhitespace
+        if c.is_whitespace() {
+            Err(KnotNameError::ContainsWhitespace)
         } else {
-            KnotNameError::ContainsInvalidCharacter(c)
-        };
-
-        Err(KnotErrorKind::InvalidName {
-            line: line.to_string(),
-            kind,
+            Err(KnotNameError::ContainsInvalidCharacter(c))
         }
-        .into())
     } else if trimmed_name.is_empty() {
-        Err(KnotErrorKind::InvalidName {
-            kind: KnotNameError::Empty,
-            line: line.to_string(),
-        })
+        Err(KnotNameError::Empty)
     } else if RESERVED_KEYWORDS.contains(&trimmed_name.to_uppercase().as_str()) {
-        Err(KnotErrorKind::InvalidName {
-            kind: KnotNameError::ReservedKeyword {
-                keyword: trimmed_name.to_string(),
-            },
-            line: line.to_string(),
+        Err(KnotNameError::ReservedKeyword {
+            keyword: trimmed_name.to_string(),
         })
     } else {
         Ok(trimmed_name.to_string())
@@ -207,7 +205,7 @@ mod tests {
     use super::*;
 
     use crate::{
-        error::{LineError, ParseError},
+        error::LineError,
         knot::{get_num_visited, Address},
         line::{InternalLine, ParsedLineKind},
     };
@@ -215,10 +213,10 @@ mod tests {
     use std::str::FromStr;
 
     impl FromStr for Stitch {
-        type Err = ParseError;
+        type Err = ();
 
         fn from_str(content: &str) -> Result<Self, Self::Err> {
-            let lines = parse_lines(content)?;
+            let lines = parse_lines(content).unwrap();
             let root = parse_root_node(&lines, "", "");
 
             Ok(Stitch {
@@ -606,10 +604,7 @@ Line 6
         assert!(read_knot_name("== Knot name ==").is_err());
 
         match read_knot_name("== knot name") {
-            Err(KnotErrorKind::InvalidName {
-                kind: KnotNameError::ContainsWhitespace,
-                ..
-            }) => (),
+            Err(KnotNameError::ContainsWhitespace) => (),
             Err(err) => panic!(
                 "Expected a `KnotNameError::ContainsWhitespace` error, got {:?}",
                 err
@@ -625,10 +620,7 @@ Line 6
         assert!(read_knot_name("== a").is_ok());
 
         match read_knot_name("== ") {
-            Err(KnotErrorKind::InvalidName {
-                kind: KnotNameError::Empty,
-                ..
-            }) => (),
+            Err(KnotNameError::Empty) => (),
             err => panic!(
                 "expected `KnotNameError::Empty` as kind error, but got {:?}",
                 err
@@ -652,14 +644,8 @@ Line 6
         assert!(read_knot_name("== knot$name").is_err());
 
         match read_knot_name("== 京knot.name") {
-            Err(KnotErrorKind::InvalidName {
-                kind: KnotNameError::ContainsInvalidCharacter('.'),
-                ..
-            }) => (),
-            Err(KnotErrorKind::InvalidName {
-                kind: KnotNameError::ContainsInvalidCharacter(c),
-                ..
-            }) => panic!(
+            Err(KnotNameError::ContainsInvalidCharacter('.')) => (),
+            Err(KnotNameError::ContainsInvalidCharacter(c)) => panic!(
                 "Expected a `KnotNameError::ContainsInvalidCharacter` error \
                  with '.' as contained character, but got '{}'",
                 c

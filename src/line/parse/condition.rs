@@ -385,10 +385,7 @@ fn parse_story_condition(line: &str) -> Result<(StoryCondition, bool), Condition
 /// Parse a variable from a string and map any error to `ConditionError`
 fn parse_condition_variable(content: &str) -> Result<Variable, ConditionError> {
     parse_variable(content).map_err(|err| {
-        ConditionError::from_kind(
-            content,
-            ConditionErrorKind::CouldNotParseVariable(err),
-        )
+        ConditionError::from_kind(content, ConditionErrorKind::CouldNotParseVariable(err))
     })
 }
 

@@ -2,9 +2,15 @@
 
 use std::{error::Error, fmt};
 
-use crate::error::parse::LineError;
+use crate::{error::parse::LineError, utils::MetaData};
 
 impl Error for KnotErrorKind {}
+
+#[derive(Debug)]
+pub struct KnotError {
+    pub knot_meta_data: MetaData,
+    pub line_errors: Vec<KnotErrorKind>,
+}
 
 #[derive(Debug)]
 /// Error from parsing a `Knot` or `Stitch` in a story.
@@ -12,13 +18,20 @@ pub enum KnotErrorKind {
     /// Knot has no content.
     EmptyKnot,
     /// Stitch in knot has no content.
-    EmptyStitch,
+    EmptyStitch {
+        /// Name of stitch, if it is named.
+        name: Option<String>,
+        /// Information about the origin of the line that caused this error.
+        meta_data: MetaData,
+    },
     /// Could not parse a name for knot or stitch.
     InvalidName {
-        /// Line that was tried to parse into a name.
+        /// String that could not be parsed into a name.
         line: String,
         /// Kind of error.
         kind: KnotNameError,
+        /// Information about the origin of the line that caused this error.
+        meta_data: MetaData,
     },
     /// Could not parse a line inside a not.
     LineError(LineError),
@@ -33,8 +46,6 @@ pub enum KnotNameError {
     ContainsWhitespace,
     /// No name existed to read for the knot.
     Empty,
-    /// No name existed to read for the knot.
-    NoNamePresent,
     /// Name was a reserved keyword.
     ReservedKeyword { keyword: String },
 }
@@ -47,15 +58,25 @@ impl_from_error![
 impl fmt::Display for KnotErrorKind {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         use KnotErrorKind::*;
-        use KnotNameError::Empty as EmptyKnotName;
         use KnotNameError::*;
 
         write!(f, "Could not parse a knot: ")?;
 
         match self {
             EmptyKnot => write!(f, "knot has no content"),
-            EmptyStitch => write!(f, "stitch has not content"),
-            InvalidName { line, kind } => {
+            EmptyStitch {
+                name: Some(name),
+                meta_data,
+            } => write!(f, "named stitch '{}' has no content", name),
+            EmptyStitch {
+                name: None,
+                meta_data,
+            } => write!(f, "root stitch has no content"),
+            InvalidName {
+                line,
+                kind,
+                meta_data,
+            } => {
                 write!(f, "could not read knot name: ")?;
 
                 match kind {
@@ -74,16 +95,13 @@ impl fmt::Display for KnotErrorKind {
                             c
                         )?;
                     }
-                    EmptyKnotName => {
-                        write!(f, "knot marker without a knot name was found")?;
-                    }
-                    NoNamePresent => {
-                        write!(f, "knot or stitch has no name where one is expected")?;
+                    Empty => {
+                        write!(f, "no name after knot or stitch marker")?;
                     }
                     ReservedKeyword { ref keyword } => {
                         write!(
                             f,
-                            "Knot or stitch name may not be reserved keyword '{}'",
+                            "knot or stitch name may not be reserved keyword '{}'",
                             keyword.to_lowercase()
                         )?;
                     }

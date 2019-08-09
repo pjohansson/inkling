@@ -83,7 +83,7 @@ pub enum InklingError {
 /// Either way, all those sorts of errors are encapsulated here. They should never
 /// be caused by invalid user input or Ink files, those errors should be captured
 /// by either the parent [`InklingError`][crate::error::InklingError]
-/// or parsing [`ParseError`][crate::error::ParseError] error structures.
+/// or parsing [`ReadErrorKind`][crate::error::ReadErrorKind] error structures.
 pub enum InternalError {
     /// The internal stack of knots is inconsistent or has not been set properly.
     BadKnotStack(StackError),

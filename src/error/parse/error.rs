@@ -2,43 +2,44 @@
 //!
 use std::{error::Error, fmt};
 
-use crate::error::parse::{InvalidAddressError, KnotErrorKind, LineError, PreludeError};
+use crate::error::parse::{InvalidAddressError, KnotError, PreludeError};
 
-impl Error for ParseError {}
+impl Error for ReadErrorKind {}
 
 #[derive(Debug)]
 /// Error from parsing text to construct a story.
-pub enum ParseError {
+pub enum ReadErrorKind {
     /// Attempted to construct a story from an empty file/string.
     Empty,
-    /// Could not construct a `Knot` or `Stitch` as the content was read.
-    KnotErrorKind(KnotErrorKind),
-    /// Could not parse a individual line outside of knots.
-    LineError(LineError),
     /// An invalid address was encountered when parsing the story.
     InvalidAddress(InvalidAddressError),
     /// Could not parse a line in the prelude.
     PreludeError(PreludeError),
+    ParseError(ParseError),
 }
 
-impl fmt::Display for ParseError {
+impl fmt::Display for ReadErrorKind {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        use ParseError::*;
+        use ReadErrorKind::*;
 
         match self {
             Empty => write!(f, "Tried to read from an empty file or string"),
             InvalidAddress(err) => write!(f, "{}", err),
-            KnotErrorKind(err) => write!(f, "{}", err),
-            LineError(err) => write!(f, "{}", err),
             PreludeError(err) => write!(f, "{}", err),
+            ParseError(err) => unimplemented!(),
         }
     }
 }
 
 impl_from_error![
-    ParseError;
+    ReadErrorKind;
     [InvalidAddress, InvalidAddressError],
-    [KnotErrorKind, KnotErrorKind],
-    [LineError, LineError],
-    [PreludeError, PreludeError]
+    [PreludeError, PreludeError],
+    [ParseError, ParseError]
 ];
+
+#[derive(Debug)]
+pub struct ParseError {
+    pub knot_errors: Vec<KnotError>,
+    pub prelude_errors: Vec<PreludeError>,
+}
