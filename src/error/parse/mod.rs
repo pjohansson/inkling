@@ -7,9 +7,10 @@ pub mod knot;
 pub mod line;
 mod parse;
 pub mod prelude;
-pub mod validate;
+pub mod address;
 pub mod variable;
 
+pub(crate) use address::InvalidAddressError;
 pub(crate) use condition::{ConditionError, ConditionErrorKind};
 pub use error::{print_read_error, ReadError};
 pub(crate) use expression::{ExpressionError, ExpressionErrorKind};
@@ -18,5 +19,4 @@ pub(crate) use line::{LineError, LineErrorKind};
 pub(crate) use parse::print_parse_error;
 pub use parse::ParseError;
 pub(crate) use prelude::{PreludeError, PreludeErrorKind};
-pub(crate) use validate::InvalidAddressError;
 pub(crate) use variable::{VariableError, VariableErrorKind};
