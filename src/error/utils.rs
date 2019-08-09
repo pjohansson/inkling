@@ -21,6 +21,45 @@ pub(crate) fn write_line_information<W: fmt::Write>(
     write!(buffer, "(line {}) ", meta_data.line_index + 1)
 }
 
+/// Wrapper to implement From for variants when the variant is simply encapsulated
+/// in the enum.
+///
+/// # Example
+/// Running
+/// ```
+/// impl_from_error[
+///     MyError,
+///     [Variant, ErrorData]
+/// ];
+/// ```
+/// is identical to running
+/// ```
+/// impl From<ErrorData> for MyError {
+///     from(err: ErrorData) -> Self {
+///         Self::Variant(err)
+///     }
+/// }
+/// ```
+/// The macro can also implement several variants at once:
+/// ```
+/// impl_from_error[
+///     MyError,
+///     [Variant1, ErrorData1],
+///     [Variant2, ErrorData2]
+/// ];
+/// ```
+macro_rules! impl_from_error {
+    ($for_type:ident; $([$variant:ident, $from_type:ident]),+) => {
+        $(
+            impl From<$from_type> for $for_type {
+                fn from(err: $from_type) -> Self {
+                    $for_type::$variant(err)
+                }
+            }
+        )*
+    }
+}
+
 #[cfg(test)]
 impl From<usize> for MetaData {
     fn from(line_index: usize) -> Self {
