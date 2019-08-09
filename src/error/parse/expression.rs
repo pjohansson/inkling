@@ -4,8 +4,6 @@ use std::{error::Error, fmt};
 
 use crate::error::parse::VariableError;
 
-impl Error for ExpressionError {}
-
 #[derive(Debug)]
 /// Error from parsing `Expression` objects from strings.
 pub struct ExpressionError {
@@ -16,6 +14,7 @@ pub struct ExpressionError {
 }
 
 #[derive(Debug)]
+/// Variant of `Expression` parsing error.
 pub enum ExpressionErrorKind {
     /// Empty expression string.
     Empty,
@@ -29,33 +28,39 @@ pub enum ExpressionErrorKind {
     UnmatchedParenthesis,
 }
 
+impl Error for ExpressionError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        Some(&self.kind)
+    }
+}
+
+impl Error for ExpressionErrorKind {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        match &self {
+            ExpressionErrorKind::InvalidVariable(err) => Some(err),
+            _ => None,
+        }
+    }
+}
+
 impl fmt::Display for ExpressionError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{} (expression string: '{}')", self.kind, self.content)
+    }
+}
+
+impl fmt::Display for ExpressionErrorKind {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         use ExpressionErrorKind::*;
 
-        match &self.kind {
-            Empty => write!(f, "cannot parse expression from empty string"),
-            InvalidHead { head } => write!(
-                f,
-                "cannot parse expression from string '{}': no left hand side value before '{}'",
-                self.content, head
-            ),
-            InvalidVariable(err) => write!(
-                f,
-                "cannot parse expression from string '{}': invalid variable: {}",
-                self.content, err
-            ),
-            NoOperator { content } => write!(
-                f,
-                "cannot parse expression from string '{}': no mathematical operator before \
-                 operand '{}'",
-                self.content, content
-            ),
-            UnmatchedParenthesis => write!(
-                f,
-                "cannot parse expression from string '{}': found unmatched parenthesis",
-                self.content,
-            ),
+        match &self {
+            Empty => write!(f, "empty string"),
+            InvalidHead { head } => write!(f, "no left hand side value before '{}'", head),
+            InvalidVariable(err) => write!(f, "invalid variable: {}", err),
+            NoOperator { content } => {
+                write!(f, "no mathematical operator before operand '{}'", content)
+            }
+            UnmatchedParenthesis => write!(f, "found unmatched parenthesis",),
         }
     }
 }

@@ -2,8 +2,6 @@
 
 use std::{error::Error, fmt};
 
-impl Error for VariableError {}
-
 #[derive(Debug)]
 /// Error from parsing individual lines in a story.
 pub struct VariableError {
@@ -21,23 +19,31 @@ pub enum VariableErrorKind {
     /// Divert variable contained an invalid address.
     InvalidDivert { address: String },
     /// Number variable contained a number that could not be parsed.
-    InvalidNumericValue { err: Box<dyn Error> },
+    InvalidNumericValue { err: Box<dyn Error + 'static> },
 }
+
+impl Error for VariableError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        Some(&self.kind)
+    }
+}
+
+impl Error for VariableErrorKind {}
 
 impl fmt::Display for VariableError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{} in variable string '{}'", self.kind, self.content)
+    }
+}
+
+impl fmt::Display for VariableErrorKind {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         use VariableErrorKind::*;
 
-        match &self.kind {
-            InvalidAddress => write!(f, "invalid address in variable string '{}'", self.content),
-            InvalidDivert { address } => write!(
-                f,
-                "invalid divert address '{}' in variable string '{}'",
-                address, self.content
-            ),
-            InvalidNumericValue { .. } => {
-                write!(f, "could not parse number from '{}'", self.content)
-            }
+        match &self {
+            InvalidAddress => write!(f, "invalid address"),
+            InvalidDivert { address } => write!(f, "invalid divert address '{}'", address),
+            InvalidNumericValue { .. } => write!(f, "could not parse number"),
         }
     }
 }

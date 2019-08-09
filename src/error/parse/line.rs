@@ -11,8 +11,6 @@ use crate::{
     utils::MetaData,
 };
 
-impl Error for LineError {}
-
 #[derive(Debug)]
 /// Error from parsing individual lines in a story.
 pub struct LineError {
@@ -27,10 +25,10 @@ pub struct LineError {
 #[derive(Debug)]
 /// Variants of line errors.
 pub enum LineErrorKind {
-    /// Condition was invalid.
-    ConditionError(ConditionError),
     /// Could not read a numerical expression.
     BadExpression(ExpressionError),
+    /// Condition was invalid.
+    ConditionError(ConditionError),
     /// Found a divert marker but no address.
     EmptyDivert,
     /// Found an empty expression (embraced part of line)
@@ -49,6 +47,22 @@ pub enum LineErrorKind {
     UnmatchedBrackets,
 }
 
+impl Error for LineError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        Some(&self.kind)
+    }
+}
+
+impl Error for LineErrorKind {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        match &self {
+            LineErrorKind::BadExpression(err) => Some(err),
+            LineErrorKind::ConditionError(err) => Some(err),
+            _ => None,
+        }
+    }
+}
+
 impl_from_error![
     LineErrorKind;
     [ConditionError, ConditionError],
@@ -57,15 +71,20 @@ impl_from_error![
 
 impl fmt::Display for LineError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write_line_information(f, &self.meta_data)?;
+        write!(f, "{}", self.kind)
+    }
+}
+
+impl fmt::Display for LineErrorKind {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         use LineErrorKind::*;
 
-        write_line_information(f, &self.meta_data)?;
-
-        match &self.kind {
+        match &self {
             ConditionError(err) => write!(f, "could not parse a condition: {}", err),
             BadExpression(err) => write!(f, "could not parse an expression: {}", err),
             EmptyDivert => write!(f, "encountered a divert statement with no address",),
-            EmptyExpression => write!(f, "found an empty embraced expression ({{}})"),
+            EmptyExpression => write!(f, "found an empty embraced expression ('{{}})'"),
             ExpectedEndOfLine { tail } => write!(
                 f,
                 "expected no more content after a divert statement address but found '{}'",

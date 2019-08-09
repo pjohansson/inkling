@@ -4,15 +4,13 @@ use std::{error::Error, fmt};
 
 use crate::error::parse::VariableError;
 
-impl Error for ConditionError {}
-
 #[derive(Debug)]
 /// Error from parsing `Condition` objects.
 pub struct ConditionError {
     /// Content of string that caused the error.
-    content: String,
+    pub content: String,
     /// Error variant.
-    kind: ConditionErrorKind,
+    pub kind: ConditionErrorKind,
 }
 
 #[derive(Debug)]
@@ -39,11 +37,32 @@ pub enum ConditionErrorKind {
     UnmatchedParenthesis,
 }
 
+impl Error for ConditionError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        Some(&self.kind)
+    }
+}
+
+impl Error for ConditionErrorKind {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        match &self {
+            ConditionErrorKind::CouldNotParseVariable(err) => Some(err),
+            _ => None,
+        }
+    }
+}
+
 impl fmt::Display for ConditionError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{} (condition string: '{}')", &self.kind, &self.content)
+    }
+}
+
+impl fmt::Display for ConditionErrorKind {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         use ConditionErrorKind::*;
 
-        match &self.kind {
+        match &self {
             BadLink => write!(
                 f,
                 "internal error: did not correctly partition conditions into parts separated \
@@ -57,15 +76,13 @@ impl fmt::Display for ConditionError {
             MultipleElseStatements => write!(f, "found multiple else statements in condition"),
             NoCondition => write!(f, "condition string was empty"),
             UnmatchedParenthesis => write!(f, "contained unmatched parenthesis"),
-        }?;
-
-        write!(f, " (condition string: '{}')", &self.content)
+        }
     }
 }
 
 impl ConditionError {
     /// Quickly construct an error from the kind and line.
-    pub fn from_kind<T: Into<String>>(content: T, kind: ConditionErrorKind) -> Self {
+    pub(crate) fn from_kind<T: Into<String>>(content: T, kind: ConditionErrorKind) -> Self {
         ConditionError {
             content: content.into(),
             kind,

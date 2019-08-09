@@ -2,11 +2,13 @@
 
 use std::{error::Error, fmt};
 
-use crate::{error::parse::VariableError, utils::MetaData};
-
-impl Error for PreludeError {}
+use crate::{
+    error::{parse::VariableError, utils::write_line_information},
+    utils::MetaData,
+};
 
 #[derive(Debug)]
+/// Error from parsing a line in the prelude.
 pub struct PreludeError {
     /// Line that caused the error.
     pub line: String,
@@ -17,6 +19,7 @@ pub struct PreludeError {
 }
 
 #[derive(Debug)]
+/// Variant of error from parsing the prelude.
 pub enum PreludeErrorKind {
     /// Could not parse a global variable.
     InvalidVariable(VariableError),
@@ -26,6 +29,21 @@ pub enum PreludeErrorKind {
     NoVariableName,
 }
 
+impl Error for PreludeError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        Some(&self.kind)
+    }
+}
+
+impl Error for PreludeErrorKind {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        match &self {
+            PreludeErrorKind::InvalidVariable(err) => Some(err),
+            _ => None,
+        }
+    }
+}
+
 impl_from_error![
     PreludeErrorKind;
     [InvalidVariable, VariableError]
@@ -33,11 +51,18 @@ impl_from_error![
 
 impl fmt::Display for PreludeError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write_line_information(f, &self.meta_data)?;
+        write!(f, "{}", self.kind)
+    }
+}
+
+impl fmt::Display for PreludeErrorKind {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         use PreludeErrorKind::*;
 
-        match &self.kind {
+        match &self {
             InvalidVariable(err) => write!(f, "could not parse variable: {}", err),
-            NoVariableAssignment => write!(f, "no variable assignment in line"),
+            NoVariableAssignment => write!(f, "no variable assignment ('=') in line"),
             NoVariableName => write!(f, "no variable name in line"),
         }
     }

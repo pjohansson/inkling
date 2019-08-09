@@ -1,20 +1,18 @@
 //! Errors from parsing knots and stitches.
 
-use std::{
-    error::Error,
-    fmt::{self, Write},
-};
+use std::{error::Error, fmt};
 
 use crate::{
     error::{parse::LineError, utils::write_line_information},
     utils::MetaData,
 };
 
-impl Error for KnotError {}
-
 #[derive(Debug)]
+/// Errors from parsing a single knot from lines.
 pub struct KnotError {
+    /// Information about the line at which the knot starts.
     pub knot_meta_data: MetaData,
+    /// Set of errors that were encountered while parsing the knot.
     pub line_errors: Vec<KnotErrorKind>,
 }
 
@@ -56,28 +54,39 @@ pub enum KnotNameError {
     ReservedKeyword { keyword: String },
 }
 
+impl Error for KnotError {}
+impl Error for KnotNameError {}
+
+impl Error for KnotErrorKind {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        match &self {
+            KnotErrorKind::InvalidName { kind, .. } => Some(kind),
+            KnotErrorKind::LineError(err) => Some(err),
+            _ => None,
+        }
+    }
+}
+
 impl_from_error![
     KnotErrorKind;
     [LineError, LineError]
 ];
 
 /// Get a string with all errors from parsing a `Knot`.
-pub fn print_knot_error(error: &KnotError) -> Result<String, fmt::Error> {
-    let mut buffer = String::new();
-
+pub(crate) fn write_knot_error<W: fmt::Write>(buffer: &mut W, error: &KnotError) -> fmt::Result {
     for line_error in &error.line_errors {
         match line_error {
             // All error kinds except `EmptyKnot` carries their own `MetaData` to use
             KnotErrorKind::EmptyKnot => {
-                write_line_information(&mut buffer, &error.knot_meta_data)?;
+                write_line_information(buffer, &error.knot_meta_data)?;
             }
             _ => (),
         }
 
-        write!(&mut buffer, "{}\n", line_error)?;
+        write!(buffer, "{}\n", line_error)?;
     }
 
-    Ok(buffer)
+    Ok(())
 }
 
 impl fmt::Display for KnotError {
@@ -94,7 +103,6 @@ impl fmt::Display for KnotError {
 impl fmt::Display for KnotErrorKind {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         use KnotErrorKind::*;
-        use KnotNameError::*;
 
         match self {
             EmptyKnot => write!(f, "knot has no content"),
@@ -113,44 +121,38 @@ impl fmt::Display for KnotErrorKind {
                 write!(f, "root stitch has no content",)
             }
             InvalidName {
-                line,
-                kind,
-                meta_data,
+                kind, meta_data, ..
             } => {
                 write_line_information(f, meta_data)?;
-                write!(f, "could not read knot or stitch name: ",)?;
-
-                match kind {
-                    ContainsWhitespace => {
-                        write!(
-                            f,
-                            "name contains whitespace characters: only alphanumeric \
-                             and underline characters are allowed"
-                        )?;
-                    }
-                    ContainsInvalidCharacter(c) => {
-                        write!(
-                            f,
-                            "name contains invalid character '{}': only alphanumeric \
-                             and underline characters are allowed",
-                            c
-                        )?;
-                    }
-                    Empty => {
-                        write!(f, "no name after knot or stitch marker")?;
-                    }
-                    ReservedKeyword { ref keyword } => {
-                        write!(
-                            f,
-                            "knot or stitch name may not be reserved keyword '{}'",
-                            keyword.to_lowercase()
-                        )?;
-                    }
-                }
-
-                write!(f, " (line was: {})", line)
+                write!(f, "could not read knot or stitch name: {}", kind)
             }
             LineError(err) => write!(f, "{}", err),
+        }
+    }
+}
+
+impl fmt::Display for KnotNameError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        use KnotNameError::*;
+
+        match self {
+            ContainsWhitespace => write!(
+                f,
+                "name contains whitespace characters: only alphanumeric \
+                 and underline characters are allowed"
+            ),
+            ContainsInvalidCharacter(c) => write!(
+                f,
+                "name contains invalid character '{}': only alphanumeric \
+                 and underline characters are allowed",
+                c
+            ),
+            Empty => write!(f, "no name after knot or stitch marker"),
+            ReservedKeyword { ref keyword } => write!(
+                f,
+                "knot or stitch name may not be reserved keyword '{}'",
+                keyword.to_lowercase()
+            ),
         }
     }
 }

@@ -2,7 +2,7 @@
 
 #[macro_use]
 mod error;
-pub(crate) mod parse;
+pub mod parse;
 pub(self) mod utils;
 
 pub(crate) use error::IncorrectNodeStackError;
