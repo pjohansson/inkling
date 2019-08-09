@@ -1,10 +1,19 @@
 //! Errors from parsing knots and stitches.
 
-use std::{error::Error, fmt};
+use std::{
+    error::Error,
+    fmt::{self, Write},
+};
 
-use crate::{error::parse::LineError, utils::MetaData};
+use crate::{
+    error::{
+        parse::LineError,
+        utils::{print_line_information, write_line_information},
+    },
+    utils::MetaData,
+};
 
-impl Error for KnotErrorKind {}
+impl Error for KnotError {}
 
 #[derive(Debug)]
 pub struct KnotError {
@@ -55,29 +64,69 @@ impl_from_error![
     [LineError, LineError]
 ];
 
+/// Get a string with all errors from parsing a `Knot`.
+pub fn print_knot_error(error: &KnotError) -> Result<String, fmt::Error> {
+    let mut buffer = String::new();
+
+    for line_error in &error.line_errors {
+        match line_error {
+            // All error kinds except `EmptyKnot` carries their own `MetaData` to use
+            KnotErrorKind::EmptyKnot => {
+                write_line_information(&mut buffer, &error.knot_meta_data)?;
+            }
+            _ => (),
+        }
+
+        write!(&mut buffer, "{}\n", line_error)?;
+    }
+
+    Ok(buffer)
+}
+
+impl fmt::Display for KnotError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "{} error(s) from parsing knot starting at line {}",
+            self.line_errors.len(), self.knot_meta_data.line_index + 1, 
+        )
+    }
+}
+
 impl fmt::Display for KnotErrorKind {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         use KnotErrorKind::*;
         use KnotNameError::*;
-
-        write!(f, "Could not parse a knot: ")?;
 
         match self {
             EmptyKnot => write!(f, "knot has no content"),
             EmptyStitch {
                 name: Some(name),
                 meta_data,
-            } => write!(f, "named stitch '{}' has no content", name),
+            } => write!(
+                f,
+                "{} named stitch '{}' has no content",
+                print_line_information(meta_data),
+                name
+            ),
             EmptyStitch {
                 name: None,
                 meta_data,
-            } => write!(f, "root stitch has no content"),
+            } => write!(
+                f,
+                "{} root stitch has no content",
+                print_line_information(meta_data)
+            ),
             InvalidName {
                 line,
                 kind,
                 meta_data,
             } => {
-                write!(f, "could not read knot name: ")?;
+                write!(
+                    f,
+                    "{} could not read knot or stitch name: ",
+                    print_line_information(meta_data)
+                )?;
 
                 match kind {
                     ContainsWhitespace => {
@@ -107,7 +156,7 @@ impl fmt::Display for KnotErrorKind {
                     }
                 }
 
-                write!(f, " (line: {})", line)
+                write!(f, " (line was: {})", line)
             }
             LineError(err) => write!(f, "{}", err),
         }
