@@ -25,8 +25,6 @@ pub struct LineError {
 #[derive(Debug)]
 /// Variants of line errors.
 pub enum LineErrorKind {
-    /// Could not read a numerical expression.
-    BadExpression(ExpressionError),
     /// Condition was invalid.
     ConditionError(ConditionError),
     /// Found a divert marker but no address.
@@ -35,6 +33,8 @@ pub enum LineErrorKind {
     EmptyExpression,
     /// Line did not end after a divert statement.
     ExpectedEndOfLine { tail: String },
+    /// Could not read a numerical expression.
+    ExpressionError(ExpressionError),
     /// Found several divert markers which indicates unimplemented tunnels.
     FoundTunnel,
     /// Found an address with invalid characters.
@@ -56,7 +56,7 @@ impl Error for LineError {
 impl Error for LineErrorKind {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match &self {
-            LineErrorKind::BadExpression(err) => Some(err),
+            LineErrorKind::ExpressionError(err) => Some(err),
             LineErrorKind::ConditionError(err) => Some(err),
             _ => None,
         }
@@ -66,7 +66,7 @@ impl Error for LineErrorKind {
 impl_from_error![
     LineErrorKind;
     [ConditionError, ConditionError],
-    [BadExpression, ExpressionError]
+    [ExpressionError, ExpressionError]
 ];
 
 impl fmt::Display for LineError {
@@ -82,7 +82,6 @@ impl fmt::Display for LineErrorKind {
 
         match &self {
             ConditionError(err) => write!(f, "could not parse a condition: {}", err),
-            BadExpression(err) => write!(f, "could not parse an expression: {}", err),
             EmptyDivert => write!(f, "encountered a divert statement with no address",),
             EmptyExpression => write!(f, "found an empty embraced expression ('{{}})'"),
             ExpectedEndOfLine { tail } => write!(
@@ -90,6 +89,7 @@ impl fmt::Display for LineErrorKind {
                 "expected no more content after a divert statement address but found '{}'",
                 tail
             ),
+            ExpressionError(err) => write!(f, "could not parse an expression: {}", err),
             FoundTunnel => write!(
                 f,
                 "Found multiple divert markers. In the `Ink` language this indicates \
