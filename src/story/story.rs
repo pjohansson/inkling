@@ -247,7 +247,7 @@ impl Story {
     /// #     She clattered up the rackety fire escape.
     /// # *   [Bluff]
     /// #     To hell with running. Sam turned around with a cocksure smirk on her lips.
-    /// #  
+    /// #
     /// # === mirandas_den ===
     /// # = bar
     /// # The room was thick with smoke and the smell of noir.
@@ -707,7 +707,8 @@ pub fn read_story_from_string(string: &str) -> Result<Story, ReadError> {
         variables,
     };
 
-    validate_addresses_in_knots(&mut knots, &data)?;
+    // validate_addresses_in_knots(&mut knots, &data)?;
+    unimplemented!();
 
     let root_address = Address::from_root_knot(ROOT_KNOT_NAME, &knots).expect(
         "After successfully creating all knots, the root knot name that was returned from \
@@ -1278,10 +1279,10 @@ We hurried home to Savile Row as fast as we could.
     fn fallback_choices_resume_from_the_knot_they_are_encountered_in() {
         let content = "
 == first
--> second 
+-> second
 
-== second 
-+   -> 
+== second
++   ->
     Fallback choice
 ";
 
@@ -1312,7 +1313,7 @@ We hurried home to Savile Row as fast as we could.
     fn glue_is_followed_over_fallback_choices() {
         let content = "
 == tripoli
-We decided to go to the <> 
+We decided to go to the <>
 *   [] Cinema.
 ";
 
@@ -1367,7 +1368,7 @@ We decided to go to the <>
     #[test]
     fn last_set_of_presented_choices_are_stored() {
         let content = "
-== knot 
+== knot
 *   Choice 1
 *   Choice 2
 ";
@@ -1459,17 +1460,17 @@ We arrived into Almaty at 9.45pm exactly.
 -> hurry_home
 
 == hurry_home
-*   We hurried home as fast as we could. 
+*   We hurried home as fast as we could.
     -> END
 *   But we decided our trip wasn't done yet.
-    *   We immediately left the city. 
+    *   We immediately left the city.
         After a few days me returned again.
         -> back_in_almaty
     *   Still, we could not head out just yet. -> fin
 
 == fin
 -> END
-        
+
 ";
 
         let story = read_story_from_string(content).unwrap();
@@ -1492,7 +1493,7 @@ We arrived into Almaty at 9.45pm exactly.
 -> END
 = at_home
 -> END
-        
+
 ";
 
         let story = read_story_from_string(content).unwrap();
@@ -1576,7 +1577,7 @@ We arrived into Almaty at 9.45pm exactly.
     fn number_of_visits_in_a_story_is_consistent() {
         let content = "
 One
--> root 
+-> root
 
 == root
 
@@ -1584,7 +1585,7 @@ One
 +   {visit_twice >= 2} {visit_thrice < 3} -> visit_thrice
 *   [] -> END
 
-== visit_twice 
+== visit_twice
 Two
 -> root
 
@@ -1619,10 +1620,10 @@ Three
 
 After an arduous journey we arrived back in Almaty.
 
-*   We hurried home as fast as we could. 
+*   We hurried home as fast as we could.
     -> END
 *   But we decided our trip wasn't done yet.
-    We immediately left the city. 
+    We immediately left the city.
 
 ";
         let mut story = read_story_from_string(content).unwrap();
@@ -1656,7 +1657,7 @@ We arrived into Almaty at 9.45pm exactly.
 -> END
 
 == hurry_home
-We hurried home as fast as we could. 
+We hurried home as fast as we could.
 -> END
 
 ";
@@ -1689,7 +1690,7 @@ We arrived into Almaty at 9.45pm exactly.
 -> END
 
 == hurry_home
-We hurried home as fast as we could. 
+We hurried home as fast as we could.
 -> END
 
 = at_home
@@ -1726,7 +1727,7 @@ We arrived into Almaty at 9.45pm exactly.
 -> END
 
 == hurry_home
-We hurried home as fast as we could. 
+We hurried home as fast as we could.
 -> END
 
 = at_home
@@ -1757,7 +1758,7 @@ We arrived into Almaty at 9.45pm exactly.
 -> END
 
 == hurry_home
-We hurried home as fast as we could. 
+We hurried home as fast as we could.
 -> END
 
 = at_home
@@ -1825,7 +1826,7 @@ We arrived into Almaty at 9.45pm exactly.
 
 == hurry_home
 = at_home
-We hurried home as fast as we could. 
+We hurried home as fast as we could.
 -> END
 
 ";
@@ -1849,7 +1850,7 @@ We hurried home as fast as we could.
     fn getting_number_of_visits_uses_data() {
         let content = "
 == hurry_home
-We hurried home as fast as we could. 
+We hurried home as fast as we could.
 -> END
 
 = at_home
@@ -1882,7 +1883,7 @@ We arrived into Almaty at 9.45pm exactly.
 -> END
 
 == hurry_home
-We hurried home as fast as we could. 
+We hurried home as fast as we could.
 -> END
 
 = at_home

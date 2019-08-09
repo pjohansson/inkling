@@ -1,7 +1,7 @@
 //! Node tree structure for branching content.
 
 use crate::{
-    error::parse::address::InvalidAddressError,
+    error::parse::address::InvalidAddressErrorKind,
     knot::{Address, ValidateAddressData, ValidateAddresses},
     line::{InternalChoice, InternalLine},
 };
@@ -64,7 +64,7 @@ impl NodeItem {
 impl ValidateAddresses for RootNode {
     fn validate(
         &mut self,
-        errors: &mut Vec<InvalidAddressError>,
+        errors: &mut Vec<InvalidAddressErrorKind>,
         current_address: &Address,
         data: &ValidateAddressData,
     ) {
@@ -82,7 +82,7 @@ impl ValidateAddresses for RootNode {
 impl ValidateAddresses for Branch {
     fn validate(
         &mut self,
-        errors: &mut Vec<InvalidAddressError>,
+        errors: &mut Vec<InvalidAddressErrorKind>,
         current_address: &Address,
         data: &ValidateAddressData,
     ) {
@@ -105,7 +105,7 @@ impl ValidateAddresses for Branch {
 impl ValidateAddresses for NodeItem {
     fn validate(
         &mut self,
-        errors: &mut Vec<InvalidAddressError>,
+        errors: &mut Vec<InvalidAddressErrorKind>,
         current_address: &Address,
         data: &ValidateAddressData,
     ) {

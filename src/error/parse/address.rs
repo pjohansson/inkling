@@ -4,11 +4,11 @@ use std::{error::Error, fmt};
 
 use crate::knot::Address;
 
-impl Error for InvalidAddressError {}
+impl Error for InvalidAddressErrorKind {}
 
 #[derive(Clone, Debug)]
 /// A divert (or other address) in the story is invalid.
-pub enum InvalidAddressError {
+pub enum InvalidAddressErrorKind {
     /// The address is not formatted correctly.
     BadFormat { line: String },
     /// The address does not reference a knot, stitch or variable in the story.
@@ -29,9 +29,9 @@ pub enum InvalidAddressError {
     },
 }
 
-impl fmt::Display for InvalidAddressError {
+impl fmt::Display for InvalidAddressErrorKind {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        use InvalidAddressError::*;
+        use InvalidAddressErrorKind::*;
 
         write!(f, "Encountered an invalid address: ")?;
 

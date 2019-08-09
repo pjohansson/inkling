@@ -1,7 +1,7 @@
 //! Structures for representing a single, whole line of `Ink` content.
 
 use crate::{
-    error::{parse::address::InvalidAddressError, utils::MetaData},
+    error::{parse::address::InvalidAddressErrorKind, utils::MetaData},
     knot::{Address, ValidateAddressData, ValidateAddresses},
     line::{Alternative, Condition, Expression},
 };
@@ -120,7 +120,7 @@ impl InternalLine {
 impl ValidateAddresses for InternalLine {
     fn validate(
         &mut self,
-        errors: &mut Vec<InvalidAddressError>,
+        errors: &mut Vec<InvalidAddressErrorKind>,
         current_address: &Address,
         data: &ValidateAddressData,
     ) {
@@ -136,7 +136,7 @@ impl ValidateAddresses for InternalLine {
 impl ValidateAddresses for LineChunk {
     fn validate(
         &mut self,
-        errors: &mut Vec<InvalidAddressError>,
+        errors: &mut Vec<InvalidAddressErrorKind>,
         current_address: &Address,
         data: &ValidateAddressData,
     ) {
@@ -158,7 +158,7 @@ impl ValidateAddresses for LineChunk {
 impl ValidateAddresses for Content {
     fn validate(
         &mut self,
-        errors: &mut Vec<InvalidAddressError>,
+        errors: &mut Vec<InvalidAddressErrorKind>,
         current_address: &Address,
         data: &ValidateAddressData,
     ) {

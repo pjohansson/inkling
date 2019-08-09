@@ -1,7 +1,7 @@
 //! Content that alternates from a fixed set when processed.
 
 use crate::{
-    error::parse::address::InvalidAddressError,
+    error::parse::address::InvalidAddressErrorKind,
     knot::{Address, ValidateAddressData, ValidateAddresses},
     line::LineChunk,
 };
@@ -55,7 +55,7 @@ pub enum AlternativeKind {
 impl ValidateAddresses for Alternative {
     fn validate(
         &mut self,
-        errors: &mut Vec<InvalidAddressError>,
+        errors: &mut Vec<InvalidAddressErrorKind>,
         current_address: &Address,
         data: &ValidateAddressData,
     ) {

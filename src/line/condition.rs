@@ -31,7 +31,7 @@
 //! more information.
 
 use crate::{
-    error::parse::address::InvalidAddressError,
+    error::parse::address::InvalidAddressErrorKind,
     knot::{Address, ValidateAddressData, ValidateAddresses},
     line::Variable,
 };
@@ -224,7 +224,7 @@ impl ConditionBuilder {
 impl ValidateAddresses for Condition {
     fn validate(
         &mut self,
-        errors: &mut Vec<InvalidAddressError>,
+        errors: &mut Vec<InvalidAddressErrorKind>,
         current_address: &Address,
         data: &ValidateAddressData,
     ) {
@@ -247,7 +247,7 @@ impl ValidateAddresses for Condition {
 impl ValidateAddresses for ConditionKind {
     fn validate(
         &mut self,
-        errors: &mut Vec<InvalidAddressError>,
+        errors: &mut Vec<InvalidAddressErrorKind>,
         current_address: &Address,
         data: &ValidateAddressData,
     ) {
@@ -271,7 +271,7 @@ impl ValidateAddresses for ConditionKind {
 impl ValidateAddresses for StoryCondition {
     fn validate(
         &mut self,
-        errors: &mut Vec<InvalidAddressError>,
+        errors: &mut Vec<InvalidAddressErrorKind>,
         current_address: &Address,
         data: &ValidateAddressData,
     ) {

@@ -2,7 +2,7 @@
 
 use crate::{
     error::{
-        parse::address::InvalidAddressError,
+        parse::address::InvalidAddressErrorKind,
         variable::{VariableError, VariableErrorKind},
         InklingError, InternalError,
     },
@@ -678,7 +678,7 @@ impl From<String> for Variable {
 impl ValidateAddresses for Variable {
     fn validate(
         &mut self,
-        errors: &mut Vec<InvalidAddressError>,
+        errors: &mut Vec<InvalidAddressErrorKind>,
         current_address: &Address,
         data: &ValidateAddressData,
     ) {

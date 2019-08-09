@@ -1,7 +1,7 @@
 //! Expressions of numerical work or string concatenation of variables.
 
 use crate::{
-    error::{parse::address::InvalidAddressError, InklingError},
+    error::{parse::address::InvalidAddressErrorKind, InklingError},
     follow::FollowData,
     knot::{Address, ValidateAddressData, ValidateAddresses},
     line::Variable,
@@ -163,7 +163,7 @@ fn get_maybe_nested_operand_from_group(group: Vec<(Operator, Operand)>) -> (Oper
 impl ValidateAddresses for Expression {
     fn validate(
         &mut self,
-        errors: &mut Vec<InvalidAddressError>,
+        errors: &mut Vec<InvalidAddressErrorKind>,
         current_address: &Address,
         data: &ValidateAddressData,
     ) {
@@ -187,7 +187,7 @@ impl ValidateAddresses for Expression {
 impl ValidateAddresses for Operand {
     fn validate(
         &mut self,
-        errors: &mut Vec<InvalidAddressError>,
+        errors: &mut Vec<InvalidAddressErrorKind>,
         current_address: &Address,
         data: &ValidateAddressData,
     ) {

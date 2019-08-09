@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     consts::{DONE_KNOT, END_KNOT},
-    error::{parse::address::InvalidAddressError, InternalError},
+    error::{parse::address::InvalidAddressErrorKind, InternalError},
     follow::FollowData,
     knot::KnotSet,
     line::Variable,
@@ -52,7 +52,7 @@ pub trait ValidateAddresses {
     /// Validate any addresses belonging to this item or their children.
     fn validate(
         &mut self,
-        errors: &mut Vec<InvalidAddressError>,
+        errors: &mut Vec<InvalidAddressErrorKind>,
         current_address: &Address,
         data: &ValidateAddressData,
     );
@@ -98,10 +98,10 @@ impl Address {
     pub fn from_root_knot(
         root_knot_name: &str,
         knots: &KnotSet,
-    ) -> Result<Self, InvalidAddressError> {
+    ) -> Result<Self, InvalidAddressErrorKind> {
         let knot = knots
             .get(root_knot_name)
-            .ok_or(InvalidAddressError::UnknownKnot {
+            .ok_or(InvalidAddressErrorKind::UnknownKnot {
                 knot_name: root_knot_name.to_string(),
             })?;
 
@@ -115,10 +115,10 @@ impl Address {
         knot_name: &str,
         stitch_name: Option<&str>,
         knots: &KnotSet,
-    ) -> Result<Self, InvalidAddressError> {
+    ) -> Result<Self, InvalidAddressErrorKind> {
         let knot = knots
             .get(knot_name)
-            .ok_or(InvalidAddressError::UnknownKnot {
+            .ok_or(InvalidAddressErrorKind::UnknownKnot {
                 knot_name: knot_name.to_string(),
             })?;
 
@@ -130,7 +130,7 @@ impl Address {
                 stitch: stitch_name.to_string(),
             }))
         } else {
-            Err(InvalidAddressError::UnknownStitch {
+            Err(InvalidAddressErrorKind::UnknownStitch {
                 knot_name: knot_name.to_string(),
                 stitch_name: stitch_name.to_string(),
             })
@@ -178,7 +178,7 @@ impl Address {
 
     /// Validate the `Address` if it is `Raw`.
     fn validate_internal(&mut self, current_address: &Address, data: &ValidateAddressData)
-        -> Result<(), InvalidAddressError> {
+        -> Result<(), InvalidAddressErrorKind> {
         match self {
             Address::Raw(ref target) if target == DONE_KNOT || target == END_KNOT => {
                 *self = Address::End;
@@ -204,7 +204,7 @@ impl Address {
 impl ValidateAddresses for Address {
     fn validate(
         &mut self,
-        errors: &mut Vec<InvalidAddressError>,
+        errors: &mut Vec<InvalidAddressErrorKind>,
         current_address: &Address,
         data: &ValidateAddressData,
     ) {
@@ -228,11 +228,11 @@ impl ValidateAddresses for Address {
 /// Otherwise return the entire string.
 fn split_address_into_parts(
     address: &str,
-) -> Result<(String, Option<String>), InvalidAddressError> {
+) -> Result<(String, Option<String>), InvalidAddressErrorKind> {
     if let Some(i) = address.find('.') {
         let knot = address.get(..i).unwrap();
 
-        let stitch = address.get(i + 1..).ok_or(InvalidAddressError::BadFormat {
+        let stitch = address.get(i + 1..).ok_or(InvalidAddressErrorKind::BadFormat {
             line: address.to_string(),
         })?;
 
@@ -247,10 +247,10 @@ fn get_location_from_parts(
     knot_name: String,
     stitch_name: String,
     knot_structure: &HashMap<String, (String, Vec<String>)>,
-) -> Result<AddressKind, InvalidAddressError> {
+) -> Result<AddressKind, InvalidAddressErrorKind> {
     let (_, stitches) = knot_structure
         .get(&knot_name)
-        .ok_or(InvalidAddressError::UnknownKnot {
+        .ok_or(InvalidAddressErrorKind::UnknownKnot {
             knot_name: knot_name.clone(),
         })?;
 
@@ -260,7 +260,7 @@ fn get_location_from_parts(
             stitch: stitch_name,
         })
     } else {
-        Err(InvalidAddressError::UnknownStitch {
+        Err(InvalidAddressErrorKind::UnknownStitch {
             knot_name: knot_name.clone(),
             stitch_name: stitch_name.clone(),
         })
@@ -280,7 +280,7 @@ fn get_address_from_needle(
     needle: String,
     current_address: &Address,
     data: &ValidateAddressData,
-) -> Result<AddressKind, InvalidAddressError> {
+) -> Result<AddressKind, InvalidAddressErrorKind> {
     let (current_knot_name, current_stitches) =
         get_knot_name_and_stitches(current_address, &data.knot_structure, &needle)?;
 
@@ -301,7 +301,7 @@ fn get_address_from_needle(
     } else if matches_variable {
         Ok(AddressKind::GlobalVariable { name: needle })
     } else {
-        Err(InvalidAddressError::UnknownAddress {
+        Err(InvalidAddressErrorKind::UnknownAddress {
             name: needle.clone(),
         })
     }
@@ -312,11 +312,11 @@ fn get_knot_name_and_stitches<'a>(
     address: &Address,
     knot_structure: &'a HashMap<String, (String, Vec<String>)>,
     needle: &str,
-) -> Result<(String, &'a Vec<String>), InvalidAddressError> {
+) -> Result<(String, &'a Vec<String>), InvalidAddressErrorKind> {
     let knot_name =
         address
             .get_knot()
-            .map_err(|_| InvalidAddressError::ValidatedWithUnvalidatedAddress {
+            .map_err(|_| InvalidAddressErrorKind::ValidatedWithUnvalidatedAddress {
                 needle: needle.to_string(),
                 current_address: address.clone(),
             })?;
@@ -324,7 +324,7 @@ fn get_knot_name_and_stitches<'a>(
     let (_, stitches) =
         knot_structure
             .get(knot_name)
-            .ok_or(InvalidAddressError::UnknownCurrentAddress {
+            .ok_or(InvalidAddressErrorKind::UnknownCurrentAddress {
                 address: address.clone(),
             })?;
 
@@ -335,7 +335,7 @@ fn get_knot_name_and_stitches<'a>(
 pub fn validate_addresses_in_knots(
     knots: &mut KnotSet,
     data: &FollowData,
-) -> Result<(), Vec<InvalidAddressError>> {
+) -> Result<(), Vec<InvalidAddressErrorKind>> {
     let validation_data = ValidateAddressData::from_data(knots, &data.variables);
 
     let mut errors = Vec::new();
@@ -395,7 +395,7 @@ pub mod tests {
         address: &mut Address,
         current_address: &Address,
         data: &ValidateAddressData,
-    ) -> Result<(), InvalidAddressError> {
+    ) -> Result<(), InvalidAddressErrorKind> {
         let mut errors = Vec::new();
 
         address.validate(&mut errors, current_address, data);

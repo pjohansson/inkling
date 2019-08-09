@@ -3,7 +3,7 @@
 use std::{error::Error, fmt};
 
 use crate::error::parse::{
-    address::InvalidAddressError,
+    address::InvalidAddressErrorKind,
     parse::{print_parse_error, ParseError},
 };
 
@@ -16,7 +16,7 @@ pub enum ReadError {
     /// Attempted to construct a story from an empty file/string.
     Empty,
     /// An invalid knot, stitch or divert address was encountered during validation.
-    InvalidAddress(InvalidAddressError),
+    InvalidAddress(InvalidAddressErrorKind),
     /// Encountered one or more errors while parsing lines to construct the story.
     ParseError(ParseError),
 }
@@ -53,6 +53,6 @@ impl fmt::Display for ReadError {
 
 impl_from_error![
     ReadError;
-    [InvalidAddress, InvalidAddressError],
+    [InvalidAddress, InvalidAddressErrorKind],
     [ParseError, ParseError]
 ];
