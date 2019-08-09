@@ -31,7 +31,7 @@
 //! more information.
 
 use crate::{
-    error::parse::address::InvalidAddressErrorKind,
+    error::{parse::address::InvalidAddressError, utils::MetaData},
     knot::{Address, ValidateAddressData, ValidateAddresses},
     line::Variable,
 };
@@ -224,14 +224,19 @@ impl ConditionBuilder {
 impl ValidateAddresses for Condition {
     fn validate(
         &mut self,
-        errors: &mut Vec<InvalidAddressErrorKind>,
+        errors: &mut Vec<InvalidAddressError>,
+        meta_data: &MetaData,
         current_address: &Address,
         data: &ValidateAddressData,
     ) {
-        self.root.kind.validate(errors, current_address, data);
+        self.root
+            .kind
+            .validate(errors, meta_data, current_address, data);
 
         self.items.iter_mut().for_each(|item| match item {
-            AndOr::And(item) | AndOr::Or(item) => item.kind.validate(errors, current_address, data),
+            AndOr::And(item) | AndOr::Or(item) => {
+                item.kind.validate(errors, meta_data, current_address, data)
+            }
         });
     }
 
@@ -247,14 +252,17 @@ impl ValidateAddresses for Condition {
 impl ValidateAddresses for ConditionKind {
     fn validate(
         &mut self,
-        errors: &mut Vec<InvalidAddressErrorKind>,
+        errors: &mut Vec<InvalidAddressError>,
+        meta_data: &MetaData,
         current_address: &Address,
         data: &ValidateAddressData,
     ) {
         match self {
             ConditionKind::True | ConditionKind::False => (),
-            ConditionKind::Nested(condition) => condition.validate(errors, current_address, data),
-            ConditionKind::Single(kind) => kind.validate(errors, current_address, data),
+            ConditionKind::Nested(condition) => {
+                condition.validate(errors, meta_data, current_address, data)
+            }
+            ConditionKind::Single(kind) => kind.validate(errors, meta_data, current_address, data),
         }
     }
 
@@ -271,7 +279,8 @@ impl ValidateAddresses for ConditionKind {
 impl ValidateAddresses for StoryCondition {
     fn validate(
         &mut self,
-        errors: &mut Vec<InvalidAddressErrorKind>,
+        errors: &mut Vec<InvalidAddressError>,
+        meta_data: &MetaData,
         current_address: &Address,
         data: &ValidateAddressData,
     ) {
@@ -281,11 +290,11 @@ impl ValidateAddresses for StoryCondition {
                 ref mut rhs_variable,
                 ..
             } => {
-                lhs_variable.validate(errors, current_address, data);
-                rhs_variable.validate(errors, current_address, data);
+                lhs_variable.validate(errors, meta_data, current_address, data);
+                rhs_variable.validate(errors, meta_data, current_address, data);
             }
             StoryCondition::IsTrueLike { variable } => {
-                variable.validate(errors, current_address, data)
+                variable.validate(errors, meta_data, current_address, data)
             }
         }
     }

@@ -2,9 +2,16 @@
 
 use std::{error::Error, fmt};
 
-use crate::knot::Address;
+use crate::{error::utils::MetaData, knot::Address};
 
-impl Error for InvalidAddressErrorKind {}
+#[derive(Clone, Debug)]
+/// Error for an invalid address in a story.
+pub struct InvalidAddressError {
+    /// Error variant.
+    pub kind: InvalidAddressErrorKind,
+    /// Information about the origin of the line containing this error.
+    pub meta_data: MetaData,
+}
 
 #[derive(Clone, Debug)]
 /// A divert (or other address) in the story is invalid.
@@ -29,11 +36,23 @@ pub enum InvalidAddressErrorKind {
     },
 }
 
+impl Error for InvalidAddressError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        Some(&self.kind)
+    }
+}
+
+impl Error for InvalidAddressErrorKind {}
+
+impl fmt::Display for InvalidAddressError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Invalid address: {}", self.kind)
+    }
+}
+
 impl fmt::Display for InvalidAddressErrorKind {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         use InvalidAddressErrorKind::*;
-
-        write!(f, "Encountered an invalid address: ")?;
 
         match self {
             BadFormat { line } => write!(f, "address was incorrectly formatted ('{}')", line),

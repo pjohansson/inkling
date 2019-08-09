@@ -1,7 +1,7 @@
 //! Expressions of numerical work or string concatenation of variables.
 
 use crate::{
-    error::{parse::address::InvalidAddressErrorKind, InklingError},
+    error::{parse::address::InvalidAddressError, utils::MetaData, InklingError},
     follow::FollowData,
     knot::{Address, ValidateAddressData, ValidateAddresses},
     line::Variable,
@@ -163,15 +163,16 @@ fn get_maybe_nested_operand_from_group(group: Vec<(Operator, Operand)>) -> (Oper
 impl ValidateAddresses for Expression {
     fn validate(
         &mut self,
-        errors: &mut Vec<InvalidAddressErrorKind>,
+        errors: &mut Vec<InvalidAddressError>,
+        meta_data: &MetaData,
         current_address: &Address,
         data: &ValidateAddressData,
     ) {
-        self.head.validate(errors, current_address, data);
+        self.head.validate(errors, meta_data, current_address, data);
 
         self.tail
             .iter_mut()
-            .for_each(|(_, operand)| operand.validate(errors, current_address, data));
+            .for_each(|(_, operand)| operand.validate(errors, meta_data, current_address, data));
     }
 
     #[cfg(test)]
@@ -187,15 +188,18 @@ impl ValidateAddresses for Expression {
 impl ValidateAddresses for Operand {
     fn validate(
         &mut self,
-        errors: &mut Vec<InvalidAddressErrorKind>,
+        errors: &mut Vec<InvalidAddressError>,
+        meta_data: &MetaData,
         current_address: &Address,
         data: &ValidateAddressData,
     ) {
         match self {
             Operand::Nested(ref mut expression) => {
-                expression.validate(errors, current_address, data)
+                expression.validate(errors, meta_data, current_address, data)
             }
-            Operand::Variable(ref mut variable) => variable.validate(errors, current_address, data),
+            Operand::Variable(ref mut variable) => {
+                variable.validate(errors, meta_data, current_address, data)
+            }
         }
     }
 

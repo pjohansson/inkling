@@ -1,7 +1,7 @@
 //! Node tree structure for branching content.
 
 use crate::{
-    error::parse::address::InvalidAddressErrorKind,
+    error::{parse::address::InvalidAddressError, utils::MetaData},
     knot::{Address, ValidateAddressData, ValidateAddresses},
     line::{InternalChoice, InternalLine},
 };
@@ -64,13 +64,14 @@ impl NodeItem {
 impl ValidateAddresses for RootNode {
     fn validate(
         &mut self,
-        errors: &mut Vec<InvalidAddressErrorKind>,
+        errors: &mut Vec<InvalidAddressError>,
+        meta_data: &MetaData,
         current_address: &Address,
         data: &ValidateAddressData,
     ) {
         self.items
             .iter_mut()
-            .for_each(|item| item.validate(errors, current_address, data))
+            .for_each(|item| item.validate(errors, meta_data, current_address, data))
     }
 
     #[cfg(test)]
@@ -82,18 +83,19 @@ impl ValidateAddresses for RootNode {
 impl ValidateAddresses for Branch {
     fn validate(
         &mut self,
-        errors: &mut Vec<InvalidAddressErrorKind>,
+        errors: &mut Vec<InvalidAddressError>,
+        meta_data: &MetaData,
         current_address: &Address,
         data: &ValidateAddressData,
     ) {
         self.choice
             .condition
             .iter_mut()
-            .for_each(|item| item.validate(errors, current_address, data));
+            .for_each(|item| item.validate(errors, meta_data, current_address, data));
 
         self.items
             .iter_mut()
-            .for_each(|item| item.validate(errors, current_address, data));
+            .for_each(|item| item.validate(errors, meta_data, current_address, data));
     }
 
     #[cfg(test)]
@@ -105,15 +107,16 @@ impl ValidateAddresses for Branch {
 impl ValidateAddresses for NodeItem {
     fn validate(
         &mut self,
-        errors: &mut Vec<InvalidAddressErrorKind>,
+        errors: &mut Vec<InvalidAddressError>,
+        meta_data: &MetaData,
         current_address: &Address,
         data: &ValidateAddressData,
     ) {
         match self {
             NodeItem::BranchingPoint(branches) => branches
                 .iter_mut()
-                .for_each(|item| item.validate(errors, current_address, data)),
-            NodeItem::Line(line) => line.validate(errors, current_address, data),
+                .for_each(|item| item.validate(errors, meta_data, current_address, data)),
+            NodeItem::Line(line) => line.validate(errors, meta_data, current_address, data),
         };
     }
 
