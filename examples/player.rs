@@ -101,7 +101,12 @@ fn read_story(path: &Path) -> Result<Story, io::Error> {
     match read_story_from_string(&contents) {
         Ok(story) => Ok(story),
         Err(error) => {
-            write!(io::stderr(), "{}", error::parse::print_read_error(&error).unwrap()).unwrap();
+            write!(
+                io::stderr(),
+                "{}",
+                error::parse::print_read_error(&error).unwrap()
+            )
+            .unwrap();
             exit(1);
         }
     }

@@ -678,15 +678,16 @@ impl From<String> for Variable {
 impl ValidateAddresses for Variable {
     fn validate(
         &mut self,
+        errors: &mut Vec<InvalidAddressError>,
         current_address: &Address,
         data: &ValidateAddressData,
-    ) -> Result<(), InvalidAddressError> {
+    ) {
         match self {
             Variable::Address(address) | Variable::Divert(address) => {
-                address.validate(current_address, data)
+                address.validate(errors, current_address, data);
             }
             Variable::Bool(..) | Variable::Float(..) | Variable::Int(..) | Variable::String(..) => {
-                Ok(())
+                ()
             }
         }
     }

@@ -224,17 +224,15 @@ impl ConditionBuilder {
 impl ValidateAddresses for Condition {
     fn validate(
         &mut self,
+        errors: &mut Vec<InvalidAddressError>,
         current_address: &Address,
         data: &ValidateAddressData,
-    ) -> Result<(), InvalidAddressError> {
-        self.root.kind.validate(current_address, data)?;
+    ) {
+        self.root.kind.validate(errors, current_address, data);
 
-        self.items
-            .iter_mut()
-            .map(|item| match item {
-                AndOr::And(item) | AndOr::Or(item) => item.kind.validate(current_address, data),
-            })
-            .collect()
+        self.items.iter_mut().for_each(|item| match item {
+            AndOr::And(item) | AndOr::Or(item) => item.kind.validate(errors, current_address, data),
+        });
     }
 
     #[cfg(test)]
@@ -249,13 +247,14 @@ impl ValidateAddresses for Condition {
 impl ValidateAddresses for ConditionKind {
     fn validate(
         &mut self,
+        errors: &mut Vec<InvalidAddressError>,
         current_address: &Address,
         data: &ValidateAddressData,
-    ) -> Result<(), InvalidAddressError> {
+    ) {
         match self {
-            ConditionKind::True | ConditionKind::False => Ok(()),
-            ConditionKind::Nested(condition) => condition.validate(current_address, data),
-            ConditionKind::Single(kind) => kind.validate(current_address, data),
+            ConditionKind::True | ConditionKind::False => (),
+            ConditionKind::Nested(condition) => condition.validate(errors, current_address, data),
+            ConditionKind::Single(kind) => kind.validate(errors, current_address, data),
         }
     }
 
@@ -272,18 +271,22 @@ impl ValidateAddresses for ConditionKind {
 impl ValidateAddresses for StoryCondition {
     fn validate(
         &mut self,
+        errors: &mut Vec<InvalidAddressError>,
         current_address: &Address,
         data: &ValidateAddressData,
-    ) -> Result<(), InvalidAddressError> {
+    ) {
         match self {
             StoryCondition::Comparison {
                 ref mut lhs_variable,
                 ref mut rhs_variable,
                 ..
-            } => lhs_variable
-                .validate(current_address, data)
-                .and_then(|_| rhs_variable.validate(current_address, data)),
-            StoryCondition::IsTrueLike { variable } => variable.validate(current_address, data),
+            } => {
+                lhs_variable.validate(errors, current_address, data);
+                rhs_variable.validate(errors, current_address, data);
+            }
+            StoryCondition::IsTrueLike { variable } => {
+                variable.validate(errors, current_address, data)
+            }
         }
     }
 

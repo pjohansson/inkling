@@ -55,13 +55,13 @@ pub enum AlternativeKind {
 impl ValidateAddresses for Alternative {
     fn validate(
         &mut self,
+        errors: &mut Vec<InvalidAddressError>,
         current_address: &Address,
         data: &ValidateAddressData,
-    ) -> Result<(), InvalidAddressError> {
+    ) {
         self.items
             .iter_mut()
-            .map(|item| item.validate(current_address, data))
-            .collect()
+            .for_each(|item| item.validate(errors, current_address, data));
     }
 
     #[cfg(test)]
