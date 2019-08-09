@@ -3,7 +3,7 @@
 use std::{error::Error, fmt};
 
 use crate::error::parse::{
-    address::InvalidAddressErrorKind,
+    address::InvalidAddressError,
     parse::{print_parse_error, ParseError},
 };
 
@@ -16,7 +16,7 @@ pub enum ReadError {
     /// Attempted to construct a story from an empty file/string.
     Empty,
     /// An invalid knot, stitch or divert address was encountered during validation.
-    InvalidAddress(InvalidAddressErrorKind),
+    InvalidAddress(Vec<InvalidAddressError>),
     /// Encountered one or more errors while parsing lines to construct the story.
     ParseError(ParseError),
 }
@@ -32,9 +32,8 @@ pub fn print_read_error(error: &ReadError) -> Result<String, fmt::Error> {
 impl Error for ReadError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match &self {
-            ReadError::Empty => None,
-            ReadError::InvalidAddress(err) => Some(err),
             ReadError::ParseError(err) => Some(err),
+            _ => None,
         }
     }
 }
@@ -45,7 +44,11 @@ impl fmt::Display for ReadError {
 
         match self {
             Empty => write!(f, "Could not parse story: no content was available"),
-            InvalidAddress(err) => write!(f, "{}", err),
+            InvalidAddress(err) => write!(
+                f,
+                "Could not validate story: found {} invalid addresses",
+                err.len()
+            ),
             ParseError(err) => write!(f, "{}", err),
         }
     }
@@ -53,6 +56,11 @@ impl fmt::Display for ReadError {
 
 impl_from_error![
     ReadError;
-    [InvalidAddress, InvalidAddressErrorKind],
     [ParseError, ParseError]
 ];
+
+impl From<Vec<InvalidAddressError>> for ReadError {
+    fn from(errors: Vec<InvalidAddressError>) -> Self {
+        ReadError::InvalidAddress(errors)
+    }
+}
