@@ -1,7 +1,7 @@
 //! Expressions of numerical work or string concatenation of variables.
 
 use crate::{
-    error::{InklingError, InvalidAddressError},
+    error::{parse::address::InvalidAddressError, InklingError},
     follow::FollowData,
     knot::{Address, ValidateAddressData, ValidateAddresses},
     line::Variable,

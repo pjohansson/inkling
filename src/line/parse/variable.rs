@@ -2,13 +2,13 @@
 
 use crate::{
     consts::DIVERT_MARKER,
-    error::LineErrorKind,
+    error::parse::variable::{VariableError, VariableErrorKind},
     knot::Address,
     line::{parse::validate_address, Variable},
 };
 
 /// Parse a `Variable` from a line.
-pub fn parse_variable(content: &str) -> Result<Variable, LineErrorKind> {
+pub fn parse_variable(content: &str) -> Result<Variable, VariableError> {
     let content = content.trim();
 
     if content.to_lowercase() == "true" {
@@ -21,43 +21,38 @@ pub fn parse_variable(content: &str) -> Result<Variable, LineErrorKind> {
         ))
     } else if content.starts_with(DIVERT_MARKER) {
         let inner = content.get(DIVERT_MARKER.len()..).unwrap().trim();
-        let address = validate_address(inner, content.to_string()).map_err(|_| {
-            LineErrorKind::InvalidVariableDivert {
-                address: inner.to_string(),
-                content: content.to_string(),
-            }
-        })?;
 
-        Ok(Variable::Divert(Address::Raw(address)))
+        validate_address(inner)
+            .map(|address| Variable::Divert(Address::Raw(address)))
+            .map_err(|_| VariableErrorKind::InvalidDivert {
+                address: inner.to_string(),
+            })
     } else if content.starts_with(|c: char| c.is_numeric() || c == '-' || c == '+') {
         parse_number(content)
     } else {
-        let address = validate_address(content.trim(), content.to_string()).map_err(|_| {
-            LineErrorKind::InvalidVariable {
-                content: content.to_string(),
-            }
-        })?;
-
-        Ok(Variable::Address(Address::Raw(address.to_string())))
+        validate_address(content.trim())
+            .map(|address| Variable::Address(Address::Raw(address)))
+            .map_err(|_| VariableErrorKind::InvalidAddress)
     }
+    .map_err(|kind| VariableError {
+        content: content.to_string(),
+        kind,
+    })
 }
 
 /// Parse a variable number from a string.
-fn parse_number(content: &str) -> Result<Variable, LineErrorKind> {
+fn parse_number(content: &str) -> Result<Variable, VariableErrorKind> {
     if content.contains('.') {
         content
             .parse::<f32>()
             .map(|value| Variable::Float(value))
-            .map_err(|_| ())
+            .map_err(|err| VariableErrorKind::InvalidNumericValue { err: Box::new(err) })
     } else {
         content
             .parse::<i32>()
             .map(|value| Variable::Int(value))
-            .map_err(|_| ())
+            .map_err(|err| VariableErrorKind::InvalidNumericValue { err: Box::new(err) })
     }
-    .map_err(|_| LineErrorKind::InvalidVariableNumber {
-        content: content.to_string(),
-    })
 }
 
 #[cfg(test)]

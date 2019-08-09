@@ -2,7 +2,7 @@
 
 use crate::{
     consts::GATHER_MARKER,
-    error::LineParsingError,
+    error::{parse::line::LineErrorKind, utils::MetaData},
     line::{
         parse::{parse_internal_line, parse_markers_and_text, split_at_divert_marker},
         ParsedLineKind,
@@ -10,13 +10,16 @@ use crate::{
 };
 
 /// Parse a `ParsedLineKind::Gather` from a line if the line represents a gather point.
-pub fn parse_gather(content: &str) -> Result<Option<ParsedLineKind>, LineParsingError> {
+pub fn parse_gather(
+    content: &str,
+    meta_data: &MetaData,
+) -> Result<Option<ParsedLineKind>, LineErrorKind> {
     let (line_without_divert, line_from_divert) = split_at_divert_marker(content);
 
     parse_markers_and_text(line_without_divert, GATHER_MARKER)
         .map(|(level, remaining_text)| (level, format!("{}{}", remaining_text, line_from_divert)))
         .map(|(level, line)| {
-            parse_internal_line(&line).map(|line| ParsedLineKind::Gather { level, line })
+            parse_internal_line(&line, meta_data).map(|line| ParsedLineKind::Gather { level, line })
         })
         .transpose()
 }
@@ -32,19 +35,19 @@ pub mod tests {
 
     #[test]
     fn line_with_gather_markers_sets_line_text() {
-        match parse_line("- Hello, World!").unwrap() {
+        match parse_line("- Hello, World!", &().into()).unwrap() {
             ParsedLineKind::Gather { line, .. } => {
                 assert_eq!(line, InternalLine::from_string("Hello, World!"))
             }
             other => panic!("expected `ParsedLineKind::Gather` but got {:?}", other),
         }
 
-        match parse_line("-- Hello, World!").unwrap() {
+        match parse_line("-- Hello, World!", &().into()).unwrap() {
             ParsedLineKind::Gather { level, .. } => assert_eq!(level, 2),
             other => panic!("expected `ParsedLineKind::Gather` but got {:?}", other),
         }
 
-        match parse_line("------ Hello, World!").unwrap() {
+        match parse_line("------ Hello, World!", &().into()).unwrap() {
             ParsedLineKind::Gather { level, .. } => assert_eq!(level, 6),
             other => panic!("expected `ParsedLineKind::Gather` but got {:?}", other),
         }
@@ -52,17 +55,17 @@ pub mod tests {
 
     #[test]
     fn line_with_gather_markers_counts_them() {
-        match parse_line("- Hello, World!").unwrap() {
+        match parse_line("- Hello, World!", &().into()).unwrap() {
             ParsedLineKind::Gather { level, .. } => assert_eq!(level, 1),
             other => panic!("expected `ParsedLineKind::Gather` but got {:?}", other),
         }
 
-        match parse_line("-- Hello, World!").unwrap() {
+        match parse_line("-- Hello, World!", &().into()).unwrap() {
             ParsedLineKind::Gather { level, .. } => assert_eq!(level, 2),
             other => panic!("expected `ParsedLineKind::Gather` but got {:?}", other),
         }
 
-        match parse_line("------ Hello, World!").unwrap() {
+        match parse_line("------ Hello, World!", &().into()).unwrap() {
             ParsedLineKind::Gather { level, .. } => assert_eq!(level, 6),
             other => panic!("expected `ParsedLineKind::Gather` but got {:?}", other),
         }
@@ -70,7 +73,7 @@ pub mod tests {
 
     #[test]
     fn line_with_gather_markers_ignores_whitespace() {
-        match parse_line("   - - -- Hello, World!").unwrap() {
+        match parse_line("   - - -- Hello, World!", &().into()).unwrap() {
             ParsedLineKind::Gather { level, .. } => assert_eq!(level, 4),
             other => panic!("expected `ParsedLineKind::Gather` but got {:?}", other),
         }
@@ -78,14 +81,14 @@ pub mod tests {
 
     #[test]
     fn gather_markers_do_not_require_text() {
-        match parse_line("-").unwrap() {
+        match parse_line("-", &().into()).unwrap() {
             ParsedLineKind::Gather { line, .. } => {
                 assert_eq!(line.chunk.items.len(), 0);
             }
             other => panic!("expected `ParsedLineKind::Gather` but got {:?}", other),
         }
 
-        match parse_line(" - -  ").unwrap() {
+        match parse_line(" - -  ", &().into()).unwrap() {
             ParsedLineKind::Gather { line, .. } => {
                 assert_eq!(line.chunk.items.len(), 0);
             }
@@ -95,7 +98,7 @@ pub mod tests {
 
     #[test]
     fn diverts_can_come_directly_after_gathers() {
-        match parse_line("- -> world").unwrap() {
+        match parse_line("- -> world", &().into()).unwrap() {
             ParsedLineKind::Gather { line, .. } => {
                 assert_eq!(line.chunk.items[0], Content::Empty);
                 assert_eq!(
@@ -109,7 +112,7 @@ pub mod tests {
 
     #[test]
     fn line_with_beginning_divert_parses_into_line_instead_of_gather() {
-        match parse_line("  -> world").unwrap() {
+        match parse_line("  -> world", &().into()).unwrap() {
             ParsedLineKind::Line(line) => {
                 assert_eq!(
                     line.chunk.items[1],

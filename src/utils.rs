@@ -1,7 +1,7 @@
 //! Utilities and derives used elsewhere in the library.
 
 #[cfg(feature = "serde_support")]
-use serde::*;
+use serde::{Deserialize, Serialize};
 #[cfg(feature = "serde_support")]
 use std::cmp::Ordering;
 

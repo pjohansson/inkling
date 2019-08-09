@@ -8,6 +8,11 @@
 *   Mathematical expressions are in. `{a + 3 * (b + c)}` in a line will evaluate to the expected value for variables `a`, `b`, and `c`.
 *   Strings can be concatenated using an expression with the add operator: `"str" + "ing" == "string"`.
 
+## 0.12.2
+
+*   Breaking change: errors restructured
+*   Parsing a story now returns all encountered parsing errors at once (if any), instead of just the first. This happens before validation, which is a separate step.
+
 # 0.11.0
 
 *   Resume stories with index of instead of reference to choice from the previous result.

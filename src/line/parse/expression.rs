@@ -1,9 +1,9 @@
 //! Parse `Expression` objects.
 
 use crate::{
-    error::{
-        parse::{ExpressionError, ExpressionErrorKind},
-        LineParsingError,
+    error::parse::{
+        expression::{ExpressionError, ExpressionErrorKind},
+        line::LineErrorKind,
     },
     line::{
         expression::{apply_order_of_operations, Operand, Operator},
@@ -146,8 +146,7 @@ fn parse_operand(content: &str) -> Result<Operand, ExpressionErrorKind> {
     } else {
         parse_variable(content)
             .map(|variable| Operand::Variable(variable))
-            .map_err(|kind| LineParsingError::from_kind(content, kind))
-            .map_err(|err| ExpressionErrorKind::InvalidVariable(Box::new(err)))
+            .map_err(|err| ExpressionErrorKind::InvalidVariable(err))
     }
 }
 
@@ -228,7 +227,7 @@ fn split_leading_operator(content: &str) -> (&str, &str) {
 }
 
 /// Return the lowest index for any mathematical operator in a line.
-fn get_closest_split_index(content: &str) -> Result<usize, LineParsingError> {
+fn get_closest_split_index(content: &str) -> Result<usize, LineErrorKind> {
     get_split_index(content, "+")
         .and_then(|current_min| get_split_index(&content, "-").map(|next| current_min.min(next)))
         .and_then(|current_min| get_split_index(&content, "*").map(|next| current_min.min(next)))
@@ -237,7 +236,7 @@ fn get_closest_split_index(content: &str) -> Result<usize, LineParsingError> {
 }
 
 /// Return the lowest index for the given separator keyword in the line.
-fn get_split_index(content: &str, separator: &str) -> Result<usize, LineParsingError> {
+fn get_split_index(content: &str, separator: &str) -> Result<usize, LineErrorKind> {
     split_line_at_separator_parenthesis(content, separator, Some(1))
         .map(|parts| parts[0].as_bytes().len())
 }

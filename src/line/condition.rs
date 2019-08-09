@@ -31,7 +31,7 @@
 //! more information.
 
 use crate::{
-    error::InvalidAddressError,
+    error::parse::address::InvalidAddressError,
     knot::{Address, ValidateAddressData, ValidateAddresses},
     line::Variable,
 };

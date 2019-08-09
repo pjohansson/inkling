@@ -2,7 +2,7 @@
 
 use crate::{
     consts::ROOT_KNOT_NAME,
-    error::{InklingError, ParseError, StackError},
+    error::{runtime::internal::StackError, InklingError, ReadError},
     follow::{ChoiceInfo, EncounteredEvent, FollowData, LineDataBuffer},
     knot::{
         get_empty_knot_counts, get_mut_stitch, get_num_visited, validate_addresses_in_knots,
@@ -699,7 +699,7 @@ impl Story {
 ///
 /// let story: Story = read_story_from_string(content).unwrap();
 /// ```
-pub fn read_story_from_string(string: &str) -> Result<Story, ParseError> {
+pub fn read_story_from_string(string: &str) -> Result<Story, ReadError> {
     let (mut knots, variables, tags) = read_story_content_from_string(string)?;
 
     let data = FollowData {
@@ -1122,7 +1122,7 @@ We hurried home to Savile Row as fast as we could.
 
     #[test]
     fn starting_a_story_sets_in_progress_boolean() {
-        let mut story = read_story_from_string("").unwrap();
+        let mut story = read_story_from_string("Content.").unwrap();
 
         assert!(!story.in_progress);
 
@@ -1133,7 +1133,7 @@ We hurried home to Savile Row as fast as we could.
 
     #[test]
     fn starting_a_story_can_only_be_done_once() {
-        let mut story = read_story_from_string("").unwrap();
+        let mut story = read_story_from_string("Content.").unwrap();
 
         assert!(story.start().is_ok());
 
@@ -1145,7 +1145,7 @@ We hurried home to Savile Row as fast as we could.
 
     #[test]
     fn make_choice_sets_the_choice_index_from_the_last_choices_set() {
-        let mut story = read_story_from_string("").unwrap();
+        let mut story = read_story_from_string("Content.").unwrap();
         story
             .last_choices
             .replace(mock_last_choices(&[("", 2), ("", 4)]));
@@ -1157,7 +1157,7 @@ We hurried home to Savile Row as fast as we could.
 
     #[test]
     fn make_choice_resets_last_choices_vector() {
-        let mut story = read_story_from_string("").unwrap();
+        let mut story = read_story_from_string("Content.").unwrap();
         story.last_choices.replace(mock_last_choices(&[("", 0)]));
 
         story.make_choice(0).unwrap();
@@ -1167,7 +1167,7 @@ We hurried home to Savile Row as fast as we could.
 
     #[test]
     fn make_choice_yields_an_error_if_a_choice_has_not_been_prompted() {
-        let mut story = read_story_from_string("").unwrap();
+        let mut story = read_story_from_string("Content.").unwrap();
 
         match story.make_choice(0) {
             Err(InklingError::MadeChoiceWithoutChoice) => (),
@@ -1180,7 +1180,7 @@ We hurried home to Savile Row as fast as we could.
 
     #[test]
     fn make_choice_yields_an_error_if_choice_index_is_not_in_last_choices_set() {
-        let mut story = read_story_from_string("").unwrap();
+        let mut story = read_story_from_string("Content.").unwrap();
 
         let last_choices = mock_last_choices(&[("Choice 1", 0), ("Choice 2", 2)]);
         story.last_choices.replace(last_choices.clone());
@@ -1390,7 +1390,7 @@ We decided to go to the <>
 
     #[test]
     fn cannot_resume_on_a_story_that_has_not_started() {
-        let mut story = read_story_from_string("").unwrap();
+        let mut story = read_story_from_string("Content.").unwrap();
         let mut line_buffer = Vec::new();
 
         match story.resume(&mut line_buffer) {

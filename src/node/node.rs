@@ -1,7 +1,7 @@
 //! Node tree structure for branching content.
 
 use crate::{
-    error::InvalidAddressError,
+    error::parse::address::InvalidAddressError,
     knot::{Address, ValidateAddressData, ValidateAddresses},
     line::{InternalChoice, InternalLine},
 };

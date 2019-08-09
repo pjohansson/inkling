@@ -1,15 +1,10 @@
 //! Errors from creating or walking through stories.
 
 #[macro_use]
-mod error;
-pub(crate) mod parse;
+pub(crate) mod utils;
+pub mod parse;
+pub(crate) mod runtime;
 
-pub(crate) use error::IncorrectNodeStackError;
-pub use error::{InklingError, VariableError, VariableErrorKind};
-pub use parse::ParseError;
-
-pub(crate) use error::{InternalError, ProcessError, ProcessErrorKind, StackError};
-pub(crate) use parse::{
-    BadCondition, BadConditionKind, InvalidAddressError, KnotError, KnotNameError, LineErrorKind,
-    LineParsingError,
-};
+pub use parse::ReadError;
+pub use runtime::{variable, InklingError, InternalError};
+pub use utils::MetaData;

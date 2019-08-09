@@ -1,7 +1,7 @@
 //! Processing of nested line chunks into text content.
 
 use crate::{
-    error::{ProcessError, ProcessErrorKind},
+    error::runtime::internal::{ProcessError, ProcessErrorKind},
     follow::{EncounteredEvent, FollowData, LineDataBuffer, LineText},
     line::{evaluate_expression, Alternative, AlternativeKind, Content, InternalLine, LineChunk},
     process::check_condition,
@@ -191,7 +191,7 @@ pub mod tests {
 
     #[test]
     fn full_line_processing_retains_glue() {
-        let mut line = parse_internal_line("A test string").unwrap();
+        let mut line = parse_internal_line("A test string", &().into()).unwrap();
         line.glue_begin = true;
         line.glue_end = true;
 
@@ -207,7 +207,7 @@ pub mod tests {
 
     #[test]
     fn full_line_processing_retains_tags() {
-        let mut line = parse_internal_line("A test string").unwrap();
+        let mut line = parse_internal_line("A test string", &().into()).unwrap();
         line.tags = vec!["tag 1".to_string(), "tag 2".to_string()];
 
         let mut buffer = Vec::new();

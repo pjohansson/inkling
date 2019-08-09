@@ -2,7 +2,7 @@
 
 use crate::{
     consts::DIVERT_MARKER,
-    error::LineParsingError,
+    error::{parse::line::LineError, utils::MetaData},
     line::{
         parse::{parse_choice, parse_gather, parse_internal_line},
         InternalChoice, InternalLine,
@@ -52,16 +52,19 @@ impl ParsedLineKind {
 }
 
 /// Parse a line into a `ParsedLineKind` object.
-pub fn parse_line(content: &str) -> Result<ParsedLineKind, LineParsingError> {
-    if let Some(choice) = parse_choice(content)? {
-        Ok(choice)
-    } else if let Some(gather) = parse_gather(content)? {
-        Ok(gather)
+pub fn parse_line(content: &str, meta_data: &MetaData) -> Result<ParsedLineKind, LineError> {
+    if let Some(choice) = parse_choice(content, meta_data).transpose() {
+        choice
+    } else if let Some(gather) = parse_gather(content, meta_data).transpose() {
+        gather
     } else {
-        let line = parse_internal_line(content)?;
-
-        Ok(ParsedLineKind::Line(line))
+        parse_internal_line(content, meta_data).map(|line| ParsedLineKind::Line(line))
     }
+    .map_err(|kind| LineError {
+        line: content.to_string(),
+        kind,
+        meta_data: meta_data.clone(),
+    })
 }
 
 /// Count leading markers and return the number and a string without them.
@@ -101,15 +104,15 @@ pub mod tests {
 
     #[test]
     fn simple_line_parses_to_line() {
-        let line = parse_line("Hello, World!").unwrap();
-        let comparison = parse_internal_line("Hello, World!").unwrap();
+        let line = parse_line("Hello, World!", &().into()).unwrap();
+        let comparison = parse_internal_line("Hello, World!", &().into()).unwrap();
 
         assert_eq!(line, ParsedLineKind::Line(comparison));
     }
 
     #[test]
     fn line_with_choice_markers_parses_to_choice() {
-        let line = parse_line("* Hello, World!").unwrap();
+        let line = parse_line("* Hello, World!", &().into()).unwrap();
 
         match line {
             ParsedLineKind::Choice { .. } => (),
@@ -119,7 +122,7 @@ pub mod tests {
 
     #[test]
     fn line_with_gather_markers_parses_to_gather() {
-        let line = parse_line("- Hello, World!").unwrap();
+        let line = parse_line("- Hello, World!", &().into()).unwrap();
 
         match line {
             ParsedLineKind::Gather { .. } => (),
@@ -129,7 +132,7 @@ pub mod tests {
 
     #[test]
     fn choices_are_parsed_before_gathers() {
-        let line = parse_line("* - Hello, World!").unwrap();
+        let line = parse_line("* - Hello, World!", &().into()).unwrap();
 
         match line {
             ParsedLineKind::Choice { .. } => (),

@@ -2,7 +2,7 @@
 
 use crate::{
     consts::{CYCLE_MARKER, ONCE_ONLY_MARKER, SEQUENCE_SEPARATOR, SHUFFLE_MARKER},
-    error::LineParsingError,
+    error::parse::line::LineErrorKind,
     line::{
         parse::{parse_chunk, split_line_at_separator_braces},
         Alternative, AlternativeBuilder, AlternativeKind,
@@ -14,7 +14,7 @@ use crate::{
 /// # Notes
 /// *   The line should not have the enclosing '{}' braces that mark line variations.
 /// *   Trims the line from the beginning to the first non-whitespace character.
-pub fn parse_alternative(content: &str) -> Result<Alternative, LineParsingError> {
+pub fn parse_alternative(content: &str) -> Result<Alternative, LineErrorKind> {
     let (tail, kind) = get_alternative_kind_and_cut_marker(content.trim_start());
 
     let items = split_line_at_separator_braces(tail, SEQUENCE_SEPARATOR, None)?

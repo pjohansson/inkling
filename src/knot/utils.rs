@@ -1,7 +1,7 @@
 //! Utilities for accessing `Knot` and `Stitch` data.
 
 use crate::{
-    error::{InternalError, StackError},
+    error::{runtime::internal::StackError, InternalError},
     follow::FollowData,
     knot::{Address, KnotSet, Stitch},
 };

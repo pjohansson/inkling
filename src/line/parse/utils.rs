@@ -1,6 +1,6 @@
 //! Utilities for parsing of lines.
 
-use crate::error::{LineErrorKind, LineParsingError};
+use crate::error::parse::line::LineErrorKind;
 
 use std::{iter::once, ops::Range};
 
@@ -23,7 +23,7 @@ pub fn split_line_at_separator_braces<'a>(
     content: &'a str,
     separator: &str,
     max_splits: Option<usize>,
-) -> Result<Vec<&'a str>, LineParsingError> {
+) -> Result<Vec<&'a str>, LineErrorKind> {
     split_line_at_separator(content, separator, max_splits, '{', '}')
 }
 
@@ -34,7 +34,7 @@ pub fn split_line_at_separator_parenthesis<'a>(
     content: &'a str,
     separator: &str,
     max_splits: Option<usize>,
-) -> Result<Vec<&'a str>, LineParsingError> {
+) -> Result<Vec<&'a str>, LineErrorKind> {
     split_line_at_separator(content, separator, max_splits, '(', ')')
 }
 
@@ -46,7 +46,7 @@ pub fn split_line_at_separator_quotes<'a>(
     content: &'a str,
     separator: &str,
     max_splits: Option<usize>,
-) -> Result<Vec<&'a str>, LineParsingError> {
+) -> Result<Vec<&'a str>, LineErrorKind> {
     split_line_at_separator(content, separator, max_splits, '"', '"')
 }
 
@@ -63,7 +63,7 @@ fn split_line_at_separator<'a>(
     max_splits: Option<usize>,
     open: char,
     close: char,
-) -> Result<Vec<&'a str>, LineParsingError> {
+) -> Result<Vec<&'a str>, LineErrorKind> {
     let outside_brace_ranges = get_brace_level_zero_ranges(content, open, close)?;
 
     let separator_indices = get_separator_indices(content, &outside_brace_ranges, separator);
@@ -89,7 +89,7 @@ fn split_line_at_separator<'a>(
 /// Wrapper around `split_line_into_groups` with curly braces as open and close.
 pub fn split_line_into_groups_braces<'a>(
     content: &'a str,
-) -> Result<Vec<LinePart<'a>>, LineParsingError> {
+) -> Result<Vec<LinePart<'a>>, LineErrorKind> {
     split_line_into_groups(content, '{', '}')
 }
 
@@ -99,7 +99,7 @@ pub fn split_line_into_groups_braces<'a>(
 /// Wrapper around `split_line_into_groups` with parenthesis as open and close.
 pub fn split_line_into_groups_parenthesis<'a>(
     content: &'a str,
-) -> Result<Vec<LinePart<'a>>, LineParsingError> {
+) -> Result<Vec<LinePart<'a>>, LineErrorKind> {
     split_line_into_groups(content, '(', ')')
 }
 
@@ -108,7 +108,7 @@ fn split_line_into_groups<'a>(
     content: &'a str,
     open: char,
     close: char,
-) -> Result<Vec<LinePart<'a>>, LineParsingError> {
+) -> Result<Vec<LinePart<'a>>, LineErrorKind> {
     let outside_brace_ranges = get_brace_level_zero_ranges(content, open, close)?;
     let num_bytes = content.as_bytes().len();
 
@@ -184,7 +184,7 @@ fn get_brace_level_zero_ranges(
     content: &str,
     open: char,
     close: char,
-) -> Result<Vec<Range<usize>>, LineParsingError> {
+) -> Result<Vec<Range<usize>>, LineErrorKind> {
     let brace_levels = get_brace_level_of_line(content, open, close)?;
     let num_bytes = brace_levels.len();
 
@@ -241,7 +241,7 @@ fn get_brace_level_of_line(
     content: &str,
     open: char,
     close: char,
-) -> Result<Vec<u8>, LineParsingError> {
+) -> Result<Vec<u8>, LineErrorKind> {
     content
         .bytes()
         .scan((None, 0), |(prev, brace_level), byte| {
@@ -251,10 +251,7 @@ fn get_brace_level_of_line(
                 if *brace_level > 0 {
                     *brace_level -= 1;
                 } else {
-                    return Some(Err(LineParsingError::from_kind(
-                        content,
-                        LineErrorKind::UnmatchedBraces,
-                    )));
+                    return Some(Err(LineErrorKind::UnmatchedBraces));
                 }
             }
 
@@ -271,10 +268,7 @@ fn get_brace_level_of_line(
             if brace_levels.last().map(|&v| v == 0).unwrap_or(true) {
                 Ok(brace_levels)
             } else {
-                Err(LineParsingError::from_kind(
-                    content,
-                    LineErrorKind::UnmatchedBraces,
-                ))
+                Err(LineErrorKind::UnmatchedBraces)
             }
         })
 }

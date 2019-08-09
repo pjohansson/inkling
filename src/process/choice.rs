@@ -146,8 +146,8 @@ mod tests {
     use crate::{
         consts::ROOT_KNOT_NAME,
         line::{
-            AlternativeBuilder, Condition, ConditionBuilder, InternalChoice, InternalChoiceBuilder,
-            InternalLineBuilder, LineChunkBuilder, StoryCondition, Variable,
+            line::builders::InternalLineBuilder, AlternativeBuilder, Condition, ConditionBuilder,
+            InternalChoice, InternalChoiceBuilder, LineChunkBuilder, StoryCondition, Variable,
         },
     };
 
