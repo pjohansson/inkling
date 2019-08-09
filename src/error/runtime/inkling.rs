@@ -4,14 +4,10 @@ use std::{error::Error, fmt};
 
 use crate::{
     error::runtime::{internal::StackError, InternalError, VariableError},
-    follow::ChoiceInfo,
     knot::{Address, AddressKind},
     line::Variable,
-    node::Stack,
     story::Choice,
 };
-
-use std::cmp::Ordering;
 
 impl Error for InklingError {}
 

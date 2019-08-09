@@ -2,13 +2,7 @@
 
 use std::{error::Error, fmt};
 
-use crate::{
-    follow::ChoiceInfo,
-    knot::{Address, AddressKind},
-    line::Variable,
-    node::Stack,
-    story::Choice,
-};
+use crate::line::Variable;
 
 use std::cmp::Ordering;
 

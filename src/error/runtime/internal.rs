@@ -6,12 +6,8 @@ use crate::{
     error::runtime::InklingError,
     follow::ChoiceInfo,
     knot::{Address, AddressKind},
-    line::Variable,
     node::Stack,
-    story::Choice,
 };
-
-use std::cmp::Ordering;
 
 impl Error for InternalError {}
 
