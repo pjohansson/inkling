@@ -10,8 +10,10 @@
 
 ## 0.12.2
 
-*   Breaking change: errors restructured
+*   Breaking change: error module restructured.
+*   Lines, knots, stitches and choices have line indices associated with them to help with tracking down errors.
 *   Parsing a story now returns all encountered parsing errors at once (if any), instead of just the first. This happens before validation, which is a separate step.
+*   Add `print_read_error` function to describe all encountered parsing errors with line numbers.
 
 # 0.11.0
 
