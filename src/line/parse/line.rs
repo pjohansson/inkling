@@ -2,7 +2,7 @@
 
 use crate::{
     consts::{DIVERT_MARKER, GLUE_MARKER, TAG_MARKER},
-    error::LineErrorKind,
+    error::{utils::MetaData, LineErrorKind},
     knot::Address,
     line::{
         parse::{
@@ -11,7 +11,6 @@ use crate::{
         },
         Content, InternalLine, LineChunk,
     },
-    utils::MetaData,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq)]

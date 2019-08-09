@@ -6,9 +6,8 @@ use crate::{
     consts::{CHOICE_MARKER, STICKY_CHOICE_MARKER},
     error::{
         parse::{ConditionError, ExpressionError},
-        utils::write_line_information,
+        utils::{write_line_information, MetaData},
     },
-    utils::MetaData,
 };
 
 #[derive(Debug)]

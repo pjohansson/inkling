@@ -12,12 +12,12 @@ use crate::{
     },
     error::{
         parse::{KnotError, ParseError, PreludeError, PreludeErrorKind},
+        utils::MetaData,
         KnotErrorKind, KnotNameError, ReadError,
     },
     knot::{parse_stitch_from_lines, read_knot_name, read_stitch_name, Knot, KnotSet, Stitch},
     line::{parse_variable, Variable},
     story::VariableSet,
-    utils::MetaData,
 };
 
 use std::collections::HashMap;

@@ -2,12 +2,11 @@
 
 use crate::{
     consts::GATHER_MARKER,
-    error::LineErrorKind,
+    error::{utils::MetaData, LineErrorKind},
     line::{
         parse::{parse_internal_line, parse_markers_and_text, split_at_divert_marker},
         ParsedLineKind,
     },
-    utils::MetaData,
 };
 
 /// Parse a `ParsedLineKind::Gather` from a line if the line represents a gather point.

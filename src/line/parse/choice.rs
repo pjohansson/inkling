@@ -2,7 +2,7 @@
 
 use crate::{
     consts::{CHOICE_MARKER, STICKY_CHOICE_MARKER},
-    error::LineErrorKind,
+    error::{utils::MetaData, LineErrorKind},
     line::{
         parse::{
             parse_choice_condition, parse_internal_line, parse_markers_and_text,
@@ -10,7 +10,6 @@ use crate::{
         },
         Content, InternalChoice, InternalChoiceBuilder, InternalLine, ParsedLineKind,
     },
-    utils::MetaData,
 };
 
 /// Parse a `ParsedLineKind::Choice` from a line if the line represents a choice.

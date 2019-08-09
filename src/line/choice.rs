@@ -1,8 +1,8 @@
 //! Choice which branches the story.
 
 use crate::{
+    error::utils::MetaData,
     line::{Condition, InternalLine},
-    utils::MetaData,
 };
 
 use std::{cell::RefCell, rc::Rc};

@@ -2,12 +2,11 @@
 
 use crate::{
     consts::DIVERT_MARKER,
-    error::LineError,
+    error::{utils::MetaData, LineError},
     line::{
         parse::{parse_choice, parse_gather, parse_internal_line},
         InternalChoice, InternalLine,
     },
-    utils::MetaData,
 };
 
 #[derive(Clone, Debug, PartialEq)]

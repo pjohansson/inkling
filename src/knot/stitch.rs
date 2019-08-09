@@ -16,11 +16,10 @@
 
 use crate::{
     consts::{KNOT_MARKER, RESERVED_KEYWORDS, STITCH_MARKER},
-    error::{KnotErrorKind, KnotNameError},
+    error::{utils::MetaData, KnotErrorKind, KnotNameError},
     follow::{EncounteredEvent, FollowData, FollowResult, LineDataBuffer},
     line::parse_line,
     node::{parse_root_node, Follow, RootNode, Stack},
-    utils::MetaData,
 };
 
 #[cfg(feature = "serde_support")]

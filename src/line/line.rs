@@ -1,10 +1,9 @@
 //! Structures for representing a single, whole line of `Ink` content.
 
 use crate::{
-    error::InvalidAddressError,
+    error::{utils::MetaData, InvalidAddressError},
     knot::{Address, ValidateAddressData, ValidateAddresses},
     line::{Alternative, Condition, Expression},
-    utils::MetaData,
 };
 
 #[cfg(feature = "serde_support")]

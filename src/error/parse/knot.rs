@@ -2,9 +2,9 @@
 
 use std::{error::Error, fmt};
 
-use crate::{
-    error::{parse::LineError, utils::write_line_information},
-    utils::MetaData,
+use crate::error::{
+    parse::LineError,
+    utils::{write_line_information, MetaData},
 };
 
 #[derive(Debug)]
