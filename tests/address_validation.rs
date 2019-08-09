@@ -4,7 +4,7 @@ use inkling::*;
 #[test]
 fn knot_names_in_diverts_are_validated() {
     let content = "
-    
+
 == duckburg
 -> bin
 
@@ -24,7 +24,7 @@ fn stitch_names_in_diverts_are_validated() {
     let content = "
 
 -> duckburg.bin
-    
+
 == duckburg
 = money_bin
 -> END
@@ -129,4 +129,26 @@ fn condition_addresses_are_validated() {
         Err(ReadError::InvalidAddress(..)) => (),
         _ => panic!(),
     }
+}
+
+#[test]
+fn addresses_in_choices_are_validated() {
+    let content = "
+
+VAR variable = 0
+
+*   This {variable} must not fail [] Nor this {variable}
+*   Diverts should be the same -> knot
+*   As should {variable == 0: addresses in conditions}
+
+== knot
+Empty knot.
+
+";
+
+    let story = read_story_from_string(content).unwrap();
+
+    let buffer = format!("{:?}", &story);
+
+    assert!(!buffer.contains("Raw("));
 }
