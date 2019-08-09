@@ -4,7 +4,10 @@ use std::{error::Error, fmt};
 
 use crate::{
     consts::{CHOICE_MARKER, STICKY_CHOICE_MARKER},
-    error::parse::{ConditionError, ExpressionError},
+    error::{
+        parse::{ConditionError, ExpressionError},
+        utils::write_line_information,
+    },
     utils::MetaData,
 };
 
@@ -56,25 +59,27 @@ impl fmt::Display for LineError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         use LineErrorKind::*;
 
+        write_line_information(f, &self.meta_data)?;
+
         match &self.kind {
-            ConditionError(err) => write!(f, "Could not parse a condition: {}", err),
-            BadExpression(err) => write!(f, "Could not parse an expression: {}", err),
-            EmptyDivert => write!(f, "Encountered a divert statement with no address",),
-            EmptyExpression => write!(f, "Found an empty embraced expression ({{}})"),
+            ConditionError(err) => write!(f, "could not parse a condition: {}", err),
+            BadExpression(err) => write!(f, "could not parse an expression: {}", err),
+            EmptyDivert => write!(f, "encountered a divert statement with no address",),
+            EmptyExpression => write!(f, "found an empty embraced expression ({{}})"),
             ExpectedEndOfLine { tail } => write!(
                 f,
-                "Expected no more content after a divert statement address but found '{}'",
+                "expected no more content after a divert statement address but found '{}'",
                 tail
             ),
             FoundTunnel => write!(
                 f,
-                "Found multiple divert markers in a line. In the `Ink` language this indicates \
+                "Found multiple divert markers. In the `Ink` language this indicates \
                  a `tunnel` for the story to pass through, but these are not yet implemented \
                  in `inkling`."
             ),
             InvalidAddress { address } => write!(
                 f,
-                "Found an invalid address to knot, stitch or variable '{}': \
+                "found an invalid address to knot, stitch or variable '{}': \
                  contains invalid characters",
                 address
             ),
@@ -84,10 +89,8 @@ impl fmt::Display for LineError {
                  choice markers. This is not allowed.",
                 CHOICE_MARKER, STICKY_CHOICE_MARKER
             ),
-            UnmatchedBraces => write!(f, "Line has unmatched curly '{{}}' braces"),
-            UnmatchedBrackets => write!(f, "Choice line has unmatched square '[]' brackets"),
-        }?;
-
-        write!(f, " (line: {}", &self.line)
+            UnmatchedBraces => write!(f, "line has unmatched curly '{{}}' braces"),
+            UnmatchedBrackets => write!(f, "choice line has unmatched square '[]' brackets"),
+        }
     }
 }

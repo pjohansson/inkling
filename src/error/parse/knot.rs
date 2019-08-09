@@ -6,10 +6,7 @@ use std::{
 };
 
 use crate::{
-    error::{
-        parse::LineError,
-        utils::{print_line_information, write_line_information},
-    },
+    error::{parse::LineError, utils::write_line_information},
     utils::MetaData,
 };
 
@@ -88,7 +85,8 @@ impl fmt::Display for KnotError {
         write!(
             f,
             "{} error(s) from parsing knot starting at line {}",
-            self.line_errors.len(), self.knot_meta_data.line_index + 1, 
+            self.line_errors.len(),
+            self.knot_meta_data.line_index + 1,
         )
     }
 }
@@ -103,30 +101,24 @@ impl fmt::Display for KnotErrorKind {
             EmptyStitch {
                 name: Some(name),
                 meta_data,
-            } => write!(
-                f,
-                "{} named stitch '{}' has no content",
-                print_line_information(meta_data),
-                name
-            ),
+            } => {
+                write_line_information(f, meta_data)?;
+                write!(f, "named stitch '{}' has no content", name)
+            }
             EmptyStitch {
                 name: None,
                 meta_data,
-            } => write!(
-                f,
-                "{} root stitch has no content",
-                print_line_information(meta_data)
-            ),
+            } => {
+                write_line_information(f, meta_data)?;
+                write!(f, "root stitch has no content",)
+            }
             InvalidName {
                 line,
                 kind,
                 meta_data,
             } => {
-                write!(
-                    f,
-                    "{} could not read knot or stitch name: ",
-                    print_line_information(meta_data)
-                )?;
+                write_line_information(f, meta_data)?;
+                write!(f, "could not read knot or stitch name: ",)?;
 
                 match kind {
                     ContainsWhitespace => {
