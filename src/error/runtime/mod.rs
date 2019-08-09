@@ -1,7 +1,7 @@
 #[macro_use]
-pub(crate) mod inkling;
+pub(crate) mod error;
 pub(crate) mod internal;
 pub mod variable;
 
-pub use inkling::InklingError;
+pub use error::InklingError;
 pub use internal::InternalError;

@@ -2,6 +2,9 @@
 
 use std::fmt;
 
+#[cfg(feature = "serde_support")]
+use serde::{Deserialize, Serialize};
+
 #[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
 /// Information about the origin of an item.
