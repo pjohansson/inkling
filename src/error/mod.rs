@@ -8,12 +8,3 @@ pub(crate) mod runtime;
 pub use parse::ReadError;
 pub use runtime::{variable, InklingError, InternalError};
 pub use utils::MetaData;
-
-pub(crate) use parse::{
-    ConditionError, ConditionErrorKind, InvalidAddressError, KnotErrorKind, KnotNameError,
-    LineError, LineErrorKind,
-};
-pub(crate) use runtime::{
-    internal::{IncorrectNodeStackError, ProcessError, ProcessErrorKind, StackError},
-    variable::{VariableError, VariableErrorKind},
-};

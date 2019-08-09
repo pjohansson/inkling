@@ -1,7 +1,7 @@
 //! Processing of nested line chunks into text content.
 
 use crate::{
-    error::{ProcessError, ProcessErrorKind},
+    error::runtime::internal::{ProcessError, ProcessErrorKind},
     follow::{EncounteredEvent, FollowData, LineDataBuffer, LineText},
     line::{evaluate_expression, Alternative, AlternativeKind, Content, InternalLine, LineChunk},
     process::check_condition,

@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     consts::{DONE_KNOT, END_KNOT},
-    error::{InternalError, InvalidAddressError},
+    error::{parse::address::InvalidAddressError, InternalError},
     follow::FollowData,
     knot::KnotSet,
     line::Variable,

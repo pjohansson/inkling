@@ -11,9 +11,13 @@ use crate::{
         ROOT_KNOT_NAME, STITCH_MARKER, TAG_MARKER, TODO_COMMENT_MARKER, VARIABLE_MARKER,
     },
     error::{
-        parse::{KnotError, ParseError, PreludeError, PreludeErrorKind},
+        parse::{
+            knot::{KnotError, KnotErrorKind, KnotNameError},
+            prelude::{PreludeError, PreludeErrorKind},
+            ParseError,
+        },
         utils::MetaData,
-        KnotErrorKind, KnotNameError, ReadError,
+        ReadError,
     },
     knot::{parse_stitch_from_lines, read_knot_name, read_stitch_name, Knot, KnotSet, Stitch},
     line::{parse_variable, Variable},

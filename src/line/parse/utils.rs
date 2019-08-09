@@ -1,6 +1,6 @@
 //! Utilities for parsing of lines.
 
-use crate::error::LineErrorKind;
+use crate::error::parse::line::LineErrorKind;
 
 use std::{iter::once, ops::Range};
 

@@ -1,7 +1,7 @@
 //! Content that alternates from a fixed set when processed.
 
 use crate::{
-    error::InvalidAddressError,
+    error::parse::address::InvalidAddressError,
     knot::{Address, ValidateAddressData, ValidateAddresses},
     line::LineChunk,
 };

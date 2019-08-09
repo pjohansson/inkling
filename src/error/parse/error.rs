@@ -2,7 +2,10 @@
 
 use std::{error::Error, fmt};
 
-use crate::error::parse::{print_parse_error, InvalidAddressError, ParseError};
+use crate::error::parse::{
+    address::InvalidAddressError,
+    parse::{print_parse_error, ParseError},
+};
 
 #[derive(Debug)]
 /// Errors from reading a story.

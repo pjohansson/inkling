@@ -3,7 +3,7 @@
 use std::{error::Error, fmt};
 
 use crate::error::{
-    parse::LineError,
+    parse::line::LineError,
     utils::{write_line_information, MetaData},
 };
 

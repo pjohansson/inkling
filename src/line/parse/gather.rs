@@ -2,7 +2,7 @@
 
 use crate::{
     consts::GATHER_MARKER,
-    error::{utils::MetaData, LineErrorKind},
+    error::{parse::line::LineErrorKind, utils::MetaData},
     line::{
         parse::{parse_internal_line, parse_markers_and_text, split_at_divert_marker},
         ParsedLineKind,

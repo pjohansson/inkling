@@ -2,7 +2,7 @@
 
 use crate::{
     consts::DIVERT_MARKER,
-    error::parse::{VariableError, VariableErrorKind},
+    error::parse::variable::{VariableError, VariableErrorKind},
     knot::Address,
     line::{parse::validate_address, Variable},
 };

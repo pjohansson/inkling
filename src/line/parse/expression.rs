@@ -1,9 +1,9 @@
 //! Parse `Expression` objects.
 
 use crate::{
-    error::{
-        parse::{ExpressionError, ExpressionErrorKind},
-        LineErrorKind,
+    error::parse::{
+        expression::{ExpressionError, ExpressionErrorKind},
+        line::LineErrorKind,
     },
     line::{
         expression::{apply_order_of_operations, Operand, Operator},

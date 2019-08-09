@@ -2,7 +2,7 @@
 
 use crate::{
     consts::{CHOICE_MARKER, STICKY_CHOICE_MARKER},
-    error::{utils::MetaData, LineErrorKind},
+    error::{parse::line::LineErrorKind, utils::MetaData},
     line::{
         parse::{
             parse_choice_condition, parse_internal_line, parse_markers_and_text,

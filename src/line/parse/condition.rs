@@ -3,7 +3,10 @@
 use std::cmp::Ordering;
 
 use crate::{
-    error::{ConditionError, ConditionErrorKind, LineErrorKind},
+    error::parse::{
+        condition::{ConditionError, ConditionErrorKind},
+        line::LineErrorKind,
+    },
     line::{
         parse::{
             parse_variable, split_line_at_separator_braces, split_line_at_separator_parenthesis,

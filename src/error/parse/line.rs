@@ -5,7 +5,7 @@ use std::{error::Error, fmt};
 use crate::{
     consts::{CHOICE_MARKER, STICKY_CHOICE_MARKER},
     error::{
-        parse::{ConditionError, ExpressionError},
+        parse::{condition::ConditionError, expression::ExpressionError},
         utils::{write_line_information, MetaData},
     },
 };

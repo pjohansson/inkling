@@ -3,7 +3,7 @@
 use std::{error::Error, fmt};
 
 use crate::{
-    error::runtime::{internal::StackError, InternalError, VariableError},
+    error::{runtime::internal::StackError, variable::VariableError, InternalError},
     knot::{Address, AddressKind},
     line::Variable,
     story::Choice,

@@ -2,7 +2,7 @@
 
 use crate::{
     consts::{CYCLE_MARKER, ONCE_ONLY_MARKER, SEQUENCE_SEPARATOR, SHUFFLE_MARKER},
-    error::LineErrorKind,
+    error::parse::line::LineErrorKind,
     line::{
         parse::{parse_chunk, split_line_at_separator_braces},
         Alternative, AlternativeBuilder, AlternativeKind,

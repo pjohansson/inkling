@@ -5,7 +5,10 @@ use std::{
     fmt::{self, Write},
 };
 
-use crate::error::parse::{knot::write_knot_error, KnotError, PreludeError};
+use crate::error::parse::{
+    knot::{write_knot_error, KnotError},
+    prelude::PreludeError,
+};
 
 impl Error for ParseError {}
 

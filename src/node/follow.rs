@@ -1,7 +1,7 @@
 //! Processing nested story content by following, or walking through, it.
 
 use crate::{
-    error::{IncorrectNodeStackError, InternalError},
+    error::{runtime::internal::IncorrectNodeStackError, InternalError},
     follow::{ChoiceInfo, EncounteredEvent, FollowData, FollowResult, LineDataBuffer},
     knot::increment_num_visited,
     node::{Branch, NodeItem, RootNode},

@@ -2,7 +2,7 @@
 
 use crate::{
     consts::ROOT_KNOT_NAME,
-    error::{InklingError, ReadError, StackError},
+    error::{runtime::internal::StackError, InklingError, ReadError},
     follow::{ChoiceInfo, EncounteredEvent, FollowData, LineDataBuffer},
     knot::{
         get_empty_knot_counts, get_mut_stitch, get_num_visited, validate_addresses_in_knots,

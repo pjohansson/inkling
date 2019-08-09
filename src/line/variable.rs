@@ -1,7 +1,11 @@
 //! Types of variables used in a story.
 
 use crate::{
-    error::{InklingError, InternalError, InvalidAddressError, VariableError, VariableErrorKind},
+    error::{
+        parse::address::InvalidAddressError,
+        variable::{VariableError, VariableErrorKind},
+        InklingError, InternalError,
+    },
     follow::FollowData,
     knot::{get_num_visited, Address, AddressKind, ValidateAddressData, ValidateAddresses},
 };

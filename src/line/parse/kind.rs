@@ -2,7 +2,7 @@
 
 use crate::{
     consts::DIVERT_MARKER,
-    error::{utils::MetaData, LineError},
+    error::{parse::line::LineError, utils::MetaData},
     line::{
         parse::{parse_choice, parse_gather, parse_internal_line},
         InternalChoice, InternalLine,

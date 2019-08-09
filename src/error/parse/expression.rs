@@ -2,7 +2,7 @@
 
 use std::{error::Error, fmt};
 
-use crate::error::parse::VariableError;
+use crate::error::parse::variable::VariableError;
 
 #[derive(Debug)]
 /// Error from parsing `Expression` objects from strings.

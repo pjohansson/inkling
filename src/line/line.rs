@@ -1,7 +1,7 @@
 //! Structures for representing a single, whole line of `Ink` content.
 
 use crate::{
-    error::{utils::MetaData, InvalidAddressError},
+    error::{parse::address::InvalidAddressError, utils::MetaData},
     knot::{Address, ValidateAddressData, ValidateAddresses},
     line::{Alternative, Condition, Expression},
 };

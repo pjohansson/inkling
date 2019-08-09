@@ -1,7 +1,10 @@
 //! Checking of `Condition`s which determine whether content will be displayed.
 
 use crate::{
-    error::{InklingError, VariableError, VariableErrorKind},
+    error::{
+        variable::{VariableError, VariableErrorKind},
+        InklingError,
+    },
     follow::FollowData,
     line::{Condition, StoryCondition, Variable},
 };

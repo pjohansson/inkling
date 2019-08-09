@@ -2,7 +2,7 @@
 
 use crate::{
     consts::{DIVERT_MARKER, GLUE_MARKER, TAG_MARKER},
-    error::{utils::MetaData, LineErrorKind},
+    error::{parse::line::LineErrorKind, utils::MetaData},
     knot::Address,
     line::{
         parse::{

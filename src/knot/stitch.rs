@@ -16,7 +16,10 @@
 
 use crate::{
     consts::{KNOT_MARKER, RESERVED_KEYWORDS, STITCH_MARKER},
-    error::{utils::MetaData, KnotErrorKind, KnotNameError},
+    error::{
+        parse::knot::{KnotErrorKind, KnotNameError},
+        utils::MetaData,
+    },
     follow::{EncounteredEvent, FollowData, FollowResult, LineDataBuffer},
     line::parse_line,
     node::{parse_root_node, Follow, RootNode, Stack},
@@ -204,7 +207,7 @@ mod tests {
     use super::*;
 
     use crate::{
-        error::LineError,
+        error::parse::line::LineError,
         knot::{get_num_visited, Address},
         line::{InternalLine, ParsedLineKind},
     };
