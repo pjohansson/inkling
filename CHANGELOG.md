@@ -15,6 +15,7 @@
 *   Parsing a story now returns all encountered parsing errors at once (if any), instead of just the first. This happens before validation, which is a separate step.
 *   All validation errors are returned as a set instead of individually.
 *   Add `print_read_error` function to describe all encountered parsing errors with line numbers.
+*   Fix bug where location and variable addresses were not validated in choice lines.
 
 # 0.11.0
 
