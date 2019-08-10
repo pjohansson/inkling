@@ -91,11 +91,6 @@ impl ValidateAddresses for Branch {
         self.choice
             .validate(errors, meta_data, current_address, data);
 
-        self.choice
-            .condition
-            .iter_mut()
-            .for_each(|item| item.validate(errors, meta_data, current_address, data));
-
         self.items
             .iter_mut()
             .for_each(|item| item.validate(errors, meta_data, current_address, data));
