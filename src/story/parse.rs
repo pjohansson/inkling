@@ -36,32 +36,19 @@ pub fn read_story_content_from_string(
         .map(|(line, line_index)| (line, MetaData { line_index }))
         .collect::<Vec<_>>();
 
-    let content_lines = remove_empty_and_comment_lines(all_lines);
+    let mut content_lines = remove_empty_and_comment_lines(all_lines);
 
-    let (prelude_and_root, knot_lines) = split_lines_into_prelude_and_knots(&content_lines);
-    let (prelude_lines, root_lines) = split_prelude_into_metadata_and_text(&prelude_and_root);
+    let (root_knot, variables, tags, prelude_errors) =
+        split_off_and_parse_prelude(&mut content_lines)?;
 
-    let mut knot_errors = Vec::new();
+    let (mut knots, mut knot_errors) = parse_knots_from_lines(content_lines);
 
-    let root_meta_data = root_lines
-        .first()
-        .or(knot_lines.first())
-        .or(prelude_lines.last())
-        .map(|(_, meta_data)| meta_data.clone())
-        .ok_or(ReadError::Empty)?;
-
-    let root_knot = parse_root_knot_from_lines(root_lines, root_meta_data)
-        .map_err(|error| knot_errors.push(error));
-
-    let (mut knots, knot_errors_from_parsing) = parse_knots_from_lines(knot_lines);
-    knot_errors.extend(knot_errors_from_parsing);
-
-    if let Ok(knot) = root_knot {
-        knots.insert(ROOT_KNOT_NAME.to_string(), knot);
+    match root_knot {
+        Ok(knot) => {
+            knots.insert(ROOT_KNOT_NAME.to_string(), knot);
+        }
+        Err(knot_error) => knot_errors.insert(0, knot_error),
     }
-
-    let tags = parse_global_tags(&prelude_lines);
-    let (variables, prelude_errors) = parse_global_variables(&prelude_lines);
 
     if knot_errors.is_empty() && prelude_errors.is_empty() {
         Ok((knots, variables, tags))
@@ -72,6 +59,43 @@ pub fn read_story_content_from_string(
         }
         .into())
     }
+}
+
+/// Split off lines until the first named knot then parse its content and root knot.
+/// 
+/// After this function has been called, the given set of lines starts at the first named 
+/// knot.
+/// 
+/// Will return an error only if there is no story content in the given list. Prelude errors 
+/// are collected into a list which is returned in the `Ok` value. Any errors from parsing 
+/// the root knot is returned in that item. This is all because we want to collect all 
+/// encountered errors from parsing the story at once, not just the first. 
+fn split_off_and_parse_prelude(
+    lines: &mut Vec<(&str, MetaData)>,
+) -> Result<
+    (
+        Result<Knot, KnotError>,
+        VariableSet,
+        Vec<String>,
+        Vec<PreludeError>,
+    ),
+    ReadError,
+> {
+    let prelude_and_root = split_off_prelude_lines(lines);
+    let (prelude_lines, root_lines) = split_prelude_into_metadata_and_text(&prelude_and_root);
+
+    let root_meta_data = root_lines
+        .first()
+        .or(lines.first())
+        .or(prelude_lines.last())
+        .map(|(_, meta_data)| meta_data.clone())
+        .ok_or(ReadError::Empty)?;
+
+    let tags = parse_global_tags(&prelude_lines);
+    let (variables, prelude_errors) = parse_global_variables(&prelude_lines);
+    let root_knot = parse_root_knot_from_lines(root_lines, root_meta_data);
+
+    Ok((root_knot, variables, tags, prelude_errors))
 }
 
 /// Parse all knots from a set of lines and return along with any encountered errors.
@@ -378,18 +402,13 @@ fn remove_empty_and_comment_lines(content: Vec<(&str, MetaData)>) -> Vec<(&str, 
 /// Split given list of lines into a prelude and knot content.
 ///
 /// The prelude contains metadata and the root knot, which the story will start from.
-fn split_lines_into_prelude_and_knots<'a>(
-    lines: &[(&'a str, MetaData)],
-) -> (Vec<(&'a str, MetaData)>, Vec<(&'a str, MetaData)>) {
-    if let Some(i) = lines
+fn split_off_prelude_lines<'a>(lines: &mut Vec<(&'a str, MetaData)>) -> Vec<(&'a str, MetaData)> {
+    let i = lines
         .iter()
         .position(|(line, _)| line.trim_start().starts_with(KNOT_MARKER))
-    {
-        let (prelude, knots) = lines.split_at(i);
-        (prelude.to_vec(), knots.to_vec())
-    } else {
-        (lines.to_vec(), Vec::new())
-    }
+        .unwrap_or(lines.len());
+
+    lines.drain(..i).collect()
 }
 
 /// Split prelude content into metadata and root text content.
@@ -523,17 +542,34 @@ pub mod tests {
     }
 
     #[test]
-    fn split_lines_into_knots_and_prelude() {
-        let lines = &[
+    fn split_lines_into_knots_and_preludes_drains_nothing_if_knots_begin_at_index_zero() {
+        let mut lines = enumerate(&["=== knot ==="]);
+
+        assert!(split_off_prelude_lines(&mut lines).is_empty());
+        assert_eq!(&denumerate(lines), &["=== knot ==="]);
+    }
+
+    #[test]
+    fn split_lines_into_knots_and_prelude_drains_all_items_if_knot_is_never_encountered() {
+        let mut lines = enumerate(&["No knot here, just prelude content"]);
+
+        split_off_prelude_lines(&mut lines);
+
+        assert!(lines.is_empty());
+    }
+
+    #[test]
+    fn split_lines_into_knots_and_prelude_drains_lines_up_until_first_knot() {
+        let mut lines = enumerate(&[
             "Prelude content ",
             "comes before ",
             "the first named knot.",
             "",
             "=== here ===",
             "Line one.",
-        ];
+        ]);
 
-        let (prelude, knots) = split_lines_into_prelude_and_knots(&enumerate(lines));
+        let prelude = split_off_prelude_lines(&mut lines);
 
         assert_eq!(
             &denumerate(prelude),
@@ -544,7 +580,7 @@ pub mod tests {
                 ""
             ]
         );
-        assert_eq!(&denumerate(knots), &["=== here ===", "Line one."]);
+        assert_eq!(&denumerate(lines), &["=== here ===", "Line one."]);
     }
 
     #[test]
