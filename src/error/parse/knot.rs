@@ -19,6 +19,24 @@ pub struct KnotError {
 #[derive(Debug)]
 /// Error from parsing a `Knot` or `Stitch` in a story.
 pub enum KnotErrorKind {
+    /// Duplicate knot name was found in a story.
+    DuplicateKnotName {
+        /// Name of duplicate stitch.
+        name: String,
+        /// Information about the origin of the line of the original knot with this name.
+        prev_meta_data: MetaData,
+    },
+    /// Duplicate stitch name was found in a knot.
+    DuplicateStitchName {
+        /// Name of duplicate stitch.
+        name: String,
+        /// Name of knot that contains the stitches.
+        knot_name: String,
+        /// Information about the origin of the line that caused this error.
+        meta_data: MetaData,
+        /// Information about the origin of the line of the original stitch with this name.
+        prev_meta_data: MetaData,
+    },
     /// Knot has no content.
     EmptyKnot,
     /// Stitch in knot has no content.
@@ -76,8 +94,11 @@ impl_from_error![
 pub(crate) fn write_knot_error<W: fmt::Write>(buffer: &mut W, error: &KnotError) -> fmt::Result {
     for line_error in &error.line_errors {
         match line_error {
-            // All error kinds except `EmptyKnot` carries their own `MetaData` to use
+            // All error kinds except these carry their own `MetaData` to use
             KnotErrorKind::EmptyKnot => {
+                write_line_information(buffer, &error.knot_meta_data)?;
+            }
+            KnotErrorKind::DuplicateKnotName { .. } => {
                 write_line_information(buffer, &error.knot_meta_data)?;
             }
             _ => (),
@@ -105,6 +126,27 @@ impl fmt::Display for KnotErrorKind {
         use KnotErrorKind::*;
 
         match self {
+            DuplicateKnotName {
+                name,
+                prev_meta_data,
+            } => write!(
+                f,
+                "encountered another knot with name '{}' in the story (previous at {})",
+                name, prev_meta_data
+            ),
+            DuplicateStitchName {
+                name,
+                knot_name,
+                meta_data,
+                prev_meta_data,
+            } => {
+                write_line_information(f, meta_data)?;
+                write!(
+                    f,
+                    "encountered another stitch with name '{}' in knot '{}' (previous at {})",
+                    name, knot_name, prev_meta_data
+                )
+            }
             EmptyKnot => write!(f, "knot has no content"),
             EmptyStitch {
                 name: Some(name),

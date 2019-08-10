@@ -62,14 +62,14 @@ pub fn read_story_content_from_string(
 }
 
 /// Split off lines until the first named knot then parse its content and root knot.
-/// 
-/// After this function has been called, the given set of lines starts at the first named 
+///
+/// After this function has been called, the given set of lines starts at the first named
 /// knot.
-/// 
-/// Will return an error only if there is no story content in the given list. Prelude errors 
-/// are collected into a list which is returned in the `Ok` value. Any errors from parsing 
-/// the root knot is returned in that item. This is all because we want to collect all 
-/// encountered errors from parsing the story at once, not just the first. 
+///
+/// Will return an error only if there is no story content in the given list. Prelude errors
+/// are collected into a list which is returned in the `Ok` value. Any errors from parsing
+/// the root knot is returned in that item. This is all because we want to collect all
+/// encountered errors from parsing the story at once, not just the first.
 fn split_off_and_parse_prelude(
     lines: &mut Vec<(&str, MetaData)>,
 ) -> Result<
@@ -102,17 +102,31 @@ fn split_off_and_parse_prelude(
 fn parse_knots_from_lines(lines: Vec<(&str, MetaData)>) -> (KnotSet, Vec<KnotError>) {
     let knot_line_sets = divide_lines_at_marker(lines, KNOT_MARKER);
 
-    let mut knots = Vec::new();
+    let mut knots = HashMap::new();
     let mut knot_errors = Vec::new();
 
     for lines in knot_line_sets.into_iter().filter(|lines| !lines.is_empty()) {
         match get_knot_from_lines(lines) {
-            Ok(knot) => knots.push(knot),
+            Ok((knot_name, knot_data)) => {
+                if !knots.contains_key(&knot_name) {
+                    knots.insert(knot_name, knot_data);
+                } else {
+                    let prev_meta_data = knots.get(&knot_name).unwrap().meta_data.clone();
+
+                    knot_errors.push(KnotError {
+                        knot_meta_data: knot_data.meta_data.clone(),
+                        line_errors: vec![KnotErrorKind::DuplicateKnotName {
+                            name: knot_name,
+                            prev_meta_data,
+                        }],
+                    });
+                }
+            }
             Err(error) => knot_errors.push(error),
         }
     }
 
-    (knots.into_iter().collect(), knot_errors)
+    (knots, knot_errors)
 }
 
 /// Parse the root knot from a set of lines.
@@ -120,11 +134,9 @@ fn parse_root_knot_from_lines(
     lines: Vec<(&str, MetaData)>,
     meta_data: MetaData,
 ) -> Result<Knot, KnotError> {
-    let (stitch_data, line_errors) = get_stitches_from_lines(lines, ROOT_KNOT_NAME);
+    let (_, stitches, line_errors) = get_stitches_from_lines(lines, ROOT_KNOT_NAME);
 
     if line_errors.is_empty() {
-        let stitches = stitch_data.into_iter().collect::<HashMap<String, Stitch>>();
-
         Ok(Knot {
             default_stitch: ROOT_KNOT_NAME.to_string(),
             stitches,
@@ -171,16 +183,14 @@ fn get_knot_from_lines(lines: Vec<(&str, MetaData)>) -> Result<(String, Knot), K
 
     let tags = get_knot_tags(&mut tail);
 
-    let (stitch_data, stitch_errors) = get_stitches_from_lines(tail, &knot_name);
+    let (default_stitch, stitches, stitch_errors) = get_stitches_from_lines(tail, &knot_name);
     line_errors.extend(stitch_errors);
 
-    if line_errors.is_empty() {
-        let (default_stitch, stitches) = get_default_stitch_and_hash_map_tuple(stitch_data);
-
+    if default_stitch.is_some() && line_errors.is_empty() {
         Ok((
             knot_name,
             Knot {
-                default_stitch,
+                default_stitch: default_stitch.unwrap(),
                 stitches,
                 tags,
                 meta_data: knot_meta_data.clone(),
@@ -198,10 +208,11 @@ fn get_knot_from_lines(lines: Vec<(&str, MetaData)>) -> Result<(String, Knot), K
 fn get_stitches_from_lines(
     lines: Vec<(&str, MetaData)>,
     knot_name: &str,
-) -> (Vec<(String, Stitch)>, Vec<KnotErrorKind>) {
+) -> (Option<String>, HashMap<String, Stitch>, Vec<KnotErrorKind>) {
     let knot_stitch_sets = divide_lines_at_marker(lines, STITCH_MARKER);
 
-    let mut stitch_data = Vec::new();
+    let mut default_stitch = None;
+    let mut stitches = HashMap::new();
     let mut line_errors = Vec::new();
 
     for (stitch_index, lines) in knot_stitch_sets
@@ -210,12 +221,29 @@ fn get_stitches_from_lines(
         .filter(|(_, lines)| !lines.is_empty())
     {
         match get_stitch_from_lines(lines, stitch_index, knot_name) {
-            Ok(data) => stitch_data.push(data),
+            Ok((name, stitch)) => {
+                if default_stitch.is_none() {
+                    default_stitch.replace(name.clone());
+                }
+
+                if !stitches.contains_key(&name) {
+                    stitches.insert(name, stitch);
+                } else {
+                    let prev_meta_data = stitches.get(&name).unwrap().meta_data.clone();
+
+                    line_errors.push(KnotErrorKind::DuplicateStitchName {
+                        name: name,
+                        knot_name: knot_name.to_string(),
+                        meta_data: stitch.meta_data.clone(),
+                        prev_meta_data,
+                    });
+                }
+            }
             Err(errors) => line_errors.extend(errors),
         }
     }
 
-    (stitch_data, line_errors)
+    (default_stitch, stitches, line_errors)
 }
 
 /// Parse a single `Stitch` from a set of lines.
@@ -315,20 +343,6 @@ fn get_stitch_identifier(name: Option<String>, stitch_index: usize) -> String {
              should not be possible."
         ),
     }
-}
-
-/// Collect stitches in a map and return along with the root stitch name.
-///
-/// Assumes that the given data has at least one element, which we assert before calling this.
-fn get_default_stitch_and_hash_map_tuple(
-    stitch_data: Vec<(String, Stitch)>,
-) -> (String, HashMap<String, Stitch>) {
-    let default_name = stitch_data.first().map(|(name, _)| name.clone()).expect(
-        "`get_default_stitch_and_hash_map_tuple` should never be called with an empty set, \
-         but somehow it was",
-    );
-
-    (default_name, stitch_data.into_iter().collect())
 }
 
 /// Parse knot tags from lines until the first line with content.
@@ -1127,5 +1141,48 @@ Line one.
 ";
 
         assert!(read_story_content_from_string(content).is_err());
+    }
+
+    #[test]
+    fn reading_story_content_yields_error_if_duplicate_stitch_names_are_found_in_one_knot() {
+        let content = "\
+== knot
+= stitch
+Line one.
+= stitch 
+Line two.
+";
+
+        match read_story_content_from_string(content) {
+            Err(ReadError::ParseError(err)) => match &err.knot_errors[0].line_errors[0] {
+                KnotErrorKind::DuplicateStitchName { .. } => (),
+                other => panic!(
+                    "expected `KnotErrorKind::DuplicateStitchName` but got {:?}",
+                    other
+                ),
+            },
+            other => panic!("expected `ReadError::ParseError` but got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn reading_story_content_yields_error_if_duplicate_knot_names_are_found() {
+        let content = "\
+== knot
+Line one.
+== knot 
+Line two.
+";
+
+        match read_story_content_from_string(content) {
+            Err(ReadError::ParseError(err)) => match &err.knot_errors[0].line_errors[0] {
+                KnotErrorKind::DuplicateKnotName { .. } => (),
+                other => panic!(
+                    "expected `KnotErrorKind::DuplicateKnotName` but got {:?}",
+                    other
+                ),
+            },
+            other => panic!("expected `ReadError::ParseError` but got {:?}", other),
+        }
     }
 }
