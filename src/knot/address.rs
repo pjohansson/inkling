@@ -218,10 +218,18 @@ impl ValidateAddresses for Address {
         data: &ValidateAddressData,
     ) {
         if let Err(kind) = self.validate_internal(current_address, data) {
-            errors.push(InvalidAddressError {
+            let error = InvalidAddressError {
                 kind,
                 meta_data: meta_data.clone(),
-            });
+            };
+
+            if errors
+                .last()
+                .map(|last_err| last_err != &error)
+                .unwrap_or(true)
+            {
+                errors.push(error);
+            }
         }
     }
 
