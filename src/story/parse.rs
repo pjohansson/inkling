@@ -53,21 +53,18 @@ pub fn read_story_content_from_string(
     let root_knot = parse_root_knot_from_lines(root_lines, root_meta_data)
         .map_err(|error| knot_errors.push(error));
 
-    let knots = parse_knots_from_lines(knot_lines)
-        .map(|mut knots| {
-            if let Ok(knot) = root_knot {
-                knots.insert(ROOT_KNOT_NAME.to_string(), knot);
-            }
+    let (mut knots, knot_errors_from_parsing) = parse_knots_from_lines(knot_lines);
+    knot_errors.extend(knot_errors_from_parsing);
 
-            knots
-        })
-        .map_err(|errors| knot_errors.extend(errors));
+    if let Ok(knot) = root_knot {
+        knots.insert(ROOT_KNOT_NAME.to_string(), knot);
+    }
 
     let tags = parse_global_tags(&prelude_lines);
     let (variables, prelude_errors) = parse_global_variables(&prelude_lines);
 
-    if knots.is_ok() && knot_errors.is_empty() && prelude_errors.is_empty() {
-        Ok((knots.unwrap(), variables, tags))
+    if knot_errors.is_empty() && prelude_errors.is_empty() {
+        Ok((knots, variables, tags))
     } else {
         Err(ParseError {
             knot_errors,
@@ -77,8 +74,8 @@ pub fn read_story_content_from_string(
     }
 }
 
-/// Parse all knots from a set of lines.
-fn parse_knots_from_lines(lines: Vec<(&str, MetaData)>) -> Result<KnotSet, Vec<KnotError>> {
+/// Parse all knots from a set of lines and return along with any encountered errors.
+fn parse_knots_from_lines(lines: Vec<(&str, MetaData)>) -> (KnotSet, Vec<KnotError>) {
     let knot_line_sets = divide_lines_at_marker(lines, KNOT_MARKER);
 
     let mut knots = Vec::new();
@@ -91,11 +88,7 @@ fn parse_knots_from_lines(lines: Vec<(&str, MetaData)>) -> Result<KnotSet, Vec<K
         }
     }
 
-    if knot_errors.is_empty() {
-        Ok(knots.into_iter().collect())
-    } else {
-        Err(knot_errors)
-    }
+    (knots.into_iter().collect(), knot_errors)
 }
 
 /// Parse the root knot from a set of lines.
@@ -103,18 +96,23 @@ fn parse_root_knot_from_lines(
     lines: Vec<(&str, MetaData)>,
     meta_data: MetaData,
 ) -> Result<Knot, KnotError> {
-    get_stitches_from_lines(lines, ROOT_KNOT_NAME)
-        .map(|stitch_data| stitch_data.into_iter().collect())
-        .map(|stitches| Knot {
+    let (stitch_data, line_errors) = get_stitches_from_lines(lines, ROOT_KNOT_NAME);
+
+    if line_errors.is_empty() {
+        let stitches = stitch_data.into_iter().collect::<HashMap<String, Stitch>>();
+
+        Ok(Knot {
             default_stitch: ROOT_KNOT_NAME.to_string(),
             stitches,
             tags: Vec::new(),
-            meta_data: meta_data.clone(),
+            meta_data,
         })
-        .map_err(|line_errors| KnotError {
-            knot_meta_data: meta_data.clone(),
+    } else {
+        Err(KnotError {
+            knot_meta_data: meta_data,
             line_errors,
         })
+    }
 }
 
 /// Parse a single `Knot` from a set of lines.
@@ -149,12 +147,10 @@ fn get_knot_from_lines(lines: Vec<(&str, MetaData)>) -> Result<(String, Knot), K
 
     let tags = get_knot_tags(&mut tail);
 
-    let stitch_data_result =
-        get_stitches_from_lines(tail, &knot_name).map_err(|errors| line_errors.extend(errors));
+    let (stitch_data, stitch_errors) = get_stitches_from_lines(tail, &knot_name);
+    line_errors.extend(stitch_errors);
 
-    if stitch_data_result.is_ok() && line_errors.is_empty() {
-        let stitch_data = stitch_data_result.unwrap();
-
+    if line_errors.is_empty() {
         let (default_stitch, stitches) = get_default_stitch_and_hash_map_tuple(stitch_data);
 
         Ok((
@@ -174,11 +170,11 @@ fn get_knot_from_lines(lines: Vec<(&str, MetaData)>) -> Result<(String, Knot), K
     }
 }
 
-/// Parse all stitches from a set of lines.
+/// Parse all stitches from a set of lines and return along with encountered errors.
 fn get_stitches_from_lines(
     lines: Vec<(&str, MetaData)>,
     knot_name: &str,
-) -> Result<Vec<(String, Stitch)>, Vec<KnotErrorKind>> {
+) -> (Vec<(String, Stitch)>, Vec<KnotErrorKind>) {
     let knot_stitch_sets = divide_lines_at_marker(lines, STITCH_MARKER);
 
     let mut stitch_data = Vec::new();
@@ -195,11 +191,7 @@ fn get_stitches_from_lines(
         }
     }
 
-    if line_errors.is_empty() {
-        Ok(stitch_data)
-    } else {
-        Err(line_errors)
-    }
+    (stitch_data, line_errors)
 }
 
 /// Parse a single `Stitch` from a set of lines.
@@ -508,7 +500,13 @@ pub mod tests {
             .map(|(i, line)| (line, MetaData::from(i)))
             .collect();
 
-        parse_knots_from_lines(lines)
+        let (knots, knot_errors) = parse_knots_from_lines(lines);
+
+        if knot_errors.is_empty() {
+            Ok(knots)
+        } else {
+            Err(knot_errors)
+        }
     }
 
     fn enumerate<'a>(lines: &[&'a str]) -> Vec<(&'a str, MetaData)> {
