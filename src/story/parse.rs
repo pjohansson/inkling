@@ -454,32 +454,21 @@ fn parse_global_variables(
         .map(|(line, meta_data)| (line.trim(), meta_data))
         .filter(|(line, _)| line.starts_with(VARIABLE_MARKER))
     {
-        match parse_variable_with_name(line) {
-            Ok((name, var)) => {
-                variables.insert(name, var);
+        if let Err(kind) = parse_variable_with_name(line).and_then(|(name, variable)| {
+            match variables.insert(name.clone(), variable) {
+                Some(_) => Err(PreludeErrorKind::DuplicateVariable { name }),
+                None => Ok(()),
             }
-            Err(kind) => errors.push(PreludeError {
+        }) {
+            errors.push(PreludeError {
                 line: line.to_string(),
                 kind,
                 meta_data: meta_data.clone(),
-            }),
+            });
         }
     }
 
     (variables, errors)
-
-    // lines
-    //     .iter()
-    //     .map(|(line, meta_data)| (line.trim(), meta_data))
-    //     .filter(|(line, _)| line.starts_with(VARIABLE_MARKER))
-    //     .map(|(line, meta_data)| {
-    //         parse_variable_with_name(line).map_err(|kind| PreludeError {
-    //             line: line.to_string(),
-    //             kind,
-    //             meta_data: meta_data.clone(),
-    //         })
-    //     })
-    //     .collect()
 }
 
 /// Parse a single variable line into the variable name and initial value.
@@ -626,6 +615,15 @@ pub mod tests {
             variables.get("string").unwrap(),
             &Variable::String("two words".to_string())
         );
+    }
+
+    #[test]
+    fn two_variables_with_same_name_yields_error() {
+        let lines = &["VAR variable = 1.0", "VAR variable = \"two words\""];
+
+        let (_, errors) = parse_global_variables(&enumerate(lines));
+
+        assert_eq!(errors.len(), 1);
     }
 
     #[test]

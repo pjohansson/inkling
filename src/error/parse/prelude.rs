@@ -21,6 +21,8 @@ pub struct PreludeError {
 #[derive(Debug)]
 /// Variant of error from parsing the prelude.
 pub enum PreludeErrorKind {
+    /// Variable with given name was defined multiple times.
+    DuplicateVariable { name: String },
     /// Could not parse a global variable.
     InvalidVariable(VariableError),
     /// No `=` sign was find in a variable assignment line.
@@ -61,6 +63,9 @@ impl fmt::Display for PreludeErrorKind {
         use PreludeErrorKind::*;
 
         match &self {
+            DuplicateVariable { name } => {
+                write!(f, "found second definition of global variable '{}'", name)
+            }
             InvalidVariable(err) => write!(f, "could not parse variable: {}", err),
             NoVariableAssignment => write!(f, "no variable assignment ('=') in line"),
             NoVariableName => write!(f, "no variable name in line"),
