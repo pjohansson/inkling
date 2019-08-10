@@ -9,6 +9,7 @@ pub mod line;
 mod parse;
 pub mod prelude;
 pub mod variable;
+pub(crate) mod validate;
 
 pub use error::{print_read_error, ReadError};
 pub use parse::ParseError;

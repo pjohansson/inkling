@@ -33,9 +33,13 @@ pub enum InternalError {
     CouldNotProcess(ProcessError),
     /// Selected branch index does not exist.
     IncorrectChoiceIndex {
+        /// Selection index.
         selection: usize,
+        /// Available choices at the branching point.
         available_choices: Vec<ChoiceInfo>,
+        /// Index in `stack` where the error occurred.
         stack_index: usize,
+        /// Stack of choices from the root node to the branching point.
         stack: Stack,
     },
     /// Current stack is not properly representing the graph or has some indexing problems.

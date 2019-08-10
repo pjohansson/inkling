@@ -2,7 +2,7 @@
 
 use std::{error::Error, fmt};
 
-use crate::{error::utils::MetaData, knot::Address};
+use crate::{error::utils::{write_line_information, MetaData}, knot::Address};
 
 #[derive(Clone, Debug)]
 /// Error for an invalid address in a story.
@@ -46,6 +46,7 @@ impl Error for InvalidAddressErrorKind {}
 
 impl fmt::Display for InvalidAddressError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write_line_information(f, &self.meta_data)?;
         write!(f, "Invalid address: {}", self.kind)
     }
 }
