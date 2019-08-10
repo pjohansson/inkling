@@ -74,7 +74,13 @@ impl ValidateAddresses for InternalChoice {
 
     #[cfg(test)]
     fn all_addresses_are_valid(&self) -> bool {
-        unimplemented!();
+        self.selection_text.borrow().all_addresses_are_valid()
+            && self.display_text.all_addresses_are_valid()
+            && self
+                .condition
+                .as_ref()
+                .map(|condition| condition.all_addresses_are_valid())
+                .unwrap_or(true)
     }
 }
 
