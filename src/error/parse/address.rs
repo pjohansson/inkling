@@ -7,7 +7,7 @@ use crate::{
     knot::Address,
 };
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 /// Error for an invalid address in a story.
 pub struct InvalidAddressError {
     /// Error variant.
@@ -16,7 +16,7 @@ pub struct InvalidAddressError {
     pub meta_data: MetaData,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 /// A divert (or other address) in the story is invalid.
 pub enum InvalidAddressErrorKind {
     /// The address is not formatted correctly.
