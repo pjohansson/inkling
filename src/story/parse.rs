@@ -1090,4 +1090,42 @@ VAR = 0
             other => panic!("expected `ReadError::ParseError` but got {:?}", other),
         }
     }
+
+    #[test]
+    fn reading_story_content_works_if_content_only_has_text() {
+        let content = "\
+Line one.
+";
+
+        assert!(read_story_content_from_string(content).is_ok());
+    }
+
+    #[test]
+    fn reading_story_content_works_if_content_starts_with_knot() {
+        let content = "\
+=== knot ===
+Line one.
+";
+
+        assert!(read_story_content_from_string(content).is_ok());
+    }
+
+    #[test]
+    fn reading_story_content_does_not_work_if_knot_has_no_content() {
+        let content = "\
+=== knot ===
+";
+
+        assert!(read_story_content_from_string(content).is_err());
+    }
+
+    #[test]
+    fn reading_story_content_does_not_work_if_stitch_has_no_content() {
+        let content = "\
+=== knot ===
+= stitch
+";
+
+        assert!(read_story_content_from_string(content).is_err());
+    }
 }
