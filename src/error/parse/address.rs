@@ -2,7 +2,10 @@
 
 use std::{error::Error, fmt};
 
-use crate::{error::utils::{write_line_information, MetaData}, knot::Address};
+use crate::{
+    error::utils::{write_line_information, MetaData},
+    knot::Address,
+};
 
 #[derive(Clone, Debug)]
 /// Error for an invalid address in a story.

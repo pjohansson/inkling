@@ -41,7 +41,6 @@ pub fn read_story_content_from_string(
     let (prelude_and_root, knot_lines) = split_lines_into_prelude_and_knots(&content_lines);
     let (prelude_lines, root_lines) = split_prelude_into_metadata_and_text(&prelude_and_root);
 
-    let mut prelude_errors = Vec::new();
     let mut knot_errors = Vec::new();
 
     let root_meta_data = root_lines
@@ -65,11 +64,10 @@ pub fn read_story_content_from_string(
         .map_err(|errors| knot_errors.extend(errors));
 
     let tags = parse_global_tags(&prelude_lines);
-    let variables =
-        parse_global_variables(&prelude_lines).map_err(|error| prelude_errors.push(error));
+    let (variables, prelude_errors) = parse_global_variables(&prelude_lines);
 
-    if knots.is_ok() && variables.is_ok() && knot_errors.is_empty() {
-        Ok((knots.unwrap(), variables.unwrap(), tags))
+    if knots.is_ok() && knot_errors.is_empty() && prelude_errors.is_empty() {
+        Ok((knots.unwrap(), variables, tags))
     } else {
         Err(ParseError {
             knot_errors,
@@ -447,19 +445,41 @@ fn parse_global_tags(lines: &[(&str, MetaData)]) -> Vec<String> {
 /// Parse global variables from a set of metadata lines in the prelude.
 fn parse_global_variables(
     lines: &[(&str, MetaData)],
-) -> Result<HashMap<String, Variable>, PreludeError> {
-    lines
+) -> (HashMap<String, Variable>, Vec<PreludeError>) {
+    let mut variables = HashMap::new();
+    let mut errors = Vec::new();
+
+    for (line, meta_data) in lines
         .iter()
         .map(|(line, meta_data)| (line.trim(), meta_data))
         .filter(|(line, _)| line.starts_with(VARIABLE_MARKER))
-        .map(|(line, meta_data)| {
-            parse_variable_with_name(line).map_err(|kind| PreludeError {
+    {
+        match parse_variable_with_name(line) {
+            Ok((name, var)) => {
+                variables.insert(name, var);
+            }
+            Err(kind) => errors.push(PreludeError {
                 line: line.to_string(),
                 kind,
                 meta_data: meta_data.clone(),
-            })
-        })
-        .collect()
+            }),
+        }
+    }
+
+    (variables, errors)
+
+    // lines
+    //     .iter()
+    //     .map(|(line, meta_data)| (line.trim(), meta_data))
+    //     .filter(|(line, _)| line.starts_with(VARIABLE_MARKER))
+    //     .map(|(line, meta_data)| {
+    //         parse_variable_with_name(line).map_err(|kind| PreludeError {
+    //             line: line.to_string(),
+    //             kind,
+    //             meta_data: meta_data.clone(),
+    //         })
+    //     })
+    //     .collect()
 }
 
 /// Parse a single variable line into the variable name and initial value.
@@ -598,7 +618,7 @@ pub mod tests {
             "VAR string = \"two words\"",
         ];
 
-        let variables = parse_global_variables(&enumerate(lines)).unwrap();
+        let (variables, _) = parse_global_variables(&enumerate(lines));
 
         assert_eq!(variables.len(), 2);
         assert_eq!(variables.get("float").unwrap(), &Variable::Float(1.0));
@@ -606,6 +626,24 @@ pub mod tests {
             variables.get("string").unwrap(),
             &Variable::String("two words".to_string())
         );
+    }
+
+    #[test]
+    fn parse_global_variables_returns_all_errors() {
+        let lines = &[
+            "VAR float = 1.0",
+            "VAR = 1.0",                  // no variable name
+            "VAR variable = ",            // no assignment
+            "VAR variable 10",            // no assignment operator
+            "VAR variable = 10chars",     // invalid characters in number
+            "VAR variable = \"two words", // unmatched quote marks
+            "VAR int = 10",
+        ];
+
+        let (variables, errors) = parse_global_variables(&enumerate(lines));
+
+        assert_eq!(variables.len(), 2);
+        assert_eq!(errors.len(), 5);
     }
 
     #[test]
@@ -1006,7 +1044,7 @@ VAR = 0
 *+  Sticky or non-sticky?
 
 == empty_knot
-        
+
 ";
 
         match read_story_content_from_string(content) {
