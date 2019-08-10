@@ -1,7 +1,7 @@
 //! Node tree structure for branching content.
 
 use crate::{
-    error::parse::address::InvalidAddressError,
+    error::{parse::address::InvalidAddressError, utils::MetaData},
     knot::{Address, ValidateAddressData, ValidateAddresses},
     line::{InternalChoice, InternalLine},
 };
@@ -64,13 +64,14 @@ impl NodeItem {
 impl ValidateAddresses for RootNode {
     fn validate(
         &mut self,
+        errors: &mut Vec<InvalidAddressError>,
+        meta_data: &MetaData,
         current_address: &Address,
         data: &ValidateAddressData,
-    ) -> Result<(), InvalidAddressError> {
+    ) {
         self.items
             .iter_mut()
-            .map(|item| item.validate(current_address, data))
-            .collect()
+            .for_each(|item| item.validate(errors, meta_data, current_address, data))
     }
 
     #[cfg(test)]
@@ -82,19 +83,17 @@ impl ValidateAddresses for RootNode {
 impl ValidateAddresses for Branch {
     fn validate(
         &mut self,
+        errors: &mut Vec<InvalidAddressError>,
+        meta_data: &MetaData,
         current_address: &Address,
         data: &ValidateAddressData,
-    ) -> Result<(), InvalidAddressError> {
+    ) {
         self.choice
-            .condition
+            .validate(errors, meta_data, current_address, data);
+
+        self.items
             .iter_mut()
-            .map(|item| item.validate(current_address, data))
-            .chain(
-                self.items
-                    .iter_mut()
-                    .map(|item| item.validate(current_address, data)),
-            )
-            .collect()
+            .for_each(|item| item.validate(errors, meta_data, current_address, data));
     }
 
     #[cfg(test)]
@@ -106,16 +105,17 @@ impl ValidateAddresses for Branch {
 impl ValidateAddresses for NodeItem {
     fn validate(
         &mut self,
+        errors: &mut Vec<InvalidAddressError>,
+        meta_data: &MetaData,
         current_address: &Address,
         data: &ValidateAddressData,
-    ) -> Result<(), InvalidAddressError> {
+    ) {
         match self {
             NodeItem::BranchingPoint(branches) => branches
                 .iter_mut()
-                .map(|item| item.validate(current_address, data))
-                .collect(),
-            NodeItem::Line(line) => line.validate(current_address, data),
-        }
+                .for_each(|item| item.validate(errors, meta_data, current_address, data)),
+            NodeItem::Line(line) => line.validate(errors, meta_data, current_address, data),
+        };
     }
 
     #[cfg(test)]

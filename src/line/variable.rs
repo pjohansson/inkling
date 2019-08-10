@@ -3,6 +3,7 @@
 use crate::{
     error::{
         parse::address::InvalidAddressError,
+        utils::MetaData,
         variable::{VariableError, VariableErrorKind},
         InklingError, InternalError,
     },
@@ -678,15 +679,17 @@ impl From<String> for Variable {
 impl ValidateAddresses for Variable {
     fn validate(
         &mut self,
+        errors: &mut Vec<InvalidAddressError>,
+        meta_data: &MetaData,
         current_address: &Address,
         data: &ValidateAddressData,
-    ) -> Result<(), InvalidAddressError> {
+    ) {
         match self {
             Variable::Address(address) | Variable::Divert(address) => {
-                address.validate(current_address, data)
+                address.validate(errors, meta_data, current_address, data);
             }
             Variable::Bool(..) | Variable::Float(..) | Variable::Int(..) | Variable::String(..) => {
-                Ok(())
+                ()
             }
         }
     }

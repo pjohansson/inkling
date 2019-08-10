@@ -1,7 +1,7 @@
 use std::{
     env::current_dir,
     fs::read_to_string,
-    io,
+    io::{self, Write as _},
     path::{Path, PathBuf},
     process::exit,
 };
@@ -97,5 +97,17 @@ fn print_lines(lines: &LineBuffer) {
 
 fn read_story(path: &Path) -> Result<Story, io::Error> {
     let contents = read_to_string(path)?;
-    Ok(read_story_from_string(&contents).unwrap())
+
+    match read_story_from_string(&contents) {
+        Ok(story) => Ok(story),
+        Err(error) => {
+            write!(
+                io::stderr(),
+                "{}",
+                error::parse::print_read_error(&error).unwrap()
+            )
+            .unwrap();
+            exit(1);
+        }
+    }
 }

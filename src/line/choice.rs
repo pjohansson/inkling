@@ -1,7 +1,8 @@
 //! Choice which branches the story.
 
 use crate::{
-    error::utils::MetaData,
+    error::{parse::address::InvalidAddressError, utils::MetaData},
+    knot::{Address, ValidateAddressData, ValidateAddresses},
     line::{Condition, InternalLine},
 };
 
@@ -49,6 +50,38 @@ pub struct InternalChoice {
     pub is_fallback: bool,
     /// Information about the origin of this choice in the story file or text.
     pub meta_data: MetaData,
+}
+
+impl ValidateAddresses for InternalChoice {
+    fn validate(
+        &mut self,
+        errors: &mut Vec<InvalidAddressError>,
+        _: &MetaData,
+        current_address: &Address,
+        data: &ValidateAddressData,
+    ) {
+        self.selection_text
+            .borrow_mut()
+            .validate(errors, &self.meta_data, current_address, data);
+
+        self.display_text
+            .validate(errors, &self.meta_data, current_address, data);
+
+        if let Some(ref mut condition) = self.condition {
+            condition.validate(errors, &self.meta_data, current_address, data);
+        }
+    }
+
+    #[cfg(test)]
+    fn all_addresses_are_valid(&self) -> bool {
+        self.selection_text.borrow().all_addresses_are_valid()
+            && self.display_text.all_addresses_are_valid()
+            && self
+                .condition
+                .as_ref()
+                .map(|condition| condition.all_addresses_are_valid())
+                .unwrap_or(true)
+    }
 }
 
 /// Builder for constructing an `InternalChoice`.

@@ -16,12 +16,18 @@ pub struct MetaData {
     pub line_index: u32,
 }
 
+impl fmt::Display for MetaData {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "line {}", self.line_index + 1)
+    }
+}
+
 /// Write meta data information for a line or piece of content in a story.
 pub(crate) fn write_line_information<W: fmt::Write>(
     buffer: &mut W,
     meta_data: &MetaData,
 ) -> fmt::Result {
-    write!(buffer, "(line {}) ", meta_data.line_index + 1)
+    write!(buffer, "({}) ", meta_data)
 }
 
 /// Wrapper to implement From for variants when the variant is simply encapsulated

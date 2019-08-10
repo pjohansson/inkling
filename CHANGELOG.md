@@ -10,8 +10,15 @@
 
 ## 0.12.2
 
-*   Breaking change: errors restructured
+This release focuses on improving errors from parsing the story. Two main improvements are that parsing doesn't stop after encountering an error, but collects any it finds in a single pass before returning them all as a set. This may not catch all errors but should be an improvement over the previous version. Second is that line numbers can be accessed for all parsing and validation errors. The new helper function `print_read_error` prints these line numbers alongside the error.
+
+*   Breaking change: error module restructured with no private structs.
+*   Errors are now yielded if global variables, knots or stitches within one knot have duplicate names.
+*   Lines, knots, stitches and choices have line indices associated with them to help with tracking down errors.
 *   Parsing a story now returns all encountered parsing errors at once (if any), instead of just the first. This happens before validation, which is a separate step.
+*   All validation errors are returned as a set instead of individually.
+*   Add `print_read_error` function to describe all encountered parsing errors with line numbers.
+*   Fix bug where location and variable addresses were not validated in choice lines.
 
 # 0.11.0
 

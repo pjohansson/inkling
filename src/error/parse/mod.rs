@@ -8,6 +8,7 @@ pub mod knot;
 pub mod line;
 mod parse;
 pub mod prelude;
+pub(crate) mod validate;
 pub mod variable;
 
 pub use error::{print_read_error, ReadError};
