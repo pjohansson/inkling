@@ -33,7 +33,7 @@
 use crate::{
     error::{parse::address::InvalidAddressError, utils::MetaData},
     knot::{Address, ValidateAddressData, ValidateAddresses},
-    line::Variable,
+    line::{Expression, Variable},
 };
 
 use std::{cmp::Ordering, error::Error};
@@ -101,9 +101,9 @@ pub enum StoryCondition {
     /// An error is raised if another variant is used like that.
     Comparison {
         /// Left hand side variable.
-        lhs_variable: Variable,
+        lhs_variable: Expression,
         /// Right hand side variable.
-        rhs_variable: Variable,
+        rhs_variable: Expression,
         /// Order comparison between the two.
         ///
         /// Applies from the left hand side variable to the right hand side. Meaning that

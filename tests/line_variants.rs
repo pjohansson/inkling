@@ -269,3 +269,29 @@ VAR b = 5
         "After updating `a`: a = 7, b = 5, a + b = 12.\n"
     );
 }
+
+#[test]
+fn conditions_may_use_expressions_on_left_or_right_hand_side() {
+    let content = "
+
+VAR a = 3
+VAR b = 5.0
+
+{(a + 2) * 3 >= b * 3: True | False}
+{(a + 2) * 3 <= b * 3: True | False}
+{(a + 2) * 3 != b * 3: True | False}
+{\"str\" + \"ing\" == \"string\": True | False}
+
+";
+
+    let mut story = read_story_from_string(content).unwrap();
+    let mut line_buffer = Vec::new();
+
+    story.start().unwrap();
+    story.resume(&mut line_buffer).unwrap();
+
+    assert_eq!(&line_buffer[0].text, "True\n");
+    assert_eq!(&line_buffer[1].text, "True\n");
+    assert_eq!(&line_buffer[2].text, "False\n");
+    assert_eq!(&line_buffer[3].text, "True\n");
+}

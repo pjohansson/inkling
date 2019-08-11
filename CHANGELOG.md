@@ -20,6 +20,10 @@ This release focuses on improving errors from parsing the story. Two main improv
 *   Add `print_read_error` function to describe all encountered parsing errors with line numbers.
 *   Fix bug where location and variable addresses were not validated in choice lines.
 
+## 0.12.3
+
+*   Conditions can now use expressions on either side of a comparison: `a + 2 > b * c - 1`, and so on.
+
 # 0.11.0
 
 *   Resume stories with index of instead of reference to choice from the previous result.

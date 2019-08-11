@@ -6,7 +6,7 @@ use crate::{
         InklingError,
     },
     follow::FollowData,
-    line::{Condition, StoryCondition, Variable},
+    line::{expression::evaluate_expression, Condition, StoryCondition, Variable},
 };
 
 use std::cmp::Ordering;
@@ -19,8 +19,8 @@ pub fn check_condition(condition: &Condition, data: &FollowData) -> Result<bool,
             rhs_variable,
             ordering,
         } => {
-            let lhs = lhs_variable.as_value(data)?;
-            let rhs = rhs_variable.as_value(data)?;
+            let lhs = evaluate_expression(lhs_variable, data)?;
+            let rhs = evaluate_expression(rhs_variable, data)?;
 
             match ordering {
                 Ordering::Equal => lhs.equal_to(&rhs),
@@ -53,7 +53,13 @@ pub fn check_condition(condition: &Condition, data: &FollowData) -> Result<bool,
 mod tests {
     use super::*;
 
-    use crate::{knot::Address, line::ConditionBuilder};
+    use crate::{
+        knot::Address,
+        line::{
+            expression::{Expression, Operand},
+            ConditionBuilder,
+        },
+    };
 
     use std::collections::HashMap;
 
@@ -85,15 +91,21 @@ mod tests {
         ConditionBuilder::from_kind(&kind.into(), negate).build()
     }
 
-    fn get_comparison_condition(
+    fn get_variable_comparison_condition(
         lhs_variable: Variable,
         rhs_variable: Variable,
         ordering: Ordering,
         negate: bool,
     ) -> Condition {
         let kind = StoryCondition::Comparison {
-            lhs_variable,
-            rhs_variable,
+            lhs_variable: Expression {
+                head: Operand::Variable(lhs_variable),
+                tail: Vec::new(),
+            },
+            rhs_variable: Expression {
+                head: Operand::Variable(rhs_variable),
+                tail: Vec::new(),
+            },
             ordering,
         };
 
@@ -104,10 +116,14 @@ mod tests {
     fn conditions_can_compare_variable_values() {
         let data = mock_follow_data(&[], &[]);
 
-        let integer_condition =
-            get_comparison_condition(Variable::from(5), Variable::from(6), Ordering::Less, false);
+        let integer_condition = get_variable_comparison_condition(
+            Variable::from(5),
+            Variable::from(6),
+            Ordering::Less,
+            false,
+        );
 
-        let string_condition = get_comparison_condition(
+        let string_condition = get_variable_comparison_condition(
             Variable::from("hi"),
             Variable::from("hiya"),
             Ordering::Equal,

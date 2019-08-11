@@ -2,7 +2,7 @@
 
 use std::{error::Error, fmt};
 
-use crate::error::parse::variable::VariableError;
+use crate::error::parse::{expression::ExpressionError, variable::VariableError};
 
 #[derive(Debug)]
 /// Error from parsing `Condition` objects.
@@ -27,8 +27,10 @@ pub enum ConditionErrorKind {
     BadValue,
     /// Generic error.
     CouldNotParse,
+    /// Could not parse an expression for either side of a `lhs (cmp) rhs` condition.
+    InvalidExpression(ExpressionError),
     /// Could not parse a variable.
-    CouldNotParseVariable(VariableError),
+    InvalidVariable(VariableError),
     /// The line had multiple else statements.
     MultipleElseStatements,
     /// There was no condition in the line.
@@ -46,11 +48,17 @@ impl Error for ConditionError {
 impl Error for ConditionErrorKind {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match &self {
-            ConditionErrorKind::CouldNotParseVariable(err) => Some(err),
+            ConditionErrorKind::InvalidVariable(err) => Some(err),
             _ => None,
         }
     }
 }
+
+impl_from_error![
+    ConditionErrorKind;
+    [InvalidExpression, ExpressionError],
+    [InvalidVariable, VariableError]
+];
 
 impl fmt::Display for ConditionError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -70,9 +78,12 @@ impl fmt::Display for ConditionErrorKind {
             ),
             BadValue => write!(f, "could not parse a number from the condition value"),
             CouldNotParse => write!(f, "incorrectly formatted condition"),
-            CouldNotParseVariable(err) => {
-                write!(f, "could not parse variable in condition: {}", err)
-            }
+            InvalidExpression(err) => write!(
+                f,
+                "could not parse left or right hand side expression for a comparison: {}",
+                err
+            ),
+            InvalidVariable(err) => write!(f, "could not parse variable in condition: {}", err),
             MultipleElseStatements => write!(f, "found multiple else statements in condition"),
             NoCondition => write!(f, "condition string was empty"),
             UnmatchedParenthesis => write!(f, "contained unmatched parenthesis"),

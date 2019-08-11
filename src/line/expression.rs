@@ -24,6 +24,17 @@ pub struct Expression {
     pub tail: Vec<(Operator, Operand)>,
 }
 
+impl Expression {
+    pub fn add(&mut self, variable: Variable) {
+        self.tail.push((Operator::Add, Operand::Variable(variable)));
+    }
+
+    pub fn sub(&mut self, variable: Variable) {
+        self.tail
+            .push((Operator::Subtract, Operand::Variable(variable)));
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
 /// Operand of an operation.
@@ -220,6 +231,15 @@ mod tests {
 
     use std::collections::HashMap;
 
+    impl From<Variable> for Expression {
+        fn from(variable: Variable) -> Self {
+            Expression {
+                head: Operand::Variable(variable),
+                tail: Vec::new(),
+            }
+        }
+    }
+
     fn get_simple_expression(head: Variable, tail: &[(Operator, Variable)]) -> Expression {
         let tail = tail
             .iter()
@@ -253,6 +273,23 @@ mod tests {
             knot_visit_counts,
             variables,
         }
+    }
+
+    #[test]
+    fn expression_can_add_and_subtract_values_with_methods() {
+        let mut expression = get_simple_expression(Variable::Int(5), &[]);
+
+        expression.add(Variable::Int(2));
+        expression.sub(Variable::Int(1));
+
+        assert_eq!(
+            expression.tail[0],
+            (Operator::Add, Operand::Variable(Variable::Int(2)))
+        );
+        assert_eq!(
+            expression.tail[1],
+            (Operator::Subtract, Operand::Variable(Variable::Int(1)))
+        );
     }
 
     #[test]

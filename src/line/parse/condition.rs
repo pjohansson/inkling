@@ -9,10 +9,11 @@ use crate::{
     },
     line::{
         parse::{
-            parse_variable, split_line_at_separator_braces, split_line_at_separator_parenthesis,
-            split_line_into_groups_braces, LinePart,
+            parse_expression, parse_variable, split_line_at_separator_braces,
+            split_line_at_separator_parenthesis, split_line_into_groups_braces, LinePart,
         },
-        Condition, ConditionBuilder, ConditionItem, ConditionKind, StoryCondition, Variable,
+        Condition, ConditionBuilder, ConditionItem, ConditionKind, Expression, StoryCondition,
+        Variable,
     },
 };
 
@@ -356,16 +357,11 @@ fn parse_story_condition(line: &str) -> Result<(StoryCondition, bool), Condition
             let head = line.get(..index).unwrap().trim();
             let tail = line.get(index + symbol_length..).unwrap().trim();
 
-            let lhs_variable = parse_condition_variable(head)?;
-
-            let mut rhs_variable = parse_condition_variable(tail)?;
+            let lhs_variable = parse_comparison_expression(head)?;
+            let mut rhs_variable = parse_comparison_expression(tail)?;
 
             if adjustment != 0 {
-                match rhs_variable {
-                    Variable::Int(ref mut value) => *value += adjustment,
-                    Variable::Float(ref mut value) => *value += adjustment as f32,
-                    _ => (),
-                }
+                rhs_variable.add(Variable::Int(adjustment));
             }
 
             Ok((
@@ -387,9 +383,14 @@ fn parse_story_condition(line: &str) -> Result<(StoryCondition, bool), Condition
 
 /// Parse a variable from a string and map any error to `ConditionError`
 fn parse_condition_variable(content: &str) -> Result<Variable, ConditionError> {
-    parse_variable(content).map_err(|err| {
-        ConditionError::from_kind(content, ConditionErrorKind::CouldNotParseVariable(err))
-    })
+    parse_variable(content)
+        .map_err(|err| ConditionError::from_kind(content, ConditionErrorKind::InvalidVariable(err)))
+}
+
+/// Parse an expression from a string and map any error to `ConditionError`
+fn parse_comparison_expression(content: &str) -> Result<Expression, ConditionError> {
+    parse_expression(content)
+        .map_err(|err| ConditionError::from_kind(content, ConditionErrorKind::from(err)))
 }
 
 /// Verify that the head has no link and the tail has only `and` or `or` links.
@@ -433,7 +434,10 @@ fn get_unmatched_error(line: &str) -> ConditionError {
 mod tests {
     use super::*;
 
-    use crate::knot::Address;
+    use crate::{
+        knot::Address,
+        line::expression::{Operand, Operator},
+    };
 
     #[test]
     fn parse_line_condition_returns_condition_if_true_and_else_content() {
@@ -647,11 +651,11 @@ mod tests {
             } => {
                 assert_eq!(
                     lhs_variable,
-                    &Variable::Address(Address::Raw("knot_name".to_string()))
+                    &Variable::Address(Address::Raw("knot_name".to_string())).into()
                 );
                 assert_eq!(
                     rhs_variable,
-                    &Variable::Address(Address::Raw("other_knot".to_string()))
+                    &Variable::Address(Address::Raw("other_knot".to_string())).into()
                 );
             }
             other => panic!("expected `StoryCondition::Comparison` but got {:?}", other),
@@ -670,8 +674,8 @@ mod tests {
                 ref rhs_variable,
                 ..
             } => {
-                assert_eq!(lhs_variable, &Variable::Int(2));
-                assert_eq!(rhs_variable, &Variable::Float(3.0));
+                assert_eq!(lhs_variable, &Variable::Int(2).into());
+                assert_eq!(rhs_variable, &Variable::Float(3.0).into());
             }
             other => panic!("expected `StoryCondition::Comparison` but got {:?}", other),
         }
@@ -689,8 +693,8 @@ mod tests {
                 ref rhs_variable,
                 ..
             } => {
-                assert_eq!(lhs_variable, &Variable::from(true));
-                assert_eq!(rhs_variable, &Variable::from(false));
+                assert_eq!(lhs_variable, &Variable::from(true).into());
+                assert_eq!(rhs_variable, &Variable::from(false).into());
             }
             other => panic!("expected `StoryCondition::Comparison` but got {:?}", other),
         }
@@ -708,8 +712,8 @@ mod tests {
                 ref rhs_variable,
                 ..
             } => {
-                assert_eq!(lhs_variable, &Variable::from("hello"));
-                assert_eq!(rhs_variable, &Variable::from("world"));
+                assert_eq!(lhs_variable, &Variable::from("hello").into());
+                assert_eq!(rhs_variable, &Variable::from("world").into());
             }
             other => panic!("expected `StoryCondition::Comparison` but got {:?}", other),
         }
@@ -729,9 +733,9 @@ mod tests {
             } => {
                 assert_eq!(
                     lhs_variable,
-                    &Variable::Address(Address::Raw("knot".to_string()))
+                    &Variable::Address(Address::Raw("knot".to_string())).into()
                 );
-                assert_eq!(rhs_variable, &Variable::from(2));
+                assert_eq!(rhs_variable, &Variable::from(2).into());
             }
             other => panic!("expected `StoryCondition::Comparison` but got {:?}", other),
         }
@@ -742,8 +746,19 @@ mod tests {
         let mut line = "knot >= 2".to_string();
         let (condition, _) = parse_story_condition(&mut line).unwrap();
 
-        let mut equiv_line = "knot > 1".to_string();
-        let (equiv_condition, _) = parse_story_condition(&mut equiv_line).unwrap();
+        let mut equiv_line = "knot > 2 - 1".to_string();
+        let (mut equiv_condition, _) = parse_story_condition(&mut equiv_line).unwrap();
+
+        // The function does `2 + (-1)` for the adjustment so we flip the term here
+        match equiv_condition {
+            StoryCondition::Comparison {
+                ref mut rhs_variable,
+                ..
+            } => {
+                rhs_variable.tail[0] = (Operator::Add, Operand::Variable((-1).into()));
+            }
+            _ => unreachable!(),
+        }
 
         assert_eq!(condition, equiv_condition);
     }
@@ -753,7 +768,7 @@ mod tests {
         let mut line = "knot <= 2".to_string();
         let (condition, _) = parse_story_condition(&mut line).unwrap();
 
-        let mut equiv_line = "knot < 3".to_string();
+        let mut equiv_line = "knot < 2 + 1".to_string();
         let (equiv_condition, _) = parse_story_condition(&mut equiv_line).unwrap();
 
         assert_eq!(condition, equiv_condition);
