@@ -66,12 +66,10 @@ impl fmt::Display for CollisionKind {
     }
 }
 
-pub(crate) fn print_invalid_address_errors(
-    errors: &[InvalidAddressError],
-) -> Result<String, fmt::Error> {
+pub(super) fn print_validation_error(error: &ValidationError) -> Result<String, fmt::Error> {
     let mut buffer = String::new();
 
-    for err in errors {
+    for err in &error.invalid_address_errors {
         write!(&mut buffer, "{}\n", err)?;
     }
 

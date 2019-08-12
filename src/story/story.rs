@@ -615,7 +615,7 @@ pub fn read_story_from_string(string: &str) -> Result<Story, ReadError> {
         variables,
     };
 
-    validate_story_content(&mut knots, &data).unwrap();
+    validate_story_content(&mut knots, &data)?;
 
     let root_address = Address::from_root_knot(ROOT_KNOT_NAME, &knots).expect(
         "After successfully creating all knots, the root knot name that was returned from \

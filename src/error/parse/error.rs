@@ -3,9 +3,8 @@
 use std::{error::Error, fmt};
 
 use crate::error::parse::{
-    address::InvalidAddressError,
     parse::{print_parse_error, ParseError},
-    validate::print_invalid_address_errors,
+    validate::{print_validation_error, ValidationError},
 };
 
 #[derive(Debug)]
@@ -16,10 +15,9 @@ use crate::error::parse::{
 pub enum ReadError {
     /// Attempted to construct a story from an empty file/string.
     Empty,
-    /// One or more invalid knot, stitch or divert address was encountered during validation.
-    InvalidAddress(Vec<InvalidAddressError>),
     /// Encountered one or more errors while parsing lines to construct the story.
     ParseError(ParseError),
+    ValidationError(ValidationError),
 }
 
 /// Get a string containing all errors encountered while reading a story.
@@ -34,8 +32,8 @@ pub enum ReadError {
 /// additional problems that will be discovered during the validation step.
 pub fn print_read_error(error: &ReadError) -> Result<String, fmt::Error> {
     match &error {
-        ReadError::InvalidAddress(errors) => print_invalid_address_errors(errors),
         ReadError::ParseError(parse_error) => print_parse_error(parse_error),
+        ReadError::ValidationError(validation_error) => print_validation_error(validation_error),
         _ => Ok(format!("{}", error)),
     }
 }
@@ -55,23 +53,14 @@ impl fmt::Display for ReadError {
 
         match self {
             Empty => write!(f, "Could not parse story: no content was available"),
-            InvalidAddress(err) => write!(
-                f,
-                "Could not validate story: found {} invalid addresses",
-                err.len()
-            ),
             ParseError(err) => write!(f, "{}", err),
+            ValidationError(err) => write!(f, "{}", err),
         }
     }
 }
 
 impl_from_error![
     ReadError;
-    [ParseError, ParseError]
+    [ParseError, ParseError],
+    [ValidationError, ValidationError]
 ];
-
-impl From<Vec<InvalidAddressError>> for ReadError {
-    fn from(errors: Vec<InvalidAddressError>) -> Self {
-        ReadError::InvalidAddress(errors)
-    }
-}
