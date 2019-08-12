@@ -101,4 +101,20 @@ impl Prompt {
 /// Convenience type to indicate when a buffer of `Line` objects is being manipulated.
 pub type LineBuffer = Vec<Line>;
 
-pub type VariableSet = HashMap<String, Variable>;
+pub type VariableSet = HashMap<String, VariableInfo>;
+
+#[derive(Clone, Debug)]
+pub struct VariableInfo {
+    pub variable: Variable,
+    pub meta_data: MetaData,
+}
+
+#[cfg(test)]
+impl VariableInfo {
+    pub fn new<T: Into<Variable>>(variable: T, line_index: usize) -> Self {
+        VariableInfo {
+            variable: variable.into(),
+            meta_data: line_index.into(),
+        }
+    }
+}

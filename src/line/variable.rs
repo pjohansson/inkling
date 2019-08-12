@@ -94,10 +94,13 @@ impl Variable {
                     let num_visited = get_num_visited(address, data)?;
                     Ok(format!("{}", num_visited))
                 }
-                Address::Validated(AddressKind::GlobalVariable { name }) => {
-                    let variable = data.variables.get(name).unwrap();
-                    variable.to_string(data)
-                }
+                Address::Validated(AddressKind::GlobalVariable { name }) => data
+                    .variables
+                    .get(name)
+                    .ok_or(InklingError::InvalidVariable {
+                        name: name.to_string(),
+                    })
+                    .and_then(|variable_info| variable_info.variable.to_string(data)),
                 other => Err(InternalError::UseOfUnvalidatedAddress {
                     address: other.clone(),
                 }
@@ -136,7 +139,7 @@ impl Variable {
                     .ok_or(InklingError::InvalidVariable {
                         name: name.to_string(),
                     })
-                    .and_then(|variable| variable.as_value(&data)),
+                    .and_then(|info| info.variable.as_value(&data)),
                 other => Err(InternalError::UseOfUnvalidatedAddress {
                     address: other.clone(),
                 }
@@ -711,6 +714,8 @@ impl ValidateAddresses for Variable {
 mod tests {
     use super::*;
 
+    use crate::story::types::VariableInfo;
+
     use std::collections::HashMap;
 
     fn mock_follow_data(knots: &[(&str, &str, u32)], variables: &[(&str, Variable)]) -> FollowData {
@@ -726,6 +731,8 @@ mod tests {
         let variables = variables
             .into_iter()
             .cloned()
+            .enumerate()
+            .map(|(i, (name, var))| (name, VariableInfo::new(var, i)))
             .map(|(name, var)| (name.to_string(), var))
             .collect();
 

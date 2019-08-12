@@ -249,6 +249,7 @@ mod tests {
         follow::FollowData,
         knot::Address,
         line::{evaluate_expression, Variable},
+        story::types::VariableInfo,
     };
 
     use std::collections::HashMap;
@@ -266,6 +267,8 @@ mod tests {
         let variables = variables
             .into_iter()
             .cloned()
+            .enumerate()
+            .map(|(i, (name, var))| (name, VariableInfo::new(var, i)))
             .map(|(name, var)| (name.to_string(), var))
             .collect();
 

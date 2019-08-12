@@ -440,7 +440,7 @@ impl Story {
         self.data
             .variables
             .get(name)
-            .cloned()
+            .map(|variable_info| variable_info.variable.clone())
             .ok_or(InklingError::InvalidVariable {
                 name: name.to_string(),
             })
@@ -472,7 +472,7 @@ impl Story {
             .ok_or(InklingError::InvalidVariable {
                 name: name.to_string(),
             })
-            .and_then(|variable| variable.to_string(&self.data))
+            .and_then(|variable_info| variable_info.variable.to_string(&self.data))
     }
 
     /// Set the value of an existing global variable.
@@ -543,7 +543,12 @@ impl Story {
             .ok_or(InklingError::InvalidVariable {
                 name: name.to_string(),
             })
-            .and_then(|variable| variable.assign(value).map_err(|err| err.into()))
+            .and_then(|variable_info| {
+                variable_info
+                    .variable
+                    .assign(value)
+                    .map_err(|err| err.into())
+            })
     }
 
     /// Wrapper for calling `follow_story` with a prepared internal buffer.
@@ -1447,12 +1452,15 @@ VAR warning_message = \"ADVARSEL\"
         let variables = &story.data.variables;
         assert_eq!(variables.len(), 3);
 
-        assert_eq!(variables.get("counter").unwrap(), &Variable::Int(0));
-        assert_eq!(variables.get("hazardous").unwrap(), &Variable::Bool(true));
+        assert_eq!(variables.get("counter").unwrap().variable, Variable::Int(0));
+        assert_eq!(
+            variables.get("hazardous").unwrap().variable,
+            Variable::Bool(true)
+        );
 
         assert_eq!(
-            variables.get("warning_message").unwrap(),
-            &Variable::String("ADVARSEL".to_string())
+            variables.get("warning_message").unwrap().variable,
+            Variable::String("ADVARSEL".to_string())
         );
     }
 
@@ -1850,8 +1858,8 @@ VAR counter = 3
 
         story.set_variable("counter", Variable::Int(5)).unwrap();
         assert_eq!(
-            story.data.variables.get("counter").unwrap(),
-            &Variable::Int(5)
+            story.data.variables.get("counter").unwrap().variable,
+            Variable::Int(5)
         );
 
         assert!(story.set_variable("counter", Variable::Float(5.0)).is_err());
@@ -1879,23 +1887,23 @@ VAR message = \"boring text\"
             .is_ok());
 
         assert_eq!(
-            story.data.variables.get("counter").unwrap(),
-            &Variable::Int(-10)
+            story.data.variables.get("counter").unwrap().variable,
+            Variable::Int(-10)
         );
 
         assert_eq!(
-            story.data.variables.get("hazardous").unwrap(),
-            &Variable::Bool(true)
+            story.data.variables.get("hazardous").unwrap().variable,
+            Variable::Bool(true)
         );
 
         assert_eq!(
-            story.data.variables.get("precision").unwrap(),
-            &Variable::Float(5.45)
+            story.data.variables.get("precision").unwrap().variable,
+            Variable::Float(5.45)
         );
 
         assert_eq!(
-            story.data.variables.get("message").unwrap(),
-            &Variable::String("What a pleasure to see you!".to_string())
+            story.data.variables.get("message").unwrap().variable,
+            Variable::String("What a pleasure to see you!".to_string())
         );
     }
 

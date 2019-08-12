@@ -21,7 +21,7 @@ use crate::{
     },
     knot::{parse_stitch_from_lines, read_knot_name, read_stitch_name, Knot, KnotSet, Stitch},
     line::{parse_variable, Variable},
-    story::types::VariableSet,
+    story::types::{VariableInfo, VariableSet},
 };
 
 use std::collections::HashMap;
@@ -468,9 +468,7 @@ fn parse_global_tags(lines: &[(&str, MetaData)]) -> Vec<String> {
 }
 
 /// Parse global variables from a set of metadata lines in the prelude.
-fn parse_global_variables(
-    lines: &[(&str, MetaData)],
-) -> (HashMap<String, Variable>, Vec<PreludeError>) {
+fn parse_global_variables(lines: &[(&str, MetaData)]) -> (VariableSet, Vec<PreludeError>) {
     let mut variables = HashMap::new();
     let mut errors = Vec::new();
 
@@ -480,7 +478,12 @@ fn parse_global_variables(
         .filter(|(line, _)| line.starts_with(VARIABLE_MARKER))
     {
         if let Err(kind) = parse_variable_with_name(line).and_then(|(name, variable)| {
-            match variables.insert(name.clone(), variable) {
+            let variable_info = VariableInfo {
+                variable,
+                meta_data: meta_data.clone(),
+            };
+
+            match variables.insert(name.clone(), variable_info) {
                 Some(_) => Err(PreludeErrorKind::DuplicateVariable { name }),
                 None => Ok(()),
             }
@@ -658,10 +661,13 @@ pub mod tests {
         let (variables, _) = parse_global_variables(&enumerate(lines));
 
         assert_eq!(variables.len(), 2);
-        assert_eq!(variables.get("float").unwrap(), &Variable::Float(1.0));
         assert_eq!(
-            variables.get("string").unwrap(),
-            &Variable::String("two words".to_string())
+            variables.get("float").unwrap().variable,
+            Variable::Float(1.0)
+        );
+        assert_eq!(
+            variables.get("string").unwrap().variable,
+            Variable::String("two words".to_string())
         );
     }
 
@@ -672,6 +678,15 @@ pub mod tests {
         let (_, errors) = parse_global_variables(&enumerate(lines));
 
         assert_eq!(errors.len(), 1);
+    }
+
+    #[test]
+    fn global_variables_are_parsed_with_metadata() {
+        let lines = &["VAR float = 1.0", "VAR string = \"two words\""];
+
+        let (variables, _) = parse_global_variables(&enumerate(lines));
+
+        assert_eq!(variables.get("string").unwrap().meta_data, 1.into());
     }
 
     #[test]

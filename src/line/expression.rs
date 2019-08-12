@@ -227,7 +227,7 @@ impl ValidateAddresses for Operand {
 mod tests {
     use super::*;
 
-    use crate::knot::Address;
+    use crate::{knot::Address, story::types::VariableInfo};
 
     use std::collections::HashMap;
 
@@ -266,6 +266,8 @@ mod tests {
         let variables = variables
             .into_iter()
             .cloned()
+            .enumerate()
+            .map(|(i, (name, var))| (name, VariableInfo::new(var, i)))
             .map(|(name, var)| (name.to_string(), var))
             .collect();
 

@@ -12,7 +12,7 @@ use crate::{
     },
     follow::FollowData,
     knot::KnotSet,
-    line::Variable,
+    story::types::VariableSet,
 };
 
 use std::collections::{HashMap, HashSet};
@@ -25,7 +25,7 @@ pub struct ValidateAddressData {
 }
 
 impl ValidateAddressData {
-    fn from_data(knots: &KnotSet, variable_set: &HashMap<String, Variable>) -> Self {
+    fn from_data(knots: &KnotSet, variable_set: &VariableSet) -> Self {
         let knot_structure = knots
             .iter()
             .map(|(knot_name, knot)| {
@@ -389,7 +389,11 @@ pub fn validate_addresses_in_knots(
 pub mod tests {
     use super::*;
 
-    use crate::{consts::ROOT_KNOT_NAME, story::parse::tests::read_knots_from_string};
+    use crate::{
+        consts::ROOT_KNOT_NAME,
+        line::Variable,
+        story::{parse::tests::read_knots_from_string, types::VariableInfo},
+    };
 
     impl Address {
         fn from_knot(name: &str) -> Self {
@@ -495,8 +499,8 @@ pub mod tests {
     fn creating_validation_data_sets_variable_names() {
         let mut variables = HashMap::new();
 
-        variables.insert("counter".to_string(), Variable::Int(1));
-        variables.insert("health".to_string(), Variable::Float(75.0));
+        variables.insert("counter".to_string(), VariableInfo::new(1, 0));
+        variables.insert("health".to_string(), VariableInfo::new(75.0, 1));
 
         let data = ValidateAddressData::from_data(&HashMap::new(), &variables);
 
@@ -695,6 +699,8 @@ You find yourself in Addis Ababa, the capital of Ethiopia.
         let variables = &[("counter".to_string(), Variable::Int(0))]
             .into_iter()
             .cloned()
+            .enumerate()
+            .map(|(i, (name, var))| (name, VariableInfo::new(var, i)))
             .collect();
 
         let data = ValidateAddressData::from_data(&knots, &variables);
