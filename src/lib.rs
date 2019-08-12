@@ -169,7 +169,6 @@ mod node;
 mod process;
 mod story;
 mod utils;
-mod validate;
 
 pub use error::InklingError;
 pub use line::Variable;

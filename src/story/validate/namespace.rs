@@ -5,8 +5,10 @@ use crate::{
         parse::validate::{CollisionKind, NameSpaceCollision},
         utils::MetaData,
     },
-    story::types::VariableInfo,
-    validate::validate::{KnotValidationInfo, StitchValidationInfo, ValidationData},
+    story::{
+        types::VariableInfo,
+        validate::validate::{KnotValidationInfo, StitchValidationInfo, ValidationData},
+    },
 };
 
 /// Trait to easily construct a `NameSpaceCollision` error.
@@ -102,8 +104,10 @@ mod tests {
 
     use crate::{
         knot::KnotSet,
-        story::types::VariableSet,
-        validate::validate::tests::{construct_knots, construct_variables},
+        story::{
+            types::VariableSet,
+            validate::validate::tests::{construct_knots, construct_variables},
+        },
     };
 
     #[test]
