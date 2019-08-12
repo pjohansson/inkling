@@ -23,6 +23,7 @@ This release focuses on improving errors from parsing the story. Two main improv
 ## 0.12.3
 
 *   Conditions can now use expressions on either side of a comparison: `a + 2 > b * c - 1`, and so on.
+*   Name space collisions are searched for in the validation step after parsing a story. Stitches can no longer have the same name as knots or variables, nor can variables have the same name as knots.
 
 # 0.11.0
 

@@ -133,8 +133,7 @@
 //!
 //! *   Variables:  Modify in the Ink script
 //! *   Reading:    Include statements in files
-//! *   Validation: Checking conditions for incompatible variables, namespace collisions
-//!                 between knots, stitches and variables
+//! *   Validation: Checking conditions for incompatible variables
 //!
 //! Unlikely features:
 //!

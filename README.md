@@ -56,7 +56,6 @@ Difficult features for which I doubt my skill level to implement:
 
 *   Advanced flow control: tunnels and threads
 *   Verifying that all story branches are complete
-*   Mathematics and heavy logic
 
 
 ## Usage
