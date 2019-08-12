@@ -24,10 +24,9 @@ impl fmt::Display for ValidationError {
 
 #[derive(Debug)]
 pub struct NameSpaceCollision {
-    pub from_name: String,
+    pub name: String,
     pub from_kind: CollisionKind,
     pub from_meta_data: MetaData,
-    pub to_name: String,
     pub to_kind: CollisionKind,
     pub to_meta_data: MetaData,
 }
@@ -45,8 +44,8 @@ impl fmt::Display for NameSpaceCollision {
 
         write!(
             f,
-            "namespace collision between {} '{}' and {} '{}' (defined at {})",
-            self.from_kind, self.from_name, self.to_kind, self.to_name, self.to_meta_data
+            "namespace collision between {} of name '{}' and a {} previously defined at {}",
+            self.from_kind, self.name, self.to_kind, self.to_meta_data
         )
     }
 }
