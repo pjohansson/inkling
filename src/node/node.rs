@@ -1,11 +1,8 @@
 //! Node tree structure for branching content.
 
 use crate::{
-    error::{
-        parse::{address::InvalidAddressError, validate::ValidationError},
-        utils::MetaData,
-    },
-    knot::{Address, ValidateAddressData, ValidateAddresses},
+    error::{parse::validate::ValidationError, utils::MetaData},
+    knot::Address,
     line::{InternalChoice, InternalLine},
     story::validate::{ValidateContent, ValidationData},
 };
@@ -110,76 +107,6 @@ impl ValidateContent for NodeItem {
                 .for_each(|item| item.validate(error, current_location, meta_data, data)),
             NodeItem::Line(line) => line.validate(error, current_location, meta_data, data),
         };
-    }
-}
-
-impl ValidateAddresses for RootNode {
-    fn validate_addresses(
-        &mut self,
-        errors: &mut Vec<InvalidAddressError>,
-        meta_data: &MetaData,
-        current_address: &Address,
-        data: &ValidateAddressData,
-    ) {
-        self.items
-            .iter_mut()
-            .for_each(|item| item.validate_addresses(errors, meta_data, current_address, data))
-    }
-
-    #[cfg(test)]
-    fn all_addresses_are_valid(&self) -> bool {
-        self.items.iter().all(|item| item.all_addresses_are_valid())
-    }
-}
-
-impl ValidateAddresses for Branch {
-    fn validate_addresses(
-        &mut self,
-        errors: &mut Vec<InvalidAddressError>,
-        meta_data: &MetaData,
-        current_address: &Address,
-        data: &ValidateAddressData,
-    ) {
-        self.choice
-            .validate_addresses(errors, meta_data, current_address, data);
-
-        self.items
-            .iter_mut()
-            .for_each(|item| item.validate_addresses(errors, meta_data, current_address, data));
-    }
-
-    #[cfg(test)]
-    fn all_addresses_are_valid(&self) -> bool {
-        self.items.iter().all(|item| item.all_addresses_are_valid())
-    }
-}
-
-impl ValidateAddresses for NodeItem {
-    fn validate_addresses(
-        &mut self,
-        errors: &mut Vec<InvalidAddressError>,
-        meta_data: &MetaData,
-        current_address: &Address,
-        data: &ValidateAddressData,
-    ) {
-        match self {
-            NodeItem::BranchingPoint(branches) => branches
-                .iter_mut()
-                .for_each(|item| item.validate_addresses(errors, meta_data, current_address, data)),
-            NodeItem::Line(line) => {
-                line.validate_addresses(errors, meta_data, current_address, data)
-            }
-        };
-    }
-
-    #[cfg(test)]
-    fn all_addresses_are_valid(&self) -> bool {
-        match self {
-            NodeItem::BranchingPoint(branches) => {
-                branches.iter().all(|item| item.all_addresses_are_valid())
-            }
-            NodeItem::Line(line) => line.all_addresses_are_valid(),
-        }
     }
 }
 

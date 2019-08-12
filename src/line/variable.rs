@@ -2,13 +2,13 @@
 
 use crate::{
     error::{
-        parse::{address::InvalidAddressError, validate::ValidationError},
+        parse::validate::ValidationError,
         utils::MetaData,
         variable::{VariableError, VariableErrorKind},
         InklingError, InternalError,
     },
     follow::FollowData,
-    knot::{get_num_visited, Address, AddressKind, ValidateAddressData, ValidateAddresses},
+    knot::{get_num_visited, Address, AddressKind},
     story::validate::{ValidateContent, ValidationData},
 };
 
@@ -694,37 +694,6 @@ impl ValidateContent for Variable {
             }
             Variable::Bool(..) | Variable::Float(..) | Variable::Int(..) | Variable::String(..) => {
                 ()
-            }
-        }
-    }
-}
-
-impl ValidateAddresses for Variable {
-    fn validate_addresses(
-        &mut self,
-        errors: &mut Vec<InvalidAddressError>,
-        meta_data: &MetaData,
-        current_address: &Address,
-        data: &ValidateAddressData,
-    ) {
-        match self {
-            Variable::Address(address) | Variable::Divert(address) => {
-                address.validate_addresses(errors, meta_data, current_address, data);
-            }
-            Variable::Bool(..) | Variable::Float(..) | Variable::Int(..) | Variable::String(..) => {
-                ()
-            }
-        }
-    }
-
-    #[cfg(test)]
-    fn all_addresses_are_valid(&self) -> bool {
-        match self {
-            Variable::Address(address) | Variable::Divert(address) => {
-                address.all_addresses_are_valid()
-            }
-            Variable::Bool(..) | Variable::Float(..) | Variable::Int(..) | Variable::String(..) => {
-                true
             }
         }
     }

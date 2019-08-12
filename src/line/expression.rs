@@ -1,13 +1,9 @@
 //! Expressions of numerical work or string concatenation of variables.
 
 use crate::{
-    error::{
-        parse::{address::InvalidAddressError, validate::ValidationError},
-        utils::MetaData,
-        InklingError,
-    },
+    error::{parse::validate::ValidationError, utils::MetaData, InklingError},
     follow::FollowData,
-    knot::{Address, ValidateAddressData, ValidateAddresses},
+    knot::Address,
     line::Variable,
     story::validate::{ValidateContent, ValidationData},
 };
@@ -207,59 +203,6 @@ impl ValidateContent for Operand {
             Operand::Variable(ref mut variable) => {
                 variable.validate(error, current_location, meta_data, data)
             }
-        }
-    }
-}
-
-impl ValidateAddresses for Expression {
-    fn validate_addresses(
-        &mut self,
-        errors: &mut Vec<InvalidAddressError>,
-        meta_data: &MetaData,
-        current_address: &Address,
-        data: &ValidateAddressData,
-    ) {
-        self.head
-            .validate_addresses(errors, meta_data, current_address, data);
-
-        self.tail.iter_mut().for_each(|(_, operand)| {
-            operand.validate_addresses(errors, meta_data, current_address, data)
-        });
-    }
-
-    #[cfg(test)]
-    fn all_addresses_are_valid(&self) -> bool {
-        self.head.all_addresses_are_valid()
-            && self
-                .tail
-                .iter()
-                .all(|(_, operand)| operand.all_addresses_are_valid())
-    }
-}
-
-impl ValidateAddresses for Operand {
-    fn validate_addresses(
-        &mut self,
-        errors: &mut Vec<InvalidAddressError>,
-        meta_data: &MetaData,
-        current_address: &Address,
-        data: &ValidateAddressData,
-    ) {
-        match self {
-            Operand::Nested(ref mut expression) => {
-                expression.validate_addresses(errors, meta_data, current_address, data)
-            }
-            Operand::Variable(ref mut variable) => {
-                variable.validate_addresses(errors, meta_data, current_address, data)
-            }
-        }
-    }
-
-    #[cfg(test)]
-    fn all_addresses_are_valid(&self) -> bool {
-        match &self {
-            Operand::Nested(expression) => expression.all_addresses_are_valid(),
-            Operand::Variable(variable) => variable.all_addresses_are_valid(),
         }
     }
 }

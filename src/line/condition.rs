@@ -31,11 +31,8 @@
 //! more information.
 
 use crate::{
-    error::{
-        parse::{address::InvalidAddressError, validate::ValidationError},
-        utils::MetaData,
-    },
-    knot::{Address, ValidateAddressData, ValidateAddresses},
+    error::{parse::validate::ValidationError, utils::MetaData},
+    knot::Address,
     line::{Expression, Variable},
     story::validate::{ValidateContent, ValidationData},
 };
@@ -283,100 +280,6 @@ impl ValidateContent for StoryCondition {
             StoryCondition::IsTrueLike { variable } => {
                 variable.validate(error, current_location, meta_data, data)
             }
-        }
-    }
-}
-
-impl ValidateAddresses for Condition {
-    fn validate_addresses(
-        &mut self,
-        errors: &mut Vec<InvalidAddressError>,
-        meta_data: &MetaData,
-        current_address: &Address,
-        data: &ValidateAddressData,
-    ) {
-        self.root
-            .kind
-            .validate_addresses(errors, meta_data, current_address, data);
-
-        self.items.iter_mut().for_each(|item| match item {
-            AndOr::And(item) | AndOr::Or(item) => {
-                item.kind
-                    .validate_addresses(errors, meta_data, current_address, data)
-            }
-        });
-    }
-
-    #[cfg(test)]
-    fn all_addresses_are_valid(&self) -> bool {
-        self.root.kind.all_addresses_are_valid()
-            && self.items.iter().all(|item| match item {
-                AndOr::And(item) | AndOr::Or(item) => item.kind.all_addresses_are_valid(),
-            })
-    }
-}
-
-impl ValidateAddresses for ConditionKind {
-    fn validate_addresses(
-        &mut self,
-        errors: &mut Vec<InvalidAddressError>,
-        meta_data: &MetaData,
-        current_address: &Address,
-        data: &ValidateAddressData,
-    ) {
-        match self {
-            ConditionKind::True | ConditionKind::False => (),
-            ConditionKind::Nested(condition) => {
-                condition.validate_addresses(errors, meta_data, current_address, data)
-            }
-            ConditionKind::Single(kind) => {
-                kind.validate_addresses(errors, meta_data, current_address, data)
-            }
-        }
-    }
-
-    #[cfg(test)]
-    fn all_addresses_are_valid(&self) -> bool {
-        match self {
-            ConditionKind::True | ConditionKind::False => true,
-            ConditionKind::Nested(condition) => condition.all_addresses_are_valid(),
-            ConditionKind::Single(kind) => kind.all_addresses_are_valid(),
-        }
-    }
-}
-
-impl ValidateAddresses for StoryCondition {
-    fn validate_addresses(
-        &mut self,
-        errors: &mut Vec<InvalidAddressError>,
-        meta_data: &MetaData,
-        current_address: &Address,
-        data: &ValidateAddressData,
-    ) {
-        match self {
-            StoryCondition::Comparison {
-                ref mut lhs_variable,
-                ref mut rhs_variable,
-                ..
-            } => {
-                lhs_variable.validate_addresses(errors, meta_data, current_address, data);
-                rhs_variable.validate_addresses(errors, meta_data, current_address, data);
-            }
-            StoryCondition::IsTrueLike { variable } => {
-                variable.validate_addresses(errors, meta_data, current_address, data)
-            }
-        }
-    }
-
-    #[cfg(test)]
-    fn all_addresses_are_valid(&self) -> bool {
-        match self {
-            StoryCondition::Comparison {
-                lhs_variable,
-                rhs_variable,
-                ..
-            } => lhs_variable.all_addresses_are_valid() && rhs_variable.all_addresses_are_valid(),
-            StoryCondition::IsTrueLike { variable } => variable.all_addresses_are_valid(),
         }
     }
 }

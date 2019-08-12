@@ -1,11 +1,8 @@
 //! Content that alternates from a fixed set when processed.
 
 use crate::{
-    error::{
-        parse::{address::InvalidAddressError, validate::ValidationError},
-        utils::MetaData,
-    },
-    knot::{Address, ValidateAddressData, ValidateAddresses},
+    error::{parse::validate::ValidationError, utils::MetaData},
+    knot::Address,
     line::LineChunk,
     story::validate::{ValidateContent, ValidationData},
 };
@@ -67,25 +64,6 @@ impl ValidateContent for Alternative {
         self.items
             .iter_mut()
             .for_each(|item| item.validate(error, current_location, meta_data, data));
-    }
-}
-
-impl ValidateAddresses for Alternative {
-    fn validate_addresses(
-        &mut self,
-        errors: &mut Vec<InvalidAddressError>,
-        meta_data: &MetaData,
-        current_address: &Address,
-        data: &ValidateAddressData,
-    ) {
-        self.items
-            .iter_mut()
-            .for_each(|item| item.validate_addresses(errors, meta_data, current_address, data));
-    }
-
-    #[cfg(test)]
-    fn all_addresses_are_valid(&self) -> bool {
-        self.items.iter().all(|item| item.all_addresses_are_valid())
     }
 }
 

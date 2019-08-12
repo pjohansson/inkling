@@ -150,6 +150,7 @@ pub(super) mod tests {
     use super::*;
 
     use crate::{
+        consts::ROOT_KNOT_NAME,
         knot::{Knot, Stitch},
         line::Variable,
         node::RootNodeBuilder,
@@ -228,6 +229,79 @@ pub(super) mod tests {
     fn get_validation_error_from_string(content: &str) -> ValidationError {
         let (mut knots, data) = get_validation_data_from_string(content);
         validate_story_content(&mut knots, &data).unwrap_err()
+    }
+
+    #[test]
+    fn creating_validation_data_sets_default_knot_names() {
+        let content = "
+== tripoli
+= cinema
+-> END
+= with_family
+-> END
+
+== addis_ababa
+-> END
+= with_family
+-> END
+";
+
+        let (knots, _, _) = read_story_content_from_string(content).unwrap();
+
+        let data = ValidationData::from_data(&knots, &HashMap::new());
+
+        assert_eq!(data.knots.len(), 3);
+
+        let tripoli_default = &data.knots.get("tripoli").unwrap().default_stitch;
+        let addis_ababa_default = &data.knots.get("addis_ababa").unwrap().default_stitch;
+
+        assert_eq!(tripoli_default, "cinema");
+        assert_eq!(addis_ababa_default, ROOT_KNOT_NAME);
+    }
+
+    #[test]
+    fn creating_validation_data_sets_stitches() {
+        let content = "
+== tripoli
+= cinema
+-> END
+= with_family
+-> END
+
+== addis_ababa
+-> END
+= with_family
+-> END
+";
+
+        let (knots, _, _) = read_story_content_from_string(content).unwrap();
+
+        let data = ValidationData::from_data(&knots, &HashMap::new());
+
+        let tripoli_stitches = &data.knots.get("tripoli").unwrap().stitches;
+        let addis_ababa_stitches = &data.knots.get("addis_ababa").unwrap().stitches;
+
+        assert_eq!(tripoli_stitches.len(), 2);
+        assert!(tripoli_stitches.contains_key(&"cinema".to_string()));
+        assert!(tripoli_stitches.contains_key(&"with_family".to_string()));
+
+        assert_eq!(addis_ababa_stitches.len(), 2);
+        assert!(addis_ababa_stitches.contains_key(&ROOT_KNOT_NAME.to_string()));
+        assert!(addis_ababa_stitches.contains_key(&"with_family".to_string()));
+    }
+
+    #[test]
+    fn creating_validation_data_sets_variable_names() {
+        let mut variables = HashMap::new();
+
+        variables.insert("counter".to_string(), VariableInfo::new(1, 0));
+        variables.insert("health".to_string(), VariableInfo::new(75.0, 1));
+
+        let data = ValidationData::from_data(&HashMap::new(), &variables);
+
+        assert_eq!(data.follow_data.variables.len(), 2);
+        assert!(data.follow_data.variables.contains_key("counter"));
+        assert!(data.follow_data.variables.contains_key("health"));
     }
 
     #[test]

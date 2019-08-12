@@ -13,65 +13,11 @@ use crate::{
         utils::MetaData,
         InternalError,
     },
-    follow::FollowData,
     knot::KnotSet,
-    story::{
-        types::VariableSet,
-        validate::{KnotValidationInfo, ValidateContent, ValidationData},
-    },
+    story::validate::{KnotValidationInfo, ValidateContent, ValidationData},
 };
 
-use std::collections::{HashMap, HashSet};
-
-pub struct ValidateAddressData {
-    /// Set of knots in story, each with their default stitch and list of stitches.
-    knot_structure: HashMap<String, (String, Vec<String>)>,
-    /// Set of global variables in story.
-    variables: HashSet<String>,
-}
-
-impl ValidateAddressData {
-    fn from_data(knots: &KnotSet, variable_set: &VariableSet) -> Self {
-        let knot_structure = knots
-            .iter()
-            .map(|(knot_name, knot)| {
-                let stitches = knot.stitches.keys().cloned().collect();
-
-                (knot_name.clone(), (knot.default_stitch.clone(), stitches))
-            })
-            .collect();
-
-        let variables = variable_set.keys().cloned().collect();
-
-        ValidateAddressData {
-            knot_structure,
-            variables,
-        }
-    }
-}
-
-/// Trait for validating `Address` objects.
-///
-/// Meant to be implemented recursively for all relevant items. Any new item that has an
-/// address should implement this trait and ensure that a parent item calls this function
-/// on it when itself called.
-///
-/// At the end of a recursively called chain of objects containing addresses somewhere
-/// there should be the actual address that will be verified.
-pub trait ValidateAddresses {
-    /// Validate any addresses belonging to this item or their children.
-    fn validate_addresses(
-        &mut self,
-        errors: &mut Vec<InvalidAddressError>,
-        meta_data: &MetaData,
-        current_address: &Address,
-        data: &ValidateAddressData,
-    );
-
-    #[cfg(test)]
-    /// Assert that all addresses are valid.
-    fn all_addresses_are_valid(&self) -> bool;
-}
+use std::collections::HashMap;
 
 #[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
@@ -188,7 +134,7 @@ impl Address {
     }
 
     /// Validate the `Address` if it is `Raw`.
-    fn validate_internal2(
+    fn validate_internal(
         &mut self,
         current_location: &Address,
         data: &ValidationData,
@@ -199,35 +145,8 @@ impl Address {
             }
             Address::Raw(ref target) => {
                 let address = match split_address_into_parts(target.trim())? {
-                    (knot, Some(stitch)) => get_location_from_parts2(knot, stitch, &data.knots)?,
-                    (needle, None) => get_address_from_needle2(needle, current_location, data)?,
-                }
-                .into();
-
-                *self = address;
-            }
-            Address::Validated { .. } | Address::End => (),
-        }
-
-        Ok(())
-    }
-
-    /// Validate the `Address` if it is `Raw`.
-    fn validate_internal(
-        &mut self,
-        current_address: &Address,
-        data: &ValidateAddressData,
-    ) -> Result<(), InvalidAddressErrorKind> {
-        match self {
-            Address::Raw(ref target) if target == DONE_KNOT || target == END_KNOT => {
-                *self = Address::End;
-            }
-            Address::Raw(ref target) => {
-                let address = match split_address_into_parts(target.trim())? {
-                    (knot, Some(stitch)) => {
-                        get_location_from_parts(knot, stitch, &data.knot_structure)?
-                    }
-                    (needle, None) => get_address_from_needle(needle, current_address, data)?,
+                    (knot, Some(stitch)) => get_location_from_parts(knot, stitch, &data.knots)?,
+                    (needle, None) => get_address_from_needle(needle, current_location, data)?,
                 }
                 .into();
 
@@ -248,7 +167,7 @@ impl ValidateContent for Address {
         meta_data: &MetaData,
         data: &ValidationData,
     ) {
-        if let Err(kind) = self.validate_internal2(current_location, data) {
+        if let Err(kind) = self.validate_internal(current_location, data) {
             let err = InvalidAddressError {
                 kind,
                 meta_data: meta_data.clone(),
@@ -262,39 +181,6 @@ impl ValidateContent for Address {
             {
                 error.invalid_address_errors.push(err);
             }
-        }
-    }
-}
-
-impl ValidateAddresses for Address {
-    fn validate_addresses(
-        &mut self,
-        errors: &mut Vec<InvalidAddressError>,
-        meta_data: &MetaData,
-        current_address: &Address,
-        data: &ValidateAddressData,
-    ) {
-        if let Err(kind) = self.validate_internal(current_address, data) {
-            let error = InvalidAddressError {
-                kind,
-                meta_data: meta_data.clone(),
-            };
-
-            if errors
-                .last()
-                .map(|last_err| last_err != &error)
-                .unwrap_or(true)
-            {
-                errors.push(error);
-            }
-        }
-    }
-
-    #[cfg(test)]
-    fn all_addresses_are_valid(&self) -> bool {
-        match self {
-            Address::Validated { .. } | Address::End => true,
-            Address::Raw(..) => false,
         }
     }
 }
@@ -323,32 +209,6 @@ fn split_address_into_parts(
 
 /// Verify and return the full address to a stitch from its parts.
 fn get_location_from_parts(
-    knot_name: String,
-    stitch_name: String,
-    knot_structure: &HashMap<String, (String, Vec<String>)>,
-) -> Result<AddressKind, InvalidAddressErrorKind> {
-    let (_, stitches) =
-        knot_structure
-            .get(&knot_name)
-            .ok_or(InvalidAddressErrorKind::UnknownKnot {
-                knot_name: knot_name.clone(),
-            })?;
-
-    if stitches.contains(&stitch_name) {
-        Ok(AddressKind::Location {
-            knot: knot_name,
-            stitch: stitch_name,
-        })
-    } else {
-        Err(InvalidAddressErrorKind::UnknownStitch {
-            knot_name: knot_name.clone(),
-            stitch_name: stitch_name.clone(),
-        })
-    }
-}
-
-/// Verify and return the full address to a stitch from its parts.
-fn get_location_from_parts2(
     knot_name: String,
     stitch_name: String,
     knots: &HashMap<String, KnotValidationInfo>,
@@ -382,13 +242,13 @@ fn get_location_from_parts2(
 /// If the name is not found in the current knot's stitches, or in the set of knot names,
 /// the variable listing is searched. If a match is found the address will be returned
 /// as a global variable.
-fn get_address_from_needle2(
+fn get_address_from_needle(
     needle: String,
     current_address: &Address,
     data: &ValidationData,
 ) -> Result<AddressKind, InvalidAddressErrorKind> {
     let (current_knot_name, current_stitches) =
-        get_knot_name_and_stitches2(current_address, &data.knots, &needle)?;
+        get_knot_name_and_stitches(current_address, &data.knots, &needle)?;
 
     let matches_stitch_in_current_knot = current_stitches.contains(&needle);
     let matches_knot = data.knots.get(&needle);
@@ -413,48 +273,8 @@ fn get_address_from_needle2(
     }
 }
 
-/// Return a validated address from a single name.
-///
-/// Internal addresses are relative to the current knot. If one is found in the current knot,
-/// the knot name and the address is returned. Otherwise the default stitch from a knot
-/// with the name is returned.
-///
-/// If the name is not found in the current knot's stitches, or in the set of knot names,
-/// the variable listing is searched. If a match is found the address will be returned
-/// as a global variable.
-fn get_address_from_needle(
-    needle: String,
-    current_address: &Address,
-    data: &ValidateAddressData,
-) -> Result<AddressKind, InvalidAddressErrorKind> {
-    let (current_knot_name, current_stitches) =
-        get_knot_name_and_stitches(current_address, &data.knot_structure, &needle)?;
-
-    let matches_stitch_in_current_knot = current_stitches.contains(&needle);
-    let matches_knot = data.knot_structure.get(&needle);
-    let matches_variable = data.variables.contains(&needle);
-
-    if matches_stitch_in_current_knot {
-        Ok(AddressKind::Location {
-            knot: current_knot_name.to_string(),
-            stitch: needle,
-        })
-    } else if let Some((default_stitch, _)) = matches_knot {
-        Ok(AddressKind::Location {
-            knot: needle,
-            stitch: default_stitch.clone(),
-        })
-    } else if matches_variable {
-        Ok(AddressKind::GlobalVariable { name: needle })
-    } else {
-        Err(InvalidAddressErrorKind::UnknownAddress {
-            name: needle.clone(),
-        })
-    }
-}
-
 /// Get the knot name and stitches from the given address.
-fn get_knot_name_and_stitches2(
+fn get_knot_name_and_stitches(
     address: &Address,
     knots: &HashMap<String, KnotValidationInfo>,
     needle: &str,
@@ -474,61 +294,6 @@ fn get_knot_name_and_stitches2(
             })?;
 
     Ok((knot_name.to_string(), stitches.keys().cloned().collect()))
-}
-
-/// Get the knot name and stitches from the given address.
-fn get_knot_name_and_stitches<'a>(
-    address: &Address,
-    knot_structure: &'a HashMap<String, (String, Vec<String>)>,
-    needle: &str,
-) -> Result<(String, &'a Vec<String>), InvalidAddressErrorKind> {
-    let knot_name = address.get_knot().map_err(|_| {
-        InvalidAddressErrorKind::ValidatedWithUnvalidatedAddress {
-            needle: needle.to_string(),
-            current_address: address.clone(),
-        }
-    })?;
-
-    let (_, stitches) =
-        knot_structure
-            .get(knot_name)
-            .ok_or(InvalidAddressErrorKind::UnknownCurrentAddress {
-                address: address.clone(),
-            })?;
-
-    Ok((knot_name.to_string(), stitches))
-}
-
-/// Validate all addresses in knots using the `ValidateAddresses` trait.
-pub fn validate_addresses_in_knots(
-    knots: &mut KnotSet,
-    data: &FollowData,
-) -> Result<(), Vec<InvalidAddressError>> {
-    let validation_data = ValidateAddressData::from_data(knots, &data.variables);
-
-    let mut errors = Vec::new();
-
-    knots.iter_mut().for_each(|(knot_name, knot)| {
-        knot.stitches.iter_mut().for_each(|(stitch_name, stitch)| {
-            let current_address = Address::Validated(AddressKind::Location {
-                knot: knot_name.clone(),
-                stitch: stitch_name.clone(),
-            });
-
-            stitch.root.validate_addresses(
-                &mut errors,
-                &stitch.meta_data,
-                &current_address,
-                &validation_data,
-            );
-        })
-    });
-
-    if errors.is_empty() {
-        Ok(())
-    } else {
-        Err(errors)
-    }
 }
 
 #[cfg(test)]
@@ -568,91 +333,21 @@ pub mod tests {
 
     fn validate_address(
         address: &mut Address,
-        current_address: &Address,
-        data: &ValidateAddressData,
+        current_location: &Address,
+        data: &ValidationData,
     ) -> Result<(), InvalidAddressError> {
-        let mut errors = Vec::new();
+        let mut error = ValidationError {
+            invalid_address_errors: Vec::new(),
+            name_space_errors: Vec::new(),
+        };
 
-        address.validate_addresses(&mut errors, &().into(), current_address, data);
+        address.validate(&mut error, current_location, &().into(), data);
 
-        if errors.is_empty() {
+        if error.is_empty() {
             Ok(())
         } else {
-            Err(errors[0].clone())
+            Err(error.invalid_address_errors[0].clone())
         }
-    }
-
-    #[test]
-    fn creating_validation_data_sets_default_knot_names() {
-        let content = "
-== tripoli
-= cinema
--> END
-= with_family
--> END
-
-== addis_ababa
--> END
-= with_family
--> END
-";
-
-        let knots = read_knots_from_string(content).unwrap();
-
-        let data = ValidateAddressData::from_data(&knots, &HashMap::new());
-
-        assert_eq!(data.knot_structure.len(), 2);
-
-        let (tripoli_default, _) = data.knot_structure.get("tripoli").unwrap();
-        let (addis_ababa_default, _) = data.knot_structure.get("addis_ababa").unwrap();
-
-        assert_eq!(tripoli_default.as_str(), "cinema");
-        assert_eq!(addis_ababa_default.as_str(), ROOT_KNOT_NAME);
-    }
-
-    #[test]
-    fn creating_validation_data_sets_stitches() {
-        let content = "
-== tripoli
-= cinema
--> END
-= with_family
--> END
-
-== addis_ababa
--> END
-= with_family
--> END
-";
-
-        let knots = read_knots_from_string(content).unwrap();
-
-        let data = ValidateAddressData::from_data(&knots, &HashMap::new());
-
-        let (_, tripoli_stitches) = data.knot_structure.get("tripoli").unwrap();
-        let (_, addis_ababa_stitches) = data.knot_structure.get("addis_ababa").unwrap();
-
-        assert_eq!(tripoli_stitches.len(), 2);
-        assert!(tripoli_stitches.contains(&"cinema".to_string()));
-        assert!(tripoli_stitches.contains(&"with_family".to_string()));
-
-        assert_eq!(addis_ababa_stitches.len(), 2);
-        assert!(addis_ababa_stitches.contains(&ROOT_KNOT_NAME.to_string()));
-        assert!(addis_ababa_stitches.contains(&"with_family".to_string()));
-    }
-
-    #[test]
-    fn creating_validation_data_sets_variable_names() {
-        let mut variables = HashMap::new();
-
-        variables.insert("counter".to_string(), VariableInfo::new(1, 0));
-        variables.insert("health".to_string(), VariableInfo::new(75.0, 1));
-
-        let data = ValidateAddressData::from_data(&HashMap::new(), &variables);
-
-        assert_eq!(data.variables.len(), 2);
-        assert!(data.variables.contains("counter"));
-        assert!(data.variables.contains("health"));
     }
 
     #[test]
@@ -666,7 +361,7 @@ pub mod tests {
 ";
 
         let knots = read_knots_from_string(content).unwrap();
-        let data = ValidateAddressData::from_data(&knots, &HashMap::new());
+        let data = ValidationData::from_data(&knots, &HashMap::new());
 
         let current_address = Address::from_knot("addis_ababa");
 
@@ -690,7 +385,7 @@ pub mod tests {
 ";
 
         let knots = read_knots_from_string(content).unwrap();
-        let data = ValidateAddressData::from_data(&knots, &HashMap::new());
+        let data = ValidationData::from_data(&knots, &HashMap::new());
 
         let current_address = Address::from_knot("addis_ababa");
 
@@ -717,7 +412,7 @@ You find yourself in Tripoli, the capital of Libya.
 ";
 
         let knots = read_knots_from_string(content).unwrap();
-        let data = ValidateAddressData::from_data(&knots, &HashMap::new());
+        let data = ValidationData::from_data(&knots, &HashMap::new());
 
         let current_address = Address::from_knot("addis_ababa");
 
@@ -741,7 +436,7 @@ You find yourself in Tripoli, the capital of Libya.
 ";
 
         let knots = read_knots_from_string(content).unwrap();
-        let data = ValidateAddressData::from_data(&knots, &HashMap::new());
+        let data = ValidationData::from_data(&knots, &HashMap::new());
 
         let current_address = Address::from_knot("tripoli");
 
@@ -765,7 +460,7 @@ You find yourself in Tripoli, the capital of Libya.
 ";
 
         let knots = read_knots_from_string(content).unwrap();
-        let data = ValidateAddressData::from_data(&knots, &HashMap::new());
+        let data = ValidationData::from_data(&knots, &HashMap::new());
 
         let current_address = Address::from_knot("rabat");
 
@@ -785,7 +480,7 @@ You find yourself in Tripoli, the capital of Libya.
 ";
 
         let knots = read_knots_from_string(content).unwrap();
-        let data = ValidateAddressData::from_data(&knots, &HashMap::new());
+        let data = ValidationData::from_data(&knots, &HashMap::new());
 
         let current_address = Address::from_knot("tripoli");
 
@@ -820,7 +515,7 @@ You find yourself in Addis Ababa, the capital of Ethiopia.
 ";
 
         let knots = read_knots_from_string(content).unwrap();
-        let data = ValidateAddressData::from_data(&knots, &HashMap::new());
+        let data = ValidationData::from_data(&knots, &HashMap::new());
 
         let current_address = Address::from_knot("addis_ababa");
 
@@ -849,7 +544,7 @@ You find yourself in Addis Ababa, the capital of Ethiopia.
             .map(|(i, (name, var))| (name, VariableInfo::new(var, i)))
             .collect();
 
-        let data = ValidateAddressData::from_data(&knots, &variables);
+        let data = ValidationData::from_data(&knots, &variables);
 
         let current_address = Address::from_knot("addis_ababa");
 
@@ -873,7 +568,7 @@ You find yourself in Tripoli, the capital of Libya.
 ";
 
         let knots = read_knots_from_string(content).unwrap();
-        let data = ValidateAddressData::from_data(&knots, &HashMap::new());
+        let data = ValidationData::from_data(&knots, &HashMap::new());
 
         let current_address = Address::from_knot("");
 

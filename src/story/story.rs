@@ -4,15 +4,13 @@ use crate::{
     consts::ROOT_KNOT_NAME,
     error::{runtime::internal::StackError, InklingError, ReadError},
     follow::{ChoiceInfo, EncounteredEvent, FollowData, LineDataBuffer},
-    knot::{
-        get_empty_knot_counts, get_mut_stitch, get_num_visited, validate_addresses_in_knots,
-        Address, KnotSet,
-    },
+    knot::{get_empty_knot_counts, get_mut_stitch, get_num_visited, Address, KnotSet},
     line::Variable,
     process::{get_fallback_choices, prepare_choices_for_user, process_buffer},
     story::{
         parse::read_story_content_from_string,
         types::{Choice, LineBuffer, Prompt},
+        validate::validate_story_content,
     },
 };
 
@@ -617,7 +615,7 @@ pub fn read_story_from_string(string: &str) -> Result<Story, ReadError> {
         variables,
     };
 
-    validate_addresses_in_knots(&mut knots, &data)?;
+    validate_story_content(&mut knots, &data).unwrap();
 
     let root_address = Address::from_root_knot(ROOT_KNOT_NAME, &knots).expect(
         "After successfully creating all knots, the root knot name that was returned from \
@@ -729,7 +727,7 @@ mod tests {
     use super::*;
 
     use crate::{
-        knot::{get_num_visited, increment_num_visited, ValidateAddresses},
+        knot::{get_num_visited, increment_num_visited},
         story::parse::tests::read_knots_from_string,
     };
 
@@ -767,7 +765,7 @@ We hurried home to Savile Row as fast as we could.
         let mut knots = read_knots_from_string(content).unwrap();
 
         let mut data = mock_follow_data(&knots);
-        validate_addresses_in_knots(&mut knots, &data).unwrap();
+        validate_story_content(&mut knots, &data).unwrap();
 
         let root_address = Address::from_root_knot("back_in_london", &knots).unwrap();
 
@@ -795,7 +793,7 @@ We hurried home to Savile Row as fast as we could.
         let mut knots = read_knots_from_string(content).unwrap();
 
         let mut data = mock_follow_data(&knots);
-        validate_addresses_in_knots(&mut knots, &data).unwrap();
+        validate_story_content(&mut knots, &data).unwrap();
 
         let root_address = Address::from_root_knot("back_in_london", &knots).unwrap();
 
@@ -822,7 +820,7 @@ We hurried home to Savile Row as fast as we could.
         let mut knots = read_knots_from_string(content).unwrap();
 
         let mut data = mock_follow_data(&knots);
-        validate_addresses_in_knots(&mut knots, &data).unwrap();
+        validate_story_content(&mut knots, &data).unwrap();
 
         let root_address = Address::from_root_knot("select_destination", &knots).unwrap();
 
@@ -856,7 +854,7 @@ We hurried home to Savile Row as fast as we could.
         let mut knots = read_knots_from_string(content).unwrap();
 
         let mut data = mock_follow_data(&knots);
-        validate_addresses_in_knots(&mut knots, &data).unwrap();
+        validate_story_content(&mut knots, &data).unwrap();
 
         let root_address = Address::from_root_knot("back_in_london", &knots).unwrap();
 
@@ -884,7 +882,7 @@ We hurried home to Savile Row as fast as we could.
         let mut knots = read_knots_from_string(content).unwrap();
 
         let mut data = mock_follow_data(&knots);
-        validate_addresses_in_knots(&mut knots, &data).unwrap();
+        validate_story_content(&mut knots, &data).unwrap();
 
         let done_address = Address::from_root_knot("knot_done", &knots).unwrap();
         let end_address = Address::from_root_knot("knot_end", &knots).unwrap();
@@ -915,7 +913,7 @@ We hurried home to Savile Row as fast as we could.
         let mut knots = read_knots_from_string(content).unwrap();
 
         let mut data = mock_follow_data(&knots);
-        validate_addresses_in_knots(&mut knots, &data).unwrap();
+        validate_story_content(&mut knots, &data).unwrap();
 
         let current_address = Address::from_root_knot("addis_ababa", &knots).unwrap();
         let divert_address = Address::from_root_knot("tripoli", &knots).unwrap();
@@ -938,7 +936,7 @@ We hurried home to Savile Row as fast as we could.
         let mut knots = read_knots_from_string(content).unwrap();
 
         let mut data = mock_follow_data(&knots);
-        validate_addresses_in_knots(&mut knots, &data).unwrap();
+        validate_story_content(&mut knots, &data).unwrap();
 
         let current_address = Address::from_root_knot("tripoli", &knots).unwrap();
 
@@ -974,7 +972,7 @@ We hurried home to Savile Row as fast as we could.
         let mut knots = read_knots_from_string(content).unwrap();
 
         let mut data = mock_follow_data(&knots);
-        validate_addresses_in_knots(&mut knots, &data).unwrap();
+        validate_story_content(&mut knots, &data).unwrap();
 
         let current_address = Address::from_root_knot("addis_ababa", &knots).unwrap();
 
@@ -1010,7 +1008,7 @@ We hurried home to Savile Row as fast as we could.
         let mut knots = read_knots_from_string(content).unwrap();
 
         let mut data = mock_follow_data(&knots);
-        validate_addresses_in_knots(&mut knots, &data).unwrap();
+        validate_story_content(&mut knots, &data).unwrap();
 
         let current_address = Address::from_root_knot("addis_ababa", &knots).unwrap();
 
@@ -1200,7 +1198,7 @@ We hurried home to Savile Row as fast as we could.
         let mut knots = read_knots_from_string(content).unwrap();
 
         let mut data = mock_follow_data(&knots);
-        validate_addresses_in_knots(&mut knots, &data).unwrap();
+        validate_story_content(&mut knots, &data).unwrap();
 
         let current_address = Address::from_root_knot("first", &knots).unwrap();
 
@@ -1231,7 +1229,7 @@ We decided to go to the <>
         let mut knots = read_knots_from_string(content).unwrap();
 
         let mut data = mock_follow_data(&knots);
-        validate_addresses_in_knots(&mut knots, &data).unwrap();
+        validate_story_content(&mut knots, &data).unwrap();
 
         let current_address = Address::from_root_knot("tripoli", &knots).unwrap();
 
@@ -1360,37 +1358,6 @@ Hello, World!
         let address = Address::from_root_knot("$ROOT$", &story.knots).unwrap();
 
         assert_eq!(get_num_visited(&address, &story.data).unwrap(), 1);
-    }
-
-    #[test]
-    fn all_addresses_are_validated_in_knots_after_reading_story_from_lines() {
-        let content = "
-
-== back_in_almaty
-We arrived into Almaty at 9.45pm exactly.
--> hurry_home
-
-== hurry_home
-*   We hurried home as fast as we could.
-    -> END
-*   But we decided our trip wasn't done yet.
-    *   We immediately left the city.
-        After a few days me returned again.
-        -> back_in_almaty
-    *   Still, we could not head out just yet. -> fin
-
-== fin
--> END
-
-";
-
-        let story = read_story_from_string(content).unwrap();
-
-        for knot in story.knots.values() {
-            for stitch in knot.stitches.values() {
-                assert!(stitch.root.all_addresses_are_valid());
-            }
-        }
     }
 
     #[test]

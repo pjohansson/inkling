@@ -1,11 +1,8 @@
 //! Choice which branches the story.
 
 use crate::{
-    error::{
-        parse::{address::InvalidAddressError, validate::ValidationError},
-        utils::MetaData,
-    },
-    knot::{Address, ValidateAddressData, ValidateAddresses},
+    error::{parse::validate::ValidationError, utils::MetaData},
+    knot::Address,
     line::{Condition, InternalLine},
     story::validate::{ValidateContent, ValidationData},
 };
@@ -74,41 +71,6 @@ impl ValidateContent for InternalChoice {
         if let Some(ref mut condition) = self.condition {
             condition.validate(error, current_location, &self.meta_data, data);
         }
-    }
-}
-
-impl ValidateAddresses for InternalChoice {
-    fn validate_addresses(
-        &mut self,
-        errors: &mut Vec<InvalidAddressError>,
-        _: &MetaData,
-        current_address: &Address,
-        data: &ValidateAddressData,
-    ) {
-        self.selection_text.borrow_mut().validate_addresses(
-            errors,
-            &self.meta_data,
-            current_address,
-            data,
-        );
-
-        self.display_text
-            .validate_addresses(errors, &self.meta_data, current_address, data);
-
-        if let Some(ref mut condition) = self.condition {
-            condition.validate_addresses(errors, &self.meta_data, current_address, data);
-        }
-    }
-
-    #[cfg(test)]
-    fn all_addresses_are_valid(&self) -> bool {
-        self.selection_text.borrow().all_addresses_are_valid()
-            && self.display_text.all_addresses_are_valid()
-            && self
-                .condition
-                .as_ref()
-                .map(|condition| condition.all_addresses_are_valid())
-                .unwrap_or(true)
     }
 }
 
