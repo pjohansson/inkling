@@ -2,13 +2,14 @@
 
 use crate::{
     error::{
-        parse::address::InvalidAddressError,
+        parse::{address::InvalidAddressError, validate::ValidationError},
         utils::MetaData,
         variable::{VariableError, VariableErrorKind},
         InklingError, InternalError,
     },
     follow::FollowData,
     knot::{get_num_visited, Address, AddressKind, ValidateAddressData, ValidateAddresses},
+    story::validate::{ValidateContent, ValidationData},
 };
 
 #[cfg(feature = "serde_support")]
@@ -679,8 +680,27 @@ impl From<String> for Variable {
     }
 }
 
-impl ValidateAddresses for Variable {
+impl ValidateContent for Variable {
     fn validate(
+        &mut self,
+        error: &mut ValidationError,
+        current_location: &Address,
+        meta_data: &MetaData,
+        data: &ValidationData,
+    ) {
+        match self {
+            Variable::Address(address) | Variable::Divert(address) => {
+                address.validate(error, current_location, meta_data, data);
+            }
+            Variable::Bool(..) | Variable::Float(..) | Variable::Int(..) | Variable::String(..) => {
+                ()
+            }
+        }
+    }
+}
+
+impl ValidateAddresses for Variable {
+    fn validate_addresses(
         &mut self,
         errors: &mut Vec<InvalidAddressError>,
         meta_data: &MetaData,
@@ -689,7 +709,7 @@ impl ValidateAddresses for Variable {
     ) {
         match self {
             Variable::Address(address) | Variable::Divert(address) => {
-                address.validate(errors, meta_data, current_address, data);
+                address.validate_addresses(errors, meta_data, current_address, data);
             }
             Variable::Bool(..) | Variable::Float(..) | Variable::Int(..) | Variable::String(..) => {
                 ()

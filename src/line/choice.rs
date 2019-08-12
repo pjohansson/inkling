@@ -1,9 +1,13 @@
 //! Choice which branches the story.
 
 use crate::{
-    error::{parse::address::InvalidAddressError, utils::MetaData},
+    error::{
+        parse::{address::InvalidAddressError, validate::ValidationError},
+        utils::MetaData,
+    },
     knot::{Address, ValidateAddressData, ValidateAddresses},
     line::{Condition, InternalLine},
+    story::validate::{ValidateContent, ValidationData},
 };
 
 use std::{cell::RefCell, rc::Rc};
@@ -52,23 +56,47 @@ pub struct InternalChoice {
     pub meta_data: MetaData,
 }
 
-impl ValidateAddresses for InternalChoice {
+impl ValidateContent for InternalChoice {
     fn validate(
+        &mut self,
+        error: &mut ValidationError,
+        current_location: &Address,
+        _: &MetaData,
+        data: &ValidationData,
+    ) {
+        self.selection_text
+            .borrow_mut()
+            .validate(error, current_location, &self.meta_data, data);
+
+        self.display_text
+            .validate(error, current_location, &self.meta_data, data);
+
+        if let Some(ref mut condition) = self.condition {
+            condition.validate(error, current_location, &self.meta_data, data);
+        }
+    }
+}
+
+impl ValidateAddresses for InternalChoice {
+    fn validate_addresses(
         &mut self,
         errors: &mut Vec<InvalidAddressError>,
         _: &MetaData,
         current_address: &Address,
         data: &ValidateAddressData,
     ) {
-        self.selection_text
-            .borrow_mut()
-            .validate(errors, &self.meta_data, current_address, data);
+        self.selection_text.borrow_mut().validate_addresses(
+            errors,
+            &self.meta_data,
+            current_address,
+            data,
+        );
 
         self.display_text
-            .validate(errors, &self.meta_data, current_address, data);
+            .validate_addresses(errors, &self.meta_data, current_address, data);
 
         if let Some(ref mut condition) = self.condition {
-            condition.validate(errors, &self.meta_data, current_address, data);
+            condition.validate_addresses(errors, &self.meta_data, current_address, data);
         }
     }
 

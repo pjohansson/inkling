@@ -12,8 +12,14 @@ impl Error for ValidationError {}
 
 #[derive(Debug)]
 pub struct ValidationError {
-    invalid_address_errors: Vec<InvalidAddressError>,
-    name_space_errors: Vec<NameSpaceCollision>,
+    pub invalid_address_errors: Vec<InvalidAddressError>,
+    pub name_space_errors: Vec<NameSpaceCollision>,
+}
+
+impl ValidationError {
+    pub fn is_empty(&self) -> bool {
+        self.invalid_address_errors.is_empty() && self.name_space_errors.is_empty()
+    }
 }
 
 impl fmt::Display for ValidationError {

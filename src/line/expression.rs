@@ -1,10 +1,15 @@
 //! Expressions of numerical work or string concatenation of variables.
 
 use crate::{
-    error::{parse::address::InvalidAddressError, utils::MetaData, InklingError},
+    error::{
+        parse::{address::InvalidAddressError, validate::ValidationError},
+        utils::MetaData,
+        InklingError,
+    },
     follow::FollowData,
     knot::{Address, ValidateAddressData, ValidateAddresses},
     line::Variable,
+    story::validate::{ValidateContent, ValidationData},
 };
 
 #[cfg(feature = "serde_support")]
@@ -171,19 +176,55 @@ fn get_maybe_nested_operand_from_group(group: Vec<(Operator, Operand)>) -> (Oper
     }
 }
 
-impl ValidateAddresses for Expression {
+impl ValidateContent for Expression {
     fn validate(
+        &mut self,
+        error: &mut ValidationError,
+        current_location: &Address,
+        meta_data: &MetaData,
+        data: &ValidationData,
+    ) {
+        self.head.validate(error, current_location, meta_data, data);
+
+        self.tail
+            .iter_mut()
+            .for_each(|(_, operand)| operand.validate(error, current_location, meta_data, data));
+    }
+}
+
+impl ValidateContent for Operand {
+    fn validate(
+        &mut self,
+        error: &mut ValidationError,
+        current_location: &Address,
+        meta_data: &MetaData,
+        data: &ValidationData,
+    ) {
+        match self {
+            Operand::Nested(ref mut expression) => {
+                expression.validate(error, current_location, meta_data, data)
+            }
+            Operand::Variable(ref mut variable) => {
+                variable.validate(error, current_location, meta_data, data)
+            }
+        }
+    }
+}
+
+impl ValidateAddresses for Expression {
+    fn validate_addresses(
         &mut self,
         errors: &mut Vec<InvalidAddressError>,
         meta_data: &MetaData,
         current_address: &Address,
         data: &ValidateAddressData,
     ) {
-        self.head.validate(errors, meta_data, current_address, data);
+        self.head
+            .validate_addresses(errors, meta_data, current_address, data);
 
-        self.tail
-            .iter_mut()
-            .for_each(|(_, operand)| operand.validate(errors, meta_data, current_address, data));
+        self.tail.iter_mut().for_each(|(_, operand)| {
+            operand.validate_addresses(errors, meta_data, current_address, data)
+        });
     }
 
     #[cfg(test)]
@@ -197,7 +238,7 @@ impl ValidateAddresses for Expression {
 }
 
 impl ValidateAddresses for Operand {
-    fn validate(
+    fn validate_addresses(
         &mut self,
         errors: &mut Vec<InvalidAddressError>,
         meta_data: &MetaData,
@@ -206,10 +247,10 @@ impl ValidateAddresses for Operand {
     ) {
         match self {
             Operand::Nested(ref mut expression) => {
-                expression.validate(errors, meta_data, current_address, data)
+                expression.validate_addresses(errors, meta_data, current_address, data)
             }
             Operand::Variable(ref mut variable) => {
-                variable.validate(errors, meta_data, current_address, data)
+                variable.validate_addresses(errors, meta_data, current_address, data)
             }
         }
     }

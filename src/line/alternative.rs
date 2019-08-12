@@ -1,9 +1,13 @@
 //! Content that alternates from a fixed set when processed.
 
 use crate::{
-    error::{parse::address::InvalidAddressError, utils::MetaData},
+    error::{
+        parse::{address::InvalidAddressError, validate::ValidationError},
+        utils::MetaData,
+    },
     knot::{Address, ValidateAddressData, ValidateAddresses},
     line::LineChunk,
+    story::validate::{ValidateContent, ValidationData},
 };
 
 #[cfg(feature = "serde_support")]
@@ -52,8 +56,22 @@ pub enum AlternativeKind {
     Sequence,
 }
 
-impl ValidateAddresses for Alternative {
+impl ValidateContent for Alternative {
     fn validate(
+        &mut self,
+        error: &mut ValidationError,
+        current_location: &Address,
+        meta_data: &MetaData,
+        data: &ValidationData,
+    ) {
+        self.items
+            .iter_mut()
+            .for_each(|item| item.validate(error, current_location, meta_data, data));
+    }
+}
+
+impl ValidateAddresses for Alternative {
+    fn validate_addresses(
         &mut self,
         errors: &mut Vec<InvalidAddressError>,
         meta_data: &MetaData,
@@ -62,7 +80,7 @@ impl ValidateAddresses for Alternative {
     ) {
         self.items
             .iter_mut()
-            .for_each(|item| item.validate(errors, meta_data, current_address, data));
+            .for_each(|item| item.validate_addresses(errors, meta_data, current_address, data));
     }
 
     #[cfg(test)]

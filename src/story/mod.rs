@@ -15,8 +15,7 @@ pub(crate) mod parse;
 mod story;
 pub(crate) mod types;
 mod utils;
-#[allow(dead_code)]
-mod validate;
+pub(crate) mod validate;
 
 pub use parse::read_story_content_from_string;
 pub use story::{read_story_from_string, Story};

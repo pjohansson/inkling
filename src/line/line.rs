@@ -1,9 +1,13 @@
 //! Structures for representing a single, whole line of `Ink` content.
 
 use crate::{
-    error::{parse::address::InvalidAddressError, utils::MetaData},
+    error::{
+        parse::{address::InvalidAddressError, validate::ValidationError},
+        utils::MetaData,
+    },
     knot::{Address, ValidateAddressData, ValidateAddresses},
     line::{Alternative, Condition, Expression},
+    story::validate::{ValidateContent, ValidationData},
 };
 
 #[cfg(feature = "serde_support")]
@@ -117,8 +121,61 @@ impl InternalLine {
     }
 }
 
-impl ValidateAddresses for InternalLine {
+impl ValidateContent for InternalLine {
     fn validate(
+        &mut self,
+        error: &mut ValidationError,
+        current_location: &Address,
+        _: &MetaData,
+        data: &ValidationData,
+    ) {
+        self.chunk
+            .validate(error, current_location, &self.meta_data, data);
+    }
+}
+
+impl ValidateContent for LineChunk {
+    fn validate(
+        &mut self,
+        error: &mut ValidationError,
+        current_location: &Address,
+        meta_data: &MetaData,
+        data: &ValidationData,
+    ) {
+        if let Some(condition) = self.condition.as_mut() {
+            condition.validate(error, current_location, meta_data, data);
+        }
+
+        self.items
+            .iter_mut()
+            .for_each(|item| item.validate(error, current_location, meta_data, data));
+    }
+}
+
+impl ValidateContent for Content {
+    fn validate(
+        &mut self,
+        error: &mut ValidationError,
+        current_location: &Address,
+        meta_data: &MetaData,
+        data: &ValidationData,
+    ) {
+        match self {
+            Content::Alternative(alternative) => {
+                alternative.validate(error, current_location, meta_data, data)
+            }
+            Content::Divert(address) => address.validate(error, current_location, meta_data, data),
+            Content::Empty | Content::Text(..) => (),
+            Content::Expression(expression) => {
+                expression.validate(error, current_location, meta_data, data)
+            }
+            Content::Nested(chunk) => chunk.validate(error, current_location, meta_data, data),
+        }
+    }
+}
+
+impl ValidateAddresses for InternalLine {
+    fn validate_addresses(
         &mut self,
         errors: &mut Vec<InvalidAddressError>,
         _: &MetaData,
@@ -126,7 +183,7 @@ impl ValidateAddresses for InternalLine {
         data: &ValidateAddressData,
     ) {
         self.chunk
-            .validate(errors, &self.meta_data, current_address, data);
+            .validate_addresses(errors, &self.meta_data, current_address, data);
     }
 
     #[cfg(test)]
@@ -136,7 +193,7 @@ impl ValidateAddresses for InternalLine {
 }
 
 impl ValidateAddresses for LineChunk {
-    fn validate(
+    fn validate_addresses(
         &mut self,
         errors: &mut Vec<InvalidAddressError>,
         meta_data: &MetaData,
@@ -144,12 +201,12 @@ impl ValidateAddresses for LineChunk {
         data: &ValidateAddressData,
     ) {
         if let Some(condition) = self.condition.as_mut() {
-            condition.validate(errors, meta_data, current_address, data);
+            condition.validate_addresses(errors, meta_data, current_address, data);
         }
 
         self.items
             .iter_mut()
-            .for_each(|item| item.validate(errors, meta_data, current_address, data));
+            .for_each(|item| item.validate_addresses(errors, meta_data, current_address, data));
     }
 
     #[cfg(test)]
@@ -159,7 +216,7 @@ impl ValidateAddresses for LineChunk {
 }
 
 impl ValidateAddresses for Content {
-    fn validate(
+    fn validate_addresses(
         &mut self,
         errors: &mut Vec<InvalidAddressError>,
         meta_data: &MetaData,
@@ -168,14 +225,18 @@ impl ValidateAddresses for Content {
     ) {
         match self {
             Content::Alternative(alternative) => {
-                alternative.validate(errors, meta_data, current_address, data)
+                alternative.validate_addresses(errors, meta_data, current_address, data)
             }
-            Content::Divert(address) => address.validate(errors, meta_data, current_address, data),
+            Content::Divert(address) => {
+                address.validate_addresses(errors, meta_data, current_address, data)
+            }
             Content::Empty | Content::Text(..) => (),
             Content::Expression(expression) => {
-                expression.validate(errors, meta_data, current_address, data)
+                expression.validate_addresses(errors, meta_data, current_address, data)
             }
-            Content::Nested(chunk) => chunk.validate(errors, meta_data, current_address, data),
+            Content::Nested(chunk) => {
+                chunk.validate_addresses(errors, meta_data, current_address, data)
+            }
         }
     }
 
