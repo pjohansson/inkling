@@ -60,3 +60,24 @@ Addressing stitch in other knot: -> stitch
 
     assert_eq!(error_lines.len(), 9);
 }
+
+#[test]
+fn name_space_collision_errors_are_yielded() {
+    let content = "\
+
+VAR variable = 10
+VAR knot = 2
+
+== knot
+= variable
+Line one.
+
+";
+
+    let error = read_story_from_string(content).unwrap_err();
+
+    let error_string = print_read_error(&error).unwrap();
+    let error_lines = error_string.lines().collect::<Vec<_>>();
+
+    assert_eq!(error_lines.len(), 2);
+}

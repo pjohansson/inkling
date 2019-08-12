@@ -73,5 +73,9 @@ pub(super) fn print_validation_error(error: &ValidationError) -> Result<String, 
         write!(&mut buffer, "{}\n", err)?;
     }
 
+    for err in &error.name_space_errors {
+        write!(&mut buffer, "{}\n", err)?;
+    }
+
     Ok(buffer)
 }

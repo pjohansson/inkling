@@ -138,6 +138,10 @@ pub fn validate_story_content(
         })
     });
 
+    if let Err(name_space_errors) = validate_story_name_spaces(&validation_data) {
+        error.name_space_errors = name_space_errors;
+    }
+
     if error.is_empty() {
         Ok(())
     } else {
