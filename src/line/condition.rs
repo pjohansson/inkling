@@ -220,6 +220,11 @@ impl ConditionBuilder {
             negate,
         }));
     }
+
+    /// Extend the `items` list with the given slice.
+    pub fn extend(&mut self, items: &[AndOr]) {
+        self.items.extend_from_slice(items);
+    }
 }
 
 impl ValidateContent for Condition {

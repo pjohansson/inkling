@@ -18,7 +18,7 @@
 
 mod alternative;
 mod choice;
-mod condition;
+pub(crate) mod condition;
 pub mod expression;
 pub(crate) mod line;
 pub(crate) mod parse;

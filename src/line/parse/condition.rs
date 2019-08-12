@@ -70,9 +70,10 @@ pub fn parse_choice_condition(line: &mut String) -> Result<Option<Condition>, Li
     Ok(conditions.split_first().map(|(first, tail)| {
         let mut builder = ConditionBuilder::from_kind(&first.root.kind, first.root.negate);
 
+        builder.extend(&first.items);
+
         for condition in tail {
-            let ConditionItem { ref kind, negate } = condition.root;
-            builder.and(kind, negate);
+            builder.and(&ConditionKind::Nested(Box::new(condition.clone())), false);
         }
 
         builder.build()
@@ -436,7 +437,10 @@ mod tests {
 
     use crate::{
         knot::Address,
-        line::expression::{Operand, Operator},
+        line::{
+            condition::AndOr,
+            expression::{Operand, Operator},
+        },
     };
 
     #[test]
@@ -837,21 +841,68 @@ mod tests {
     }
 
     #[test]
-    fn several_choice_conditions_can_be_parsed_and_will_be_and_variants() {
+    fn several_choice_conditions_can_be_parsed_and_will_be_and_nested_variants() {
         let mut line = "{knot_name} {other_knot} {third_knot} Hello, World!".to_string();
         let condition = parse_choice_condition(&mut line).unwrap().unwrap();
 
         assert_eq!(condition.items.len(), 2);
 
+        match &condition.items[0] {
+            AndOr::And(ConditionItem {
+                kind: ConditionKind::Nested(ref inner),
+                ..
+            }) => {
+                assert_eq!(&**inner, &parse_condition("other_knot").unwrap());
+            }
+            other => panic!("expected `AndOr::And` but got {:?}", other),
+        }
+
+        match &condition.items[1] {
+            AndOr::And(ConditionItem {
+                kind: ConditionKind::Nested(ref inner),
+                ..
+            }) => {
+                assert_eq!(&**inner, &parse_condition("third_knot").unwrap());
+            }
+            other => panic!("expected `AndOr::And` but got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn single_choice_conditions_can_have_more_than_one_items_inside() {
+        let mut line = "{knot_name or other_knot} Hello, World!".to_string();
+        let condition = parse_choice_condition(&mut line).unwrap().unwrap();
+
+        assert_eq!(condition.items.len(), 1);
+
+        match &condition.items[0] {
+            AndOr::Or(..) => (),
+            other => panic!("expected `AndOr::Or` but got {:?}", other),
+        }
+
         assert_eq!(
             condition.items[0].story_condition(),
             &parse_story_condition("other_knot").unwrap().0
         );
+    }
 
-        assert_eq!(
-            condition.items[1].story_condition(),
-            &parse_story_condition("third_knot").unwrap().0
-        );
+    #[test]
+    fn second_choice_condition_can_have_more_than_one_items_inside() {
+        let mut line = "{knot_name} {other_knot or third_knot} Hello, World!".to_string();
+        let condition = parse_choice_condition(&mut line).unwrap().unwrap();
+
+        match &condition.items[0] {
+            AndOr::And(ConditionItem {
+                kind: ConditionKind::Nested(ref inner),
+                ..
+            }) => {
+                assert_eq!(
+                    &**inner,
+                    &parse_condition("other_knot or third_knot").unwrap()
+                );
+            }
+            other => panic!("expected `AndOr::And` but got {:?}", other),
+        }
     }
 
     #[test]
