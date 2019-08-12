@@ -1,6 +1,7 @@
 //! Check story structures for name space collisions.
 
 use crate::{
+    consts::ROOT_KNOT_NAME,
     error::{
         parse::validate::{CollisionKind, NameSpaceCollision},
         utils::MetaData,
@@ -61,7 +62,11 @@ pub fn validate_story_name_spaces(data: &ValidationData) -> Result<(), Vec<NameS
     }
 
     for knot_info in data.knots.values() {
-        for (stitch_name, stitch_info) in &knot_info.stitches {
+        for (stitch_name, stitch_info) in knot_info
+            .stitches
+            .iter()
+            .filter(|(name, _)| name.as_str() != ROOT_KNOT_NAME)
+        {
             if let Some(knot_info) = &data.knots.get(stitch_name) {
                 errors.push(get_collision_error(stitch_name, stitch_info, *knot_info));
             }
@@ -122,7 +127,7 @@ mod tests {
 
     #[test]
     fn knots_stitches_and_variables_with_unique_names_raise_no_name_space_errors() {
-        let knots = construct_knots(&[("knot", &[("stitch")])]);
+        let knots = construct_knots(&[("knot", &["stitch"])]);
         let variables = construct_variables(&[("variable", 1)]);
 
         let data = ValidationData::from_data(&knots, &variables);
@@ -142,7 +147,7 @@ mod tests {
 
     #[test]
     fn stitch_names_cannot_collide_with_knot_names() {
-        let knots = construct_knots(&[("knot", &[("knot")])]);
+        let knots = construct_knots(&[("knot", &["knot"])]);
         let variables = VariableSet::new();
 
         let data = ValidationData::from_data(&knots, &variables);
@@ -153,8 +158,18 @@ mod tests {
     }
 
     #[test]
+    fn default_stitch_name_is_excepted_for_collisions_with_knot_names() {
+        let knots = construct_knots(&[(ROOT_KNOT_NAME, &[ROOT_KNOT_NAME])]);
+        let variables = VariableSet::new();
+
+        let data = ValidationData::from_data(&knots, &variables);
+
+        assert!(validate_story_name_spaces(&data).is_ok());
+    }
+
+    #[test]
     fn stitch_names_cannot_collide_with_variable_names() {
-        let knots = construct_knots(&[("knot", &[("variable")])]);
+        let knots = construct_knots(&[("knot", &["variable"])]);
         let variables = construct_variables(&[("variable", 1)]);
 
         let data = ValidationData::from_data(&knots, &variables);
@@ -166,7 +181,7 @@ mod tests {
 
     #[test]
     fn variable_names_cannot_collide_with_knot_names() {
-        let knots = construct_knots(&[("knot", &[("stitch")])]);
+        let knots = construct_knots(&[("knot", &["stitch"])]);
         let variables = construct_variables(&[("knot", 1)]);
 
         let data = ValidationData::from_data(&knots, &variables);
