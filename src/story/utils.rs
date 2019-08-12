@@ -1,6 +1,6 @@
 //! Utilities for story content.
 
-use super::story::LineBuffer;
+use crate::story::types::LineBuffer;
 
 /// Read all text from lines in a buffer into a single string and return it.
 ///

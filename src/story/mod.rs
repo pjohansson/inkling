@@ -13,8 +13,10 @@
 
 pub(crate) mod parse;
 mod story;
+pub(crate) mod types;
 mod utils;
 
 pub use parse::read_story_content_from_string;
-pub use story::{read_story_from_string, Choice, Line, LineBuffer, Prompt, Story, VariableSet};
+pub use story::{read_story_from_string, Story};
+pub use types::{Choice, Line, LineBuffer, Prompt};
 pub use utils::copy_lines_into_string;
