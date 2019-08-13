@@ -66,8 +66,8 @@ impl fmt::Display for VariableError {
         match &self.kind {
             DividedByZero { other, operator } => write!(
                 f,
-                "Attempted to divide by 0 in the operation '{:?} {} {:?}",
-                variable, operator, other
+                "Attempted to divide by 0 in the operation '{} {} {}'",
+                variable.to_string_simple(), operator, other.to_string_simple()
             ),
             InvalidComparison { other, comparison } => {
                 let operator = match comparison {
@@ -79,22 +79,22 @@ impl fmt::Display for VariableError {
                 write!(
                     f,
                     "Cannot compare variable of type '{}' to '{}' using the '{op}' operator \
-                     (comparison was: '{:?} {op} {:?}')",
+                     (in: '{} {op} {}')",
                     variable.variant_string(),
                     other.variant_string(),
-                    variable,
-                    other,
+                    variable.to_string_simple(),
+                    other.to_string_simple(),
                     op = operator
                 )
             }
             InvalidOperation { other, operator } => write!(
                 f,
                 "Operation '{op}' is not allowed between variables of type '{}' and '{}' \
-                 (operation was: '{:?} {op} {:?}')",
+                 (in: '{} {op} {}')",
                 variable.variant_string(),
                 other.variant_string(),
-                variable,
-                other,
+                variable.to_string_simple(),
+                other.to_string_simple(),
                 op = operator
             ),
             NonMatchingAssignment { other } => write!(

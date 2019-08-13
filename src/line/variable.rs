@@ -118,6 +118,20 @@ impl Variable {
         }
     }
 
+    /// Return a simple string representation of the variable which does not follow addresses.
+    ///
+    /// This corresponds to a string which the variable could be parsed from.
+    pub(crate) fn to_string_simple(&self) -> String {
+        match &self {
+            Variable::Address(address) => address.to_string(),
+            Variable::Bool(value) => format!("{}", value),
+            Variable::Float(value) => format!("{}", value),
+            Variable::Int(value) => format!("{}", value),
+            Variable::String(string) => format!("\"{}\"", string),
+            Variable::Divert(address) => format!("-> {}", address.to_string()),
+        }
+    }
+
     /// Return the value of a variable.
     ///
     /// If the variable is a number, boolean, string or divert a clone of the value is returned.
