@@ -104,6 +104,7 @@ pub type LineBuffer = Vec<Line>;
 pub type VariableSet = HashMap<String, VariableInfo>;
 
 #[derive(Clone, Debug)]
+#[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
 pub struct VariableInfo {
     pub variable: Variable,
     pub meta_data: MetaData,
