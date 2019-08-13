@@ -22,9 +22,11 @@ This release focuses on improving errors from parsing the story. Two main improv
 
 ## 0.12.3
 
-*   Conditions can now use expressions on either side of a comparison: `a + 2 > b * c - 1`, and so on.
+This release focuses on validating the content of a story after successfully parsing it.
+
 *   Name space collisions are searched for in the validation step after parsing a story. Stitches can no longer have the same name as knots or variables, nor can variables have the same name as knots.
 *   Conditions and expressions are checked in the validation step after parsing a story. If they contain invalid variables they will yield errors.
+*   Conditions can now use expressions on either side of a comparison: `a + 2 > b * c - 1`, and so on.
 *   Fix bug where additional conditions in choices were not added to the condition: `* {condition and other_condition}` became just `* {condition}`.
 *   Fix bug where addresses were not validated inside the `else` content of conditions.
 
