@@ -4,7 +4,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    consts::{DONE_KNOT, END_KNOT},
+    consts::{DONE_KNOT, END_KNOT, ROOT_KNOT_NAME},
     error::{
         parse::{
             address::{InvalidAddressError, InvalidAddressErrorKind},
@@ -130,6 +130,22 @@ impl Address {
             _ => Err(InternalError::UseOfUnvalidatedAddress {
                 address: self.clone(),
             }),
+        }
+    }
+
+    /// Get a string representation of the address as `Ink` would write it.
+    pub fn to_string(&self) -> String {
+        match &self {
+            Address::Validated(AddressKind::GlobalVariable { name }) => name.clone(),
+            Address::Validated(AddressKind::Location { knot, stitch }) => {
+                if stitch.as_str() == ROOT_KNOT_NAME {
+                    format!("{}", knot)
+                } else {
+                    format!("{}.{}", knot, stitch)
+                }
+            }
+            Address::Raw(content) => content.clone(),
+            Address::End => "END".to_string(),
         }
     }
 
@@ -345,6 +361,43 @@ pub mod tests {
         } else {
             Err(error.invalid_address_errors[0].clone())
         }
+    }
+
+    #[test]
+    fn string_representation_of_variable_addresses_is_the_address() {
+        assert_eq!(
+            &Address::variable_unchecked("variable").to_string(),
+            "variable"
+        );
+    }
+
+    #[test]
+    fn string_representation_of_validated_location_is_knot_dot_stitch() {
+        assert_eq!(
+            &Address::from_parts_unchecked("knot", Some("stitch")).to_string(),
+            "knot.stitch"
+        );
+    }
+
+    #[test]
+    fn string_representation_of_validated_location_with_just_knot_gets_knot_name() {
+        assert_eq!(
+            &Address::from_parts_unchecked("knot", None).to_string(),
+            "knot"
+        );
+    }
+
+    #[test]
+    fn string_representation_of_raw_address_is_its_content() {
+        assert_eq!(
+            &Address::Raw("knot.stitch".to_string()).to_string(),
+            "knot.stitch"
+        );
+    }
+
+    #[test]
+    fn string_representation_of_end_address_is_end() {
+        assert_eq!(&Address::End.to_string(), "END");
     }
 
     #[test]
