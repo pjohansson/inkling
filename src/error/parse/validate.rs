@@ -17,8 +17,6 @@ use std::{
     fmt::{self, Write},
 };
 
-impl Error for ValidationError {}
-
 #[derive(Debug)]
 /// Collection of errors encountered when validating a story.
 pub struct ValidationError {
@@ -145,6 +143,19 @@ pub(super) fn print_validation_error(error: &ValidationError) -> Result<String, 
     Ok(buffer)
 }
 
+impl Error for ValidationError {}
+
+impl Error for NameSpaceCollision {}
+
+impl Error for InvalidVariableExpression {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        match &self.kind {
+            InvalidVariableExpressionError::Internal(err) => Some(err),
+            InvalidVariableExpressionError::VariableError(err) => Some(err),
+        }
+    }
+}
+
 impl From<InklingError> for InvalidVariableExpressionError {
     fn from(err: InklingError) -> Self {
         match err {
@@ -156,7 +167,14 @@ impl From<InklingError> for InvalidVariableExpressionError {
 
 impl fmt::Display for ValidationError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        unimplemented!();
+        write!(
+            f,
+            "Encountered {} invalid address, {} name space collision \
+             and {} invalid variable errors during validation",
+            self.invalid_address_errors.len(),
+            self.name_space_errors.len(),
+            self.variable_errors.len()
+        )
     }
 }
 
