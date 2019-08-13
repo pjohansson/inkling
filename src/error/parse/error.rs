@@ -17,6 +17,7 @@ pub enum ReadError {
     Empty,
     /// Encountered one or more errors while parsing lines to construct the story.
     ParseError(ParseError),
+    /// Encountered one or more errors while validating a successfully parsed story.
     ValidationError(ValidationError),
 }
 

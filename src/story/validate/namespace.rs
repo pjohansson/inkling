@@ -14,8 +14,10 @@ use crate::{
 
 /// Trait to easily construct a `NameSpaceCollision` error.
 trait NameSpaceCollisionData {
+    /// Which type of content was a part of a name space collision.
     const KIND: CollisionKind;
 
+    /// Getter for `MetaData` of a part of a name space collision.
     fn get_meta_data(&self) -> &MetaData;
 }
 

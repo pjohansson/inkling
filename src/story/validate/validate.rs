@@ -1,4 +1,4 @@
-//! Validate story and variable names, addresses, expressions, and conditions.
+//! Trait and functions to validate a story.
 
 use crate::{
     error::{parse::validate::ValidationError, utils::MetaData},
@@ -22,17 +22,24 @@ pub struct ValidationData {
 
 /// Basic information about a knot, required to validate its content.
 pub struct KnotValidationInfo {
+    /// Default stitch of knot.
     pub default_stitch: String,
+    /// Collection of validation data for stitches.
+    ///
+    /// The keys are the stitch names.
     pub stitches: HashMap<String, StitchValidationInfo>,
+    /// Information about the origin of this knot.
     pub meta_data: MetaData,
 }
 
 /// Basic information about a stitch, required to validate its content.
 pub struct StitchValidationInfo {
+    /// Information about the origin of this stitch.
     pub meta_data: MetaData,
 }
 
 impl ValidationData {
+    /// Construct the required validation data from the parsed knots and variables.
     pub fn from_data(knots: &KnotSet, variables: &VariableSet) -> Self {
         let knot_info = knots
             .iter()
@@ -111,6 +118,13 @@ pub trait ValidateContent {
     );
 }
 
+/// Validate addresses, expressions, conditions and names of all content in a story.
+///
+/// This function walks through all the knots and stitches in a story, and for each item
+/// uses the `ValidateContent` trait to nest through its content. Additionally it checks for
+/// name space collisions between variables, knots and stitches.
+///
+/// If any error is encountered this will yield the set of all found errors.
 pub fn validate_story_content(
     knots: &mut KnotSet,
     follow_data: &FollowData,

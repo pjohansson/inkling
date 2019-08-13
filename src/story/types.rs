@@ -101,12 +101,16 @@ impl Prompt {
 /// Convenience type to indicate when a buffer of `Line` objects is being manipulated.
 pub type LineBuffer = Vec<Line>;
 
+/// Convenience type for a set of global variables.
 pub type VariableSet = HashMap<String, VariableInfo>;
 
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
+/// Information about a global variable in the story.
 pub struct VariableInfo {
+    /// Variable data.
     pub variable: Variable,
+    /// Information about the origin of the variable in the story file or text.
     pub meta_data: MetaData,
 }
 

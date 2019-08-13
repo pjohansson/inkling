@@ -1,3 +1,10 @@
+//! Errors from validating the content of a story that was successfully parsed.
+//!
+//! Validation is done in a separate step, after a story has been successfully parsed.
+//! This pass will check for errors in expressions, conditions, naming and assignments
+//! throughout the entire story. Any invalid types or names will yield a
+//! [`ValidationError`][crate::error::parse::validate::ValidationError].
+
 use crate::error::{
     parse::address::InvalidAddressError,
     runtime::variable::VariableError,
@@ -13,14 +20,37 @@ use std::{
 impl Error for ValidationError {}
 
 #[derive(Debug)]
+/// Collection of errors encountered when validating a story.
 pub struct ValidationError {
+    /// Errors from invalid addresses to knots, stitchs or variables.
     pub invalid_address_errors: Vec<InvalidAddressError>,
+    /// Errors from name space collisions between knots, stitches and variables.
+    ///
+    /// Stitches or global variables may not have the same name as any knot in the story. Nor may
+    /// stitches have the same name as any global variable.
+    ///
+    /// This is to ensure that addresses are well determined. Internal addresses to stitches
+    /// within knots can exclude the knot name, meaning that if a stitch and knot share a name
+    /// it will not be clear which of the two an address refers to. The same problem goes for
+    /// global variables.
     pub name_space_errors: Vec<NameSpaceCollision>,
+    /// Errors from expressions and conditions containing invalid variables.
+    ///
+    /// Expressions must evaluate to a valid variable. For example, mathematics can only include
+    /// numerical variables and will produce a numerical variable. If an expression in the story
+    /// tries to add a string to an integer an error will be yielded in this collection.
+    ///
+    /// Conditions likewise cannot compare different types to each other. Such errors will also
+    /// be collected in this set.
+    ///
+    /// See [`Variable`][crate::line::Variable] for more information about valid operations
+    /// and comparisons between variables.
     pub variable_errors: Vec<InvalidVariableExpression>,
 }
 
 impl ValidationError {
-    pub fn new() -> Self {
+    /// Construct an empty error.
+    pub(crate) fn new() -> Self {
         ValidationError {
             invalid_address_errors: Vec::new(),
             name_space_errors: Vec::new(),
@@ -28,13 +58,13 @@ impl ValidationError {
         }
     }
 
-    pub fn is_empty(&self) -> bool {
-        self.invalid_address_errors.is_empty()
-            && self.name_space_errors.is_empty()
-            && self.variable_errors.is_empty()
+    /// Assert whether no errors have been added to the set.
+    pub(crate) fn is_empty(&self) -> bool {
+        self.num_errors() == 0
     }
 
-    pub fn num_errors(&self) -> usize {
+    /// Get the number of errors in the set.
+    pub(crate) fn num_errors(&self) -> usize {
         self.invalid_address_errors.len()
             + self.name_space_errors.len()
             + self.variable_errors.len()
@@ -42,40 +72,61 @@ impl ValidationError {
 }
 
 #[derive(Debug)]
+/// Error type for invalid variables inside expressions and conditions.
 pub struct InvalidVariableExpression {
+    /// Whether the error is in a condition or expression.
     pub expression_kind: ExpressionKind,
+    /// Variant of error that was encountered.
     pub kind: InvalidVariableExpressionError,
+    /// Information about the origin of the line containing this error.
     pub meta_data: MetaData,
 }
 
 #[derive(Debug)]
+/// Kind of encountered invalid expression.
 pub enum ExpressionKind {
     Condition,
     Expression,
 }
 
 #[derive(Debug)]
+/// Error variant for invalid variables inside expressions and conditions.
 pub enum InvalidVariableExpressionError {
-    Internal(InklingError),
+    /// An invalid variable assignment, comparison or operation caused the error.
+    ///
+    /// Most if not all invalid errors should be of this type.
     VariableError(VariableError),
+    /// Other errors inside the validated item.
+    ///
+    /// Represents that something that is not a simple variable type or invalid address caused
+    /// the error. This is likely due to some bad assumptions inside `inkling` itself.
+    Internal(InklingError),
 }
 
 #[derive(Debug)]
+/// Error type for name space collisions.
 pub struct NameSpaceCollision {
+    /// Shared name of the two items.
     pub name: String,
+    /// Kind of item that encountered the collision.
     pub from_kind: CollisionKind,
+    /// Information about the origin of the line that encountered the collision
     pub from_meta_data: MetaData,
+    /// Kind of item that was already present in the story.
     pub to_kind: CollisionKind,
+    /// Information about the origin of the line with the item that was already present.
     pub to_meta_data: MetaData,
 }
 
 #[derive(Clone, Copy, Debug)]
+/// Kind of item that encountered a name space collision.
 pub enum CollisionKind {
     Knot,
     Stitch,
     Variable,
 }
 
+/// Print every error that was encountered as a separate line.
 pub(super) fn print_validation_error(error: &ValidationError) -> Result<String, fmt::Error> {
     let mut buffer = String::new();
 

@@ -1,3 +1,5 @@
+//! Validate story and variable names, addresses, expressions, and conditions.
+
 pub(self) mod namespace;
 pub(self) mod validate;
 

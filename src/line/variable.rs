@@ -202,7 +202,7 @@ impl Variable {
     /// ```
     ///
     /// # Errors
-    /// *   [`NonMatchingAssignment`][crate::error::VariableErrorKind::NonMatchingAssignment]:
+    /// *   [`NonMatchingAssignment`][crate::error::variable::VariableErrorKind::NonMatchingAssignment]:
     ///     if the variable types do not match.
     pub fn assign<T: Into<Variable>>(&mut self, value: T) -> Result<(), VariableError> {
         use Variable::*;
@@ -274,7 +274,7 @@ impl Variable {
     /// ```
     ///
     /// # Errors
-    /// *   [`InvalidOperation`][crate::error::VariableErrorKind::InvalidOperation]:
+    /// *   [`InvalidOperation`][crate::error::variable::VariableErrorKind::InvalidOperation]:
     ///     if the variables cannot perform this operation.
     pub fn add(&self, other: &Variable) -> Result<Variable, VariableError> {
         use Variable::*;
@@ -323,7 +323,7 @@ impl Variable {
     /// ```
     ///
     /// # Errors
-    /// *   [`InvalidOperation`][crate::error::VariableErrorKind::InvalidOperation]:
+    /// *   [`InvalidOperation`][crate::error::variable::VariableErrorKind::InvalidOperation]:
     ///     if the variables cannot perform this operation.
     pub fn subtract(&self, other: &Variable) -> Result<Variable, VariableError> {
         use Variable::*;
@@ -371,7 +371,7 @@ impl Variable {
     /// ```
     ///
     /// # Errors
-    /// *   [`InvalidOperation`][crate::error::VariableErrorKind::InvalidOperation]:
+    /// *   [`InvalidOperation`][crate::error::variable::VariableErrorKind::InvalidOperation]:
     ///     if the variables cannot perform this operation.
     pub fn multiply(&self, other: &Variable) -> Result<Variable, VariableError> {
         use Variable::*;
@@ -419,9 +419,9 @@ impl Variable {
     /// ```
     ///
     /// # Errors
-    /// *   [`InvalidOperation`][crate::error::VariableErrorKind::InvalidOperation]:
+    /// *   [`InvalidOperation`][crate::error::variable::VariableErrorKind::InvalidOperation]:
     ///     if the variables cannot perform this operation.
-    /// *   [`DividedByZero`][crate::error::VariableErrorKind::DividedByZero]:
+    /// *   [`DividedByZero`][crate::error::variable::VariableErrorKind::DividedByZero]:
     ///     if the `other` variable value was 0.
     pub fn divide(&self, other: &Variable) -> Result<Variable, VariableError> {
         use Variable::*;
@@ -475,9 +475,9 @@ impl Variable {
     /// ```
     ///
     /// # Errors
-    /// *   [`InvalidOperation`][crate::error::VariableErrorKind::InvalidOperation]:
+    /// *   [`InvalidOperation`][crate::error::variable::VariableErrorKind::InvalidOperation]:
     ///     if the variables cannot perform this operation.
-    /// *   [`DividedByZero`][crate::error::VariableErrorKind::DividedByZero]:
+    /// *   [`DividedByZero`][crate::error::variable::VariableErrorKind::DividedByZero]:
     ///     if the `other` variable value was 0.
     pub fn remainder(&self, other: &Variable) -> Result<Variable, VariableError> {
         use Variable::*;
@@ -528,7 +528,7 @@ impl Variable {
     /// ```
     ///
     /// # Errors
-    /// *   [`InvalidComparison`][crate::error::VariableErrorKind::InvalidComparison]:
+    /// *   [`InvalidComparison`][crate::error::variable::VariableErrorKind::InvalidComparison]:
     ///     if the two variables cannot be compared.
     pub fn equal_to(&self, other: &Variable) -> Result<bool, VariableError> {
         use Variable::*;
@@ -577,7 +577,7 @@ impl Variable {
     /// ```
     ///
     /// # Errors
-    /// *   [`InvalidComparison`][crate::error::VariableErrorKind::InvalidComparison]:
+    /// *   [`InvalidComparison`][crate::error::variable::VariableErrorKind::InvalidComparison]:
     ///     if the two variables cannot be compared.
     pub fn greater_than(&self, other: &Variable) -> Result<bool, VariableError> {
         use Variable::*;
@@ -622,7 +622,7 @@ impl Variable {
     /// ```
     ///
     /// # Errors
-    /// *   [`InvalidComparison`][crate::error::VariableErrorKind::InvalidComparison]:
+    /// *   [`InvalidComparison`][crate::error::variable::VariableErrorKind::InvalidComparison]:
     ///     if the two variables cannot be compared.
     pub fn less_than(&self, other: &Variable) -> Result<bool, VariableError> {
         use Variable::*;
