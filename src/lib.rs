@@ -124,20 +124,21 @@
 //! *   Lines:      Plain text, diverts, tags, conditions, alternative sequences (all
 //!                 except shuffle)
 //! *   Conditions: Nested, `and`/`or` linking, can check against variables
-//! *   Reading:    Address validation for diverts and conditions
+//! *   Reading:    Address validation for diverts and conditions. Conditions and expressions 
+//!                 are validated after parsing the story. 
 //! *   Variables:  Used as text in sentences and in conditions, can modify from calling program
 //! *   Mathematics: In line text, using numbers, parenthesis and variables for all numerical
 //!                  calculations. Strings can be concatenated using the `+` operator.
 //!
 //! Hopefully coming:
 //!
+//! *   Structure:  Multi-line blocks, labels
 //! *   Variables:  Modify in the Ink script
 //! *   Reading:    Include statements in files
-//! *   Validation: Checking conditions for incompatible variables
 //!
 //! Unlikely features:
 //!
-//! *   Structure:  Threads and tunnels (maybe?)
+//! *   Structure:  Threads (maybe?) and tunnels
 //! *   Program:    Defining functions in the Ink story file, "advanced state tracking,"
 //!                 calling Rust functions from the script to get variables
 //!
