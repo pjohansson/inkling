@@ -624,4 +624,13 @@ Line
 
         assert_eq!(error.num_errors(), 3);
     }
+
+    #[test]
+    fn expressions_add_one_error_for_errors_in_nested_parts() {
+        let content = "{1 + (2 + (3 + true))}";
+
+        let error = get_validation_error_from_string(content);
+
+        assert_eq!(error.variable_errors.len(), 1);
+    }
 }

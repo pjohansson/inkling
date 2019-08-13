@@ -67,7 +67,9 @@ impl fmt::Display for VariableError {
             DividedByZero { other, operator } => write!(
                 f,
                 "Attempted to divide by 0 in the operation '{} {} {}'",
-                variable.to_string_simple(), operator, other.to_string_simple()
+                variable.to_string_simple(),
+                operator,
+                other.to_string_simple()
             ),
             InvalidComparison { other, comparison } => {
                 let operator = match comparison {

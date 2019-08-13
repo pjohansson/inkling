@@ -184,7 +184,7 @@ impl ValidateContent for Expression {
         meta_data: &MetaData,
         data: &ValidationData,
     ) {
-        let current_num_address_errors = error.invalid_address_errors.len();
+        let num_errors = error.num_errors();
 
         self.head.validate(error, current_location, meta_data, data);
 
@@ -192,7 +192,7 @@ impl ValidateContent for Expression {
             .iter_mut()
             .for_each(|(_, operand)| operand.validate(error, current_location, meta_data, data));
 
-        if error.invalid_address_errors.len() == current_num_address_errors {
+        if num_errors == error.num_errors() {
             if let Err(err) = evaluate_expression(self, &data.follow_data) {
                 error.variable_errors.push(InvalidVariableExpression {
                     expression_kind: ExpressionKind::Expression,

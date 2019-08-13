@@ -89,14 +89,26 @@ fn invalid_expression_and_condition_errors_are_yielded() {
 VAR int = 2
 
 {true + int} is not an allowed operation. {\"str\" + int > 0: Neither is this.}
+{\"string\" == true: True | False} is also an invalid comparison between string and boolean.
+
+*   {\"string\" == true} Invalid comparisons are checked in choice conditions.
+    And in lines belonging to a branch: {int == true: True}
+
+Of course text after branching points is verified: {2 + \"string\"}
+
+As are items inside alternative sequences: {{1 + true} | {2 + true} | {3 + true}}
+
+Bad nested expressions are validated: {1 + (2 + (3 + \"string\"))}.
+
+== knot
+And in all knots! {2 + true}.
 
 ";
 
     let error = read_story_from_string(content).unwrap_err();
 
     let error_string = print_read_error(&error).unwrap();
-    eprintln!("{}", &error_string);
     let error_lines = error_string.lines().collect::<Vec<_>>();
 
-    assert_eq!(error_lines.len(), 2);
+    assert_eq!(error_lines.len(), 11);
 }
