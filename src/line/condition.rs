@@ -31,9 +31,13 @@
 //! more information.
 
 use crate::{
-    error::{parse::validate::ValidationError, utils::MetaData},
+    error::{
+        parse::validate::{ExpressionKind, InvalidVariableExpression, ValidationError},
+        utils::MetaData,
+    },
     knot::Address,
     line::{Expression, Variable},
+    process::check_condition,
     story::validate::{ValidateContent, ValidationData},
 };
 
@@ -235,6 +239,8 @@ impl ValidateContent for Condition {
         meta_data: &MetaData,
         data: &ValidationData,
     ) {
+        let num_errors = error.num_errors();
+
         self.root
             .kind
             .validate(error, current_location, meta_data, data);
@@ -244,6 +250,16 @@ impl ValidateContent for Condition {
                 item.kind.validate(error, current_location, meta_data, data)
             }
         });
+
+        if num_errors == error.num_errors() {
+            if let Err(err) = check_condition(self, &data.follow_data) {
+                error.variable_errors.push(InvalidVariableExpression {
+                    expression_kind: ExpressionKind::Condition,
+                    kind: err.into(),
+                    meta_data: meta_data.clone(),
+                });
+            }
+        }
     }
 }
 

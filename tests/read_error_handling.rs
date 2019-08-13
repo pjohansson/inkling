@@ -81,3 +81,22 @@ Line one.
 
     assert_eq!(error_lines.len(), 2);
 }
+
+#[test]
+fn invalid_expression_and_condition_errors_are_yielded() {
+    let content = "\
+
+VAR int = 2
+
+{true + int} is not an allowed operation. {\"str\" + int > 0: Neither is this.}
+
+";
+
+    let error = read_story_from_string(content).unwrap_err();
+
+    let error_string = print_read_error(&error).unwrap();
+    eprintln!("{}", &error_string);
+    let error_lines = error_string.lines().collect::<Vec<_>>();
+
+    assert_eq!(error_lines.len(), 2);
+}

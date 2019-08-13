@@ -44,7 +44,7 @@ pub enum VariableErrorKind {
         comparison: Ordering,
     },
     /// Tried to operate on the variable with an operation that is not allowed for it.
-    NonAllowedOperation {
+    InvalidOperation {
         /// Other variable in the operation.
         other: Variable,
         /// Character representation of operation (`+`, `-`, `*`, `/`, `%`).
@@ -87,7 +87,7 @@ impl fmt::Display for VariableError {
                     op = operator
                 )
             }
-            NonAllowedOperation { other, operator } => write!(
+            InvalidOperation { other, operator } => write!(
                 f,
                 "Operation '{op}' is not allowed between variables of type '{}' and '{}' \
                  (operation was: '{:?} {op} {:?}')",

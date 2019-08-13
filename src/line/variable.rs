@@ -260,7 +260,7 @@ impl Variable {
     /// ```
     ///
     /// # Errors
-    /// *   [`NonAllowedOperation`][crate::error::VariableErrorKind::NonAllowedOperation]:
+    /// *   [`InvalidOperation`][crate::error::VariableErrorKind::InvalidOperation]:
     ///     if the variables cannot perform this operation.
     pub fn add(&self, other: &Variable) -> Result<Variable, VariableError> {
         use Variable::*;
@@ -273,7 +273,7 @@ impl Variable {
             (String(s1), String(s2)) => Ok(String(format!("{}{}", s1, s2))),
             _ => Err(VariableError::from_kind(
                 self.clone(),
-                VariableErrorKind::NonAllowedOperation {
+                VariableErrorKind::InvalidOperation {
                     other: other.clone(),
                     operator: '+',
                 },
@@ -309,7 +309,7 @@ impl Variable {
     /// ```
     ///
     /// # Errors
-    /// *   [`NonAllowedOperation`][crate::error::VariableErrorKind::NonAllowedOperation]:
+    /// *   [`InvalidOperation`][crate::error::VariableErrorKind::InvalidOperation]:
     ///     if the variables cannot perform this operation.
     pub fn subtract(&self, other: &Variable) -> Result<Variable, VariableError> {
         use Variable::*;
@@ -321,7 +321,7 @@ impl Variable {
             (Float(val1), Float(val2)) => Ok(Float(val1 - val2)),
             _ => Err(VariableError::from_kind(
                 self.clone(),
-                VariableErrorKind::NonAllowedOperation {
+                VariableErrorKind::InvalidOperation {
                     other: other.clone(),
                     operator: '-',
                 },
@@ -357,7 +357,7 @@ impl Variable {
     /// ```
     ///
     /// # Errors
-    /// *   [`NonAllowedOperation`][crate::error::VariableErrorKind::NonAllowedOperation]:
+    /// *   [`InvalidOperation`][crate::error::VariableErrorKind::InvalidOperation]:
     ///     if the variables cannot perform this operation.
     pub fn multiply(&self, other: &Variable) -> Result<Variable, VariableError> {
         use Variable::*;
@@ -369,7 +369,7 @@ impl Variable {
             (Float(val1), Float(val2)) => Ok(Float(val1 * val2)),
             _ => Err(VariableError::from_kind(
                 self.clone(),
-                VariableErrorKind::NonAllowedOperation {
+                VariableErrorKind::InvalidOperation {
                     other: other.clone(),
                     operator: '*',
                 },
@@ -405,7 +405,7 @@ impl Variable {
     /// ```
     ///
     /// # Errors
-    /// *   [`NonAllowedOperation`][crate::error::VariableErrorKind::NonAllowedOperation]:
+    /// *   [`InvalidOperation`][crate::error::VariableErrorKind::InvalidOperation]:
     ///     if the variables cannot perform this operation.
     /// *   [`DividedByZero`][crate::error::VariableErrorKind::DividedByZero]:
     ///     if the `other` variable value was 0.
@@ -425,7 +425,7 @@ impl Variable {
             (Int(val1), Float(val2)) => Ok(Float(*val1 as f32 / val2)),
             (Float(val1), Int(val2)) => Ok(Float(val1 / *val2 as f32)),
             (Float(val1), Float(val2)) => Ok(Float(val1 / val2)),
-            _ => Err(VariableErrorKind::NonAllowedOperation {
+            _ => Err(VariableErrorKind::InvalidOperation {
                 other: other.clone(),
                 operator: '/',
             }),
@@ -461,7 +461,7 @@ impl Variable {
     /// ```
     ///
     /// # Errors
-    /// *   [`NonAllowedOperation`][crate::error::VariableErrorKind::NonAllowedOperation]:
+    /// *   [`InvalidOperation`][crate::error::VariableErrorKind::InvalidOperation]:
     ///     if the variables cannot perform this operation.
     /// *   [`DividedByZero`][crate::error::VariableErrorKind::DividedByZero]:
     ///     if the `other` variable value was 0.
@@ -481,7 +481,7 @@ impl Variable {
             (Int(val1), Float(val2)) => Ok(Float(*val1 as f32 % val2)),
             (Float(val1), Int(val2)) => Ok(Float(val1 % *val2 as f32)),
             (Float(val1), Float(val2)) => Ok(Float(val1 % val2)),
-            _ => Err(VariableErrorKind::NonAllowedOperation {
+            _ => Err(VariableErrorKind::InvalidOperation {
                 other: other.clone(),
                 operator: '%',
             }),

@@ -84,12 +84,24 @@ impl ValidateContent for Branch {
         meta_data: &MetaData,
         data: &ValidationData,
     ) {
+        let num_errors = error.num_errors();
+
         self.choice
             .validate(error, current_location, meta_data, data);
 
-        self.items
-            .iter_mut()
-            .for_each(|item| item.validate(error, current_location, meta_data, data));
+        // The first line of these items is the selection text from the choice. If we found
+        // errors when evaluating that we do not want to add copies of them:
+        // instead, we skip it if (but *only* if) an error was found. If no errors were found
+        // we have to ensure that addresses are validated in it.
+        if let Some((choice_display_line, items)) = self.items.split_first_mut() {
+            if num_errors == error.num_errors() {
+                choice_display_line.validate(error, current_location, meta_data, data);
+            }
+
+            items
+                .iter_mut()
+                .for_each(|item| item.validate(error, current_location, meta_data, data));
+        }
     }
 }
 

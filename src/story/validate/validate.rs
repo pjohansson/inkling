@@ -79,7 +79,7 @@ impl ValidationData {
 /// *   Addresses, which should point to locations (possibly with internal shorthand in knots)
 ///     or global variables
 /// *   Expressions, which should contain matching variable types
-/// *   Conditions, which should also contain matching variable types in comparisons
+/// *   Conditions, which should also contain matching variable types on each side of a comparison
 /// *   (If implemented) Variable assignments from other variables or expressions
 ///
 /// Should be implemented for all types that touch the content of a constructed story.
@@ -117,10 +117,7 @@ pub fn validate_story_content(
 ) -> Result<(), ValidationError> {
     let validation_data = ValidationData::from_data(knots, &follow_data.variables);
 
-    let mut error = ValidationError {
-        invalid_address_errors: Vec::new(),
-        name_space_errors: Vec::new(),
-    };
+    let mut error = ValidationError::new();
 
     knots.iter_mut().for_each(|(knot_name, knot)| {
         knot.stitches.iter_mut().for_each(|(stitch_name, stitch)| {
@@ -317,7 +314,8 @@ pub(super) mod tests {
 
 ";
         let error = get_validation_error_from_string(content);
-        panic!();
+
+        assert_eq!(error.variable_errors.len(), 2);
     }
 
     #[test]
@@ -325,11 +323,42 @@ pub(super) mod tests {
         let content = "
 
 {2 + \"string\" == 0: True | False}
-*   {true and 2 + \"string\" == 0} Choice
+*   {true and 3 + \"string\" == 0} Choice
 
 ";
         let error = get_validation_error_from_string(content);
-        panic!();
+
+        assert_eq!(error.variable_errors.len(), 2);
+    }
+
+    #[test]
+    fn validating_story_raises_error_if_comparison_is_between_different_types() {
+        let content = "
+
+VAR int = 0
+
+{\"string\" == 0: True | False}
+{0 == \"string\": True | False}
+{0 == \"string\": True | False}
+{int == \"string\": True | False}
+{0 == true: True | False}
+
+";
+        let error = get_validation_error_from_string(content);
+
+        assert_eq!(error.variable_errors.len(), 5);
+    }
+
+    #[test]
+    fn all_expressions_in_conditions_are_validated() {
+        let content = "
+
+{true and 2 + \"str\" == 0 or 3 + true == 0: True | False}
+
+";
+        let error = get_validation_error_from_string(content);
+
+        assert_eq!(error.variable_errors.len(), 2);
     }
 
     #[test]
@@ -420,5 +449,179 @@ VAR variable = true
 
         assert_eq!(raw_addresses, 0);
         assert_eq!(validated_addresses, pre_validated_addresses + 2);
+    }
+
+    #[test]
+    fn encountered_invalid_address_errors_stop_expressions_from_trying_to_evaluate() {
+        let content = "
+
+{knot + \"string\"}
+
+";
+
+        let error = get_validation_error_from_string(content);
+
+        assert_eq!(error.invalid_address_errors.len(), 1);
+        assert!(error.variable_errors.is_empty());
+    }
+
+    #[test]
+    fn encountered_invalid_address_errors_stop_conditions_from_trying_to_evaluate() {
+        let content = "
+
+{knot + \"string\" == 0: True | False}
+
+";
+
+        let error = get_validation_error_from_string(content);
+
+        assert_eq!(error.invalid_address_errors.len(), 1);
+        assert!(error.variable_errors.is_empty());
+    }
+
+    #[test]
+    fn invalid_addresses_in_choices_can_be_in_selection_text_only() {
+        let content = "
+
+*   Invalid address in selection text: [{knot}]
+
+";
+
+        let error = get_validation_error_from_string(content);
+
+        assert_eq!(error.invalid_address_errors.len(), 1);
+        assert!(error.variable_errors.is_empty());
+    }
+
+    #[test]
+    fn invalid_addresses_in_choices_can_be_in_display_text_only() {
+        let content = "
+
+*   Invalid address in display text: [] {knot}
+
+";
+
+        let error = get_validation_error_from_string(content);
+
+        assert_eq!(error.invalid_address_errors.len(), 1);
+        assert!(error.variable_errors.is_empty());
+    }
+
+    #[test]
+    fn address_validation_is_done_in_first_displayed_text_of_branching_choice() {
+        let content = "
+
+*   Invalid address in same line display text: [] {knot}
+*   [Selection]
+    Invalid address in next line display text: {knot}
+
+";
+
+        let error = get_validation_error_from_string(content);
+
+        assert_eq!(error.invalid_address_errors.len(), 2);
+        assert!(error.variable_errors.is_empty());
+    }
+
+    #[test]
+    fn expression_validation_is_done_in_first_displayed_text_of_branching_choice() {
+        let content = "
+
+*   Invalid expression in same line display text: [] {2 + \"string\"}
+*   [Selection]
+    Invalid expression in next line display text: {2 + \"string\"}
+
+";
+
+        let error = get_validation_error_from_string(content);
+
+        assert_eq!(error.variable_errors.len(), 2);
+    }
+
+    #[test]
+    fn addresses_are_validated_if_correct_in_all_displayed_text_of_branching_choices() {
+        let content = "
+
+VAR variable = 0
+
+*   \\{variable}
+*   [Selection] -> knot
+*   [Selection 2]
+    -> knot
+
+== knot
+Line
+
+";
+
+        let (mut knots, data) = get_validation_data_from_string(content);
+
+        let pre_raw_addresses = format!("{:?}", &knots).matches("Raw(").count();
+
+        assert!(pre_raw_addresses >= 3);
+
+        validate_story_content(&mut knots, &data).unwrap();
+
+        dbg!(&knots);
+
+        let raw_addresses = format!("{:?}", &knots).matches("Raw(").count();
+
+        assert_eq!(raw_addresses, 0);
+    }
+
+    #[test]
+    fn invalid_address_errors_in_choices_with_display_and_selection_text_validates_expr_once() {
+        let content = "
+
+*   {knot} Choice with an invalid address in condition
+*   Choice with an invalid address in an expression: {knot}
+
+";
+
+        let error = get_validation_error_from_string(content);
+
+        assert_eq!(error.invalid_address_errors.len(), 2);
+        assert!(error.variable_errors.is_empty());
+    }
+
+    #[test]
+    fn items_inside_true_parts_of_conditions_are_validated() {
+        let content = "
+
+{true: {knot}}
+{true: {2 + \"string\"}}
+
+";
+
+        let error = get_validation_error_from_string(content);
+
+        assert_eq!(error.num_errors(), 2);
+    }
+
+    #[test]
+    fn items_inside_false_parts_of_conditions_are_validated() {
+        let content = "
+
+{true: True | {knot}}
+{true: True | {2 + \"string\"}}
+
+";
+
+        let error = get_validation_error_from_string(content);
+
+        assert_eq!(error.num_errors(), 2);
+    }
+
+    #[test]
+    fn items_inside_parts_of_alternative_sequences_are_validated() {
+        let content = "
+
+{{2 + \"string\"} | {knot} | -> other_knot}
+
+";
+
+        let error = get_validation_error_from_string(content);
+
+        assert_eq!(error.num_errors(), 3);
     }
 }

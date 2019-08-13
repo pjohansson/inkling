@@ -1,7 +1,11 @@
 //! Expressions of numerical work or string concatenation of variables.
 
 use crate::{
-    error::{parse::validate::ValidationError, utils::MetaData, InklingError},
+    error::{
+        parse::validate::{ExpressionKind, InvalidVariableExpression, ValidationError},
+        utils::MetaData,
+        InklingError,
+    },
     follow::FollowData,
     knot::Address,
     line::Variable,
@@ -180,11 +184,23 @@ impl ValidateContent for Expression {
         meta_data: &MetaData,
         data: &ValidationData,
     ) {
+        let current_num_address_errors = error.invalid_address_errors.len();
+
         self.head.validate(error, current_location, meta_data, data);
 
         self.tail
             .iter_mut()
             .for_each(|(_, operand)| operand.validate(error, current_location, meta_data, data));
+
+        if error.invalid_address_errors.len() == current_num_address_errors {
+            if let Err(err) = evaluate_expression(self, &data.follow_data) {
+                error.variable_errors.push(InvalidVariableExpression {
+                    expression_kind: ExpressionKind::Expression,
+                    kind: err.into(),
+                    meta_data: meta_data.clone(),
+                });
+            }
+        }
     }
 }
 

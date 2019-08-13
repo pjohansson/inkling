@@ -145,6 +145,7 @@ impl ValidateContent for LineChunk {
 
         self.items
             .iter_mut()
+            .chain(self.else_items.iter_mut())
             .for_each(|item| item.validate(error, current_location, meta_data, data));
     }
 }

@@ -336,10 +336,7 @@ pub mod tests {
         current_location: &Address,
         data: &ValidationData,
     ) -> Result<(), InvalidAddressError> {
-        let mut error = ValidationError {
-            invalid_address_errors: Vec::new(),
-            name_space_errors: Vec::new(),
-        };
+        let mut error = ValidationError::new();
 
         address.validate(&mut error, current_location, &().into(), data);
 

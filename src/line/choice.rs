@@ -61,12 +61,22 @@ impl ValidateContent for InternalChoice {
         _: &MetaData,
         data: &ValidationData,
     ) {
+        let num_address_errors = error.invalid_address_errors.len();
+
         self.selection_text
             .borrow_mut()
             .validate(error, current_location, &self.meta_data, data);
 
-        self.display_text
-            .validate(error, current_location, &self.meta_data, data);
+        // If address errors were found in the selection part of this line they may be repeated
+        // in the display part. Since they are parsed from the same line we raise an error for
+        // it either way, so any independent errors that are purely in the display part
+        // are not essential to report until we know that the selection part is good. Thus,
+        // if (but *only* if) we found such an error in the selection part we skip validation in
+        // the display part. Otherwise multiple errors about the same part may be raised.
+        if num_address_errors == error.invalid_address_errors.len() {
+            self.display_text
+                .validate(error, current_location, &self.meta_data, data);
+        }
 
         if let Some(ref mut condition) = self.condition {
             condition.validate(error, current_location, &self.meta_data, data);
