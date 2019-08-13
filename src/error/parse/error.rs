@@ -43,6 +43,7 @@ impl Error for ReadError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match &self {
             ReadError::ParseError(err) => Some(err),
+            ReadError::ValidationError(err) => Some(err),
             _ => None,
         }
     }
