@@ -214,7 +214,7 @@ pub(crate) mod tests {
         let choice = parse_choice_data("Choice line", &().into()).unwrap();
         let comparison = parse_internal_line("Choice line", &().into()).unwrap();
 
-        assert_eq!(*choice.selection_text.borrow(), comparison);
+        assert_eq!(*choice.selection_text.lock().unwrap(), comparison);
         assert_eq!(choice.display_text, comparison);
     }
 
@@ -222,7 +222,7 @@ pub(crate) mod tests {
     fn choices_can_be_parsed_with_alternatives_in_selection_text() {
         let choice = parse_choice_data("Hi! {One|Two}", &().into()).unwrap();
         assert_eq!(
-            *choice.selection_text.borrow(),
+            *choice.selection_text.lock().unwrap(),
             parse_internal_line("Hi! {One|Two}", &().into()).unwrap(),
         );
     }
@@ -231,7 +231,7 @@ pub(crate) mod tests {
     fn braces_with_backslash_are_not_conditions() {
         let choice = parse_choice_data("\\{One|Two}", &().into()).unwrap();
         assert_eq!(
-            *choice.selection_text.borrow(),
+            *choice.selection_text.lock().unwrap(),
             parse_internal_line("{One|Two}", &().into()).unwrap(),
         );
     }
@@ -240,7 +240,7 @@ pub(crate) mod tests {
     fn alternatives_can_be_within_brackets() {
         let choice = parse_choice_data("[{One|Two}]", &().into()).unwrap();
         assert_eq!(
-            *choice.selection_text.borrow(),
+            *choice.selection_text.lock().unwrap(),
             parse_internal_line("{One|Two}", &().into()).unwrap(),
         );
     }
@@ -250,7 +250,7 @@ pub(crate) mod tests {
         let choice = parse_choice_data("Selection[] plus display", &().into()).unwrap();
 
         assert_eq!(
-            *choice.selection_text.borrow(),
+            *choice.selection_text.lock().unwrap(),
             parse_internal_line("Selection", &().into()).unwrap()
         );
         assert_eq!(
@@ -261,7 +261,7 @@ pub(crate) mod tests {
         let choice = parse_choice_data("[Separate selection]And display", &().into()).unwrap();
 
         assert_eq!(
-            *choice.selection_text.borrow(),
+            *choice.selection_text.lock().unwrap(),
             parse_internal_line("Separate selection", &().into()).unwrap()
         );
         assert_eq!(

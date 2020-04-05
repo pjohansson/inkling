@@ -7,12 +7,13 @@ use crate::{
     story::validate::{ValidateContent, ValidationData},
 };
 
-use std::{cell::RefCell, rc::Rc};
+use std::sync::{Arc, Mutex};
 
 #[cfg(feature = "serde_support")]
 use serde::{Deserialize, Serialize};
+use std::ops::DerefMut;
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug)]
 #[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
 /// A single choice in a (usually) set of choices presented to the user.
 pub struct InternalChoice {
@@ -34,7 +35,7 @@ pub struct InternalChoice {
     /// Instead, we use a pointer with internal mutability and send that further up the stack.
     /// This means that any processing of choices further up will affect the data in the node,
     /// meaning that for example alternative sequences will be updated if the choice was seen.
-    pub selection_text: Rc<RefCell<InternalLine>>,
+    pub selection_text: Arc<Mutex<InternalLine>>,
     /// Text that will be added to the output line buffer if the choice is selected.
     ///
     /// This will be added to the buffer before the rest of the lines from the selected
@@ -53,6 +54,20 @@ pub struct InternalChoice {
     pub meta_data: MetaData,
 }
 
+impl PartialEq for InternalChoice {
+    fn eq(&self, rhs: &InternalChoice) -> bool {
+        let left_line = (*self.selection_text.lock().unwrap()).clone();
+        let right_line = (*rhs.selection_text.lock().unwrap()).clone();
+
+        left_line == right_line &&
+            self.display_text == rhs.display_text &&
+            self.condition == rhs.condition &&
+            self.is_sticky == rhs.is_sticky &&
+            self.is_fallback == rhs.is_fallback &&
+            self.meta_data == rhs.meta_data
+    }
+}
+
 impl ValidateContent for InternalChoice {
     fn validate(
         &mut self,
@@ -64,7 +79,7 @@ impl ValidateContent for InternalChoice {
         let num_address_errors = error.invalid_address_errors.len();
 
         self.selection_text
-            .borrow_mut()
+            .lock().unwrap().deref_mut()
             .validate(error, current_location, &self.meta_data, data);
 
         // If address errors were found in the selection part of this line they may be repeated
@@ -130,7 +145,7 @@ impl InternalChoiceBuilder {
         let meta_data = self.display_text.meta_data.clone();
 
         InternalChoice {
-            selection_text: Rc::new(RefCell::new(self.selection_text)),
+            selection_text: Arc::new(Mutex::new(self.selection_text)),
             display_text: self.display_text,
             condition: self.condition,
             is_sticky: self.is_sticky,
