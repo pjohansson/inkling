@@ -30,6 +30,10 @@ This release focuses on validating the content of a story after successfully par
 *   Fix bug where additional conditions in choices were not added to the condition: `* {condition and other_condition}` became just `* {condition}`.
 *   Fix bug where addresses were not validated inside the `else` content of conditions.
 
+## 0.12.4
+
+* Support for threading by Matthew Woelk (pull request #1)
+
 # 0.11.0
 
 *   Resume stories with index of instead of reference to choice from the previous result.
