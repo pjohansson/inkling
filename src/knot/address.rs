@@ -588,7 +588,7 @@ You find yourself in Addis Ababa, the capital of Ethiopia.
         let knots = read_knots_from_string(content).unwrap();
 
         let variables = &[("counter".to_string(), Variable::Int(0))]
-            .into_iter()
+            .iter()
             .cloned()
             .enumerate()
             .map(|(i, (name, var))| (name, VariableInfo::new(var, i)))
