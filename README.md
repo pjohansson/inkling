@@ -1,6 +1,8 @@
 # Inkling
 
-Limited Rust implementation of the `Ink` markup/scripting language for game dialog.
+[![crates.io](https://img.shields.io/crates/v/inkling.svg)](https://crates.io/crates/inkling) [![Documentation](https://docs.rs/inkling/badge.svg)](https://docs.rs/inkling)
+
+Partial implementation of the *Ink* markup language for game dialogue.
 
 Ink is a creation of [Inkle](https://www.inklestudios.com/). For more information about the language, [see their website](https://www.inklestudios.com/ink/).
 
@@ -32,6 +34,20 @@ Do note that `inkling` only implements a subset of all its features. <>
 Hopefully more in the future!
 -> END
 ```
+
+### Why inkling?
+
+*   Simple interface for walking through branching stories or dialog trees
+*   Designed to slot into an external framework: like Inkle's implementation this is not a stand alone game engine, just a processor that will feed the story text and choices to the user
+*   Rust native, no wrestling with Unity or C# integration
+*   Support for non-latin alphabets in identifiers
+*   Few dependencies: currently only `serde` as an optional dependency to de/serialize stories, probably `rand` as maybe-optional in the future.
+
+### Why not inkling?
+
+*   Fewer features than Inkle's implementation of the language
+*   Untested in serious work loads and large scripts
+*   Not even alpha status, what is this???
 
 
 ## Features
