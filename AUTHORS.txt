@@ -1,0 +1,4 @@
+This code contains contributions by:
+===
+Petter Johansson
+Matthew Woelk

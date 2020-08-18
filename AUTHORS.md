@@ -1,2 +1,0 @@
-Petter Johansson
-Matthew Woelk
