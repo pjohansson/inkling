@@ -8,8 +8,8 @@ use crate::{
     story::Choice,
 };
 
-use std::sync::{Arc, Mutex};
 use std::ops::DerefMut;
+use std::sync::{Arc, Mutex};
 
 /// Prepare a list of choices to display to the user.
 ///

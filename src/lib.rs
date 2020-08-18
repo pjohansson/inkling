@@ -124,8 +124,8 @@
 //! *   Lines:      Plain text, diverts, tags, conditions, alternative sequences (all
 //!                 except shuffle)
 //! *   Conditions: Nested, `and`/`or` linking, can check against variables
-//! *   Reading:    Address validation for diverts and conditions. Conditions and expressions 
-//!                 are validated after parsing the story. 
+//! *   Reading:    Address validation for diverts and conditions. Conditions and expressions
+//!                 are validated after parsing the story.
 //! *   Variables:  Used as text in sentences and in conditions, can modify from calling program
 //! *   Mathematics: In line text, using numbers, parenthesis and variables for all numerical
 //!                  calculations. Strings can be concatenated using the `+` operator.

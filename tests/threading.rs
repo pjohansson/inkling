@@ -15,12 +15,10 @@ He befriended thousands of climbers and children sightseeing in Switzerland.
 
     let mut story = read_story_from_string(content).unwrap();
 
-
     let handle = thread::spawn(move || {
         story.start().unwrap();
         story
     });
-
 
     let mut story = handle.join().unwrap();
     let mut line_buffer = Vec::new();
@@ -32,4 +30,3 @@ He befriended thousands of climbers and children sightseeing in Switzerland.
         _ => panic!("error while reading a flat story from string"),
     }
 }
-

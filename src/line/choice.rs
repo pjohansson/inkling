@@ -59,12 +59,12 @@ impl PartialEq for InternalChoice {
         let left_line = (*self.selection_text.lock().unwrap()).clone();
         let right_line = (*rhs.selection_text.lock().unwrap()).clone();
 
-        left_line == right_line &&
-            self.display_text == rhs.display_text &&
-            self.condition == rhs.condition &&
-            self.is_sticky == rhs.is_sticky &&
-            self.is_fallback == rhs.is_fallback &&
-            self.meta_data == rhs.meta_data
+        left_line == right_line
+            && self.display_text == rhs.display_text
+            && self.condition == rhs.condition
+            && self.is_sticky == rhs.is_sticky
+            && self.is_fallback == rhs.is_fallback
+            && self.meta_data == rhs.meta_data
     }
 }
 
@@ -78,9 +78,12 @@ impl ValidateContent for InternalChoice {
     ) {
         let num_address_errors = error.invalid_address_errors.len();
 
-        self.selection_text
-            .lock().unwrap().deref_mut()
-            .validate(error, current_location, &self.meta_data, data);
+        self.selection_text.lock().unwrap().deref_mut().validate(
+            error,
+            current_location,
+            &self.meta_data,
+            data,
+        );
 
         // If address errors were found in the selection part of this line they may be repeated
         // in the display part. Since they are parsed from the same line we raise an error for
