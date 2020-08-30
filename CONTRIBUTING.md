@@ -23,9 +23,11 @@ By submitting a pull request you agree to the [third-party license agreement](LI
 
 Before submitting your request, please follow these steps:
 
-1. If new functionality is added, add one or more suitable tests. They should cover edge cases.
-2. Ensure that all tests pass by running `cargo test --all-features`
-3. Reformat the code by running `cargo fmt` with default settings (if this touches more than your new code, please commit those changes separately)
+1. If functionality is added or modified, add and modify tests as suitable. Tests should cover edge cases.
+2. Ensure that all tests pass by running `cargo test --all-features`.
+3. Reformat the code by running `cargo fmt` with default settings (if this touches more than your new code, please commit those changes separately).
+
+Please don't hesitate to contact us or open an issue if you have questions.
 
 # Major patches 
 Before submitting a pull request with a major change (and preferably before spending the time to write the code), please open an issue where we can discuss the change in more detail and whether compensation or recognition as a main developer is appropriate.
