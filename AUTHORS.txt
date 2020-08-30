@@ -2,6 +2,6 @@ Main authors:
 ===
 Petter Johansson
 
-Third-party contributors:
+With contributions from:
 ===
 Matthew Woelk
