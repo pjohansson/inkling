@@ -1,4 +1,11 @@
+# Rust
 /target
 **/*.rs.bk
 **/*.exe
 Cargo.lock
+
+# Backup files
+**/*~
+**/.DS_Store
+**/*.bkp
+**/*.swp
