@@ -81,4 +81,8 @@ See the [documentation](https://docs.rs/inkling/) or provided example for a mini
 
 ## Contributions
 
-Writing this has mostly been for fun and to create a simple game, hence the lack of features. Contributions are welcome!
+Writing this has mostly been for fun and to create a simple game, hence the lack of features. Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for more details.
+
+
+## License
+Inkling is copyleft, licensed under [the Parity License](LICENSE-PARITY.md) and [Apache-2.0](LICENSE-APACHE.txt). See [LICENSE.md](LICENSE.md) for more details.
