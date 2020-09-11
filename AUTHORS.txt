@@ -1,4 +1,7 @@
-This code contains contributions by:
+Main authors:
 ===
 Petter Johansson
+
+With contributions from:
+===
 Matthew Woelk
