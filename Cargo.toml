@@ -1,10 +1,10 @@
 [package]
 name = "inkling"
-version = "0.12.4"
+version = "0.12.5"
 authors = ["Petter Johansson <pjohansson@fastmail.com>"]
 description = "Limited implementation of the Ink markup language."
 edition = "2018"
-license-file = "LICENSE.md"
+license = "Parity-6.0.0 AND Apache-2.0"
 readme = "README.md"
 repository = "https://github.com/pjohansson/inkling"
 categories = ["game-engines"]

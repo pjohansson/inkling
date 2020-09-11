@@ -32,7 +32,11 @@ This release focuses on validating the content of a story after successfully par
 
 ## 0.12.4
 
-* Support for threading by Matthew Woelk (pull request #1)
+*   Support for threading by Matthew Woelk (pull request #1)
+
+## 0.12.5
+
+*   Relicensed under Parity 7.0 and Apache 2.0
 
 # 0.11.0
 
