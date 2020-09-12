@@ -9,6 +9,7 @@ use crate::{
     process::{get_fallback_choices, prepare_choices_for_user, process_buffer},
     story::{
         parse::read_story_content_from_string,
+        rng::StoryRng,
         types::{Choice, LineBuffer, Prompt},
         validate::validate_story_content,
     },
@@ -35,6 +36,8 @@ pub struct Story {
     selected_choice: Option<usize>,
     /// Whether or not the story has been started.
     in_progress: bool,
+    /// Random number generator, if needed.
+    rng: StoryRng,
 }
 
 impl Story {
@@ -631,6 +634,7 @@ pub fn read_story_from_string(string: &str) -> Result<Story, ReadError> {
         last_choices: None,
         selected_choice: None,
         in_progress: false,
+        rng: StoryRng::default(),
     })
 }
 

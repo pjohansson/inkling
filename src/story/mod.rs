@@ -12,6 +12,7 @@
 //! presented to the user, or validating the content of the story as it is being accessed.
 
 pub(crate) mod parse;
+pub(crate) mod rng;
 mod story;
 pub(crate) mod types;
 mod utils;
