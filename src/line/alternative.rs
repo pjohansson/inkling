@@ -92,6 +92,11 @@ pub enum AlternativeKind {
     /// A train traveling to its destination `[Frankfurt, Mannheim, Heidelberg]` will print
     /// each destination, then `Heidelberg` forever after reaching the city.
     Sequence,
+    /// Shuffles the active list, then goes through it and cycles with a new shuffle at the end.
+    /// 
+    /// # Example
+    /// A set of three cards `[One, Two, Three]` will be shuffled then dealt one by one. Once
+    /// the set is empty, the deck is reshuffled.
     Shuffle,
 }
 
