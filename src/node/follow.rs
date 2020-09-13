@@ -323,6 +323,7 @@ mod tests {
         knot::{get_num_visited, Address},
         line::{InternalChoice, LineChunkBuilder},
         node::builders::{BranchBuilder, BranchingPointBuilder, RootNodeBuilder},
+        story::rng::StoryRng,
     };
 
     use std::collections::HashMap;
@@ -339,6 +340,7 @@ mod tests {
         FollowData {
             knot_visit_counts,
             variables: HashMap::new(),
+            rng: StoryRng::default(),
         }
     }
 

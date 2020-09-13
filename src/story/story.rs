@@ -9,6 +9,7 @@ use crate::{
     process::{get_fallback_choices, prepare_choices_for_user, process_buffer},
     story::{
         parse::read_story_content_from_string,
+        rng::StoryRng,
         types::{Choice, LineBuffer, Prompt},
         validate::validate_story_content,
     },
@@ -613,6 +614,7 @@ pub fn read_story_from_string(string: &str) -> Result<Story, ReadError> {
     let data = FollowData {
         knot_visit_counts: get_empty_knot_counts(&knots),
         variables,
+        rng: StoryRng::default(),
     };
 
     validate_story_content(&mut knots, &data)?;
@@ -713,7 +715,7 @@ fn follow_knot(
 fn get_fallback_choice(
     choice_set: &[ChoiceInfo],
     current_address: &Address,
-    data: &FollowData,
+    data: &mut FollowData,
 ) -> Result<Choice, InklingError> {
     get_fallback_choices(choice_set, data).and_then(|choices| {
         choices.first().cloned().ok_or(InklingError::OutOfChoices {
@@ -748,6 +750,7 @@ mod tests {
         FollowData {
             knot_visit_counts: get_empty_knot_counts(knots),
             variables: HashMap::new(),
+            rng: StoryRng::default(),
         }
     }
 

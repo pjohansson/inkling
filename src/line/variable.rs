@@ -717,7 +717,7 @@ impl ValidateContent for Variable {
 mod tests {
     use super::*;
 
-    use crate::story::types::VariableInfo;
+    use crate::story::{rng::StoryRng, types::VariableInfo};
 
     use std::collections::HashMap;
 
@@ -742,6 +742,7 @@ mod tests {
         FollowData {
             knot_visit_counts,
             variables,
+            rng: StoryRng::default(),
         }
     }
 

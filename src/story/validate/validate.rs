@@ -4,7 +4,7 @@ use crate::{
     error::{parse::validate::ValidationError, utils::MetaData},
     follow::FollowData,
     knot::{get_empty_knot_counts, Address, AddressKind, KnotSet},
-    story::{types::VariableSet, validate::namespace::validate_story_name_spaces},
+    story::{rng::StoryRng, types::VariableSet, validate::namespace::validate_story_name_spaces},
 };
 
 use std::collections::HashMap;
@@ -70,6 +70,7 @@ impl ValidationData {
         let follow_data = FollowData {
             knot_visit_counts: get_empty_knot_counts(knots),
             variables: variables.clone(),
+            rng: StoryRng::default(),
         };
 
         ValidationData {
@@ -231,6 +232,7 @@ pub(super) mod tests {
         let data = FollowData {
             knot_visit_counts: get_empty_knot_counts(&knots),
             variables,
+            rng: StoryRng::default(),
         };
 
         (knots, data)

@@ -42,13 +42,7 @@ fn get_sequence_kind(content: &str) -> AlternativeKind {
     } else if content.starts_with(ONCE_ONLY_MARKER) {
         AlternativeKind::OnceOnly
     } else if content.starts_with(SHUFFLE_MARKER) {
-        eprintln!(
-            "WARNING: Shuffle sequences are not yet implemented. Creating a `Cycle` sequence. \
-             (line was: '{}')",
-            content
-        );
-
-        AlternativeKind::Cycle
+        AlternativeKind::Shuffle
     } else {
         AlternativeKind::Sequence
     }
@@ -104,6 +98,16 @@ mod tests {
     }
 
     #[test]
+    fn list_of_strings_beginning_with_tilde_mark_gives_shuffle() {
+        let text = "~One|Two|Three";
+
+        match &parse_alternative(text).unwrap().kind {
+            AlternativeKind::Shuffle => (),
+            kind => panic!("expected `AlternativeKind::Shuffle` but got {:?}", kind),
+        }
+    }
+
+    #[test]
     fn whitespace_is_trimmed_from_the_beginning() {
         let text = " &One|Two|Three";
         let mut alternative = parse_alternative(text).unwrap();
@@ -119,5 +123,10 @@ mod tests {
     #[test]
     fn empty_strings_do_not_fail() {
         assert!(parse_alternative("").is_ok());
+    }
+
+    #[test]
+    fn only_marker_does_not_fail() {
+        assert!(parse_alternative("~").is_ok());
     }
 }

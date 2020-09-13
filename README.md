@@ -57,7 +57,7 @@ Currently and likely for the foreseeable future the feature set is very limited 
 *   Knots, stitches, glue and diverts, ie. basic story structure
 *   Choices, of sticky and non-sticky kinds, plus fallback choices
 *   Nesting choices and gather points
-*   Line text alternative sequences (sequences, cycle, once-only) and conditions
+*   Line text alternative sequences (sequences, cycle, once-only, shuffle) and conditions
 *   Conditionals for displaying text and choices to user
 *   Tagging of lines and choices
 *   Variables in choices, conditions and text
