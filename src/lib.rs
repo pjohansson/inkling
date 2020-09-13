@@ -179,6 +179,9 @@ mod process;
 mod story;
 mod utils;
 
+#[cfg(doc)]
+pub mod docs;
+
 pub use error::InklingError;
 pub use line::Variable;
 pub use story::{
