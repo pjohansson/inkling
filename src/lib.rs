@@ -121,8 +121,8 @@
 //! *   Structure:  Knots, stitches, nested branching choices, gathers, diverts,
 //!                 tags for knots and story
 //! *   Choices:    Non-sticky, sticky, fallback, line variations, conditions
-//! *   Lines:      Plain text, diverts, tags, conditions, alternative sequences (all
-//!                 except shuffle)
+//! *   Lines:      Plain text, diverts, tags, conditions, alternative sequences
+//!                 (enable shuffle sequences with the `shuffle_sequences` feature)
 //! *   Conditions: Nested, `and`/`or` linking, can check against variables
 //! *   Reading:    Address validation for diverts and conditions. Conditions and expressions
 //!                 are validated after parsing the story.
@@ -149,6 +149,15 @@
 //! and loading.
 //!
 //! For more information about `serde` see their [website](https://serde.rs/).
+//!
+//! # Shuffle variation sequences
+//! Proper shuffle sequences using the `{~One|Two|Three}` syntax are enabled with
+//! the `shuffle_sequences` feature. This adds `rand` and `rand_chacha` as dependencies.
+//! If combined with `serde_support`, the random number generator state will be
+//! properly saved and restored along with the rest of the data.
+//!
+//! If `shuffle_sequences` is not enabled, all shuffle sequences are replaced by
+//! cycling sequences. No warning is given if this occurs.
 //!
 //! # Contributions
 //! I am a complete novice at designing frameworks which will fit into larger schemes.
