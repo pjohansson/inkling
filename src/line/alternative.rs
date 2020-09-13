@@ -37,6 +37,7 @@ pub struct Alternative {
 
 impl Alternative {
     #[allow(unused_variables)] // `data` only used when the `shuffle_sequences` feature is enabled
+    /// Get the next item index in the alternative sequence.
     pub fn get_next_index(&mut self, data: &mut FollowData) -> Option<usize> {
         match self.kind {
             AlternativeKind::OnceOnly => self.active_inds.pop(),
@@ -55,7 +56,7 @@ impl Alternative {
                 }
 
                 #[cfg(feature = "shuffle_sequences")]
-                if self.active_inds.len() == self.items.len() {
+                if self.is_first_item() {
                     self.active_inds.shuffle(&mut data.rng.gen);
                 }
 
@@ -64,6 +65,13 @@ impl Alternative {
         }
     }
 
+    #[allow(dead_code)]
+    /// Return whether or not we are at the first item in the sequence.
+    fn is_first_item(&self) -> bool {
+        self.active_inds.len() == self.items.len()
+    }
+
+    /// Reset the active list by remaking the index list and reversing it.
     fn reset_active_list(&mut self) {
         self.active_inds = (0..self.items.len()).rev().collect();
     }
@@ -93,7 +101,7 @@ pub enum AlternativeKind {
     /// each destination, then `Heidelberg` forever after reaching the city.
     Sequence,
     /// Shuffles the active list, then goes through it and cycles with a new shuffle at the end.
-    /// 
+    ///
     /// # Example
     /// A set of three cards `[One, Two, Three]` will be shuffled then dealt one by one. Once
     /// the set is empty, the deck is reshuffled.
