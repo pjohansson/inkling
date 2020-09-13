@@ -55,7 +55,7 @@ mod feature_wrapper {
     /// derived.
     pub struct StoryRng {
         /// Random number generator.
-        gen: ChaCha8Rng,
+        pub gen: ChaCha8Rng,
         /// Seed for the generator.
         seed: u64,
     }

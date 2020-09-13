@@ -3,7 +3,7 @@
 use crate::{
     error::runtime::internal::{ProcessError, ProcessErrorKind},
     follow::{EncounteredEvent, FollowData, LineDataBuffer, LineText},
-    line::{evaluate_expression, Alternative, AlternativeKind, Content, InternalLine, LineChunk},
+    line::{evaluate_expression, Alternative, Content, InternalLine, LineChunk},
     process::check_condition,
 };
 
@@ -93,54 +93,18 @@ fn process_alternative(
     buffer: &mut String,
     data: &mut FollowData,
 ) -> Result<EncounteredEvent, ProcessError> {
-    let num_items = alternative.items.len();
-
-    match alternative.kind {
-        AlternativeKind::Cycle => {
-            let index = alternative.current_index.get_or_insert(0);
-
+    match alternative.get_next_index(data) {
+        Some(index) => {
             let item = alternative
                 .items
-                .get_mut(*index)
+                .get_mut(index)
                 .ok_or_else(|| ProcessError {
                     kind: ProcessErrorKind::InvalidAlternativeIndex,
                 })?;
 
-            if *index < num_items - 1 {
-                *index += 1;
-            } else {
-                *index = 0;
-            }
-
             process_chunk(item, buffer, data)
         }
-        AlternativeKind::OnceOnly => {
-            let index = alternative.current_index.get_or_insert(0);
-
-            match alternative.items.get_mut(*index) {
-                Some(item) => {
-                    *index += 1;
-                    process_chunk(item, buffer, data)
-                }
-                None => Ok(EncounteredEvent::Done),
-            }
-        }
-        AlternativeKind::Sequence => {
-            let index = alternative.current_index.get_or_insert(0);
-
-            let item = alternative
-                .items
-                .get_mut(*index)
-                .ok_or_else(|| ProcessError {
-                    kind: ProcessErrorKind::InvalidAlternativeIndex,
-                })?;
-
-            if *index < num_items - 1 {
-                *index += 1;
-            }
-
-            process_chunk(item, buffer, data)
-        }
+        None => Ok(EncounteredEvent::Done),
     }
 }
 
@@ -384,77 +348,6 @@ pub mod tests {
         );
 
         assert_eq!(&buffer, "Line 1");
-    }
-
-    #[test]
-    fn sequence_alternative_walks_through_content_when_processed_repeatably() {
-        let mut sequence = AlternativeBuilder::sequence()
-            .with_line(LineChunkBuilder::from_string("Line 1").build())
-            .with_line(LineChunkBuilder::from_string("Line 2").build())
-            .build();
-
-        let mut buffer = String::new();
-        let mut data = mock_data_with_single_stitch("", "", 0);
-
-        process_alternative(&mut sequence, &mut buffer, &mut data).unwrap();
-        assert_eq!(&buffer, "Line 1");
-        buffer.clear();
-
-        process_alternative(&mut sequence, &mut buffer, &mut data).unwrap();
-        assert_eq!(&buffer, "Line 2");
-        buffer.clear();
-
-        process_alternative(&mut sequence, &mut buffer, &mut data).unwrap();
-        assert_eq!(&buffer, "Line 2");
-        buffer.clear();
-    }
-
-    #[test]
-    fn once_only_alternative_walks_through_content_and_stops_after_final_item_when_processed() {
-        let mut once_only = AlternativeBuilder::once_only()
-            .with_line(LineChunkBuilder::from_string("Line 1").build())
-            .with_line(LineChunkBuilder::from_string("Line 2").build())
-            .build();
-
-        let mut buffer = String::new();
-        let mut data = mock_data_with_single_stitch("", "", 0);
-
-        process_alternative(&mut once_only, &mut buffer, &mut data).unwrap();
-        assert_eq!(&buffer, "Line 1");
-        buffer.clear();
-
-        process_alternative(&mut once_only, &mut buffer, &mut data).unwrap();
-        assert_eq!(&buffer, "Line 2");
-        buffer.clear();
-
-        process_alternative(&mut once_only, &mut buffer, &mut data).unwrap();
-        assert!(buffer.is_empty());
-    }
-
-    #[test]
-    fn cycle_alternative_repeats_from_first_index_after_reaching_end() {
-        let mut cycle = AlternativeBuilder::cycle()
-            .with_line(LineChunkBuilder::from_string("Line 1").build())
-            .with_line(LineChunkBuilder::from_string("Line 2").build())
-            .build();
-
-        let mut buffer = String::new();
-        let mut data = mock_data_with_single_stitch("", "", 0);
-
-        process_alternative(&mut cycle, &mut buffer, &mut data).unwrap();
-        assert_eq!(&buffer, "Line 1");
-        buffer.clear();
-
-        process_alternative(&mut cycle, &mut buffer, &mut data).unwrap();
-        assert_eq!(&buffer, "Line 2");
-        buffer.clear();
-
-        process_alternative(&mut cycle, &mut buffer, &mut data).unwrap();
-        assert_eq!(&buffer, "Line 1");
-        buffer.clear();
-    }
-        assert_eq!(&buffer, "Line 1");
-        buffer.clear();
     }
 
     #[test]

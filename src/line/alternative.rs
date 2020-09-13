@@ -2,10 +2,14 @@
 
 use crate::{
     error::{parse::validate::ValidationError, utils::MetaData},
+    follow::FollowData,
     knot::Address,
     line::LineChunk,
     story::validate::{ValidateContent, ValidationData},
 };
+
+#[cfg(feature = "shuffle_sequences")]
+use rand::seq::SliceRandom;
 
 #[cfg(feature = "serde_support")]
 use serde::{Deserialize, Serialize};
@@ -20,12 +24,49 @@ use serde::{Deserialize, Serialize};
 ///
 /// Any selected `LineChunk`s can of course contain nested alternatives, and so on.
 pub struct Alternative {
-    /// Current index in the set of content.
-    pub current_index: Option<usize>,
+    /// Active list of item indices that will be used to select items.
+    ///
+    /// The list should be in reverse item order, so that we can pop indices from
+    /// it -- popping yields the last item, after all.
+    pub active_inds: Vec<usize>,
     /// Which kind of alternative this represents.
     pub kind: AlternativeKind,
     /// Set of content which the object will select and process from.
     pub items: Vec<LineChunk>,
+}
+
+impl Alternative {
+    #[allow(unused_variables)] // `data` only used when the `shuffle_sequences` feature is enabled
+    pub fn get_next_index(&mut self, data: &mut FollowData) -> Option<usize> {
+        match self.kind {
+            AlternativeKind::OnceOnly => self.active_inds.pop(),
+            AlternativeKind::Sequence if self.active_inds.len() > 1 => self.active_inds.pop(),
+            AlternativeKind::Sequence => self.active_inds.get(0).cloned(),
+            AlternativeKind::Cycle => {
+                if self.active_inds.is_empty() {
+                    self.reset_active_list()
+                }
+
+                self.active_inds.pop()
+            }
+            AlternativeKind::Shuffle => {
+                if self.active_inds.is_empty() {
+                    self.reset_active_list()
+                }
+
+                #[cfg(feature = "shuffle_sequences")]
+                if self.active_inds.len() == self.items.len() {
+                    self.active_inds.shuffle(&mut data.rng.gen);
+                }
+
+                self.active_inds.pop()
+            }
+        }
+    }
+
+    fn reset_active_list(&mut self) {
+        self.active_inds = (0..self.items.len()).rev().collect();
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -51,6 +92,7 @@ pub enum AlternativeKind {
     /// A train traveling to its destination `[Frankfurt, Mannheim, Heidelberg]` will print
     /// each destination, then `Heidelberg` forever after reaching the city.
     Sequence,
+    Shuffle,
 }
 
 impl ValidateContent for Alternative {
@@ -85,7 +127,7 @@ impl AlternativeBuilder {
     /// Finalize the `Alternative` and return it.
     pub fn build(self) -> Alternative {
         Alternative {
-            current_index: None,
+            active_inds: (0..self.items.len()).rev().collect(),
             kind: self.kind,
             items: self.items,
         }
@@ -129,5 +171,173 @@ impl AlternativeBuilder {
     pub fn with_line(mut self, line: LineChunk) -> Self {
         self.add_line(line);
         self
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[cfg(feature = "shuffle_sequences")]
+    use crate::story::rng::StoryRng;
+    use crate::{line::LineChunkBuilder, process::line::tests::mock_data_with_single_stitch};
+
+    #[cfg(feature = "shuffle_sequences")]
+    pub fn mock_data_with_single_stitch_and_rng(
+        knot: &str,
+        stitch: &str,
+        num_visited: u32,
+        rng: StoryRng,
+    ) -> FollowData {
+        use std::collections::HashMap;
+
+        let mut stitch_count = HashMap::new();
+        stitch_count.insert(stitch.to_string(), num_visited);
+
+        let mut knot_visit_counts = HashMap::new();
+        knot_visit_counts.insert(knot.to_string(), stitch_count);
+
+        FollowData {
+            knot_visit_counts,
+            variables: HashMap::new(),
+            rng,
+        }
+    }
+
+    #[test]
+    fn alternative_builder_sets_active_list_as_reversed_indices_when_calling_build() {
+        let items = vec![
+            LineChunkBuilder::from_string("Line 1").build(),
+            LineChunkBuilder::from_string("Line 2").build(),
+            LineChunkBuilder::from_string("Line 3").build(),
+            LineChunkBuilder::from_string("Line 4").build(),
+        ];
+
+        let builder = AlternativeBuilder {
+            kind: AlternativeKind::Cycle,
+            items: items.clone(),
+        };
+
+        let alternative = builder.build();
+
+        assert_eq!(alternative.items, items);
+        assert_eq!(&alternative.active_inds, &[3, 2, 1, 0]);
+    }
+
+    #[test]
+    fn alternative_get_next_index_for_cycle_resets_list_after_yielding_all_inds() {
+        let mut alternative = AlternativeBuilder::cycle()
+            .with_line(LineChunkBuilder::from_string("Line 1").build())
+            .with_line(LineChunkBuilder::from_string("Line 2").build())
+            .build();
+
+        let mut data = mock_data_with_single_stitch("", "", 0);
+
+        assert_eq!(alternative.get_next_index(&mut data), Some(0));
+        assert_eq!(alternative.get_next_index(&mut data), Some(1));
+        assert_eq!(alternative.get_next_index(&mut data), Some(0));
+        assert_eq!(alternative.get_next_index(&mut data), Some(1));
+        assert_eq!(alternative.get_next_index(&mut data), Some(0));
+    }
+
+    #[test]
+    fn alternative_get_next_index_for_sequence_yields_final_index_forever_after_the_initial() {
+        let mut alternative = AlternativeBuilder::sequence()
+            .with_line(LineChunkBuilder::from_string("Line 1").build())
+            .with_line(LineChunkBuilder::from_string("Line 2").build())
+            .with_line(LineChunkBuilder::from_string("Line 3").build())
+            .build();
+
+        let mut data = mock_data_with_single_stitch("", "", 0);
+
+        assert_eq!(alternative.get_next_index(&mut data), Some(0));
+        assert_eq!(alternative.get_next_index(&mut data), Some(1));
+        assert_eq!(alternative.get_next_index(&mut data), Some(2));
+        assert_eq!(alternative.get_next_index(&mut data), Some(2));
+        assert_eq!(alternative.get_next_index(&mut data), Some(2));
+    }
+
+    #[test]
+    fn alternative_get_next_index_for_once_only_yields_none_after_the_initial() {
+        let mut alternative = AlternativeBuilder::once_only()
+            .with_line(LineChunkBuilder::from_string("Line 1").build())
+            .with_line(LineChunkBuilder::from_string("Line 2").build())
+            .with_line(LineChunkBuilder::from_string("Line 3").build())
+            .build();
+
+        let mut data = mock_data_with_single_stitch("", "", 0);
+
+        assert_eq!(alternative.get_next_index(&mut data), Some(0));
+        assert_eq!(alternative.get_next_index(&mut data), Some(1));
+        assert_eq!(alternative.get_next_index(&mut data), Some(2));
+        assert_eq!(alternative.get_next_index(&mut data), None);
+        assert_eq!(alternative.get_next_index(&mut data), None);
+    }
+
+    #[cfg(feature = "shuffle_sequences")]
+    mod shuffle {
+        use super::*;
+        use crate::story::rng::StoryRng;
+
+        // With 10 items, the probability of drawing a particular sequence is 1 / 10! = 2.75573-07
+        const NUM_ITEMS: usize = 10;
+
+        fn create_alternative(kind: AlternativeKind) -> Alternative {
+            let mut builder = AlternativeBuilder::from_kind(kind);
+
+            for _ in 0..NUM_ITEMS {
+                builder.add_line(LineChunkBuilder::from_string("Line").build());
+            }
+
+            builder.build()
+        }
+
+        #[test]
+        fn alternative_get_next_index_for_shuffle_shuffles_active_index_list() {
+            let mut alternative = create_alternative(AlternativeKind::Shuffle);
+            let mut data = mock_data_with_single_stitch_and_rng("", "", 0, StoryRng::default());
+
+            // Create reverse list from 1, since we will pop the first (0) before the comparison
+            let inds_unshuffled = (0..NUM_ITEMS).skip(1).rev().collect::<Vec<usize>>();
+
+            alternative.get_next_index(&mut data);
+            assert!(alternative.active_inds != inds_unshuffled);
+        }
+
+        #[test]
+        fn alternative_get_next_index_for_shuffle_uses_shuffle_in_place_with_the_generator() {
+            let mut alternative = create_alternative(AlternativeKind::Shuffle);
+
+            let mut rng = StoryRng::default();
+            let mut data = mock_data_with_single_stitch_and_rng("", "", 0, rng.clone());
+
+            let mut active_inds = alternative.active_inds.clone();
+            active_inds.shuffle(&mut rng.gen);
+
+            assert_eq!(alternative.get_next_index(&mut data), active_inds.pop());
+            assert_eq!(&alternative.active_inds, &active_inds);
+        }
+
+        #[test]
+        fn alternative_get_next_index_for_shuffle_resets_list_after_emptying() {
+            let mut alternative = create_alternative(AlternativeKind::Shuffle);
+
+            let mut rng = StoryRng::default();
+            let mut data = mock_data_with_single_stitch_and_rng("", "", 0, rng.clone());
+
+            // Unshuffled list
+            let mut active_inds = alternative.active_inds.clone();
+
+            // First (internal) shuffle, go through all items
+            for _ in 0..NUM_ITEMS {
+                alternative.get_next_index(&mut data);
+            }
+
+            // Second shuffle will now occur, make corresponding shuffle for comparison
+            rng.gen.set_word_pos(data.rng.gen.get_word_pos());
+            active_inds.shuffle(&mut rng.gen);
+
+            assert_eq!(alternative.get_next_index(&mut data), active_inds.pop());
+            assert_eq!(&alternative.active_inds, &active_inds);
+        }
     }
 }
