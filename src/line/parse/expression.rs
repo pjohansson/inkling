@@ -249,7 +249,7 @@ mod tests {
         follow::FollowData,
         knot::Address,
         line::{evaluate_expression, Variable},
-        story::types::VariableInfo,
+        story::{rng::StoryRng, types::VariableInfo},
     };
 
     use std::collections::HashMap;
@@ -275,6 +275,7 @@ mod tests {
         FollowData {
             knot_visit_counts,
             variables,
+            rng: StoryRng::default(),
         }
     }
 

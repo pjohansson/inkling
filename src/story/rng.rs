@@ -21,7 +21,7 @@ mod feature_wrapper {
     use serde::{Deserialize, Serialize};
 
     #[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
-    #[derive(Debug, Default)]
+    #[derive(Clone, Debug, Default)]
     /// Random number generator for the [`Story`][crate::story::Story].
     ///
     /// If the `shuffle_sequences` is not enabled this is a dummy struct which will
@@ -44,7 +44,7 @@ mod feature_wrapper {
         ser::{Serialize, SerializeStruct, Serializer},
     };
 
-    #[derive(Debug)]
+    #[derive(Clone, Debug)]
     /// Random number generator for the [`Story`][crate::story::Story].
     ///
     /// We use `ChaChaRng` due to it being seedable and with the ability to get and set

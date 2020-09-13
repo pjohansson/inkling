@@ -36,8 +36,6 @@ pub struct Story {
     selected_choice: Option<usize>,
     /// Whether or not the story has been started.
     in_progress: bool,
-    /// Random number generator, if needed.
-    rng: StoryRng,
 }
 
 impl Story {
@@ -616,6 +614,7 @@ pub fn read_story_from_string(string: &str) -> Result<Story, ReadError> {
     let data = FollowData {
         knot_visit_counts: get_empty_knot_counts(&knots),
         variables,
+        rng: StoryRng::default(),
     };
 
     validate_story_content(&mut knots, &data)?;
@@ -634,7 +633,6 @@ pub fn read_story_from_string(string: &str) -> Result<Story, ReadError> {
         last_choices: None,
         selected_choice: None,
         in_progress: false,
-        rng: StoryRng::default(),
     })
 }
 
@@ -717,7 +715,7 @@ fn follow_knot(
 fn get_fallback_choice(
     choice_set: &[ChoiceInfo],
     current_address: &Address,
-    data: &FollowData,
+    data: &mut FollowData,
 ) -> Result<Choice, InklingError> {
     get_fallback_choices(choice_set, data).and_then(|choices| {
         choices.first().cloned().ok_or(InklingError::OutOfChoices {
@@ -752,6 +750,7 @@ mod tests {
         FollowData {
             knot_visit_counts: get_empty_knot_counts(knots),
             variables: HashMap::new(),
+            rng: StoryRng::default(),
         }
     }
 

@@ -1,6 +1,11 @@
 //! Results and data that is used or encountered when following, or walking through, a story.
 
-use crate::{error::InklingError, knot::Address, line::InternalChoice, story::types::VariableSet};
+use crate::{
+    error::InklingError,
+    knot::Address,
+    line::InternalChoice,
+    story::{rng::StoryRng, types::VariableSet},
+};
 
 #[cfg(feature = "serde_support")]
 use serde::{Deserialize, Serialize};
@@ -43,7 +48,7 @@ impl ChoiceInfo {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 #[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
 /// Data used during a follow through knots and nodes.
 pub struct FollowData {
@@ -51,6 +56,8 @@ pub struct FollowData {
     pub knot_visit_counts: HashMap<String, HashMap<String, u32>>,
     /// Global variables in story.
     pub variables: VariableSet,
+    /// Random number generator
+    pub rng: StoryRng,
 }
 
 #[derive(Clone, Debug, PartialEq)]

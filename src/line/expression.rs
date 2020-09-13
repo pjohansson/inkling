@@ -227,7 +227,10 @@ impl ValidateContent for Operand {
 mod tests {
     use super::*;
 
-    use crate::{knot::Address, story::types::VariableInfo};
+    use crate::{
+        knot::Address,
+        story::{rng::StoryRng, types::VariableInfo},
+    };
 
     use std::collections::HashMap;
 
@@ -274,6 +277,7 @@ mod tests {
         FollowData {
             knot_visit_counts,
             variables,
+            rng: StoryRng::default(),
         }
     }
 

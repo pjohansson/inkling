@@ -210,6 +210,7 @@ mod tests {
         error::parse::line::LineError,
         knot::{get_num_visited, Address},
         line::{InternalLine, ParsedLineKind},
+        story::rng::StoryRng,
     };
 
     use std::str::FromStr;
@@ -245,6 +246,7 @@ mod tests {
         FollowData {
             knot_visit_counts,
             variables: HashMap::new(),
+            rng: StoryRng::default(),
         }
     }
 

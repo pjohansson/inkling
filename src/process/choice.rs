@@ -17,7 +17,7 @@ use std::sync::{Arc, Mutex};
 /// based on a set condition (currently: visited or not, unless sticky).
 pub fn prepare_choices_for_user(
     choices: &[ChoiceInfo],
-    data: &FollowData,
+    data: &mut FollowData,
 ) -> Result<Vec<Choice>, InklingError> {
     get_available_choices(choices, data, false)
 }
@@ -28,7 +28,7 @@ pub fn prepare_choices_for_user(
 /// however, is the caller's responsibility.
 pub fn get_fallback_choices(
     choices: &[ChoiceInfo],
-    data: &FollowData,
+    data: &mut FollowData,
 ) -> Result<Vec<Choice>, InklingError> {
     get_available_choices(choices, data, true)
 }
@@ -43,7 +43,7 @@ pub fn get_fallback_choices(
 /// the criteria. Otherwise return only non-fallback choices.
 fn get_available_choices(
     choices: &[ChoiceInfo],
-    data: &FollowData,
+    data: &mut FollowData,
     fallback: bool,
 ) -> Result<Vec<Choice>, InklingError> {
     let choices_with_filter_values = zip_choices_with_filter_values(choices, data, fallback)?;
@@ -59,7 +59,7 @@ fn get_available_choices(
 /// Pair every choice with whether it fulfils its conditions.
 fn zip_choices_with_filter_values(
     choices: &[ChoiceInfo],
-    data: &FollowData,
+    data: &mut FollowData,
     fallback: bool,
 ) -> Result<Vec<(bool, Choice)>, InklingError> {
     let checked_choices = check_choices_for_conditions(choices, data, fallback)?;
@@ -94,7 +94,7 @@ fn zip_choices_with_filter_values(
 /// Process a line into a string and return it with its tags.
 fn process_choice_text_and_tags(
     choice_line: Arc<Mutex<InternalLine>>,
-    data: &FollowData,
+    data: &mut FollowData,
 ) -> Result<(String, Vec<String>), InklingError> {
     let mut data_buffer = Vec::new();
 
@@ -151,6 +151,7 @@ mod tests {
             line::builders::InternalLineBuilder, AlternativeBuilder, Condition, ConditionBuilder,
             InternalChoice, InternalChoiceBuilder, LineChunkBuilder, StoryCondition, Variable,
         },
+        story::rng::StoryRng,
     };
 
     use std::collections::HashMap;
@@ -166,6 +167,7 @@ mod tests {
         FollowData {
             knot_visit_counts: HashMap::new(),
             variables: HashMap::new(),
+            rng: StoryRng::default(),
         }
     }
 
@@ -179,6 +181,7 @@ mod tests {
         FollowData {
             knot_visit_counts,
             variables: HashMap::new(),
+            rng: StoryRng::default(),
         }
     }
 
@@ -193,8 +196,8 @@ mod tests {
             create_choice_extra(0, choice2),
         ];
 
-        let empty_data = get_empty_data();
-        let displayed_choices = prepare_choices_for_user(&choices, &empty_data).unwrap();
+        let mut empty_data = get_empty_data();
+        let displayed_choices = prepare_choices_for_user(&choices, &mut empty_data).unwrap();
 
         assert_eq!(displayed_choices.len(), 2);
         assert_eq!(&displayed_choices[0].text, "Choice 1");
@@ -210,8 +213,8 @@ mod tests {
 
         let choices = vec![create_choice_extra(0, choice)];
 
-        let empty_data = get_empty_data();
-        let displayed_choices = prepare_choices_for_user(&choices, &empty_data).unwrap();
+        let mut empty_data = get_empty_data();
+        let displayed_choices = prepare_choices_for_user(&choices, &mut empty_data).unwrap();
 
         assert_eq!(displayed_choices[0].tags, tags);
     }
@@ -226,7 +229,7 @@ mod tests {
     fn processing_choices_checks_conditions() {
         let name = "knot_name".to_string();
 
-        let data = mock_data_with_single_stitch(&name, ROOT_KNOT_NAME, 1);
+        let mut data = mock_data_with_single_stitch(&name, ROOT_KNOT_NAME, 1);
 
         let fulfilled_condition = get_true_like_condition(Variable::Bool(true), false);
         let unfulfilled_condition = get_true_like_condition(Variable::Bool(false), false);
@@ -247,7 +250,7 @@ mod tests {
             create_choice_extra(0, choice3),
         ];
 
-        let displayed_choices = prepare_choices_for_user(&choices, &data).unwrap();
+        let displayed_choices = prepare_choices_for_user(&choices, &mut data).unwrap();
 
         assert_eq!(displayed_choices.len(), 1);
         assert_eq!(&displayed_choices[0].text, "Kept");
@@ -265,8 +268,8 @@ mod tests {
             create_choice_extra(0, choice3),
         ];
 
-        let empty_data = get_empty_data();
-        let displayed_choices = prepare_choices_for_user(&choices, &empty_data).unwrap();
+        let mut empty_data = get_empty_data();
+        let displayed_choices = prepare_choices_for_user(&choices, &mut empty_data).unwrap();
 
         assert_eq!(displayed_choices.len(), 2);
         assert_eq!(&displayed_choices[0].text, "Kept");
@@ -287,8 +290,8 @@ mod tests {
             create_choice_extra(1, choice3),
         ];
 
-        let empty_data = get_empty_data();
-        let displayed_choices = prepare_choices_for_user(&choices, &empty_data).unwrap();
+        let mut empty_data = get_empty_data();
+        let displayed_choices = prepare_choices_for_user(&choices, &mut empty_data).unwrap();
 
         assert_eq!(displayed_choices.len(), 2);
         assert_eq!(&displayed_choices[0].text, "Kept");
@@ -311,8 +314,8 @@ mod tests {
             create_choice_extra(0, choice3),
         ];
 
-        let empty_data = get_empty_data();
-        let displayed_choices = prepare_choices_for_user(&choices, &empty_data).unwrap();
+        let mut empty_data = get_empty_data();
+        let displayed_choices = prepare_choices_for_user(&choices, &mut empty_data).unwrap();
 
         assert_eq!(displayed_choices.len(), 2);
         assert_eq!(&displayed_choices[0].text, "Kept");
@@ -338,8 +341,8 @@ mod tests {
             create_choice_extra(1, choice3),
         ];
 
-        let empty_data = get_empty_data();
-        let fallback_choices = get_fallback_choices(&choices, &empty_data).unwrap();
+        let mut empty_data = get_empty_data();
+        let fallback_choices = get_fallback_choices(&choices, &mut empty_data).unwrap();
 
         assert_eq!(fallback_choices.len(), 2);
         assert_eq!(&fallback_choices[0].text, "Kept");
@@ -365,14 +368,14 @@ mod tests {
 
         let choices = vec![create_choice_extra(0, choice)];
 
-        let empty_data = get_empty_data();
+        let mut empty_data = get_empty_data();
 
-        let presented_choices = prepare_choices_for_user(&choices, &empty_data).unwrap();
+        let presented_choices = prepare_choices_for_user(&choices, &mut empty_data).unwrap();
 
         assert_eq!(presented_choices.len(), 1);
         assert_eq!(&presented_choices[0].text, "Hello once!");
 
-        let presented_choices = prepare_choices_for_user(&choices, &empty_data).unwrap();
+        let presented_choices = prepare_choices_for_user(&choices, &mut empty_data).unwrap();
 
         assert_eq!(presented_choices.len(), 1);
         assert_eq!(&presented_choices[0].text, "Hello twice!");
