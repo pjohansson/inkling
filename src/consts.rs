@@ -1,5 +1,6 @@
 //! Constant markers used when parsing `Ink` lines.
 
+
 /************************
  * Line content markers *
  ************************/
@@ -25,6 +26,7 @@ pub const GLUE_MARKER: &'static str = "<>";
 /// (or the end of the line) will be a single tag.
 pub const TAG_MARKER: char = '#';
 
+
 /********************
  * Sequence markers *
  ********************/
@@ -41,6 +43,7 @@ pub const SHUFFLE_MARKER: char = '~';
 /// Marker for sequence item separator.
 pub const SEQUENCE_SEPARATOR: &'static str = "|";
 
+
 /****************
  * Knot markers *
  ****************/
@@ -51,6 +54,7 @@ pub const KNOT_MARKER: &'static str = "==";
 /// Marker for a stitch belonging to a knot.
 pub const STITCH_MARKER: &'static str = "=";
 
+
 /************************
  * Comment line markers *
  ************************/
@@ -58,8 +62,17 @@ pub const STITCH_MARKER: &'static str = "=";
 /// Marker for line comments, which will be ignored when parsing a story.
 pub const LINE_COMMENT_MARKER: &'static str = "//";
 
+#[allow(dead_code)]
+/// Marker to begin multiline comments.
+pub const MULTILINE_COMMENT_BEGIN_MARKER: &'static str = "/*";
+
+#[allow(dead_code)]
+/// Marker to end multiline comments.
+pub const MULTILINE_COMMENT_END_MARKER: &'static str = "*/";
+
 /// Marker for line comments which will print a reminder message when encountered.
 pub const TODO_COMMENT_MARKER: &'static str = "TODO:";
+
 
 /*****************************
  * Default names for objects *
@@ -77,12 +90,29 @@ pub const DONE_KNOT: &'static str = "DONE";
 /// Name of knot that marks that the story is finished.
 pub const END_KNOT: &'static str = "END";
 
-/**********************
- * Meta data variable *
- **********************/
+
+/********************
+ * Variable markers *
+ ********************/
 
 /// Marker for constant variable.
 pub const CONST_MARKER: &'static str = "CONST";
+
+/// Marker for global variable.
+pub const VARIABLE_MARKER: &'static str = "VAR";
+
+#[allow(dead_code)]
+/// Marker for lists.
+pub const LIST_MARKER: &'static str = "LIST";
+
+#[allow(dead_code)]
+/// Variable assignment marker.
+pub const ASSIGNMENT_MARKER: char = '~';
+
+
+/***********************
+ * Meta data variables *
+ ***********************/
 
 /// Marker for external function signature.
 pub const EXTERNAL_FUNCTION_MARKER: &'static str = "EXTERNAL";
@@ -90,10 +120,31 @@ pub const EXTERNAL_FUNCTION_MARKER: &'static str = "EXTERNAL";
 /// Marker for include of another file.
 pub const INCLUDE_MARKER: &'static str = "INCLUDE";
 
-/// Marker for global variable.
-pub const VARIABLE_MARKER: &'static str = "VAR";
-
 /// Names which cannot be used by variables, knots or stitches.
 pub const RESERVED_KEYWORDS: &[&'static str] = &[
     "ELSE", "NOT", "TRUE", "FALSE", "AND", "OR", "FUNCTION", "RETURN",
+];
+
+#[allow(dead_code)]
+/// Names of functions which are reserved in Ink.
+/// 
+/// They are not necessarily implemented yet but we reserve them for forwards compatibility.
+pub const RESERVED_FUNCTIONS: &[&'static str] = &[
+    "CHOICE_COUNT",
+    "TURNS",
+    "TURNS_SINCE",
+    "SEED_RANDOM",
+    "INT",
+    "FLOAT",
+    "FLOOR",
+    "RANDOM",
+    "POW",
+    "LIST_ALL",
+    "LIST_COUNT",
+    "LIST_MIN",
+    "LIST_MAX",
+    "LIST_RANDOM",
+    "LIST_VALUE",
+    "LIST_RANGE",
+    "LIST_INVERT",
 ];
