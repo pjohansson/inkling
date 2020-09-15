@@ -477,7 +477,8 @@ impl Story {
     /// Set the value of an existing global variable.
     ///
     /// New variables cannot be created using this method. They have to be defined in the Ink
-    /// script file.
+    /// script file. Constant variables cannot be modified. An error is returned if the given
+    /// name corresponds to a constant variable.
     ///
     /// The assignment is type checked: a variable of integer type cannot be changed to
     /// contain a decimal number, a string, or anything else. An error will be returned
@@ -526,7 +527,19 @@ impl Story {
     /// assert!(story.set_variable("hunted_by_police", 10).is_err());
     /// ```
     ///
+    /// ## Assignment to constant variable is invalid
+    /// ```
+    /// # use inkling::{read_story_from_string, Variable};
+    /// # let content = "\
+    /// # CONST ticket_price = 0.75
+    /// # ";
+    /// # let mut story = read_story_from_string(content).unwrap();
+    /// assert!(story.set_variable("ticket_price", 1.5).is_err());
+    /// ```
+    ///
     /// # Errors
+    /// *   [`AssignedToConst`][crate::error::InklingError::AssignedToConst]: if the name
+    ///     refers to a constant variable.
     /// *   [`InvalidVariable`][crate::error::InklingError::InvalidVariable]: if the name
     ///     does not refer to a global variable that exists in the story.
     /// *   [`VariableError`][crate::error::InklingError::VariableError]: if
@@ -542,12 +555,7 @@ impl Story {
             .ok_or(InklingError::InvalidVariable {
                 name: name.to_string(),
             })
-            .and_then(|variable_info| {
-                variable_info
-                    .variable
-                    .assign(value)
-                    .map_err(|err| err.into())
-            })
+            .and_then(|variable_info| variable_info.assign(value.into(), name))
     }
 
     /// Wrapper for calling `follow_story` with a prepared internal buffer.
@@ -1834,6 +1842,31 @@ VAR counter = 3
 
         assert!(story.set_variable("counter", Variable::Float(5.0)).is_err());
         assert!(story.set_variable("counter", Variable::Bool(true)).is_err());
+    }
+
+    #[test]
+    fn setting_variable_is_only_allowed_for_non_const_variables() {
+        let content = "
+
+VAR non_const_variable = 3
+CONST const_variable = 3
+
+";
+
+        let mut story = read_story_from_string(content).unwrap();
+
+        assert!(story
+            .set_variable("non_const_variable", Variable::Int(5))
+            .is_ok());
+
+        let err = story
+            .set_variable("const_variable", Variable::Int(5))
+            .unwrap_err();
+        let expected_err = InklingError::AssignedToConst {
+            name: "const_variable".to_string(),
+        };
+
+        assert_eq!(format!("{:?}", err), format!("{:?}", expected_err));
     }
 
     #[test]

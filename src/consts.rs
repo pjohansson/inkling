@@ -1,6 +1,5 @@
 //! Constant markers used when parsing `Ink` lines.
 
-
 /************************
  * Line content markers *
  ************************/
@@ -26,7 +25,6 @@ pub const GLUE_MARKER: &'static str = "<>";
 /// (or the end of the line) will be a single tag.
 pub const TAG_MARKER: char = '#';
 
-
 /********************
  * Sequence markers *
  ********************/
@@ -43,7 +41,6 @@ pub const SHUFFLE_MARKER: char = '~';
 /// Marker for sequence item separator.
 pub const SEQUENCE_SEPARATOR: &'static str = "|";
 
-
 /****************
  * Knot markers *
  ****************/
@@ -53,7 +50,6 @@ pub const KNOT_MARKER: &'static str = "==";
 
 /// Marker for a stitch belonging to a knot.
 pub const STITCH_MARKER: &'static str = "=";
-
 
 /************************
  * Comment line markers *
@@ -73,7 +69,6 @@ pub const MULTILINE_COMMENT_END_MARKER: &'static str = "*/";
 /// Marker for line comments which will print a reminder message when encountered.
 pub const TODO_COMMENT_MARKER: &'static str = "TODO:";
 
-
 /*****************************
  * Default names for objects *
  *****************************/
@@ -89,7 +84,6 @@ pub const DONE_KNOT: &'static str = "DONE";
 
 /// Name of knot that marks that the story is finished.
 pub const END_KNOT: &'static str = "END";
-
 
 /********************
  * Variable markers *
@@ -108,7 +102,6 @@ pub const LIST_MARKER: &'static str = "LIST";
 #[allow(dead_code)]
 /// Variable assignment marker.
 pub const ASSIGNMENT_MARKER: char = '~';
-
 
 /***********************
  * Meta data variables *

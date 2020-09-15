@@ -1,6 +1,9 @@
 //! Data types of a story.
 
-use crate::{error::utils::MetaData, line::Variable};
+use crate::{
+    error::{utils::MetaData, InklingError},
+    line::Variable,
+};
 
 use std::collections::HashMap;
 
@@ -116,13 +119,56 @@ pub struct VariableInfo {
     pub meta_data: MetaData,
 }
 
-#[cfg(test)]
 impl VariableInfo {
+    /// Assign a new value to the variable.
+    ///
+    /// Asserts that the variable is non-constant, returns an error if it is.
+    pub fn assign(&mut self, variable: Variable, name: &str) -> Result<(), InklingError> {
+        if self.is_const {
+            Err(InklingError::AssignedToConst {
+                name: name.to_string(),
+            })
+        } else {
+            self.variable.assign(variable).map_err(|err| err.into())
+        }
+    }
+
+    #[cfg(test)]
     pub fn new<T: Into<Variable>>(variable: T, line_index: usize) -> Self {
         VariableInfo {
             is_const: false,
             variable: variable.into(),
             meta_data: line_index.into(),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn assigning_new_value_to_variable_info_works() {
+        let mut variable_info = VariableInfo::new(Variable::Int(5), 0);
+
+        let new = Variable::Int(10);
+
+        assert!(variable_info.assign(new.clone(), "").is_ok());
+        assert_eq!(variable_info.variable, new);
+    }
+
+    #[test]
+    fn assigning_new_value_to_const_variable_info_yields_error() {
+        let mut variable_info = VariableInfo::new(Variable::Int(5), 0);
+        variable_info.is_const = true;
+
+        let err = variable_info
+            .assign(Variable::Int(10), "variable")
+            .unwrap_err();
+        let expected_err = InklingError::AssignedToConst {
+            name: "variable".to_string(),
+        };
+
+        assert_eq!(format!("{:?}", err), format!("{:?}", expected_err));
     }
 }

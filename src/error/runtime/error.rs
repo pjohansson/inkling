@@ -28,6 +28,10 @@ impl Error for InklingError {}
 /// that went wrong due to some issue within `inkling` itself. If you encounter any,
 /// please open an issue on Github.
 pub enum InklingError {
+    /// Tried to assign a new value to a CONST variable.
+    AssignedToConst {
+        name: String,
+    },
     /// Internal errors caused by `inkling`.
     Internal(InternalError),
     /// Used a knot or stitch name that is not present in the story as an input variable.
@@ -85,6 +89,9 @@ impl fmt::Display for InklingError {
         use InklingError::*;
 
         match self {
+            AssignedToConst { name } => {
+                write!(f, "Tried to assign a value to CONST variable '{}'", name)
+            }
             Internal(err) => write!(f, "INTERNAL ERROR: {}", err),
             InvalidAddress { knot, stitch } => match stitch {
                 Some(stitch_name) => write!(

@@ -525,7 +525,7 @@ fn parse_variable_info_from_line(
 }
 
 /// Check whether or not a line is a variable.
-/// 
+///
 /// Assumes that the line has been trimmed from both ends.
 fn is_variable_line(line: &str) -> bool {
     line.starts_with(VARIABLE_MARKER) || line.starts_with(CONST_MARKER)
@@ -716,7 +716,7 @@ pub mod tests {
             parse_variable_info_from_line("VAR variable = 1.0", &MetaData::from(0)).unwrap();
         let (_, const_var) =
             parse_variable_info_from_line("CONST variable = 1.0", &MetaData::from(0)).unwrap();
-        
+
         assert!(!non_const_var.is_const);
         assert!(const_var.is_const);
     }
@@ -725,7 +725,7 @@ pub mod tests {
     fn parse_const_variable_from_line_yields_correct_name_and_value() {
         let (name, const_var) =
             parse_variable_info_from_line("CONST variable = 1.0", &MetaData::from(0)).unwrap();
-        
+
         assert_eq!(&name, "variable");
         assert_eq!(const_var.variable, Variable::from(1.0));
     }
