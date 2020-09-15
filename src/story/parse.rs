@@ -20,7 +20,7 @@ use crate::{
         ReadError,
     },
     knot::{parse_stitch_from_lines, read_knot_name, read_stitch_name, Knot, KnotSet, Stitch},
-    line::{parse_variable, Variable},
+    line::parse_variable,
     story::types::{VariableInfo, VariableSet},
 };
 
@@ -475,19 +475,16 @@ fn parse_global_variables(lines: &[(&str, MetaData)]) -> (VariableSet, Vec<Prelu
     for (line, meta_data) in lines
         .iter()
         .map(|(line, meta_data)| (line.trim(), meta_data))
-        .filter(|(line, _)| line.starts_with(VARIABLE_MARKER))
+        .filter(|(line, _)| is_variable_line(line))
     {
-        if let Err(kind) = parse_variable_with_name(line).and_then(|(name, variable)| {
-            let variable_info = VariableInfo {
-                variable,
-                meta_data: meta_data.clone(),
-            };
-
-            match variables.insert(name.clone(), variable_info) {
-                Some(_) => Err(PreludeErrorKind::DuplicateVariable { name }),
-                None => Ok(()),
-            }
-        }) {
+        if let Err(kind) =
+            parse_variable_info_from_line(line, &meta_data).and_then(|(name, variable_info)| {
+                match variables.insert(name.clone(), variable_info) {
+                    Some(_) => Err(PreludeErrorKind::DuplicateVariable { name }),
+                    None => Ok(()),
+                }
+            })
+        {
             errors.push(PreludeError {
                 line: line.to_string(),
                 kind,
@@ -499,34 +496,60 @@ fn parse_global_variables(lines: &[(&str, MetaData)]) -> (VariableSet, Vec<Prelu
     (variables, errors)
 }
 
-/// Parse a single variable line into the variable name and initial value.
+/// Parse a single variable line into the variable name, initial value and whether it is constant.
 ///
-/// Variable lines are on the form `VAR variable_name = initial_value`.
-fn parse_variable_with_name(line: &str) -> Result<(String, Variable), PreludeErrorKind> {
-    line.find('=')
-        .ok_or_else(|| PreludeErrorKind::NoVariableAssignment)
-        .and_then(|i| {
-            let start = VARIABLE_MARKER.len();
-            let variable_name = line.get(start..i).unwrap().trim().to_string();
+/// Variable lines are on the form `VAR variable_name = initial_value` and constant variables
+/// on the form `CONST variable_name = constant_value`.
+fn parse_variable_info_from_line(
+    line: &str,
+    meta_data: &MetaData,
+) -> Result<(String, VariableInfo), PreludeErrorKind> {
+    if let Some(i) = line.find('=') {
+        let (lhs, rhs) = line.split_at(i);
 
-            if variable_name.is_empty() {
-                Err(PreludeErrorKind::NoVariableName)
-            } else {
-                Ok((i, variable_name))
-            }
-        })
-        .and_then(|(i, variable_name)| {
-            parse_variable(line.get(i + 1..).unwrap().trim())
-                .map(|value| (variable_name, value))
-                .map_err(|err| err.into())
-        })
+        let is_const = lhs.starts_with(CONST_MARKER);
+        let name = parse_variable_name(lhs, is_const)?;
+        let variable = parse_variable(rhs.get(1..).unwrap())?;
+
+        Ok((
+            name,
+            VariableInfo {
+                is_const,
+                variable,
+                meta_data: meta_data.clone(),
+            },
+        ))
+    } else {
+        Err(PreludeErrorKind::NoVariableAssignment)
+    }
+}
+
+/// Check whether or not a line is a variable.
+/// 
+/// Assumes that the line has been trimmed from both ends.
+fn is_variable_line(line: &str) -> bool {
+    line.starts_with(VARIABLE_MARKER) || line.starts_with(CONST_MARKER)
+}
+
+/// Parse the name from a variable string and assert that it is non-empty.
+fn parse_variable_name(lhs: &str, is_const: bool) -> Result<String, PreludeErrorKind> {
+    let i = if is_const {
+        CONST_MARKER.len()
+    } else {
+        VARIABLE_MARKER.len()
+    };
+
+    lhs.get(i..)
+        .map(|name| name.trim().to_string())
+        .filter(|name| !name.is_empty())
+        .ok_or(PreludeErrorKind::NoVariableName)
 }
 
 #[cfg(test)]
 pub mod tests {
     use super::*;
 
-    use crate::knot::Address;
+    use crate::{knot::Address, line::Variable};
 
     pub fn read_knots_from_string(content: &str) -> Result<KnotSet, Vec<KnotError>> {
         let lines = content
@@ -669,6 +692,88 @@ pub mod tests {
             variables.get("string").unwrap().variable,
             Variable::String("two words".to_string())
         );
+    }
+
+    #[test]
+    fn parse_variable_from_line_yields_correct_name() {
+        let (name, _) =
+            parse_variable_info_from_line("VAR variable = 1.0", &MetaData::from(0)).unwrap();
+
+        assert_eq!(&name, "variable");
+    }
+
+    #[test]
+    fn parse_variable_from_line_yields_correct_value() {
+        let (_, variable_info) =
+            parse_variable_info_from_line("VAR variable = 1.0", &MetaData::from(0)).unwrap();
+
+        assert_eq!(variable_info.variable, Variable::from(1.0));
+    }
+
+    #[test]
+    fn parse_variable_from_line_yields_whether_const_or_not() {
+        let (_, non_const_var) =
+            parse_variable_info_from_line("VAR variable = 1.0", &MetaData::from(0)).unwrap();
+        let (_, const_var) =
+            parse_variable_info_from_line("CONST variable = 1.0", &MetaData::from(0)).unwrap();
+        
+        assert!(!non_const_var.is_const);
+        assert!(const_var.is_const);
+    }
+
+    #[test]
+    fn parse_const_variable_from_line_yields_correct_name_and_value() {
+        let (name, const_var) =
+            parse_variable_info_from_line("CONST variable = 1.0", &MetaData::from(0)).unwrap();
+        
+        assert_eq!(&name, "variable");
+        assert_eq!(const_var.variable, Variable::from(1.0));
+    }
+
+    #[test]
+    fn parse_variable_from_line_yields_error_if_no_name() {
+        assert!(parse_variable_info_from_line("CONST = 1.0", &MetaData::from(0)).is_err());
+    }
+
+    #[test]
+    fn parse_variable_from_line_yields_error_if_no_value() {
+        assert!(parse_variable_info_from_line("CONST =", &MetaData::from(0)).is_err());
+    }
+
+    #[test]
+    fn parse_variable_from_line_yields_error_if_no_equal_sign() {
+        assert!(parse_variable_info_from_line("CONST variable 1.0", &MetaData::from(0)).is_err());
+    }
+
+    #[test]
+    fn parse_variable_from_line_yields_error_if_empty_beyond_keyword() {
+        assert!(parse_variable_info_from_line("CONST", &MetaData::from(0)).is_err());
+        assert!(parse_variable_info_from_line("VAR", &MetaData::from(0)).is_err());
+    }
+
+    #[test]
+    fn variables_can_be_const_or_not() {
+        let lines = &["VAR float = 1.0", "CONST string = \"two words\""];
+
+        let (variables, _) = parse_global_variables(&enumerate(lines));
+
+        let non_const_var = variables.get("float").unwrap();
+        let const_var = variables.get("string").unwrap();
+
+        assert!(!non_const_var.is_const);
+        assert!(const_var.is_const);
+    }
+
+    #[test]
+    fn const_variables_are_parsed_identically_to_non_const() {
+        let lines = &["VAR non_const_var = 1.0", "CONST const_var = 1.0"];
+
+        let (variables, _) = parse_global_variables(&enumerate(lines));
+
+        let non_const_var = variables.get("non_const_var").unwrap();
+        let const_var = variables.get("const_var").unwrap();
+
+        assert_eq!(non_const_var.variable, const_var.variable);
     }
 
     #[test]

@@ -108,6 +108,8 @@ pub type VariableSet = HashMap<String, VariableInfo>;
 #[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
 /// Information about a global variable in the story.
 pub struct VariableInfo {
+    /// Whether or not the variable is constant.
+    pub is_const: bool,
     /// Variable data.
     pub variable: Variable,
     /// Information about the origin of the variable in the story file or text.
@@ -118,6 +120,7 @@ pub struct VariableInfo {
 impl VariableInfo {
     pub fn new<T: Into<Variable>>(variable: T, line_index: usize) -> Self {
         VariableInfo {
+            is_const: false,
             variable: variable.into(),
             meta_data: line_index.into(),
         }
