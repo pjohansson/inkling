@@ -179,7 +179,7 @@ mod process;
 mod story;
 mod utils;
 
-#[cfg(doc)]
+#[cfg(any(doc,test))]
 pub mod docs;
 
 pub use error::InklingError;
