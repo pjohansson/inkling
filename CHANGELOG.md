@@ -38,6 +38,11 @@ This release focuses on validating the content of a story after successfully par
 
 *   Relicensed under Parity 7.0 and Apache 2.0
 
+## 0.12.6
+
+*   Added support for CONST variables
+*   Added shuffle sequences with `rand`
+
 # 0.11.0
 
 *   Resume stories with index of instead of reference to choice from the previous result.
