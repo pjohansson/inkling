@@ -612,6 +612,14 @@
 //! # assert!(story.set_variable("name", "Aramis").is_err());
 //! ```
 //! 
+//! ## Variable mathematics
+//! 
+//! # Advanced content variations
+//! 
+//! ## Variations in lines
+//! 
+//! ## Conditions for displaying content
+//! 
 //! # Metadata
 //! 
 //! Information about the story, knots or even individual lines can be marked with *tags*. All tags
@@ -680,5 +688,25 @@
 //! # assert_eq!(&tags1[0], "sound: crickets.ogg");
 //! # assert_eq!(&tags2[0], "smell, fall");
 //! # assert_eq!(&tags2[1], "sound: water_drip.ogg");
+//! ```
+//! 
+//! Tags can also be added to choice lines.
+//! 
+//! ```
+//! # use inkling::{read_story_from_string, Prompt};
+//! # let content = r#"
+//! #
+//! *   I made my way to the well. # sound: footsteps.ogg
+//! #
+//! # "#;
+//! # let mut story = read_story_from_string(content).unwrap();
+//! # let mut buffer = Vec::new();
+//! # story.start().unwrap();
+//! # match story.resume(&mut buffer).unwrap() {
+//! #   Prompt::Choice(choices) => {
+//! #       assert_eq!(choices[0].tags[0], "sound: footsteps.ogg");
+//! #   } 
+//! #   _ => unreachable!()
+//! # }
 //! ```
 //! 
