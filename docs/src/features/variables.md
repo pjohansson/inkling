@@ -1,7 +1,13 @@
 # Variables
 
+Throughout a story it can be useful to introduce *variables*, which can be declared
+and used in the story text. This makes it easy to keep a story consistent and track
+a story state.
+
+## Declaring variables
+
 Global variables can be declared in the script using the `VAR` keyword. They
-must be declared before the first knot.
+must be declared in the [preamble](structure.md#preamble): before the first knot.
 
 ```rust
 # extern crate inkling;
@@ -71,3 +77,5 @@ VAR rank = "Capitaine"    // Non-constant variable, can be changed
 ```
 
 ## Variable mathematics
+
+## Variable comparisons

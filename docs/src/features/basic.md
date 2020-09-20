@@ -1,13 +1,17 @@
 # Basic elements
 
-These are the basic features needed to write a story with `Ink` and `Inkling`.
+These are the basic features needed to write a story with `Ink` and `inkling`.
 
 ## Text
 
 Plain text is the most basic element of a story. It is written in the story text as regular lines.
 
-```plain
+```rust
+# let content = r"
+#
 I opened my notebook to a blank page, pen in hand.
+#
+# ";
 ```
 
 Text is separated into paragraphs by being on different lines.
@@ -132,8 +136,8 @@ To mark a choice in a branching story, use the `*` marker.
 # }
 ```
 
-(The `+` marker can also be used, although this results in a different behavior
-if the tree is visited again. More on this later.)
+(The `+` marker can also be used, which results in a different behavior
+if the tree is visited again. [More on this later.](structure.md#once-only-and-sticky-choices))
 
 When `inkling` encounters one or more lines beginning with this marker, the options will 
 be collected and returned to the user to make a choice.
@@ -209,8 +213,6 @@ be ignored. Building on the previous example:
 # assert!(buffer[0].text.starts_with(r#""Who's there?""#));
 ```
 
-becomes
-
 ```plain
  1: "Hello?" I shouted.
 
@@ -248,8 +250,6 @@ build a simple choice text into a more presentable sentence for the story:
 # story.resume(&mut buffer).unwrap();
 # assert!(buffer[0].text.starts_with(r#""Hello," I shouted. "Who's there?""#));
 ```
-
-gives
 
 ```plain
  1: "Hello?"
