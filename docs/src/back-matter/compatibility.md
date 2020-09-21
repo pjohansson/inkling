@@ -15,4 +15,8 @@ implementation of the language. More realistically, it's inspired by it, sharing
 most features but with results which may differ. Keep this in mind while writing 
 a script.
 
+I'd like to end this note by thanking `Inkle` for designing the language and 
+being the inspiration for this project. And of course for their many fantastic
+games and stories, which is some of the best work out there.
+
  — Petter Johansson, 2020

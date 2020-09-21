@@ -12,7 +12,7 @@ curly-quotes = true
 default_theme = "rust"
 
 [output.html.fold]
-enable = true
+enable = false
 
 [output.html.playground]
 editable = false
