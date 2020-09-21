@@ -9,7 +9,7 @@ src = "src"
 [output.html]
 theme = "src/theme"
 curly-quotes = true
-default_theme = "rust"
+default-theme = "rust"
 
 [output.html.fold]
 enable = false
