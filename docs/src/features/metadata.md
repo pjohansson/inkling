@@ -8,7 +8,7 @@ meaning to them on its own, it's for you as the user to decide how to treat them
 
 ## Global tags
 
-Tags in the preamble are global story tags. Here you can typically mark up metadata for the script.
+Tags in the [preamble](structure.md#preamble) are global story tags. Here you can typically mark up metadata for the script.
 
 ```rust
 # extern crate inkling;
