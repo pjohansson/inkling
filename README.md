@@ -41,7 +41,7 @@ Hopefully more in the future!
 *   Designed to slot into an external framework: like Inkle's implementation this is not a stand alone game engine, just a processor that will feed the story text and choices to the user
 *   Rust native, no wrestling with Unity or C# integration
 *   Support for non-latin alphabets in identifiers
-*   Few dependencies: currently only `serde` as an optional dependency to de/serialize stories, probably `rand` as maybe-optional in the future.
+*   Few dependencies: None required, `serde` as an optional dependency to de/serialize stories, `rand` for random sequences.
 
 ### Why not inkling?
 
@@ -76,7 +76,9 @@ Difficult features for which I doubt my skill level to implement:
 
 ## Usage
 
-See the [documentation](https://docs.rs/inkling/) or provided example for a minimum viable story processor. Enable `serde` de/serialization by activating the `serde_support` feature. This feature derives `Deserialize` and `Serialize` for all required structs.
+See the [user's guide](https://pjohansson.github.io/inkling/) (under construction) and [API documentation](https://docs.rs/inkling) for more information about running the software. There is also an example minimum viable story processor which you can run with `cargo run --example player` and browse the source for. 
+
+Enable `serde` de/serialization by activating the `serde_support` feature. This feature derives `Deserialize` and `Serialize` for all required structs.
 
 
 ## Contributions
@@ -85,4 +87,4 @@ Writing this has mostly been for fun and to create a simple game, hence the lack
 
 
 ## License
-Inkling is copyleft, licensed under [the Parity License](LICENSE-PARITY.md) and [Apache-2.0](LICENSE-APACHE.txt). See [LICENSE.md](LICENSE.md) for more details.
+Inkling is copyleft, licensed under [the Parity License](LICENSE-PARITY.md). See [LICENSE.md](LICENSE.md) for more details.
