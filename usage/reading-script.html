@@ -1,0 +1,397 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js rust">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Reading a script - Inkling User Guide [WIP]</title>
+        
+        
+
+
+        <!-- Custom HTML head -->
+        
+
+
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="User guide for &#x60;inkling&#x60;">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        
+        <link rel="icon" href="../favicon.svg">
+        
+        
+        <link rel="shortcut icon" href="../favicon.png">
+        
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        
+        <link rel="stylesheet" href="../fonts/fonts.css">
+        
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="../highlight.css">
+        <link rel="stylesheet" href="../tomorrow-night.css">
+        <link rel="stylesheet" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        
+
+        
+    </head>
+    <body>
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">
+            var path_to_root = "../";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "rust";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('rust')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../index.html">Inkling</a></li><li class="chapter-item expanded "><a href="../introduction/summary.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../introduction/what-is-ink.html"><strong aria-hidden="true">1.1.</strong> What is Ink?</a></li><li class="chapter-item expanded "><a href="../introduction/what-is-inkling.html"><strong aria-hidden="true">1.2.</strong> What is Inkling?</a></li><li class="chapter-item expanded "><a href="../introduction/example.html"><strong aria-hidden="true">1.3.</strong> Short example</a></li></ol></li><li class="chapter-item expanded "><a href="../usage/summary.html"><strong aria-hidden="true">2.</strong> Using Inkling</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../usage/set-up.html"><strong aria-hidden="true">2.1.</strong> Set-up</a></li><li class="chapter-item expanded "><a href="../usage/reading-script.html" class="active"><strong aria-hidden="true">2.2.</strong> Reading a script</a></li><li class="chapter-item expanded "><a href="../usage/design-intent.html"><strong aria-hidden="true">2.3.</strong> Design intent</a></li><li class="chapter-item expanded "><a href="../usage/helper-functions.html"><strong aria-hidden="true">2.4.</strong> Helper functions</a></li><li class="chapter-item expanded "><a href="../usage/error-handling.html"><strong aria-hidden="true">2.5.</strong> Dealing with errors</a></li><li class="chapter-item expanded "><a href="../usage/saving-and-loading.html"><strong aria-hidden="true">2.6.</strong> Saving and loading</a></li><li class="chapter-item expanded "><a href="../usage/example-text-adventure.html"><strong aria-hidden="true">2.7.</strong> Example: Text adventure</a></li><li class="chapter-item expanded "><div><strong aria-hidden="true">2.8.</strong> Example: Dialogue trees</div></li></ol></li><li class="chapter-item expanded "><a href="../features/summary.html"><strong aria-hidden="true">3.</strong> Implemented Ink features</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../features/basic.html"><strong aria-hidden="true">3.1.</strong> Basic elements</a></li><li class="chapter-item expanded "><a href="../features/structure.html"><strong aria-hidden="true">3.2.</strong> Story structure</a></li><li class="chapter-item expanded "><a href="../features/variables.html"><strong aria-hidden="true">3.3.</strong> Variables</a></li><li class="chapter-item expanded "><a href="../features/conditional-content.html"><strong aria-hidden="true">3.4.</strong> Conditional content</a></li><li class="chapter-item expanded "><a href="../features/sequences.html"><strong aria-hidden="true">3.5.</strong> Alternating sequences</a></li><li class="chapter-item expanded "><a href="../features/metadata.html"><strong aria-hidden="true">3.6.</strong> Story metadata</a></li><li class="chapter-item expanded "><a href="../features/missing-features.html"><strong aria-hidden="true">3.7.</strong> Missing features</a></li></ol></li><li class="chapter-item expanded "><a href="../back-matter/compatibility.html">In regards to compatibility</a></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky bordered">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust (default)</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                        
+                    </div>
+
+                    <h1 class="menu-title">Inkling User Guide [WIP]</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        
+                    </div>
+                </div>
+
+                
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" name="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+                
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1><a class="header" href="#reading-a-script" id="reading-a-script">Reading a script</a></h1>
+<p>Let us now introduce how to move through a script with <code>inkling</code>. We will reuse the script from the <a href="../introduction/example.html">short introductory example</a>:</p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let content = r#&quot;
+A single candle flickered by my side.
+Pen in hand I procured a blank letter.
+
+*   &quot;Dear Guillaume&quot;
+    Sparing the more unfavorable details from him, I requested his aid.
+
+*   &quot;To the Fiendish Impostor&quot;
+&quot;#;
+<span class="boring">}
+</span></code></pre></pre>
+<h2><a class="header" href="#reading-text-content" id="reading-text-content">Reading text content</a></h2>
+<p>To parse your script into a story, <code>inkling</code> provides the <a href="https://docs.rs/inkling/latest/inkling/fn.read_story_from_string.html"><code>read_story_from_string</code></a>
+function. It takes the script (as a string) and from that returns a <a href="https://docs.rs/inkling/latest/inkling/struct.Story.html"><code>Story</code></a> 
+object in a <code>Result</code>.</p>
+<p>Again, we parse it into a story:</p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate inkling;
+</span><span class="boring">use inkling::{read_story_from_string, Story};
+</span><span class="boring">let content = r#&quot;
+</span><span class="boring">A single candle flickered by my side.
+</span><span class="boring">Pen in hand I procured a blank letter.
+</span><span class="boring">
+</span><span class="boring">*   &quot;Dear Guillaume&quot;
+</span><span class="boring">    Sparing the more unfavorable details from him, I requested his aid.
+</span><span class="boring">
+</span><span class="boring">*   &quot;To the Fiendish Impostor&quot;
+</span><span class="boring">&quot;#;
+</span>let mut story: Story = read_story_from_string(&amp;content).unwrap();
+
+// Mark the story as ready by calling `start`
+story.start();
+<span class="boring">}
+</span></code></pre></pre>
+<h3><a class="header" href="#aside-the-story-object" id="aside-the-story-object">Aside: The <code>Story</code> object</a></h3>
+<p><a href="https://docs.rs/inkling/latest/inkling/struct.Story.html"><code>Story</code></a> contains the entire parsed script in a form that is ready to be used. 
+It implements a wealth of methods which can be used to go through it or modify its 
+state by setting variables and changing locations. Look through the documentation
+for the object for more information about these methods.</p>
+<h2><a class="header" href="#starting-the-story" id="starting-the-story">Starting the story</a></h2>
+<p>To start the story we must supply a <a href="https://docs.rs/inkling/latest/inkling/type.LineBuffer.html">buffer</a> which it can add text lines into.
+The story will then proceed until a set of choices is encountered, which the user has 
+to select from.</p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate inkling;
+</span><span class="boring">use inkling::{read_story_from_string, Story};
+</span><span class="boring">let content = r#&quot;
+</span><span class="boring">A single candle flickered by my side.
+</span><span class="boring">Pen in hand I procured a blank letter.
+</span><span class="boring">
+</span><span class="boring">*   &quot;Dear Guillaume&quot;
+</span><span class="boring">    Sparing the more unfavorable details from him, I requested his aid.
+</span><span class="boring">
+</span><span class="boring">*   &quot;To the Fiendish Impostor&quot;
+</span><span class="boring">&quot;#;
+</span><span class="boring">let mut story: Story = read_story_from_string(&amp;content).unwrap();
+</span><span class="boring">story.start();
+</span>use inkling::Line;
+
+// Buffer which the text lines will be added to
+let mut line_buffer: Vec&lt;Line&gt; = Vec::new();
+
+// Begin the story by calling `resume`
+let result = story.resume(&amp;mut line_buffer).unwrap();
+
+// The two first lines have now been added to the buffer
+assert_eq!(line_buffer[0].text, &quot;A single candle flickered by my side.\n&quot;);
+assert_eq!(line_buffer[1].text, &quot;Pen in hand I procured a blank letter.\n&quot;);
+assert_eq!(line_buffer.len(), 2);
+<span class="boring">}
+</span></code></pre></pre>
+<p>Note that the lines end with newline characters to denote that they are separate 
+paragraphs. Oh, and the text lines are of type <a href="https://docs.rs/inkling/latest/inkling/struct.Line.html"><code>Line</code></a>, which contains
+two fields: <code>text</code> (seen above) and <code>tags</code> for <a href="../features/metadata.html#line-tags">tags</a> 
+which are associated with the line. </p>
+<h2><a class="header" href="#encountering-choices" id="encountering-choices">Encountering choices</a></h2>
+<p>The story returned once it encountered the choice of whom to pen a letter to.
+This set of choices is present in the returned object, which is an <code>enum</code>
+of type <a href="https://docs.rs/inkling/latest/inkling/enum.Prompt.html"><code>Prompt</code></a>. We can access the choices (which are of type 
+<a href="https://docs.rs/inkling/latest/inkling/struct.Choice.html"><code>Choice</code></a>) through this object.</p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate inkling;
+</span><span class="boring">use inkling::{read_story_from_string, Story, Prompt};
+</span><span class="boring">let content = r#&quot;
+</span><span class="boring">A single candle flickered by my side.
+</span><span class="boring">Pen in hand I procured a blank letter.
+</span><span class="boring">
+</span><span class="boring">*   &quot;Dear Guillaume&quot;
+</span><span class="boring">    Sparing the more unfavorable details from him, I requested his aid.
+</span><span class="boring">
+</span><span class="boring">*   &quot;To the Fiendish Impostor&quot;
+</span><span class="boring">&quot;#;
+</span><span class="boring">let mut story: Story = read_story_from_string(&amp;content).unwrap();
+</span><span class="boring">story.start();
+</span><span class="boring">let mut line_buffer = Vec::new();
+</span><span class="boring">let result = story.resume(&amp;mut line_buffer).unwrap();
+</span>match result {
+    Prompt::Choice(choices) =&gt; {
+        assert_eq!(choices[0].text, r#&quot;&quot;Dear Guillaume&quot;&quot;#);
+        assert_eq!(choices[1].text, r#&quot;&quot;To the Fiendish Impostor&quot;&quot;#);
+        assert_eq!(choices.len(), 2);
+    }
+    Done =&gt; (),
+}
+<span class="boring">}
+</span></code></pre></pre>
+<p>To continue the story we use the <code>make_choice</code> method with an index corresponding
+to <code>Choice</code> made.</p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate inkling;
+</span><span class="boring">use inkling::{read_story_from_string, Story, Prompt};
+</span><span class="boring">let content = r#&quot;
+</span><span class="boring">A single candle flickered by my side.
+</span><span class="boring">Pen in hand I procured a blank letter.
+</span><span class="boring">
+</span><span class="boring">*   &quot;Dear Guillaume&quot;
+</span><span class="boring">    Sparing the more unfavorable details from him, I requested his aid.
+</span><span class="boring">
+</span><span class="boring">*   &quot;To the Fiendish Impostor&quot;
+</span><span class="boring">&quot;#;
+</span><span class="boring">let mut story: Story = read_story_from_string(&amp;content).unwrap();
+</span><span class="boring">story.start();
+</span><span class="boring">let mut line_buffer = Vec::new();
+</span><span class="boring">let result = story.resume(&amp;mut line_buffer).unwrap();
+</span>story.make_choice(0).unwrap();
+
+let result = story.resume(&amp;mut line_buffer).unwrap();
+
+assert!(line_buffer[2].text.starts_with(r#&quot;&quot;Dear Guillaume&quot;&quot;#));
+assert!(line_buffer[3].text.starts_with(&quot;Sparing the more unfavorable details&quot;));
+<span class="boring">}
+</span></code></pre></pre>
+<p>Note that <code>inkling</code> does not clear the supplied buffer when resuming the story. 
+That task is trusted to you, if you need to, by running <code>line_buffer.clear()</code>.</p>
+<h2><a class="header" href="#summary" id="summary">Summary</a></h2>
+<ul>
+<li>Parse the story using <a href="https://docs.rs/inkling/latest/inkling/fn.read_story_from_string.html"><code>read_story_from_string</code></a></li>
+<li>Move through it with <a href="https://docs.rs/inkling/latest/inkling/struct.Story.html#method.resume"><code>resume</code></a>, which adds text to a buffer</li>
+<li>Use <a href="https://docs.rs/inkling/latest/inkling/struct.Story.html#method.make_choice"><code>make_choice</code></a> to select a choice when hitting a branch, 
+then <a href="https://docs.rs/inkling/latest/inkling/struct.Story.html#method.resume"><code>resume</code></a> again</li>
+<li>Key objects: <a href="https://docs.rs/inkling/latest/inkling/struct.Story.html"><code>Story</code></a>, <a href="https://docs.rs/inkling/latest/inkling/struct.Line.html"><code>Line</code></a>, <a href="https://docs.rs/inkling/latest/inkling/struct.Choice.html"><code>Choice</code></a>
+and <a href="https://docs.rs/inkling/latest/inkling/enum.Prompt.html"><code>Prompt</code></a></li>
+</ul>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                        
+                            <a rel="prev" href="../usage/set-up.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+                        
+
+                        
+                            <a rel="next" href="../usage/design-intent.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+                        
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                
+                    <a rel="prev" href="../usage/set-up.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                
+
+                
+                    <a rel="next" href="../usage/design-intent.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+                
+            </nav>
+
+        </div>
+
+        
+        <!-- Livereload script (if served using the cli tool) -->
+        <script type="text/javascript">
+            var socket = new WebSocket("ws://localhost:3000/__livereload");
+            socket.onmessage = function (event) {
+                if (event.data === "reload") {
+                    socket.close();
+                    location.reload();
+                }
+            };
+
+            window.onbeforeunload = function() {
+                socket.close();
+            }
+        </script>
+        
+
+        
+
+        
+
+        
+
+        
+
+        
+        <script src="../elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../searcher.js" type="text/javascript" charset="utf-8"></script>
+        
+
+        <script src="../clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+        
+
+        
+
+    </body>
+</html>
