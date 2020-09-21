@@ -17,7 +17,7 @@ The [`serde_json`](https://github.com/serde-rs/json) crate uses JSON text files 
 In `Cargo.toml`, add 
 
 ```toml
-serde_json = 1.0
+serde_json = "1.0"
 ```
 
 to your dependencies and ensure that the [`serde_support`][serde_support] feature 
