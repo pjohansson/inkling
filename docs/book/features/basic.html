@@ -1,0 +1,546 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js light">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Basic elements - Inkling</title>
+        
+        
+
+
+        <!-- Custom HTML head -->
+        
+
+
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="User guide for &#x60;inkling&#x60;">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        
+        <link rel="icon" href="../favicon.svg">
+        
+        
+        <link rel="shortcut icon" href="../favicon.png">
+        
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        
+        <link rel="stylesheet" href="../fonts/fonts.css">
+        
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="../highlight.css">
+        <link rel="stylesheet" href="../tomorrow-night.css">
+        <link rel="stylesheet" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        
+
+        
+    </head>
+    <body>
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">
+            var path_to_root = "../";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../index.html">Inkling</a></li><li class="chapter-item expanded "><div><strong aria-hidden="true">1.</strong> Introduction</div></li><li><ol class="section"><li class="chapter-item expanded "><div><strong aria-hidden="true">1.1.</strong> What is Ink?</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">1.2.</strong> Why use Inkling?</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">1.3.</strong> Short example</div></li></ol></li><li class="chapter-item expanded "><div><strong aria-hidden="true">2.</strong> Using Inkling</div></li><li><ol class="section"><li class="chapter-item expanded "><div><strong aria-hidden="true">2.1.</strong> Design intent</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">2.2.</strong> Reading a script</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">2.3.</strong> Helper functions</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">2.4.</strong> Example: Text adventure</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">2.5.</strong> Example: Dialogue trees</div></li></ol></li><li class="chapter-item expanded "><a href="../features/summary.html"><strong aria-hidden="true">3.</strong> Implemented Ink features</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../features/basic.html" class="active"><strong aria-hidden="true">3.1.</strong> Basic elements</a></li><li class="chapter-item expanded "><a href="../features/structure.html"><strong aria-hidden="true">3.2.</strong> Story structure</a></li><li class="chapter-item expanded "><a href="../features/variables.html"><strong aria-hidden="true">3.3.</strong> Variables</a></li><li class="chapter-item expanded "><a href="../features/conditional-content.html"><strong aria-hidden="true">3.4.</strong> Conditional content</a></li><li class="chapter-item expanded "><a href="../features/sequences.html"><strong aria-hidden="true">3.5.</strong> Alternating sequences</a></li><li class="chapter-item expanded "><a href="../features/metadata.html"><strong aria-hidden="true">3.6.</strong> Story metadata</a></li><li class="chapter-item expanded "><a href="../features/missing-features.html"><strong aria-hidden="true">3.7.</strong> Missing features</a></li></ol></li><li class="chapter-item expanded "><a href="../back-matter/compatibility.html">In regards to compatibility</a></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky bordered">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light (default)</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                        
+                    </div>
+
+                    <h1 class="menu-title">Inkling</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        
+                    </div>
+                </div>
+
+                
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" name="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+                
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1><a class="header" href="#basic-elements" id="basic-elements">Basic elements</a></h1>
+<p>These are the basic features needed to write a story with <code>Ink</code> and <code>inkling</code>.</p>
+<h2><a class="header" href="#text" id="text">Text</a></h2>
+<p>Plain text is the most basic element of a story. It is written in the story text as regular lines.</p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">let content = r&quot;
+</span><span class="boring">
+</span>I opened my notebook to a blank page, pen in hand.
+<span class="boring">
+</span><span class="boring">&quot;;
+</span><span class="boring">}
+</span></code></pre></pre>
+<p>Text is separated into paragraphs by being on different lines.</p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate inkling;
+</span><span class="boring">use inkling::{read_story_from_string, Prompt};
+</span><span class="boring">let content = r&quot;
+</span><span class="boring">
+</span>My hand moved towards the canvas.
+The cold draft made a shudder run through my body.
+A dark blot spread from where my pen was resting.
+<span class="boring">
+</span><span class="boring">&quot;;
+</span><span class="boring">let mut story = read_story_from_string(content).unwrap();
+</span><span class="boring">let mut buffer = Vec::new();
+</span><span class="boring">story.start().unwrap();
+</span><span class="boring">story.resume(&amp;mut buffer).unwrap();
+</span><span class="boring">assert_eq!(buffer[0].text, &quot;My hand moved towards the canvas.\n&quot;);
+</span><span class="boring">assert_eq!(buffer[1].text, &quot;The cold draft made a shudder run through my body.\n&quot;);
+</span><span class="boring">assert_eq!(buffer[2].text, &quot;A dark blot spread from where my pen was resting.\n&quot;);
+</span><span class="boring">}
+</span></code></pre></pre>
+<p>Those three lines will be returned from <code>inkling</code> as separate lines, each ending with
+a newline character.</p>
+<h3><a class="header" href="#glue" id="glue">Glue</a></h3>
+<p>If you want to remove the newline character from in between lines, you can use the <code>&lt;&gt;</code> 
+marker which signifies <em>glue</em>. This:</p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate inkling;
+</span><span class="boring">use inkling::read_story_from_string;
+</span><span class="boring">let content = r&quot;
+</span><span class="boring">
+</span>This line will &lt;&gt;
+be glued to this, without creating a new paragraph.
+<span class="boring">
+</span><span class="boring">&quot;;
+</span><span class="boring">let mut story = read_story_from_string(content).unwrap();
+</span><span class="boring">let mut buffer = Vec::new();
+</span><span class="boring">story.start().unwrap();
+</span><span class="boring">story.resume(&amp;mut buffer).unwrap();
+</span><span class="boring">assert!(!buffer[0].text.ends_with(&quot;\n&quot;));
+</span><span class="boring">}
+</span></code></pre></pre>
+<p>Becomes:</p>
+<pre><code class="language-plain">This line will be glued to this, without creating a new paragraph.
+</code></pre>
+<p>as will this, since glue can be put at either end:</p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate inkling;
+</span><span class="boring">use inkling::read_story_from_string;
+</span><span class="boring">let content = r&quot;
+</span><span class="boring">
+</span>This line will 
+&lt;&gt; be glued to this, without creating a new paragraph.
+<span class="boring">
+</span><span class="boring">&quot;;
+</span><span class="boring">let mut story = read_story_from_string(content).unwrap();
+</span><span class="boring">let mut buffer = Vec::new();
+</span><span class="boring">story.start().unwrap();
+</span><span class="boring">story.resume(&amp;mut buffer).unwrap();
+</span><span class="boring">assert!(!buffer[0].text.ends_with(&quot;\n&quot;));
+</span><span class="boring">}
+</span></code></pre></pre>
+<p>For these examples glue doesn’t do much, but it will be more useful once we introduce 
+story structure features. Keep it in mind until then.</p>
+<h3><a class="header" href="#comments" id="comments">Comments</a></h3>
+<p>The text file can contain comments, which will be ignored by <code>inkling</code> as it parses the story.
+To write a comment, preceed the line with <code>//</code>.</p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate inkling;
+</span><span class="boring">use inkling::{read_story_from_string, Prompt};
+</span><span class="boring">let content = r&quot;
+</span><span class="boring">
+</span>The cold could not be ignored.
+// Unlike this line, which will be 
+As will the end of this. // removed comment at end of line
+<span class="boring">
+</span><span class="boring">&quot;;
+</span><span class="boring">let mut story = read_story_from_string(content).unwrap();
+</span><span class="boring">let mut buffer = Vec::new();
+</span><span class="boring">story.start().unwrap();
+</span><span class="boring">story.resume(&amp;mut buffer).unwrap();
+</span><span class="boring">assert_eq!(buffer[0].text, &quot;The cold could not be ignored.\n&quot;);
+</span><span class="boring">assert_eq!(buffer[1].text, &quot;As will the end of this.\n&quot;);
+</span><span class="boring">}
+</span></code></pre></pre>
+<p>Note that multiline comments with <code>/*</code> and <code>*/</code> are <em><strong>not</strong></em> currently supported.</p>
+<h2><a class="header" href="#branching-story-paths" id="branching-story-paths">Branching story paths</a></h2>
+<p>To mark a choice in a branching story, use the <code>*</code> marker.</p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate inkling;
+</span><span class="boring">use inkling::{read_story_from_string, Prompt};
+</span><span class="boring">let content = r&quot;
+</span><span class="boring">
+</span>*   Choice 1
+*   Choice 2 
+<span class="boring">
+</span><span class="boring">&quot;;
+</span><span class="boring">let mut story = read_story_from_string(content).unwrap();
+</span><span class="boring">let mut buffer = Vec::new();
+</span><span class="boring">story.start().unwrap();
+</span><span class="boring">match story.resume(&amp;mut buffer).unwrap() {
+</span><span class="boring">  Prompt::Choice(choices) =&gt; {
+</span><span class="boring">      assert_eq!(choices[0].text, &quot;Choice 1&quot;);
+</span><span class="boring">      assert_eq!(choices[1].text, &quot;Choice 2&quot;);
+</span><span class="boring">  } 
+</span><span class="boring">  _ =&gt; unreachable!()
+</span><span class="boring">}
+</span><span class="boring">}
+</span></code></pre></pre>
+<p>(The <code>+</code> marker can also be used, which results in a different behavior
+if the tree is visited again. <a href="structure.html#once-only-and-sticky-choices">More on this later.</a>)</p>
+<p>When <code>inkling</code> encounters one or more lines beginning with this marker, the options will 
+be collected and returned to the user to make a choice.</p>
+<p>After making a choice, the story proceeds from lines below the choice. So this story:</p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate inkling;
+</span><span class="boring">use inkling::{read_story_from_string, Prompt};
+</span><span class="boring">let content = r#&quot;
+</span><span class="boring">
+</span>A noise rang from the door.
+*   &quot;Hello?&quot; I shouted.
+    &quot;Who's there?&quot;
+*   I rose from the desk and walked over.
+<span class="boring">
+</span><span class="boring">&quot;#;
+</span><span class="boring">let mut story = read_story_from_string(content).unwrap();
+</span><span class="boring">let mut buffer = Vec::new();
+</span><span class="boring">story.start().unwrap();
+</span><span class="boring">match story.resume(&amp;mut buffer).unwrap() {
+</span><span class="boring">  Prompt::Choice(choices) =&gt; {
+</span><span class="boring">      assert_eq!(choices[0].text, r#&quot;&quot;Hello?&quot; I shouted.&quot;#);
+</span><span class="boring">      assert_eq!(choices[1].text, r&quot;I rose from the desk and walked over.&quot;);
+</span><span class="boring">  } 
+</span><span class="boring">  _ =&gt; unreachable!()
+</span><span class="boring">}
+</span><span class="boring">story.make_choice(0).unwrap();
+</span><span class="boring">story.resume(&amp;mut buffer).unwrap();
+</span><span class="boring">assert!(buffer[0].text.starts_with(r#&quot;A noise rang from the door.&quot;#));
+</span><span class="boring">assert!(buffer[1].text.starts_with(r#&quot;&quot;Hello?&quot; I shouted.&quot;#));
+</span><span class="boring">assert!(buffer[2].text.starts_with(r#&quot;&quot;Who's there?&quot;&quot;#));
+</span><span class="boring">}
+</span></code></pre></pre>
+<p>results in this “game” for the user (in this case picking the first option):</p>
+<pre><code class="language-plain">A noise rang from the door.
+ 1: &quot;Hello?&quot; I shouted.
+ 2: I rose from the desk and walked over.
+
+&gt; 1
+&quot;Hello?&quot; I shouted.
+&quot;Who's there?&quot;
+</code></pre>
+<h3><a class="header" href="#removing-choice-text-from-output" id="removing-choice-text-from-output">Removing choice text from output</a></h3>
+<p>As the previous example show, by default, the choice text will be added to the 
+text presented to the user. Text encased in square brackets <code>[]</code> will, however, 
+be ignored. Building on the previous example: </p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate inkling;
+</span><span class="boring">use inkling::{read_story_from_string, Prompt};
+</span><span class="boring">let content = r#&quot;
+</span><span class="boring">
+</span>*   [&quot;Hello?&quot; I shouted.]
+    &quot;Who's there?&quot;
+<span class="boring">
+</span><span class="boring">&quot;#;
+</span><span class="boring">let mut story = read_story_from_string(content).unwrap();
+</span><span class="boring">let mut buffer = Vec::new();
+</span><span class="boring">story.start().unwrap();
+</span><span class="boring">match story.resume(&amp;mut buffer).unwrap() {
+</span><span class="boring">  Prompt::Choice(choices) =&gt; {
+</span><span class="boring">      assert_eq!(choices[0].text, r#&quot;&quot;Hello?&quot; I shouted.&quot;#);
+</span><span class="boring">  } 
+</span><span class="boring">  _ =&gt; unreachable!()
+</span><span class="boring">}
+</span><span class="boring">story.make_choice(0).unwrap();
+</span><span class="boring">story.resume(&amp;mut buffer).unwrap();
+</span><span class="boring">assert!(buffer[0].text.starts_with(r#&quot;&quot;Who's there?&quot;&quot;#));
+</span><span class="boring">}
+</span></code></pre></pre>
+<pre><code class="language-plain"> 1: &quot;Hello?&quot; I shouted.
+
+&gt; 1
+&quot;Who's there?&quot;
+</code></pre>
+<p>Note how the choice text is not printed below the selection.</p>
+<h3><a class="header" href="#advanced-mixing-choice-and-presented-text" id="advanced-mixing-choice-and-presented-text">Advanced: mixing choice and presented text</a></h3>
+<p>The square brackets also acts as a divider between choice and presented text. Any 
+text <em>after</em> the square brackets will not appear in the choice text. Text <em>before</em>
+the brackets will appear in both choice and output text. This makes it easy to 
+build a simple choice text into a more presentable sentence for the story:</p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate inkling;
+</span><span class="boring">use inkling::{read_story_from_string, Prompt};
+</span><span class="boring">let content = r#&quot;
+</span><span class="boring">
+</span>*   &quot;Hello[?&quot;],&quot; I shouted. &quot;Who's there?&quot;
+<span class="boring">
+</span><span class="boring">&quot;#;
+</span><span class="boring">let mut story = read_story_from_string(content).unwrap();
+</span><span class="boring">let mut buffer = Vec::new();
+</span><span class="boring">story.start().unwrap();
+</span><span class="boring">match story.resume(&amp;mut buffer).unwrap() {
+</span><span class="boring">  Prompt::Choice(choices) =&gt; {
+</span><span class="boring">      assert_eq!(choices[0].text, r#&quot;&quot;Hello?&quot;&quot;#);
+</span><span class="boring">  } 
+</span><span class="boring">  _ =&gt; unreachable!()
+</span><span class="boring">}
+</span><span class="boring">story.make_choice(0).unwrap();
+</span><span class="boring">story.resume(&amp;mut buffer).unwrap();
+</span><span class="boring">assert!(buffer[0].text.starts_with(r#&quot;&quot;Hello,&quot; I shouted. &quot;Who's there?&quot;&quot;#));
+</span><span class="boring">}
+</span></code></pre></pre>
+<pre><code class="language-plain"> 1: &quot;Hello?&quot;
+
+&gt; 1
+&quot;Hello,&quot; I shouted. &quot;Who's there?&quot;
+</code></pre>
+<h3><a class="header" href="#nested-dialogue-options" id="nested-dialogue-options">Nested dialogue options</a></h3>
+<p>Dialogue branches can be nested, more or less infinitely. Just add extra <code>*</code> markers
+to specify the depth.</p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate inkling;
+</span><span class="boring">use inkling::{read_story_from_string, Prompt};
+</span><span class="boring">let content = r&quot;
+</span><span class="boring">
+</span>*   Choice 1
+    * *     Choice 1.1
+    * *     Choice 1.2
+            * * *   Choice 1.2.1
+*   Choice 2
+    * *     Choice 2.1
+    * *     Choice 2.2
+<span class="boring">
+</span><span class="boring">&quot;;
+</span><span class="boring">let mut story = read_story_from_string(content).unwrap();
+</span><span class="boring">let mut buffer = Vec::new();
+</span><span class="boring">story.start().unwrap();
+</span><span class="boring">story.resume(&amp;mut buffer).unwrap();
+</span><span class="boring">story.make_choice(0).unwrap();
+</span><span class="boring">match story.resume(&amp;mut buffer).unwrap() {
+</span><span class="boring">  Prompt::Choice(choices) =&gt; {
+</span><span class="boring">      assert_eq!(&amp;choices[0].text, &quot;Choice 1.1&quot;);
+</span><span class="boring">      assert_eq!(&amp;choices[1].text, &quot;Choice 1.2&quot;);
+</span><span class="boring">      story.make_choice(1).unwrap();
+</span><span class="boring">      match story.resume(&amp;mut buffer).unwrap() {
+</span><span class="boring">          Prompt::Choice(choices) =&gt; {
+</span><span class="boring">              assert_eq!(&amp;choices[0].text, &quot;Choice 1.2.1&quot;);
+</span><span class="boring">          }
+</span><span class="boring">          _ =&gt; unreachable!()
+</span><span class="boring">      }
+</span><span class="boring">  }
+</span><span class="boring">  _ =&gt; unreachable!()
+</span><span class="boring">}
+</span><span class="boring">}
+</span></code></pre></pre>
+<p>Any extra whitespace is just for readability. The previous example produces the exact 
+same tree as this, much less readable, example:</p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate inkling;
+</span><span class="boring">use inkling::read_story_from_string;
+</span><span class="boring">let content_nowhitespace = r&quot;
+</span><span class="boring">
+</span>*Choice 1
+**Choice 1.1
+**Choice 1.2
+***Choice 1.2.1
+*Choice 2
+**Choice 2.1
+**Choice 2.2
+<span class="boring">
+</span><span class="boring">&quot;;
+</span><span class="boring">let content_whitespace = r&quot;
+</span><span class="boring">
+</span><span class="boring">*   Choice 1
+</span><span class="boring">    * *     Choice 1.1
+</span><span class="boring">    * *     Choice 1.2
+</span><span class="boring">            * * *   Choice 1.2.1
+</span><span class="boring">*   Choice 2
+</span><span class="boring">    * *     Choice 2.1
+</span><span class="boring">    * *     Choice 2.2
+</span><span class="boring">
+</span><span class="boring">&quot;;
+</span><span class="boring">
+</span><span class="boring">let story_nowhitespace = read_story_from_string(content_nowhitespace).unwrap();
+</span><span class="boring">let story_whitespace = read_story_from_string(content_whitespace).unwrap();
+</span><span class="boring">assert_eq!(format!(&quot;{:?}&quot;, story_nowhitespace), format!(&quot;{:?}&quot;, story_whitespace));
+</span><span class="boring">}
+</span></code></pre></pre>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                        
+                            <a rel="prev" href="../features/summary.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+                        
+
+                        
+                            <a rel="next" href="../features/structure.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+                        
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                
+                    <a rel="prev" href="../features/summary.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                
+
+                
+                    <a rel="next" href="../features/structure.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+                
+            </nav>
+
+        </div>
+
+        
+
+        
+
+        
+
+        
+
+        
+
+        
+        <script src="../elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../searcher.js" type="text/javascript" charset="utf-8"></script>
+        
+
+        <script src="../clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+        
+
+        
+
+    </body>
+</html>

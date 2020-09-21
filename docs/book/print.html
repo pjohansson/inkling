@@ -1,0 +1,1893 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js light">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Inkling</title>
+        
+        <meta name="robots" content="noindex" />
+        
+        
+
+
+        <!-- Custom HTML head -->
+        
+
+
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="User guide for &#x60;inkling&#x60;">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        
+        <link rel="icon" href="favicon.svg">
+        
+        
+        <link rel="shortcut icon" href="favicon.png">
+        
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        
+        <link rel="stylesheet" href="fonts/fonts.css">
+        
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        
+
+        
+    </head>
+    <body>
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">
+            var path_to_root = "";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="index.html">Inkling</a></li><li class="chapter-item expanded "><div><strong aria-hidden="true">1.</strong> Introduction</div></li><li><ol class="section"><li class="chapter-item expanded "><div><strong aria-hidden="true">1.1.</strong> What is Ink?</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">1.2.</strong> Why use Inkling?</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">1.3.</strong> Short example</div></li></ol></li><li class="chapter-item expanded "><div><strong aria-hidden="true">2.</strong> Using Inkling</div></li><li><ol class="section"><li class="chapter-item expanded "><div><strong aria-hidden="true">2.1.</strong> Design intent</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">2.2.</strong> Reading a script</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">2.3.</strong> Helper functions</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">2.4.</strong> Example: Text adventure</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">2.5.</strong> Example: Dialogue trees</div></li></ol></li><li class="chapter-item expanded "><a href="features/summary.html"><strong aria-hidden="true">3.</strong> Implemented Ink features</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="features/basic.html"><strong aria-hidden="true">3.1.</strong> Basic elements</a></li><li class="chapter-item expanded "><a href="features/structure.html"><strong aria-hidden="true">3.2.</strong> Story structure</a></li><li class="chapter-item expanded "><a href="features/variables.html"><strong aria-hidden="true">3.3.</strong> Variables</a></li><li class="chapter-item expanded "><a href="features/conditional-content.html"><strong aria-hidden="true">3.4.</strong> Conditional content</a></li><li class="chapter-item expanded "><a href="features/sequences.html"><strong aria-hidden="true">3.5.</strong> Alternating sequences</a></li><li class="chapter-item expanded "><a href="features/metadata.html"><strong aria-hidden="true">3.6.</strong> Story metadata</a></li><li class="chapter-item expanded "><a href="features/missing-features.html"><strong aria-hidden="true">3.7.</strong> Missing features</a></li></ol></li><li class="chapter-item expanded "><a href="back-matter/compatibility.html">In regards to compatibility</a></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky bordered">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light (default)</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                        
+                    </div>
+
+                    <h1 class="menu-title">Inkling</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        
+                    </div>
+                </div>
+
+                
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" name="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+                
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1><a class="header" href="#inkling" id="inkling">Inkling</a></h1>
+<p>Partial implementation of the <code>Ink</code> markup language for branching game stories 
+and dialogue in <a href="https://www.rust-lang.org/">Rust</a>.</p>
+<p><code>Ink</code> is a creation of <a href="https://www.inklestudios.com/">Inkle</a>. For more information
+about the language, <a href="https://www.inklestudios.com/ink/">see their website</a>.</p>
+<p>This book is a user’s guide to the language. It is written with the intent to be a mostly
+friendly and accessible explanation of getting it up and running. The more advanced 
+documentation of the API is available at <a href="https://docs.rs/inkling">docs.rs</a>.</p>
+<h2><a class="header" href="#license" id="license">License</a></h2>
+<p><code>inkling</code> is copyleft, licensed under the Parity License. The code is available 
+on <a href="https://github.com/pjohansson/inkling">Github</a>.</p>
+<h1><a class="header" href="#implemented-ink-features" id="implemented-ink-features">Implemented Ink features</a></h1>
+<p>This chapter contains a list of the <code>Ink</code> features which are available in <code>inkling</code>.</p>
+<p>More information about these features can be found in 
+<a href="https://github.com/inkle/ink/blob/master/Documentation/WritingWithInk.md">Inkle’s guide to writing with Ink</a>,
+which is a better guide showing how to write a script. </p>
+<p>However, not everything in that guide can be done with <code>inkling</code>, since it is not
+completely compatible with the original implementation. This is partly 
+the reason for this document, which shows which features are <em>guaranteed</em> to work.
+All examples shown here are accompanied under the hood by tests which assert that 
+the result is what it should be.</p>
+<p>Examples in this chapter show how the features are written in plain <code>.ink</code> 
+text files (although the file names do not have to end with <code>.ink</code>). Text inside of 
+these files will appear like this:</p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">let content = &quot;
+</span>Example text in a file to be read.
+<span class="boring">&quot;;
+</span><span class="boring">}
+</span></code></pre></pre>
+<p>Major features which are not yet implemented are listed on the <a href="features/missing-features.html">missing features</a> page.</p>
+<h1><a class="header" href="#basic-elements" id="basic-elements">Basic elements</a></h1>
+<p>These are the basic features needed to write a story with <code>Ink</code> and <code>inkling</code>.</p>
+<h2><a class="header" href="#text" id="text">Text</a></h2>
+<p>Plain text is the most basic element of a story. It is written in the story text as regular lines.</p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">let content = r&quot;
+</span><span class="boring">
+</span>I opened my notebook to a blank page, pen in hand.
+<span class="boring">
+</span><span class="boring">&quot;;
+</span><span class="boring">}
+</span></code></pre></pre>
+<p>Text is separated into paragraphs by being on different lines.</p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate inkling;
+</span><span class="boring">use inkling::{read_story_from_string, Prompt};
+</span><span class="boring">let content = r&quot;
+</span><span class="boring">
+</span>My hand moved towards the canvas.
+The cold draft made a shudder run through my body.
+A dark blot spread from where my pen was resting.
+<span class="boring">
+</span><span class="boring">&quot;;
+</span><span class="boring">let mut story = read_story_from_string(content).unwrap();
+</span><span class="boring">let mut buffer = Vec::new();
+</span><span class="boring">story.start().unwrap();
+</span><span class="boring">story.resume(&amp;mut buffer).unwrap();
+</span><span class="boring">assert_eq!(buffer[0].text, &quot;My hand moved towards the canvas.\n&quot;);
+</span><span class="boring">assert_eq!(buffer[1].text, &quot;The cold draft made a shudder run through my body.\n&quot;);
+</span><span class="boring">assert_eq!(buffer[2].text, &quot;A dark blot spread from where my pen was resting.\n&quot;);
+</span><span class="boring">}
+</span></code></pre></pre>
+<p>Those three lines will be returned from <code>inkling</code> as separate lines, each ending with
+a newline character.</p>
+<h3><a class="header" href="#glue" id="glue">Glue</a></h3>
+<p>If you want to remove the newline character from in between lines, you can use the <code>&lt;&gt;</code> 
+marker which signifies <em>glue</em>. This:</p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate inkling;
+</span><span class="boring">use inkling::read_story_from_string;
+</span><span class="boring">let content = r&quot;
+</span><span class="boring">
+</span>This line will &lt;&gt;
+be glued to this, without creating a new paragraph.
+<span class="boring">
+</span><span class="boring">&quot;;
+</span><span class="boring">let mut story = read_story_from_string(content).unwrap();
+</span><span class="boring">let mut buffer = Vec::new();
+</span><span class="boring">story.start().unwrap();
+</span><span class="boring">story.resume(&amp;mut buffer).unwrap();
+</span><span class="boring">assert!(!buffer[0].text.ends_with(&quot;\n&quot;));
+</span><span class="boring">}
+</span></code></pre></pre>
+<p>Becomes:</p>
+<pre><code class="language-plain">This line will be glued to this, without creating a new paragraph.
+</code></pre>
+<p>as will this, since glue can be put at either end:</p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate inkling;
+</span><span class="boring">use inkling::read_story_from_string;
+</span><span class="boring">let content = r&quot;
+</span><span class="boring">
+</span>This line will 
+&lt;&gt; be glued to this, without creating a new paragraph.
+<span class="boring">
+</span><span class="boring">&quot;;
+</span><span class="boring">let mut story = read_story_from_string(content).unwrap();
+</span><span class="boring">let mut buffer = Vec::new();
+</span><span class="boring">story.start().unwrap();
+</span><span class="boring">story.resume(&amp;mut buffer).unwrap();
+</span><span class="boring">assert!(!buffer[0].text.ends_with(&quot;\n&quot;));
+</span><span class="boring">}
+</span></code></pre></pre>
+<p>For these examples glue doesn’t do much, but it will be more useful once we introduce 
+story structure features. Keep it in mind until then.</p>
+<h3><a class="header" href="#comments" id="comments">Comments</a></h3>
+<p>The text file can contain comments, which will be ignored by <code>inkling</code> as it parses the story.
+To write a comment, preceed the line with <code>//</code>.</p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate inkling;
+</span><span class="boring">use inkling::{read_story_from_string, Prompt};
+</span><span class="boring">let content = r&quot;
+</span><span class="boring">
+</span>The cold could not be ignored.
+// Unlike this line, which will be 
+As will the end of this. // removed comment at end of line
+<span class="boring">
+</span><span class="boring">&quot;;
+</span><span class="boring">let mut story = read_story_from_string(content).unwrap();
+</span><span class="boring">let mut buffer = Vec::new();
+</span><span class="boring">story.start().unwrap();
+</span><span class="boring">story.resume(&amp;mut buffer).unwrap();
+</span><span class="boring">assert_eq!(buffer[0].text, &quot;The cold could not be ignored.\n&quot;);
+</span><span class="boring">assert_eq!(buffer[1].text, &quot;As will the end of this.\n&quot;);
+</span><span class="boring">}
+</span></code></pre></pre>
+<p>Note that multiline comments with <code>/*</code> and <code>*/</code> are <em><strong>not</strong></em> currently supported.</p>
+<h2><a class="header" href="#branching-story-paths" id="branching-story-paths">Branching story paths</a></h2>
+<p>To mark a choice in a branching story, use the <code>*</code> marker.</p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate inkling;
+</span><span class="boring">use inkling::{read_story_from_string, Prompt};
+</span><span class="boring">let content = r&quot;
+</span><span class="boring">
+</span>*   Choice 1
+*   Choice 2 
+<span class="boring">
+</span><span class="boring">&quot;;
+</span><span class="boring">let mut story = read_story_from_string(content).unwrap();
+</span><span class="boring">let mut buffer = Vec::new();
+</span><span class="boring">story.start().unwrap();
+</span><span class="boring">match story.resume(&amp;mut buffer).unwrap() {
+</span><span class="boring">  Prompt::Choice(choices) =&gt; {
+</span><span class="boring">      assert_eq!(choices[0].text, &quot;Choice 1&quot;);
+</span><span class="boring">      assert_eq!(choices[1].text, &quot;Choice 2&quot;);
+</span><span class="boring">  } 
+</span><span class="boring">  _ =&gt; unreachable!()
+</span><span class="boring">}
+</span><span class="boring">}
+</span></code></pre></pre>
+<p>(The <code>+</code> marker can also be used, which results in a different behavior
+if the tree is visited again. <a href="features/structure.html#once-only-and-sticky-choices">More on this later.</a>)</p>
+<p>When <code>inkling</code> encounters one or more lines beginning with this marker, the options will 
+be collected and returned to the user to make a choice.</p>
+<p>After making a choice, the story proceeds from lines below the choice. So this story:</p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate inkling;
+</span><span class="boring">use inkling::{read_story_from_string, Prompt};
+</span><span class="boring">let content = r#&quot;
+</span><span class="boring">
+</span>A noise rang from the door.
+*   &quot;Hello?&quot; I shouted.
+    &quot;Who's there?&quot;
+*   I rose from the desk and walked over.
+<span class="boring">
+</span><span class="boring">&quot;#;
+</span><span class="boring">let mut story = read_story_from_string(content).unwrap();
+</span><span class="boring">let mut buffer = Vec::new();
+</span><span class="boring">story.start().unwrap();
+</span><span class="boring">match story.resume(&amp;mut buffer).unwrap() {
+</span><span class="boring">  Prompt::Choice(choices) =&gt; {
+</span><span class="boring">      assert_eq!(choices[0].text, r#&quot;&quot;Hello?&quot; I shouted.&quot;#);
+</span><span class="boring">      assert_eq!(choices[1].text, r&quot;I rose from the desk and walked over.&quot;);
+</span><span class="boring">  } 
+</span><span class="boring">  _ =&gt; unreachable!()
+</span><span class="boring">}
+</span><span class="boring">story.make_choice(0).unwrap();
+</span><span class="boring">story.resume(&amp;mut buffer).unwrap();
+</span><span class="boring">assert!(buffer[0].text.starts_with(r#&quot;A noise rang from the door.&quot;#));
+</span><span class="boring">assert!(buffer[1].text.starts_with(r#&quot;&quot;Hello?&quot; I shouted.&quot;#));
+</span><span class="boring">assert!(buffer[2].text.starts_with(r#&quot;&quot;Who's there?&quot;&quot;#));
+</span><span class="boring">}
+</span></code></pre></pre>
+<p>results in this “game” for the user (in this case picking the first option):</p>
+<pre><code class="language-plain">A noise rang from the door.
+ 1: &quot;Hello?&quot; I shouted.
+ 2: I rose from the desk and walked over.
+
+&gt; 1
+&quot;Hello?&quot; I shouted.
+&quot;Who's there?&quot;
+</code></pre>
+<h3><a class="header" href="#removing-choice-text-from-output" id="removing-choice-text-from-output">Removing choice text from output</a></h3>
+<p>As the previous example show, by default, the choice text will be added to the 
+text presented to the user. Text encased in square brackets <code>[]</code> will, however, 
+be ignored. Building on the previous example: </p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate inkling;
+</span><span class="boring">use inkling::{read_story_from_string, Prompt};
+</span><span class="boring">let content = r#&quot;
+</span><span class="boring">
+</span>*   [&quot;Hello?&quot; I shouted.]
+    &quot;Who's there?&quot;
+<span class="boring">
+</span><span class="boring">&quot;#;
+</span><span class="boring">let mut story = read_story_from_string(content).unwrap();
+</span><span class="boring">let mut buffer = Vec::new();
+</span><span class="boring">story.start().unwrap();
+</span><span class="boring">match story.resume(&amp;mut buffer).unwrap() {
+</span><span class="boring">  Prompt::Choice(choices) =&gt; {
+</span><span class="boring">      assert_eq!(choices[0].text, r#&quot;&quot;Hello?&quot; I shouted.&quot;#);
+</span><span class="boring">  } 
+</span><span class="boring">  _ =&gt; unreachable!()
+</span><span class="boring">}
+</span><span class="boring">story.make_choice(0).unwrap();
+</span><span class="boring">story.resume(&amp;mut buffer).unwrap();
+</span><span class="boring">assert!(buffer[0].text.starts_with(r#&quot;&quot;Who's there?&quot;&quot;#));
+</span><span class="boring">}
+</span></code></pre></pre>
+<pre><code class="language-plain"> 1: &quot;Hello?&quot; I shouted.
+
+&gt; 1
+&quot;Who's there?&quot;
+</code></pre>
+<p>Note how the choice text is not printed below the selection.</p>
+<h3><a class="header" href="#advanced-mixing-choice-and-presented-text" id="advanced-mixing-choice-and-presented-text">Advanced: mixing choice and presented text</a></h3>
+<p>The square brackets also acts as a divider between choice and presented text. Any 
+text <em>after</em> the square brackets will not appear in the choice text. Text <em>before</em>
+the brackets will appear in both choice and output text. This makes it easy to 
+build a simple choice text into a more presentable sentence for the story:</p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate inkling;
+</span><span class="boring">use inkling::{read_story_from_string, Prompt};
+</span><span class="boring">let content = r#&quot;
+</span><span class="boring">
+</span>*   &quot;Hello[?&quot;],&quot; I shouted. &quot;Who's there?&quot;
+<span class="boring">
+</span><span class="boring">&quot;#;
+</span><span class="boring">let mut story = read_story_from_string(content).unwrap();
+</span><span class="boring">let mut buffer = Vec::new();
+</span><span class="boring">story.start().unwrap();
+</span><span class="boring">match story.resume(&amp;mut buffer).unwrap() {
+</span><span class="boring">  Prompt::Choice(choices) =&gt; {
+</span><span class="boring">      assert_eq!(choices[0].text, r#&quot;&quot;Hello?&quot;&quot;#);
+</span><span class="boring">  } 
+</span><span class="boring">  _ =&gt; unreachable!()
+</span><span class="boring">}
+</span><span class="boring">story.make_choice(0).unwrap();
+</span><span class="boring">story.resume(&amp;mut buffer).unwrap();
+</span><span class="boring">assert!(buffer[0].text.starts_with(r#&quot;&quot;Hello,&quot; I shouted. &quot;Who's there?&quot;&quot;#));
+</span><span class="boring">}
+</span></code></pre></pre>
+<pre><code class="language-plain"> 1: &quot;Hello?&quot;
+
+&gt; 1
+&quot;Hello,&quot; I shouted. &quot;Who's there?&quot;
+</code></pre>
+<h3><a class="header" href="#nested-dialogue-options" id="nested-dialogue-options">Nested dialogue options</a></h3>
+<p>Dialogue branches can be nested, more or less infinitely. Just add extra <code>*</code> markers
+to specify the depth.</p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate inkling;
+</span><span class="boring">use inkling::{read_story_from_string, Prompt};
+</span><span class="boring">let content = r&quot;
+</span><span class="boring">
+</span>*   Choice 1
+    * *     Choice 1.1
+    * *     Choice 1.2
+            * * *   Choice 1.2.1
+*   Choice 2
+    * *     Choice 2.1
+    * *     Choice 2.2
+<span class="boring">
+</span><span class="boring">&quot;;
+</span><span class="boring">let mut story = read_story_from_string(content).unwrap();
+</span><span class="boring">let mut buffer = Vec::new();
+</span><span class="boring">story.start().unwrap();
+</span><span class="boring">story.resume(&amp;mut buffer).unwrap();
+</span><span class="boring">story.make_choice(0).unwrap();
+</span><span class="boring">match story.resume(&amp;mut buffer).unwrap() {
+</span><span class="boring">  Prompt::Choice(choices) =&gt; {
+</span><span class="boring">      assert_eq!(&amp;choices[0].text, &quot;Choice 1.1&quot;);
+</span><span class="boring">      assert_eq!(&amp;choices[1].text, &quot;Choice 1.2&quot;);
+</span><span class="boring">      story.make_choice(1).unwrap();
+</span><span class="boring">      match story.resume(&amp;mut buffer).unwrap() {
+</span><span class="boring">          Prompt::Choice(choices) =&gt; {
+</span><span class="boring">              assert_eq!(&amp;choices[0].text, &quot;Choice 1.2.1&quot;);
+</span><span class="boring">          }
+</span><span class="boring">          _ =&gt; unreachable!()
+</span><span class="boring">      }
+</span><span class="boring">  }
+</span><span class="boring">  _ =&gt; unreachable!()
+</span><span class="boring">}
+</span><span class="boring">}
+</span></code></pre></pre>
+<p>Any extra whitespace is just for readability. The previous example produces the exact 
+same tree as this, much less readable, example:</p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate inkling;
+</span><span class="boring">use inkling::read_story_from_string;
+</span><span class="boring">let content_nowhitespace = r&quot;
+</span><span class="boring">
+</span>*Choice 1
+**Choice 1.1
+**Choice 1.2
+***Choice 1.2.1
+*Choice 2
+**Choice 2.1
+**Choice 2.2
+<span class="boring">
+</span><span class="boring">&quot;;
+</span><span class="boring">let content_whitespace = r&quot;
+</span><span class="boring">
+</span><span class="boring">*   Choice 1
+</span><span class="boring">    * *     Choice 1.1
+</span><span class="boring">    * *     Choice 1.2
+</span><span class="boring">            * * *   Choice 1.2.1
+</span><span class="boring">*   Choice 2
+</span><span class="boring">    * *     Choice 2.1
+</span><span class="boring">    * *     Choice 2.2
+</span><span class="boring">
+</span><span class="boring">&quot;;
+</span><span class="boring">
+</span><span class="boring">let story_nowhitespace = read_story_from_string(content_nowhitespace).unwrap();
+</span><span class="boring">let story_whitespace = read_story_from_string(content_whitespace).unwrap();
+</span><span class="boring">assert_eq!(format!(&quot;{:?}&quot;, story_nowhitespace), format!(&quot;{:?}&quot;, story_whitespace));
+</span><span class="boring">}
+</span></code></pre></pre>
+<h1><a class="header" href="#story-structure" id="story-structure">Story structure</a></h1>
+<p>Story scripts can be divided into different sections, to which the story can diverge.
+This section introduces how to create these sections and move to them in the text.</p>
+<h2><a class="header" href="#knots" id="knots">Knots</a></h2>
+<p>A story can be divided into different sections, called <em>knots</em> in <code>Ink</code>. This division
+is invisible to the user but makes it easier to write and reason about the story
+in production.</p>
+<p>A knot is denoted by beginning the line with at least two (2) <code>=</code> signs followed by
+a name for the knot. On the following lines, the story text can resume.</p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate inkling;
+</span><span class="boring">use inkling::read_story_from_string;
+</span><span class="boring">let content = r&quot;
+</span><span class="boring">
+</span>== stairwell
+I made my way down the empty stairwell.
+<span class="boring">
+</span><span class="boring">&quot;;
+</span><span class="boring">let mut story = read_story_from_string(content).unwrap();
+</span><span class="boring">assert!(story.move_to(&quot;stairwell&quot;, None).is_ok());
+</span><span class="boring">}
+</span></code></pre></pre>
+<p>The name (’stairwell’ in the previous example) cannot contain spaces or non-alphanumeric
+symbols. Optionally, it may be followed by more <code>=</code> signs, which are not necessary but may
+make it easier to identify knots in the document. This is identical to the previous
+example:</p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate inkling;
+</span><span class="boring">use inkling::read_story_from_string;
+</span><span class="boring">let content = r&quot;
+</span><span class="boring">
+</span>=== stairwell ===
+I made my way down the empty stairwell.
+<span class="boring">
+</span><span class="boring">&quot;;
+</span><span class="boring">let mut story = read_story_from_string(content).unwrap();
+</span><span class="boring">assert!(story.move_to(&quot;stairwell&quot;, None).is_ok());
+</span><span class="boring">}
+</span></code></pre></pre>
+<h3><a class="header" href="#non-latin-characters" id="non-latin-characters">Non-latin characters</a></h3>
+<p>Knot names support any character as long as they are
+<a href="https://doc.rust-lang.org/std/primitive.char.html#method.is_alphanumeric">alphanumeric</a>
+according to the <code>Rust</code> language specification. This seems to include all languages
+which are recognized by UTF-8. Thus, knots (and any identifer) may contain e.g.
+Chinese, Japanese, Arabic, Cyrillic and other characters. Do let us know if you
+find any exceptions.</p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate inkling;
+</span><span class="boring">use inkling::read_story_from_string;
+</span><span class="boring">let content = r&quot;
+</span><span class="boring">
+</span>=== عقدة ===
+These
+
+=== 매듭 ===
+are
+
+=== गांठ ===
+all
+
+=== 結 ===
+allowed.
+<span class="boring">
+</span><span class="boring">&quot;;
+</span><span class="boring">let mut story = read_story_from_string(content).unwrap();
+</span><span class="boring">assert!(story.move_to(&quot;عقدة&quot;, None).is_ok());
+</span><span class="boring">assert!(story.move_to(&quot;매듭&quot;, None).is_ok());
+</span><span class="boring">assert!(story.move_to(&quot;गांठ&quot;, None).is_ok());
+</span><span class="boring">assert!(story.move_to(&quot;結&quot;, None).is_ok());
+</span><span class="boring">}
+</span></code></pre></pre>
+<h2><a class="header" href="#stitches" id="stitches">Stitches</a></h2>
+<p>Knots may be further subdivided into <em>stitches</em>. These are denoted by single <code>=</code> markers.</p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate inkling;
+</span><span class="boring">use inkling::read_story_from_string;
+</span><span class="boring">let content = r&quot;
+</span><span class="boring">
+</span>=== garden ===
+= entrance
+A pale moonlight illuminated the garden.
+
+= well
+The well stank of stagnant water. Is that an eel I see at the bottom?
+<span class="boring">
+</span><span class="boring">&quot;;
+</span><span class="boring">let mut story = read_story_from_string(content).unwrap();
+</span><span class="boring">assert!(story.move_to(&quot;garden&quot;, Some(&quot;entrance&quot;)).is_ok());
+</span><span class="boring">assert!(story.move_to(&quot;garden&quot;, Some(&quot;well&quot;)).is_ok());
+</span><span class="boring">}
+</span></code></pre></pre>
+<h2><a class="header" href="#diverts" id="diverts">Diverts</a></h2>
+<p><em>Diverts</em> are used to move to different parts of the story. A divert to a <em>knot</em> moves
+the story to continue from there. They are designated with the <code>-&gt;</code> marker followed
+by the destination.</p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate inkling;
+</span><span class="boring">use inkling::read_story_from_string;
+</span><span class="boring">let content = r&quot;
+</span><span class="boring">-&gt; stairwell
+</span><span class="boring">
+</span>=== stairwell ===
+The stairs creaked as I descended.
+-&gt; lower_floor
+
+=== garden ===
+A pale moonlight illuminated the garden as I entered it.
+-&gt; END
+
+=== lower_floor ===
+On the bottom I found an unlocked door.
+-&gt; garden
+<span class="boring">
+</span><span class="boring">&quot;;
+</span><span class="boring">let mut story = read_story_from_string(content).unwrap();
+</span><span class="boring">let mut buffer = Vec::new();
+</span><span class="boring">story.start().unwrap();
+</span><span class="boring">story.resume(&amp;mut buffer).unwrap();
+</span><span class="boring">assert_eq!(story.get_current_location().unwrap(), (&quot;garden&quot;.to_string(), None));
+</span><span class="boring">}
+</span></code></pre></pre>
+<p>Diverts are automatically followed as they are encountered.</p>
+<h3><a class="header" href="#diverts-to-stitches" id="diverts-to-stitches">Diverts to stitches</a></h3>
+<p>Stitches inside knots can be diverted to using <code>knot.stitch</code> as a destination:</p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate inkling;
+</span><span class="boring">use inkling::read_story_from_string;
+</span><span class="boring">let content = r&quot;
+</span><span class="boring">
+</span>-&gt; garden.entrance
+<span class="boring">
+</span><span class="boring">=== garden ===
+</span><span class="boring">= well
+</span><span class="boring">Unreachable.
+</span><span class="boring">= entrance
+</span><span class="boring">A pale moonlight illuminated the garden.
+</span><span class="boring">&quot;;
+</span><span class="boring">let mut story = read_story_from_string(content).unwrap();
+</span><span class="boring">let mut buffer = Vec::new();
+</span><span class="boring">story.start().unwrap();
+</span><span class="boring">story.resume(&amp;mut buffer).unwrap();
+</span><span class="boring">assert!(buffer[0].text.starts_with(&quot;A pale moonlight illuminated the garden.&quot;));
+</span><span class="boring">}
+</span></code></pre></pre>
+<p>Stitches within the same knot can be diverted to with only the stitch name:</p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate inkling;
+</span><span class="boring">use inkling::read_story_from_string;
+</span><span class="boring">let content = r&quot;
+</span><span class="boring">-&gt; garden
+</span><span class="boring">
+</span>=== garden ===
+-&gt; well
+
+= entrance
+A pale moonlight illuminated the garden.
+
+= well
+The well stank of stagnant water.
+<span class="boring">
+</span><span class="boring">&quot;;
+</span><span class="boring">let mut story = read_story_from_string(content).unwrap();
+</span><span class="boring">let mut buffer = Vec::new();
+</span><span class="boring">story.start().unwrap();
+</span><span class="boring">story.resume(&amp;mut buffer).unwrap();
+</span><span class="boring">assert!(buffer[0].text.starts_with(&quot;The well stank of stagnant water.&quot;));
+</span><span class="boring">}
+</span></code></pre></pre>
+<h3><a class="header" href="#ending-the-story-with---end" id="ending-the-story-with---end">Ending the story with <code>-&gt; END</code></a></h3>
+<p><code>END</code> is a destination that signifies that the story has come to, well, an end. Use
+<code>-&gt; END</code> diverts for such occasions. An <code>ink</code> story is not complete unless all
+branches one way or another leads to an <code>-&gt; END</code> divert: ending a story should
+be intentional.</p>
+<h2><a class="header" href="#diverts-in-choices" id="diverts-in-choices">Diverts in choices</a></h2>
+<p>A common use of branches is to divert to other knots.</p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate inkling;
+</span><span class="boring">use inkling::read_story_from_string;
+</span><span class="boring">let content = r&quot;
+</span><span class="boring">
+</span>*   [Descend stairs] -&gt; lower_floor
+*   [Return to desk]
+    I sighed, wearily, and returned to my room.
+    -&gt; desk
+
+=== desk ===
+As I sat by my desk, I noticed that my notebook had gone missing.
+
+=== lower_floor ===
+On the bottom I found an unlocked door.
+<span class="boring">
+</span><span class="boring">&quot;;
+</span><span class="boring">let mut story = read_story_from_string(content).unwrap();
+</span><span class="boring">let mut buffer = Vec::new();
+</span><span class="boring">story.start().unwrap();
+</span><span class="boring">story.resume(&amp;mut buffer).unwrap();
+</span><span class="boring">story.make_choice(1).unwrap();
+</span><span class="boring">story.resume(&amp;mut buffer).unwrap();
+</span><span class="boring">assert_eq!(story.get_current_location().unwrap(), (&quot;desk&quot;.to_string(), None));
+</span><span class="boring">}
+</span></code></pre></pre>
+<h2><a class="header" href="#revisiting-content-and-choices" id="revisiting-content-and-choices">Revisiting content and choices</a></h2>
+<p>With diverts we can easily return to previously visited knots and stitches. When 
+this happens, the text is reevaluated to reflect the current state of the story
+(see the sections on <a href="features/conditional-content.html">conditional content</a> and 
+<a href="features/sequences.html">alternating sequences</a> for more information).</p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate inkling;
+</span><span class="boring">use inkling::read_story_from_string;
+</span><span class="boring">let content = r&quot;
+</span><span class="boring">
+</span>=== table ===
+You are seated at the table.
+
+*   [Order a cup of tea] 
+    A waiter returns with a steaming hot cup of tea. 
+    -&gt; table
+*   [Leave]
+    You leave the café.
+<span class="boring">
+</span><span class="boring">&quot;;
+</span><span class="boring">assert!(read_story_from_string(content).is_ok());
+</span><span class="boring">}
+</span></code></pre></pre>
+<h3><a class="header" href="#once-only-and-sticky-choices" id="once-only-and-sticky-choices">Once-only and sticky choices</a></h3>
+<p>Any set of branching choices will also be reevaluated. There are two types of 
+choices, denoted by if they begin with <code>*</code> or <code>+</code> markers:</p>
+<ul>
+<li><code>*</code> marks <em>once-only</em> choices, which can only be picked once</li>
+<li><code>+</code> marks <em>sticky</em> choices, which can be picked any number of times</li>
+</ul>
+<p>In short, <em>once-only</em> choices are removed from the choice list if they are picked.
+<em>Sticky</em> choices will remain. This has to be kept in mind if the branch might be 
+revisited during the story.</p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate inkling;
+</span><span class="boring">use inkling::{read_story_from_string, Prompt};
+</span><span class="boring">let content = r&quot;
+</span><span class="boring">-&gt; loop
+</span><span class="boring">
+</span>=== loop ===
+*   This choice can only be picked once -&gt; loop
++   This choice is always here -&gt; loop
+<span class="boring">
+</span><span class="boring">&quot;;
+</span><span class="boring">let mut story = read_story_from_string(content).unwrap();
+</span><span class="boring">let mut buffer = Vec::new();
+</span><span class="boring">story.start().unwrap();
+</span><span class="boring">match story.resume(&amp;mut buffer).unwrap() {
+</span><span class="boring">  Prompt::Choice(choices) =&gt; {
+</span><span class="boring">      assert_eq!(choices.len(), 2);
+</span><span class="boring">      assert_eq!(&amp;choices[0].text, &quot;This choice can only be picked once&quot;);
+</span><span class="boring">  }
+</span><span class="boring">  _ =&gt; unreachable!()
+</span><span class="boring">}
+</span><span class="boring">story.make_choice(0).unwrap();
+</span><span class="boring">match story.resume(&amp;mut buffer).unwrap() {
+</span><span class="boring">  Prompt::Choice(choices) =&gt; {
+</span><span class="boring">      assert_eq!(choices.len(), 1);
+</span><span class="boring">      assert_eq!(&amp;choices[0].text, &quot;This choice is always here&quot;);
+</span><span class="boring">  }
+</span><span class="boring">  _ =&gt; unreachable!()
+</span><span class="boring">}
+</span><span class="boring">story.make_choice(0).unwrap();
+</span><span class="boring">match story.resume(&amp;mut buffer).unwrap() {
+</span><span class="boring">  Prompt::Choice(choices) =&gt; {
+</span><span class="boring">      assert_eq!(choices.len(), 1);
+</span><span class="boring">      assert_eq!(&amp;choices[0].text, &quot;This choice is always here&quot;);
+</span><span class="boring">  }
+</span><span class="boring">  _ =&gt; unreachable!()
+</span><span class="boring">}
+</span><span class="boring">}
+</span></code></pre></pre>
+<h3><a class="header" href="#running-out-of-choices" id="running-out-of-choices">Running out of choices</a></h3>
+<p>Since once-only choices are removed it is possible for a branching choice point
+to run out of choices. <strong>This will result in an 
+<a href="https://docs.rs/inkling/latest/inkling/enum.InklingError.html#variant.OutOfChoices">error</a> 
+being returned from <code>inkling</code> at runtime.</strong></p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate inkling;
+</span><span class="boring">use inkling::{read_story_from_string, Prompt};
+</span><span class="boring">let content = r&quot;
+</span><span class="boring">-&gt; thrice_fail
+</span><span class="boring">
+</span>=== thrice_fail ===
+The third time we return here we are out of choices and an error is returned.
+
+*   First choice -&gt; thrice_fail
+*   Second choice -&gt; thrice_fail
+<span class="boring">
+</span><span class="boring">&quot;;
+</span><span class="boring">let mut story = read_story_from_string(content).unwrap();
+</span><span class="boring">let mut buffer = Vec::new();
+</span><span class="boring">story.start().unwrap();
+</span><span class="boring">story.resume(&amp;mut buffer).unwrap();
+</span><span class="boring">story.make_choice(0).unwrap();
+</span><span class="boring">story.resume(&amp;mut buffer).unwrap();
+</span><span class="boring">story.make_choice(0).unwrap();
+</span><span class="boring">assert!(story.resume(&amp;mut buffer).is_err());
+</span><span class="boring">}
+</span></code></pre></pre>
+<p>So be careful when writing branching choices using only once-only markers. Is there a 
+risk that you will return to it multiple times? </p>
+<h3><a class="header" href="#fallback-choices" id="fallback-choices">Fallback choices</a></h3>
+<p>There is a fallback option available for running out of choices. If no regular (sticky 
+or once-only) choices are left to present for the user, <code>inkling</code> will look for a 
+<em>fallback</em> choice and automatically follow it.</p>
+<p>This can only be a single choice and is marked by being a choice <em>without choice text</em>,
+which is to say that it starts with a divert <code>-&gt;</code> marker.</p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate inkling;
+</span><span class="boring">use inkling::{read_story_from_string, Prompt};
+</span><span class="boring">let content = r&quot;
+</span><span class="boring">-&gt; twice_fail
+</span><span class="boring">
+</span>=== twice_fail ===
+The second time we return here we are out of choices and an error is returned.
+
+*   First choice -&gt; twice_fail
+*   -&gt; fallback
+
+=== fallback ===
+We escaped the loop!
+<span class="boring">
+</span><span class="boring">&quot;;
+</span><span class="boring">let mut story = read_story_from_string(content).unwrap();
+</span><span class="boring">let mut buffer = Vec::new();
+</span><span class="boring">story.start().unwrap();
+</span><span class="boring">match story.resume(&amp;mut buffer).unwrap() {
+</span><span class="boring">  Prompt::Choice(choices) =&gt; {
+</span><span class="boring">      assert_eq!(choices.len(), 1);
+</span><span class="boring">      assert_eq!(&amp;choices[0].text, &quot;First choice&quot;);
+</span><span class="boring">  }
+</span><span class="boring">  _ =&gt; unreachable!()
+</span><span class="boring">}
+</span><span class="boring">story.make_choice(0).unwrap();
+</span><span class="boring">story.resume(&amp;mut buffer).unwrap(); 
+</span><span class="boring">assert_eq!(&amp;buffer.last().unwrap().text, &quot;We escaped the loop!\n&quot;);
+</span><span class="boring">}
+</span></code></pre></pre>
+<p>The fallback content can contain text by putting it on a new line directly after 
+the divert marker.</p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate inkling;
+</span><span class="boring">use inkling::{read_story_from_string, Prompt};
+</span><span class="boring">let content = r&quot;
+</span><span class="boring">-&gt; write_article
+</span><span class="boring">
+</span>=== write_article ===
+*   [Write abstract] -&gt; write_article
+*   [Write main text] -&gt; write_article
+*   [Write summary] -&gt; write_article
+*   -&gt; 
+    The article is finished.
+    -&gt; submit_article
+
+=== submit_article ===
+You submit it to your editor.
+<span class="boring">
+</span><span class="boring">&quot;;
+</span><span class="boring">let mut story = read_story_from_string(content).unwrap();
+</span><span class="boring">let mut buffer = Vec::new();
+</span><span class="boring">story.start().unwrap();
+</span><span class="boring">story.resume(&amp;mut buffer).unwrap(); 
+</span><span class="boring">story.make_choice(0).unwrap();
+</span><span class="boring">story.resume(&amp;mut buffer).unwrap(); 
+</span><span class="boring">story.make_choice(0).unwrap();
+</span><span class="boring">story.resume(&amp;mut buffer).unwrap(); 
+</span><span class="boring">story.make_choice(0).unwrap();
+</span><span class="boring">story.resume(&amp;mut buffer).unwrap(); 
+</span><span class="boring">assert_eq!(&amp;buffer[0].text, &quot;The article is finished.\n&quot;);
+</span><span class="boring">assert_eq!(&amp;buffer[1].text, &quot;You submit it to your editor.\n&quot;);
+</span><span class="boring">}
+</span></code></pre></pre>
+<p>Fallback choices can also be sticky. If they are not they will also be consumed after
+use. Again, ensure that you are sure that branches with non-sticky fallback choices
+will not be returned to multiple times.</p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate inkling;
+</span><span class="boring">use inkling::{read_story_from_string, Prompt};
+</span><span class="boring">let content = r&quot;
+</span><span class="boring">
+</span>=== once_only_fallback ===
+This will return an error if the fallback choice is used twice.
+*   -&gt; once_only_fallback 
+
+=== sticky_fallback ===
+<span class="boring">{sticky_fallback &gt; 2 : -&gt; END} // exit once we have returned here twice
+</span>This sticky fallback choice can be use any number of times.
++   -&gt; sticky_fallback 
+<span class="boring">
+</span><span class="boring">&quot;;
+</span><span class="boring">let mut story = read_story_from_string(content).unwrap();
+</span><span class="boring">let mut buffer = Vec::new();
+</span><span class="boring">story.start().unwrap();
+</span><span class="boring">story.move_to(&quot;once_only_fallback&quot;, None).unwrap();
+</span><span class="boring">assert!(story.resume(&amp;mut buffer).is_err());
+</span><span class="boring">story.move_to(&quot;sticky_fallback&quot;, None).unwrap();
+</span><span class="boring">story.resume(&amp;mut buffer).unwrap(); 
+</span><span class="boring">assert!(story.resume(&amp;mut buffer).is_ok());
+</span><span class="boring">}
+</span></code></pre></pre>
+<h2><a class="header" href="#gather-points" id="gather-points">Gather points</a></h2>
+<p>When creating a set of choices, you can return (or, <em>gather</em>) all of the branches to 
+a single path after they have gone through their content. This is done using 
+<em>gather points.</em></p>
+<p>To return the branches, add a gather marker <code>-</code> at a new line after the branches.</p>
+<p>In the following example, regardless of whether the player heads to the garden 
+or the kitchen, they return to their room. There, they are presented with the next choice.</p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate inkling;
+</span><span class="boring">use inkling::read_story_from_string;
+</span><span class="boring">let content = r&quot;
+</span><span class="boring">
+</span>*   [Head into the garden]
+    The chirp of crickets greet you as you enter the garden.
+*   [Move to the kitchen]
+    A crackling fireplace illuminates the dark room.
+-   A while later, you return to your room.
+*   [Lay in bed]
+*   [Sit at table]
+<span class="boring">
+</span><span class="boring">&quot;;
+</span><span class="boring">let mut story = read_story_from_string(content).unwrap();
+</span><span class="boring">let mut story_other = read_story_from_string(content).unwrap();
+</span><span class="boring">let mut buffer = Vec::new();
+</span><span class="boring">story.start().unwrap();
+</span><span class="boring">story.resume(&amp;mut buffer).unwrap();
+</span><span class="boring">story.make_choice(0).unwrap();
+</span><span class="boring">story.resume(&amp;mut buffer).unwrap();
+</span><span class="boring">assert_eq!(buffer.len(), 2);
+</span><span class="boring">assert_eq!(&amp;buffer[0].text, &quot;The chirp of crickets greet you as you enter the garden.\n&quot;);
+</span><span class="boring">assert_eq!(&amp;buffer[1].text, &quot;A while later, you return to your room.\n&quot;);
+</span><span class="boring">buffer.clear();
+</span><span class="boring">story_other.start().unwrap();
+</span><span class="boring">story_other.resume(&amp;mut buffer).unwrap();
+</span><span class="boring">story_other.make_choice(1).unwrap();
+</span><span class="boring">story_other.resume(&amp;mut buffer).unwrap();
+</span><span class="boring">assert_eq!(buffer.len(), 2);
+</span><span class="boring">assert_eq!(&amp;buffer[0].text, &quot;A crackling fireplace illuminates the dark room.\n&quot;);
+</span><span class="boring">assert_eq!(&amp;buffer[1].text, &quot;A while later, you return to your room.\n&quot;);
+</span><span class="boring">}
+</span></code></pre></pre>
+<h3><a class="header" href="#nested-gather-points" id="nested-gather-points">Nested gather points</a></h3>
+<p>Gathers can be performed for any nested level of choices. Simply add the corresponding 
+number of gather markers <code>-</code> below.</p>
+<p>In this example, both inner choices 1.1 and 1.2 will gather at 1.1. Inner choices 2.1 
+and 2.2 at gather 2.1. Then finally, both outer choices 1 and 2 at gather point 1.</p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate inkling;
+</span><span class="boring">use inkling::read_story_from_string;
+</span><span class="boring">let content = r&quot;
+</span><span class="boring">
+</span>*   Choice 1
+    * *     Choice 1.1
+    * *     Choice 1.2
+    - -     Gather 1.1
+*   Choice 2
+    * *     Choice 2.1
+    * *     Choice 2.2
+    - -     Gather 2.1
+-   Gather 1
+<span class="boring">
+</span><span class="boring">&quot;;
+</span><span class="boring">let mut story = read_story_from_string(content).unwrap();
+</span><span class="boring">let mut story_other = read_story_from_string(content).unwrap();
+</span><span class="boring">let mut buffer = Vec::new();
+</span><span class="boring">story.start().unwrap();
+</span><span class="boring">story.resume(&amp;mut buffer).unwrap();
+</span><span class="boring">story.make_choice(1).unwrap();
+</span><span class="boring">story.resume(&amp;mut buffer).unwrap();
+</span><span class="boring">story.make_choice(0).unwrap();
+</span><span class="boring">story.resume(&amp;mut buffer).unwrap();
+</span><span class="boring">assert_eq!(buffer.len(), 4);
+</span><span class="boring">assert_eq!(&amp;buffer[0].text, &quot;Choice 2\n&quot;);
+</span><span class="boring">assert_eq!(&amp;buffer[1].text, &quot;Choice 2.1\n&quot;);
+</span><span class="boring">assert_eq!(&amp;buffer[2].text, &quot;Gather 2.1\n&quot;);
+</span><span class="boring">assert_eq!(&amp;buffer[3].text, &quot;Gather 1\n&quot;);
+</span><span class="boring">buffer.clear();
+</span><span class="boring">story_other.start().unwrap();
+</span><span class="boring">story_other.resume(&amp;mut buffer).unwrap();
+</span><span class="boring">story_other.make_choice(0).unwrap();
+</span><span class="boring">story_other.resume(&amp;mut buffer).unwrap();
+</span><span class="boring">story_other.make_choice(1).unwrap();
+</span><span class="boring">story_other.resume(&amp;mut buffer).unwrap();
+</span><span class="boring">assert_eq!(buffer.len(), 4);
+</span><span class="boring">assert_eq!(&amp;buffer[0].text, &quot;Choice 1\n&quot;);
+</span><span class="boring">assert_eq!(&amp;buffer[1].text, &quot;Choice 1.2\n&quot;);
+</span><span class="boring">assert_eq!(&amp;buffer[2].text, &quot;Gather 1.1\n&quot;);
+</span><span class="boring">assert_eq!(&amp;buffer[3].text, &quot;Gather 1\n&quot;);
+</span><span class="boring">}
+</span></code></pre></pre>
+<h2><a class="header" href="#preamble" id="preamble">Preamble</a></h2>
+<p>The script is divided into a <em>preamble</em> and the story <em>content</em>. The preamble contains
+<a href="features/variables.html">variable declarations</a>, <a href="features/metadata.html">metadata</a> and inclusions of other 
+documents. The content comes afterwards and can refer to declarations in the preamble.</p>
+<p>The end of the preamble in a script is marked by the first line of text or story content.
+This can be a divert to the introductory scene.</p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate inkling;
+</span><span class="boring">use inkling::read_story_from_string;
+</span><span class="boring">let content = r#&quot;
+</span><span class="boring">
+</span>// Global story tags are declared in the preamble
+# title: Inkling 
+# author: Petter Johansson
+
+// ... as are global variables
+CONST name = &quot;d'Artagnan&quot;
+VAR rank = &quot;Capitaine&quot;
+
+// First line of story content comes here, which ends the preamble declaration
+-&gt; introduction 
+
+=== introduction ===
+I opened my notebook to a blank page, pen in hand.
+<span class="boring">&quot;#;
+</span><span class="boring">let story = read_story_from_string(content).unwrap();
+</span><span class="boring">let tags = story.get_story_tags();
+</span><span class="boring">assert_eq!(&amp;tags[0], &quot;title: Inkling&quot;);
+</span><span class="boring">assert_eq!(&amp;tags[1], &quot;author: Petter Johansson&quot;);
+</span><span class="boring">assert!(story.get_variable(&quot;name&quot;).is_ok());
+</span><span class="boring">assert!(story.get_variable(&quot;rank&quot;).is_ok());
+</span><span class="boring">}
+</span></code></pre></pre>
+<h1><a class="header" href="#variables" id="variables">Variables</a></h1>
+<p>Throughout a story it can be useful to introduce <em>variables</em>, which can be declared
+and used in the story text. This makes it easy to keep a story consistent and track
+a story state.</p>
+<h2><a class="header" href="#declaring-variables" id="declaring-variables">Declaring variables</a></h2>
+<p>Global variables can be declared in the script using the <code>VAR</code> keyword. They
+must be declared in the <a href="features/structure.html#preamble">preamble</a>: before the first knot.</p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate inkling;
+</span><span class="boring">use inkling::{read_story_from_string, Variable};
+</span><span class="boring">let content = r#&quot;
+</span><span class="boring">
+</span>VAR a_float = 1.0
+VAR a_int = 2
+VAR a_bool = false
+VAR a_string = &quot;A String&quot;
+VAR a_destination = &quot;-&gt; stairwell&quot;
+<span class="boring">
+</span><span class="boring">&quot;#;
+</span><span class="boring">let story = read_story_from_string(content).unwrap();
+</span><span class="boring">assert_eq!(story.get_variable(&quot;a_float&quot;).unwrap(), Variable::Float(1.0));
+</span><span class="boring">assert_eq!(story.get_variable(&quot;a_int&quot;).unwrap(), Variable::Int(2));
+</span><span class="boring">assert_eq!(story.get_variable(&quot;a_bool&quot;).unwrap(), Variable::Bool(false));
+</span><span class="boring">assert_eq!(story.get_variable(&quot;a_string&quot;).unwrap(), Variable::String(&quot;A String&quot;.to_string()));
+</span><span class="boring">assert!(story.get_variable(&quot;a_destination&quot;).is_ok());
+</span><span class="boring">}
+</span></code></pre></pre>
+<p>As shown in this example, the variable type is automatically assigned from
+the given value. Once assigned, a variable’s type cannot be changed.</p>
+<h2><a class="header" href="#using-variables-in-text" id="using-variables-in-text">Using variables in text</a></h2>
+<p>Variables can be inserted into text by enclosing them in curly braces.</p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate inkling;
+</span><span class="boring">use inkling::{read_story_from_string, Variable};
+</span><span class="boring">let content = r#&quot;
+</span><span class="boring">
+</span>VAR time = 11
+VAR moon = &quot;gloomy&quot;
+
+The time was {time}. A {moon} moon illuminated the room.
+<span class="boring">
+</span><span class="boring">&quot;#;
+</span><span class="boring">let mut story = read_story_from_string(content).unwrap();
+</span><span class="boring">let mut buffer = Vec::new();
+</span><span class="boring">story.start().unwrap();
+</span><span class="boring">story.resume(&amp;mut buffer).unwrap();
+</span><span class="boring">assert_eq!(buffer[0].text, &quot;The time was 11. A gloomy moon illuminated the room.\n&quot;);
+</span><span class="boring">}
+</span></code></pre></pre>
+<h2><a class="header" href="#variable-assignment" id="variable-assignment">Variable assignment</a></h2>
+<p><strong>It is not currently possible to assign variables in the script. Use <code>Story::set_variable</code>.</strong></p>
+<h2><a class="header" href="#constant-variables" id="constant-variables">Constant variables</a></h2>
+<p>Constant variables, whose values cannot be changed, are declared using the <code>CONST</code> keyword.</p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate inkling;
+</span><span class="boring">use inkling::{read_story_from_string, Variable};
+</span><span class="boring">let content = r#&quot;
+</span><span class="boring">
+</span>CONST name = &quot;d'Artagnan&quot; // Constant variable, cannot be modified
+VAR rank = &quot;Capitaine&quot;    // Non-constant variable, can be changed
+<span class="boring">
+</span><span class="boring">&quot;#;
+</span><span class="boring">let mut story = read_story_from_string(content).unwrap();
+</span><span class="boring">assert_eq!(story.get_variable(&quot;name&quot;).unwrap(), Variable::from(&quot;d'Artagnan&quot;));
+</span><span class="boring">assert!(story.set_variable(&quot;name&quot;, &quot;Aramis&quot;).is_err());
+</span><span class="boring">}
+</span></code></pre></pre>
+<h2><a class="header" href="#variable-mathematics" id="variable-mathematics">Variable mathematics</a></h2>
+<h2><a class="header" href="#variable-comparisons" id="variable-comparisons">Variable comparisons</a></h2>
+<h1><a class="header" href="#conditional-content" id="conditional-content">Conditional content</a></h1>
+<p><code>Ink</code> provides many methods for varying the text content of a line or the choices 
+presented to a user.</p>
+<h2><a class="header" href="#choice-conditions" id="choice-conditions">Choice conditions</a></h2>
+<p>The easiest way to gate which choices are presented to the user is to check if they have 
+visited a knot in the story. This is done by preceding the choice with the knot name
+enclosed by curly braces, for example <code>{knot}</code>. </p>
+<p>In the following example, the first choice is only presented if the player has previously 
+visited the knot with name <code>tea_house</code>.</p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate inkling;
+</span><span class="boring">use inkling::{read_story_from_string, Prompt};
+</span><span class="boring">let content = r#&quot;
+</span><span class="boring">-&gt; choice
+</span><span class="boring">=== choice ===
+</span><span class="boring">
+</span>+   {tea_house} &quot;Yes, I saw them at 'Au thé à la menthe.'&quot;
++   &quot;No, I have not met them.&quot;
+<span class="boring">
+</span><span class="boring">=== tea_house ===
+</span><span class="boring">-&gt; choice
+</span><span class="boring">&quot;#;
+</span><span class="boring">let mut story = read_story_from_string(content).unwrap();
+</span><span class="boring">let mut buffer = Vec::new();
+</span><span class="boring">story.start().unwrap();
+</span><span class="boring">match story.resume(&amp;mut buffer).unwrap() {
+</span><span class="boring">  Prompt::Choice(choices) =&gt; {
+</span><span class="boring">      assert_eq!(choices.len(), 1);
+</span><span class="boring">      assert_eq!(choices[0].text, r#&quot;&quot;No, I have not met them.&quot;&quot;#);
+</span><span class="boring">  }
+</span><span class="boring">  _ =&gt; unreachable!()
+</span><span class="boring">}
+</span><span class="boring">story.move_to(&quot;tea_house&quot;, None).unwrap();
+</span><span class="boring">match story.resume(&amp;mut buffer).unwrap() {
+</span><span class="boring">  Prompt::Choice(choices) =&gt; {
+</span><span class="boring">      assert_eq!(choices.len(), 2);
+</span><span class="boring">      assert_eq!(choices[0].text, r#&quot;&quot;Yes, I saw them at 'Au thé à la menthe.'&quot;&quot;#);
+</span><span class="boring">  }
+</span><span class="boring">  _ =&gt; unreachable!()
+</span><span class="boring">}
+</span><span class="boring">}
+</span></code></pre></pre>
+<p>Under the hood, <code>inkling</code> resolves this by translating <code>{tea_house}</code> as a variable
+whose value is the number of times the knot has been visited. It then asserts 
+whether that value is “true”, which in <code>Ink</code> is whether it is non-zero. Thus, <code>{tea_house}</code> 
+is an implicit form of writing the explicit condition <code>{tea_house != 0}</code>.</p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate inkling;
+</span><span class="boring">use inkling::{read_story_from_string, Prompt};
+</span><span class="boring">let content = r#&quot;
+</span><span class="boring">-&gt; choice
+</span><span class="boring">=== choice ===
+</span><span class="boring">
+</span>+   {tea_house != 0} &quot;Yes, I saw them at 'Au thé à la menthe.'&quot;
++   &quot;No, I have not met them.&quot;
+<span class="boring">
+</span><span class="boring">=== tea_house ===
+</span><span class="boring">-&gt; choice
+</span><span class="boring">&quot;#;
+</span><span class="boring">let mut story = read_story_from_string(content).unwrap();
+</span><span class="boring">let mut buffer = Vec::new();
+</span><span class="boring">story.start().unwrap();
+</span><span class="boring">match story.resume(&amp;mut buffer).unwrap() {
+</span><span class="boring">  Prompt::Choice(choices) =&gt; {
+</span><span class="boring">      assert_eq!(choices.len(), 1);
+</span><span class="boring">      assert_eq!(choices[0].text, r#&quot;&quot;No, I have not met them.&quot;&quot;#);
+</span><span class="boring">  }
+</span><span class="boring">  _ =&gt; unreachable!()
+</span><span class="boring">}
+</span><span class="boring">story.move_to(&quot;tea_house&quot;, None).unwrap();
+</span><span class="boring">match story.resume(&amp;mut buffer).unwrap() {
+</span><span class="boring">  Prompt::Choice(choices) =&gt; {
+</span><span class="boring">      assert_eq!(choices.len(), 2);
+</span><span class="boring">      assert_eq!(choices[0].text, r#&quot;&quot;Yes, I saw them at 'Au thé à la menthe.'&quot;&quot;#);
+</span><span class="boring">  }
+</span><span class="boring">  _ =&gt; unreachable!()
+</span><span class="boring">}
+</span><span class="boring">}
+</span></code></pre></pre>
+<p>Knowing this, we can of course also test these conditions using other types 
+of <a href="features/variables.html">variables</a>. </p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate inkling;
+</span><span class="boring">use inkling::{read_story_from_string, Prompt};
+</span><span class="boring">let content = r&quot;
+</span><span class="boring">
+</span>VAR visited_château = true
+VAR coins = 3
+
++   {visited_château} You recognize the bellboy.
++   {coins &gt; 2} [Tip the bellboy]
++   {coins &lt;= 2} [You cannot afford entry]
+<span class="boring">
+</span><span class="boring">&quot;;
+</span><span class="boring">let mut story = read_story_from_string(content).unwrap();
+</span><span class="boring">let mut buffer = Vec::new();
+</span><span class="boring">story.start().unwrap();
+</span><span class="boring">match story.resume(&amp;mut buffer).unwrap() {
+</span><span class="boring">  Prompt::Choice(choices) =&gt; {
+</span><span class="boring">      assert_eq!(choices.len(), 2);
+</span><span class="boring">      assert_eq!(choices[0].text, &quot;You recognize the bellboy.&quot;);
+</span><span class="boring">      assert_eq!(choices[1].text, &quot;Tip the bellboy&quot;);
+</span><span class="boring">  }
+</span><span class="boring">  _ =&gt; unreachable!()
+</span><span class="boring">}
+</span><span class="boring">}
+</span></code></pre></pre>
+<h3><a class="header" href="#multiple-conditions" id="multiple-conditions">Multiple conditions</a></h3>
+<p>Multiple conditions can be tested at once by supplying them one after another.
+All must be true for the choice to be presented. In this example, the first and third
+choices will be presented.</p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate inkling;
+</span><span class="boring">use inkling::{read_story_from_string, Prompt};
+</span><span class="boring">let content = r&quot;
+</span><span class="boring">
+</span>VAR visited_château = true
+VAR coins = 6
+
++   {visited_château} {coins &gt; 5} Purchase the painting
++   {not visited_château} {coins &gt; 5} Your wallet itches but you see nothing of interest.
++   Leave the exhibit
+<span class="boring">
+</span><span class="boring">&quot;;
+</span><span class="boring">let mut story = read_story_from_string(content).unwrap();
+</span><span class="boring">let mut buffer = Vec::new();
+</span><span class="boring">story.start().unwrap();
+</span><span class="boring">match story.resume(&amp;mut buffer).unwrap() {
+</span><span class="boring">  Prompt::Choice(choices) =&gt; {
+</span><span class="boring">      assert_eq!(choices.len(), 2);
+</span><span class="boring">      assert_eq!(choices[0].text, &quot;Purchase the painting&quot;);
+</span><span class="boring">      assert_eq!(choices[1].text, &quot;Leave the exhibit&quot;);
+</span><span class="boring">  }
+</span><span class="boring">  _ =&gt; unreachable!()
+</span><span class="boring">}
+</span><span class="boring">}
+</span></code></pre></pre>
+<h3><a class="header" href="#beginning-choices-with-variables-instead-of-conditions" id="beginning-choices-with-variables-instead-of-conditions">Beginning choices with variables instead of conditions</a></h3>
+<p>Finally, in case you want the choice text to begin with a variable, “escape” the first
+curly brace by prepending it with a <code>\</code> character. This is so that <code>inkling</code> will know 
+to write the variable as text, not evaluate it as a condition. This is an unfortunate
+quirk of the very compact <code>Ink</code> scripting language, where curly braces play many roles.</p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate inkling;
+</span><span class="boring">use inkling::{read_story_from_string, Prompt};
+</span><span class="boring">let content = r#&quot;
+</span><span class="boring">
+</span>VAR mentor = &quot;Evan&quot;
+
++   \{mentor}, your mentor, greets you
+<span class="boring">
+</span><span class="boring">&quot;#;
+</span><span class="boring">let mut story = read_story_from_string(content).unwrap();
+</span><span class="boring">let mut buffer = Vec::new();
+</span><span class="boring">story.start().unwrap();
+</span><span class="boring">match story.resume(&amp;mut buffer).unwrap() {
+</span><span class="boring">  Prompt::Choice(choices) =&gt; {
+</span><span class="boring">      assert_eq!(choices[0].text, &quot;Evan, your mentor, greets you&quot;);
+</span><span class="boring">  }
+</span><span class="boring">  _ =&gt; unreachable!()
+</span><span class="boring">}
+</span><span class="boring">}
+</span></code></pre></pre>
+<p>For more information about which types of comparisons are supported, see the section
+on <a href="features/variables.html#variable-comparisons">variable comparisons</a>.</p>
+<h2><a class="header" href="#text-conditions" id="text-conditions">Text conditions</a></h2>
+<p>Conditions for displaying text are very similar to how conditions work for choices, 
+but work on this format: <code>{condition: process this if true | otherwise process this}</code>. 
+A colon <code>:</code> follows the condition, the content is inside the braces and an optional 
+<code>|</code> marker marks content to show if the condition is not true.</p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate inkling;
+</span><span class="boring">use inkling::{read_story_from_string, Prompt};
+</span><span class="boring">let content = r&quot;
+</span><span class="boring">
+</span>VAR visited_château = false
+VAR coins = 3
+
+You {visited_château: recognize a painting | see nothing of interest}.
+{coins &lt; 5: You cannot afford anything.}
+<span class="boring">
+</span><span class="boring">&quot;;
+</span><span class="boring">let mut story = read_story_from_string(content).unwrap();
+</span><span class="boring">let mut buffer = Vec::new();
+</span><span class="boring">story.start().unwrap();
+</span><span class="boring">story.resume(&amp;mut buffer).unwrap();
+</span><span class="boring">assert_eq!(&amp;buffer[0].text, &quot;You see nothing of interest.\n&quot;);
+</span><span class="boring">assert_eq!(&amp;buffer[1].text, &quot;You cannot afford anything.\n&quot;);
+</span><span class="boring">}
+</span></code></pre></pre>
+<pre><code class="language-plain">You see nothing of interest.
+You cannot afford anything.
+</code></pre>
+<p>Again, see the section on <a href="features/variables.html#variable-comparisons">variable comparisons</a>
+for more information about how conditions can be tested.</p>
+<h3><a class="header" href="#nesting-conditions" id="nesting-conditions">Nesting conditions</a></h3>
+<p>Conditions can naturally be nested inside of conditional content:</p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate inkling;
+</span><span class="boring">use inkling::{read_story_from_string, Prompt};
+</span><span class="boring">let content = r&quot;
+</span><span class="boring">
+</span>VAR met_evan = true
+VAR met_austin = false
+
+{met_evan: Yes, I met with Evan {met_austin: and | but not} Austin}.
+<span class="boring">
+</span><span class="boring">&quot;;
+</span><span class="boring">let mut story = read_story_from_string(content).unwrap();
+</span><span class="boring">let mut buffer = Vec::new();
+</span><span class="boring">story.start().unwrap();
+</span><span class="boring">story.resume(&amp;mut buffer).unwrap();
+</span><span class="boring">assert_eq!(&amp;buffer[0].text, &quot;Yes, I met with Evan but not Austin.\n&quot;);
+</span><span class="boring">}
+</span></code></pre></pre>
+<pre><code class="language-plain">Yes, I met with Evan but not Austin.
+</code></pre>
+<h3><a class="header" href="#diverts-inside-conditions" id="diverts-inside-conditions">Diverts inside conditions</a></h3>
+<p>Content inside of conditions can divert to other knots.</p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate inkling;
+</span><span class="boring">use inkling::{read_story_from_string, Prompt};
+</span><span class="boring">let content = r&quot;
+</span><span class="boring">
+</span>VAR met_evan = true
+
+{met_evan: Evan takes you to his home. -&gt; château | -&gt; END }
+
+=== château ===
+The car ride takes a few hours.
+<span class="boring">
+</span><span class="boring">&quot;;
+</span><span class="boring">let mut story = read_story_from_string(content).unwrap();
+</span><span class="boring">let mut buffer = Vec::new();
+</span><span class="boring">story.start().unwrap();
+</span><span class="boring">story.resume(&amp;mut buffer).unwrap();
+</span><span class="boring">assert_eq!(&amp;buffer[0].text, &quot;Evan takes you to his home.\n&quot;);
+</span><span class="boring">assert_eq!(&amp;buffer[1].text, &quot;The car ride takes a few hours.\n&quot;);
+</span><span class="boring">}
+</span></code></pre></pre>
+<pre><code class="language-plain">Evan takes you to his home.
+The car ride takes a few hours.
+</code></pre>
+<h1><a class="header" href="#alternating-sequences" id="alternating-sequences">Alternating sequences</a></h1>
+<p><code>Ink</code> comes with several methods which vary the content of a line every time it is 
+seen. These are known as <em>alternating sequences</em> of content.</p>
+<h2><a class="header" href="#sequences" id="sequences">Sequences</a></h2>
+<p>Alternative sequences can be declared in a line using curly braces and <code>|</code> separators. 
+Every time the line is revisited, the next piece will be presented, allowing us to 
+write something like this:</p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate inkling;
+</span><span class="boring">use inkling::read_story_from_string;
+</span><span class="boring">let content = r&quot;
+</span><span class="boring">-&gt; continue
+</span><span class="boring">=== continue ===
+</span><span class="boring">
+</span>The train had arrived {in Mannheim|in Heidelberg|at its final stop}.
+<span class="boring">
+</span><span class="boring">+ [Continue] -&gt; continue
+</span><span class="boring">&quot;;
+</span><span class="boring">let mut story = read_story_from_string(content).unwrap();
+</span><span class="boring">let mut buffer = Vec::new();
+</span><span class="boring">story.start().unwrap();
+</span><span class="boring">story.resume(&amp;mut buffer).unwrap();
+</span><span class="boring">assert_eq!(&amp;buffer.last().unwrap().text, &quot;The train had arrived in Mannheim.\n&quot;);
+</span><span class="boring">story.make_choice(0).unwrap();
+</span><span class="boring">story.resume(&amp;mut buffer).unwrap();
+</span><span class="boring">assert_eq!(&amp;buffer.last().unwrap().text, &quot;The train had arrived in Heidelberg.\n&quot;);
+</span><span class="boring">story.make_choice(0).unwrap();
+</span><span class="boring">story.resume(&amp;mut buffer).unwrap();
+</span><span class="boring">assert_eq!(&amp;buffer.last().unwrap().text, &quot;The train had arrived at its final stop.\n&quot;);
+</span><span class="boring">story.make_choice(0).unwrap();
+</span><span class="boring">story.resume(&amp;mut buffer).unwrap();
+</span><span class="boring">assert_eq!(&amp;buffer.last().unwrap().text, &quot;The train had arrived at its final stop.\n&quot;);
+</span><span class="boring">}
+</span></code></pre></pre>
+<p>When <a href="features/structure.html#revisiting-content">revisiting</a> this line, it will go through the 
+alternatives in order, then repeat the final value after reaching it. In <code>Ink</code> terms,
+this is called a <em>sequence</em>.</p>
+<pre><code class="language-plain">The train had arrived in Mannheim.
+The train had arrived in Heidelberg.
+The train had arrived at its final stop.
+The train had arrived at its final stop.
+</code></pre>
+<h3><a class="header" href="#cycle-sequences" id="cycle-sequences">Cycle sequences</a></h3>
+<p><em>Cycle sequences</em> repeat the entire sequence after reaching the final piece. They are 
+denoted by starting the first alternative with a ‘&amp;’ marker.</p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate inkling;
+</span><span class="boring">use inkling::read_story_from_string;
+</span><span class="boring">let content = r&quot;
+</span><span class="boring">-&gt; continue
+</span><span class="boring">=== continue ===
+</span><span class="boring">
+</span>Today is a {&amp;Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday}.
+<span class="boring">
+</span><span class="boring">+ [Continue] -&gt; continue
+</span><span class="boring">&quot;;
+</span><span class="boring">let mut story = read_story_from_string(content).unwrap();
+</span><span class="boring">let mut buffer = Vec::new();
+</span><span class="boring">story.start().unwrap();
+</span><span class="boring">for day in [&quot;Monday&quot;, &quot;Tuesday&quot;, &quot;Wednesday&quot;, &quot;Thursday&quot;, &quot;Friday&quot;, &quot;Saturday&quot;, &quot;Sunday&quot;, &quot;Monday&quot;].iter() {
+</span><span class="boring">  story.resume(&amp;mut buffer).unwrap();
+</span><span class="boring">  assert_eq!(buffer.last().unwrap().text, format!(&quot;Today is a {}.\n&quot;, day));
+</span><span class="boring">  story.make_choice(0).unwrap();
+</span><span class="boring">}
+</span><span class="boring">}
+</span></code></pre></pre>
+<pre><code class="language-plain">Today is a Monday.
+Today is a Tuesday.
+Today is a Wednesday.
+[...]
+Today is a Sunday.
+Today is a Monday.
+</code></pre>
+<h3><a class="header" href="#once-only-sequences" id="once-only-sequences">Once-only sequences</a></h3>
+<p><em>Once-only sequences</em> goes through all alternatives in order and then produce nothing.
+They are denoted by starting the first alternative with a ‘!’ marker.</p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate inkling;
+</span><span class="boring">use inkling::read_story_from_string;
+</span><span class="boring">let content = r&quot;
+</span><span class="boring">-&gt; continue
+</span><span class="boring">=== continue ===
+</span><span class="boring">
+</span>I met with Anirudh{! for the first time| for the second time}.
+<span class="boring">
+</span><span class="boring">+ [Continue] -&gt; continue
+</span><span class="boring">&quot;;
+</span><span class="boring">let mut story = read_story_from_string(content).unwrap();
+</span><span class="boring">let mut buffer = Vec::new();
+</span><span class="boring">story.start().unwrap();
+</span><span class="boring">story.resume(&amp;mut buffer).unwrap();
+</span><span class="boring">assert_eq!(&amp;buffer.last().unwrap().text, &quot;I met with Anirudh for the first time.\n&quot;);
+</span><span class="boring">story.make_choice(0).unwrap();
+</span><span class="boring">story.resume(&amp;mut buffer).unwrap();
+</span><span class="boring">assert_eq!(&amp;buffer.last().unwrap().text, &quot;I met with Anirudh for the second time.\n&quot;);
+</span><span class="boring">story.make_choice(0).unwrap();
+</span><span class="boring">story.resume(&amp;mut buffer).unwrap();
+</span><span class="boring">assert_eq!(&amp;buffer.last().unwrap().text, &quot;I met with Anirudh.\n&quot;);
+</span><span class="boring">}
+</span></code></pre></pre>
+<pre><code class="language-plain">I met with Anirudh for the first time.
+I met with Anirudh for the second time.
+I met with Anirudh.
+</code></pre>
+<h3><a class="header" href="#shuffle-sequences" id="shuffle-sequences">Shuffle sequences</a></h3>
+<p><em>Shuffle sequences</em> go through the alternatives in a random order, then shuffle the
+alternatives and deal them again. They are denoted by starting the first alternative 
+with a ‘~’ marker.</p>
+<p>Note that these are only random if <code>inkling</code> has been compiled with the <code>random</code> feature.
+Otherwise they mimic the behavior of regular sequences, just going through the alternatives
+in the declared order.</p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">let content = r&quot;
+</span><span class="boring">-&gt; continue
+</span><span class="boring">=== continue ===
+</span><span class="boring">
+</span>I was dealt a Jack of {~hearts|spades|diamonds|clubs}.
+<span class="boring">
+</span><span class="boring">+ [Continue] -&gt; continue
+</span><span class="boring">&quot;;
+</span><span class="boring">}
+</span></code></pre></pre>
+<pre><code class="language-plain">I was dealt a Jack of diamonds.
+I was dealt a Jack of spades.
+I was dealt a Jack of hearts.
+I was dealt a Jack of clubs.
+</code></pre>
+<h2><a class="header" href="#nested-alternatives" id="nested-alternatives">Nested alternatives</a></h2>
+<p>Alternatives can of course hide even more alternatives. How would we otherwise have any fun in life?</p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate inkling;
+</span><span class="boring">use inkling::read_story_from_string;
+</span><span class="boring">let content = r&quot;
+</span><span class="boring">-&gt; continue
+</span><span class="boring">=== continue ===
+</span><span class="boring">
+</span>I {&amp;{strode|walked} hastily|waltzed {gracefully|clumsily}} into the room.
+<span class="boring">
+</span><span class="boring">+ [Continue] -&gt; continue
+</span><span class="boring">&quot;;
+</span><span class="boring">let mut story = read_story_from_string(content).unwrap();
+</span><span class="boring">let mut buffer = Vec::new();
+</span><span class="boring">story.start().unwrap();
+</span><span class="boring">story.resume(&amp;mut buffer).unwrap();
+</span><span class="boring">assert_eq!(&amp;buffer.last().unwrap().text, &quot;I strode hastily into the room.\n&quot;);
+</span><span class="boring">story.make_choice(0).unwrap();
+</span><span class="boring">story.resume(&amp;mut buffer).unwrap();
+</span><span class="boring">assert_eq!(&amp;buffer.last().unwrap().text, &quot;I waltzed gracefully into the room.\n&quot;);
+</span><span class="boring">story.make_choice(0).unwrap();
+</span><span class="boring">story.resume(&amp;mut buffer).unwrap();
+</span><span class="boring">assert_eq!(&amp;buffer.last().unwrap().text, &quot;I walked hastily into the room.\n&quot;);
+</span><span class="boring">story.make_choice(0).unwrap();
+</span><span class="boring">story.resume(&amp;mut buffer).unwrap();
+</span><span class="boring">assert_eq!(&amp;buffer.last().unwrap().text, &quot;I waltzed clumsily into the room.\n&quot;);
+</span><span class="boring">}
+</span></code></pre></pre>
+<pre><code class="language-plain">I strode hastily into the room.
+I waltzed gracefully into the room.
+I walked hastily into the room.
+I waltzed clumsily into the room.
+</code></pre>
+<h2><a class="header" href="#diverts-in-alternatives" id="diverts-in-alternatives">Diverts in alternatives</a></h2>
+<p>We can use diverts inside of alternatives to alternatively trigger different parts 
+of the story.</p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate inkling;
+</span><span class="boring">use inkling::read_story_from_string;
+</span><span class="boring">let content = r&quot;
+</span><span class="boring">-&gt; continue
+</span><span class="boring">=== continue ===
+</span><span class="boring">
+</span>The {first|next} time I saw the door it was {locked. -&gt; locked_door|open. -&gt; open_door}
+
+=== locked_door ===
+I had to return another day.
+<span class="boring">-&gt; continue
+</span>
+=== open_door ===
+In the doorway stood a thin figure.
+<span class="boring">
+</span><span class="boring">&quot;;
+</span><span class="boring">let mut story = read_story_from_string(content).unwrap();
+</span><span class="boring">let mut buffer = Vec::new();
+</span><span class="boring">story.start().unwrap();
+</span><span class="boring">story.resume(&amp;mut buffer).unwrap();
+</span><span class="boring">assert_eq!(&amp;buffer[0].text, &quot;The first time I saw the door it was locked.\n&quot;);
+</span><span class="boring">assert_eq!(&amp;buffer[1].text, &quot;I had to return another day.\n&quot;);
+</span><span class="boring">assert_eq!(&amp;buffer[2].text, &quot;The next time I saw the door it was open.\n&quot;);
+</span><span class="boring">assert_eq!(&amp;buffer[3].text, &quot;In the doorway stood a thin figure.\n&quot;);
+</span><span class="boring">}
+</span></code></pre></pre>
+<pre><code class="language-plain">The first time I saw the door it was locked. 
+I had to return another day.
+The next time I saw the door it was open.
+In the doorway stood a thin figure.
+</code></pre>
+<p>Here’s where <a href="features/basic.html#glue">glue</a> can come in handy. By adding glue before 
+the divert we can continue the same paragraph in a new knot. Building on the
+previous example:</p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate inkling;
+</span><span class="boring">use inkling::read_story_from_string;
+</span><span class="boring">let content = r&quot;
+</span><span class="boring">-&gt; continue
+</span><span class="boring">=== continue ===
+</span><span class="boring">
+</span>The {first|next} time I saw the door it was {locked. -&gt; locked_door|open. -&gt; open_door}
+
+=== locked_door ===
+&lt;&gt; I had to return another day.
+<span class="boring">-&gt; continue
+</span>
+=== open_door ===
+&lt;&gt; In the doorway stood a thin figure.
+<span class="boring">
+</span><span class="boring">&quot;;
+</span><span class="boring">let mut story = read_story_from_string(content).unwrap();
+</span><span class="boring">let mut buffer = Vec::new();
+</span><span class="boring">story.start().unwrap();
+</span><span class="boring">story.resume(&amp;mut buffer).unwrap();
+</span><span class="boring">assert_eq!(&amp;buffer[0].text, &quot;The first time I saw the door it was locked. &quot;);
+</span><span class="boring">assert_eq!(&amp;buffer[1].text, &quot;I had to return another day.\n&quot;);
+</span><span class="boring">assert_eq!(&amp;buffer[2].text, &quot;The next time I saw the door it was open. &quot;);
+</span><span class="boring">assert_eq!(&amp;buffer[3].text, &quot;In the doorway stood a thin figure.\n&quot;);
+</span><span class="boring">}
+</span></code></pre></pre>
+<pre><code class="language-plain">The first time I saw the door it was locked. I had to return another day.
+The next time I saw the door it was open. In the doorway stood a thin figure.
+</code></pre>
+<h1><a class="header" href="#story-metadata" id="story-metadata">Story metadata</a></h1>
+<p>Information about the story, knots or even individual lines can be marked with <em>tags</em>. All tags
+begin with the <code>#</code> marker.</p>
+<p>Tags are stored as pure strings and can thus be of any form you want. <code>inkling</code> assigns no
+meaning to them on its own, it’s for you as the user to decide how to treat them.</p>
+<h2><a class="header" href="#global-tags" id="global-tags">Global tags</a></h2>
+<p>Tags in the preamble are global story tags. Here you can typically mark up metadata for the script.</p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate inkling;
+</span><span class="boring">use inkling::{read_story_from_string, Variable};
+</span><span class="boring">let content = r#&quot;
+</span><span class="boring">
+</span># title: Inkling
+# author: Petter Johansson
+<span class="boring">
+</span><span class="boring">&quot;#;
+</span><span class="boring">let story = read_story_from_string(content).unwrap();
+</span><span class="boring">let tags = story.get_story_tags();
+</span><span class="boring">assert_eq!(&amp;tags[0], &quot;title: Inkling&quot;);
+</span><span class="boring">assert_eq!(&amp;tags[1], &quot;author: Petter Johansson&quot;);
+</span><span class="boring">}
+</span></code></pre></pre>
+<h2><a class="header" href="#knot-tags" id="knot-tags">Knot tags</a></h2>
+<p>Tags encountered in a knot before any content is parsed as tags belonging to that knot.</p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate inkling;
+</span><span class="boring">use inkling::read_story_from_string;
+</span><span class="boring">let content = r#&quot;
+</span><span class="boring">
+</span>=== stairwell ===
+# sound: blowing_wind.ogg
+# dark, quiet, dangerous
+I made my way down the empty stairwell.
+<span class="boring">
+</span><span class="boring">&quot;#;
+</span><span class="boring">let story = read_story_from_string(content).unwrap();
+</span><span class="boring">let tags = story.get_knot_tags(&quot;stairwell&quot;).unwrap();
+</span><span class="boring">assert_eq!(&amp;tags[0], &quot;sound: blowing_wind.ogg&quot;);
+</span><span class="boring">assert_eq!(&amp;tags[1], &quot;dark, quiet, dangerous&quot;);
+</span><span class="boring">}
+</span></code></pre></pre>
+<h2><a class="header" href="#line-tags" id="line-tags">Line tags</a></h2>
+<p>Lines can be tagged by adding the tag after the line content. Multiple tags can
+be set, separated by additional ‘#’ markers.</p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate inkling;
+</span><span class="boring">use inkling::read_story_from_string;
+</span><span class="boring">let content = r#&quot;
+</span><span class="boring">
+</span>A pale moonlight illuminated the garden. # sound: crickets.ogg
+The well stank of stagnant water. # smell, fall # sound: water_drip.ogg
+<span class="boring">
+</span><span class="boring">&quot;#;
+</span><span class="boring">let mut story = read_story_from_string(content).unwrap();
+</span><span class="boring">let mut buffer = Vec::new();
+</span><span class="boring">story.start().unwrap();
+</span><span class="boring">story.resume(&amp;mut buffer).unwrap();
+</span><span class="boring">let tags1 = &amp;buffer[0].tags;
+</span><span class="boring">let tags2 = &amp;buffer[1].tags;
+</span><span class="boring">assert_eq!(&amp;tags1[0], &quot;sound: crickets.ogg&quot;);
+</span><span class="boring">assert_eq!(&amp;tags2[0], &quot;smell, fall&quot;);
+</span><span class="boring">assert_eq!(&amp;tags2[1], &quot;sound: water_drip.ogg&quot;);
+</span><span class="boring">}
+</span></code></pre></pre>
+<p>Tags can also be added to choice lines.</p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate inkling;
+</span><span class="boring">use inkling::{read_story_from_string, Prompt};
+</span><span class="boring">let content = r#&quot;
+</span><span class="boring">
+</span>*   I made my way to the well. # sound: footsteps.ogg
+<span class="boring">
+</span><span class="boring">&quot;#;
+</span><span class="boring">let mut story = read_story_from_string(content).unwrap();
+</span><span class="boring">let mut buffer = Vec::new();
+</span><span class="boring">story.start().unwrap();
+</span><span class="boring">match story.resume(&amp;mut buffer).unwrap() {
+</span><span class="boring">  Prompt::Choice(choices) =&gt; {
+</span><span class="boring">      assert_eq!(choices[0].tags[0], &quot;sound: footsteps.ogg&quot;);
+</span><span class="boring">  }
+</span><span class="boring">  _ =&gt; unreachable!()
+</span><span class="boring">}
+</span><span class="boring">}
+</span></code></pre></pre>
+<h1><a class="header" href="#missing-features" id="missing-features">Missing features</a></h1>
+<p>This page lists notable features of <code>Ink</code> which are currently missing in <code>inkling</code>.
+Some may be implemented, others will be more difficult. </p>
+<h2><a class="header" href="#variable-assignment-1" id="variable-assignment-1">Variable assignment</a></h2>
+<p>Assigning new values to <a href="features/variables.html">variables</a> in the script.</p>
+<pre><code class="language-plain">~ rank = &quot;Capitaine&quot;
+~ coins = coins + 4
+</code></pre>
+<h2><a class="header" href="#including-other-files" id="including-other-files">Including other files</a></h2>
+<p>Dividing the script into several files and including them in the preamble 
+of the main script.</p>
+<pre><code class="language-plain">INCLUDE château.ink
+INCLUDE gloomwood.ink
+</code></pre>
+<h2><a class="header" href="#multiline-comments" id="multiline-comments">Multiline comments</a></h2>
+<p>Using <code>/*</code> and <code>*/</code> markers to begin and end multiline comments.</p>
+<pre><code class="language-plain">Line one /* We can use multiline comments
+            to split them over several lines, 
+            which may aid readability. */
+Line two
+</code></pre>
+<h2><a class="header" href="#multiline-conditionals" id="multiline-conditionals">Multiline conditionals</a></h2>
+<p>Using multiline blocks to create larger if-else or switch statements.</p>
+<pre><code class="language-plain">{condition:
+    if condition content
+- else:
+    else this content
+}
+</code></pre>
+<pre><code class="language-plain">{
+    - condition1:
+        if condition 1 content
+    - condition2:
+        else if condition 2 content
+    - else:
+        else this content
+}
+</code></pre>
+<h2><a class="header" href="#labels" id="labels">Labels</a></h2>
+<p>Add <a href="https://github.com/inkle/ink/blob/master/Documentation/WritingWithInk.md#gathers-and-options-can-be-labelled">labels</a> 
+to choices and gather points to refer and divert to them.</p>
+<pre><code class="language-plain">*   (one) Choice
+*   (two) Choice
+-   (gather) Gather 
+</code></pre>
+<h2><a class="header" href="#functions" id="functions">Functions</a></h2>
+<p>Calling various types of functions from the script.</p>
+<h3><a class="header" href="#built-in-functions" id="built-in-functions">Built-in functions</a></h3>
+<p>Support for the pre-defined functions of <code>Ink</code>.</p>
+<pre><code class="language-plain">~ result = RANDOM(1, 6)
+~ result = POW(3, 2)
+</code></pre>
+<h3><a class="header" href="#definining-functions" id="definining-functions">Definining functions</a></h3>
+<p>Defining functions in the script to print text, modify variables and return calculations.</p>
+<pre><code class="language-plain">// Modifying referenced values
+=== function add(ref x, value) ===
+~ x = x + value
+</code></pre>
+<pre><code class="language-plain">// Modifying global variables
+VAR coins = 0
+=== function add_wealth(v) ===
+~ coins = coins + v
+</code></pre>
+<pre><code class="language-plain">// Writing text 
+=== function greet(person) ===
+Greetings, {person}!
+</code></pre>
+<h3><a class="header" href="#external-functions" id="external-functions">External functions</a></h3>
+<p>Begin able to call external Rust functions from the script.</p>
+<h2><a class="header" href="#threads" id="threads">Threads</a></h2>
+<p><a href="https://github.com/inkle/ink/blob/master/Documentation/WritingWithInk.md#2-threads">More information.</a></p>
+<h2><a class="header" href="#tunnels" id="tunnels">Tunnels</a></h2>
+<p><a href="https://github.com/inkle/ink/blob/master/Documentation/WritingWithInk.md#1-tunnels">More information.</a></p>
+<h2><a class="header" href="#advanced-state-tracking" id="advanced-state-tracking">Advanced state tracking</a></h2>
+<p><a href="https://github.com/inkle/ink/blob/master/Documentation/WritingWithInk.md#part-5-advanced-state-tracking">More information.</a></p>
+<h1><a class="header" href="#in-regards-to-compatibility" id="in-regards-to-compatibility">In regards to compatibility</a></h1>
+<p>The authors have made a best effort attempt to replicate the behavior of <code>Ink</code> in 
+most respects. However, since this is a completely separate implementation, there 
+are surely certain features which even if implemented 
+(<a href="back-matter/./../features/missing-features.html">and many aren’t</a>), result in different output 
+from the same input <code>.ink</code> script. Edge cases may be a-plenty. </p>
+<p>We do care about making <code>Ink</code> and <code>inkling</code> as similar as possible, to the extent 
+that we can. If you find cases where the results differ, please let us know by 
+opening an issue on the <a href="https://github.com/pjohansson/inkling">Github repository</a>.</p>
+<p>In the end, <code>inkling</code> cannot be considered a drop-in replacement for <code>Inkle's</code> own 
+implementation of the language. More realistically, it’s inspired by it, sharing 
+most features but with results which may differ. Keep this in mind while writing 
+a script.</p>
+<p>I’d like to end this note by thanking <code>Inkle</code> for designing the language and 
+being the inspiration for this project. And of course for their many fantastic
+games and stories, which is some of the best work out there.</p>
+<p>— Petter Johansson, 2020</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                        
+
+                        
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                
+
+                
+            </nav>
+
+        </div>
+
+        
+
+        
+
+        
+
+        
+
+        
+
+        
+        <script src="elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="searcher.js" type="text/javascript" charset="utf-8"></script>
+        
+
+        <script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+        
+
+        
+        
+        <script type="text/javascript">
+        window.addEventListener('load', function() {
+            window.setTimeout(window.print, 100);
+        });
+        </script>
+        
+        
+
+    </body>
+</html>

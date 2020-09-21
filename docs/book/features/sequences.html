@@ -1,0 +1,469 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js light">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Alternating sequences - Inkling</title>
+        
+        
+
+
+        <!-- Custom HTML head -->
+        
+
+
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="User guide for &#x60;inkling&#x60;">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        
+        <link rel="icon" href="../favicon.svg">
+        
+        
+        <link rel="shortcut icon" href="../favicon.png">
+        
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        
+        <link rel="stylesheet" href="../fonts/fonts.css">
+        
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="../highlight.css">
+        <link rel="stylesheet" href="../tomorrow-night.css">
+        <link rel="stylesheet" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        
+
+        
+    </head>
+    <body>
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">
+            var path_to_root = "../";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../index.html">Inkling</a></li><li class="chapter-item expanded "><div><strong aria-hidden="true">1.</strong> Introduction</div></li><li><ol class="section"><li class="chapter-item expanded "><div><strong aria-hidden="true">1.1.</strong> What is Ink?</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">1.2.</strong> Why use Inkling?</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">1.3.</strong> Short example</div></li></ol></li><li class="chapter-item expanded "><div><strong aria-hidden="true">2.</strong> Using Inkling</div></li><li><ol class="section"><li class="chapter-item expanded "><div><strong aria-hidden="true">2.1.</strong> Design intent</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">2.2.</strong> Reading a script</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">2.3.</strong> Helper functions</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">2.4.</strong> Example: Text adventure</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">2.5.</strong> Example: Dialogue trees</div></li></ol></li><li class="chapter-item expanded "><a href="../features/summary.html"><strong aria-hidden="true">3.</strong> Implemented Ink features</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../features/basic.html"><strong aria-hidden="true">3.1.</strong> Basic elements</a></li><li class="chapter-item expanded "><a href="../features/structure.html"><strong aria-hidden="true">3.2.</strong> Story structure</a></li><li class="chapter-item expanded "><a href="../features/variables.html"><strong aria-hidden="true">3.3.</strong> Variables</a></li><li class="chapter-item expanded "><a href="../features/conditional-content.html"><strong aria-hidden="true">3.4.</strong> Conditional content</a></li><li class="chapter-item expanded "><a href="../features/sequences.html" class="active"><strong aria-hidden="true">3.5.</strong> Alternating sequences</a></li><li class="chapter-item expanded "><a href="../features/metadata.html"><strong aria-hidden="true">3.6.</strong> Story metadata</a></li><li class="chapter-item expanded "><a href="../features/missing-features.html"><strong aria-hidden="true">3.7.</strong> Missing features</a></li></ol></li><li class="chapter-item expanded "><a href="../back-matter/compatibility.html">In regards to compatibility</a></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky bordered">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light (default)</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                        
+                    </div>
+
+                    <h1 class="menu-title">Inkling</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        
+                    </div>
+                </div>
+
+                
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" name="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+                
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1><a class="header" href="#alternating-sequences" id="alternating-sequences">Alternating sequences</a></h1>
+<p><code>Ink</code> comes with several methods which vary the content of a line every time it is 
+seen. These are known as <em>alternating sequences</em> of content.</p>
+<h2><a class="header" href="#sequences" id="sequences">Sequences</a></h2>
+<p>Alternative sequences can be declared in a line using curly braces and <code>|</code> separators. 
+Every time the line is revisited, the next piece will be presented, allowing us to 
+write something like this:</p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate inkling;
+</span><span class="boring">use inkling::read_story_from_string;
+</span><span class="boring">let content = r&quot;
+</span><span class="boring">-&gt; continue
+</span><span class="boring">=== continue ===
+</span><span class="boring">
+</span>The train had arrived {in Mannheim|in Heidelberg|at its final stop}.
+<span class="boring">
+</span><span class="boring">+ [Continue] -&gt; continue
+</span><span class="boring">&quot;;
+</span><span class="boring">let mut story = read_story_from_string(content).unwrap();
+</span><span class="boring">let mut buffer = Vec::new();
+</span><span class="boring">story.start().unwrap();
+</span><span class="boring">story.resume(&amp;mut buffer).unwrap();
+</span><span class="boring">assert_eq!(&amp;buffer.last().unwrap().text, &quot;The train had arrived in Mannheim.\n&quot;);
+</span><span class="boring">story.make_choice(0).unwrap();
+</span><span class="boring">story.resume(&amp;mut buffer).unwrap();
+</span><span class="boring">assert_eq!(&amp;buffer.last().unwrap().text, &quot;The train had arrived in Heidelberg.\n&quot;);
+</span><span class="boring">story.make_choice(0).unwrap();
+</span><span class="boring">story.resume(&amp;mut buffer).unwrap();
+</span><span class="boring">assert_eq!(&amp;buffer.last().unwrap().text, &quot;The train had arrived at its final stop.\n&quot;);
+</span><span class="boring">story.make_choice(0).unwrap();
+</span><span class="boring">story.resume(&amp;mut buffer).unwrap();
+</span><span class="boring">assert_eq!(&amp;buffer.last().unwrap().text, &quot;The train had arrived at its final stop.\n&quot;);
+</span><span class="boring">}
+</span></code></pre></pre>
+<p>When <a href="structure.html#revisiting-content">revisiting</a> this line, it will go through the 
+alternatives in order, then repeat the final value after reaching it. In <code>Ink</code> terms,
+this is called a <em>sequence</em>.</p>
+<pre><code class="language-plain">The train had arrived in Mannheim.
+The train had arrived in Heidelberg.
+The train had arrived at its final stop.
+The train had arrived at its final stop.
+</code></pre>
+<h3><a class="header" href="#cycle-sequences" id="cycle-sequences">Cycle sequences</a></h3>
+<p><em>Cycle sequences</em> repeat the entire sequence after reaching the final piece. They are 
+denoted by starting the first alternative with a ‘&amp;’ marker.</p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate inkling;
+</span><span class="boring">use inkling::read_story_from_string;
+</span><span class="boring">let content = r&quot;
+</span><span class="boring">-&gt; continue
+</span><span class="boring">=== continue ===
+</span><span class="boring">
+</span>Today is a {&amp;Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday}.
+<span class="boring">
+</span><span class="boring">+ [Continue] -&gt; continue
+</span><span class="boring">&quot;;
+</span><span class="boring">let mut story = read_story_from_string(content).unwrap();
+</span><span class="boring">let mut buffer = Vec::new();
+</span><span class="boring">story.start().unwrap();
+</span><span class="boring">for day in [&quot;Monday&quot;, &quot;Tuesday&quot;, &quot;Wednesday&quot;, &quot;Thursday&quot;, &quot;Friday&quot;, &quot;Saturday&quot;, &quot;Sunday&quot;, &quot;Monday&quot;].iter() {
+</span><span class="boring">  story.resume(&amp;mut buffer).unwrap();
+</span><span class="boring">  assert_eq!(buffer.last().unwrap().text, format!(&quot;Today is a {}.\n&quot;, day));
+</span><span class="boring">  story.make_choice(0).unwrap();
+</span><span class="boring">}
+</span><span class="boring">}
+</span></code></pre></pre>
+<pre><code class="language-plain">Today is a Monday.
+Today is a Tuesday.
+Today is a Wednesday.
+[...]
+Today is a Sunday.
+Today is a Monday.
+</code></pre>
+<h3><a class="header" href="#once-only-sequences" id="once-only-sequences">Once-only sequences</a></h3>
+<p><em>Once-only sequences</em> goes through all alternatives in order and then produce nothing.
+They are denoted by starting the first alternative with a ‘!’ marker.</p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate inkling;
+</span><span class="boring">use inkling::read_story_from_string;
+</span><span class="boring">let content = r&quot;
+</span><span class="boring">-&gt; continue
+</span><span class="boring">=== continue ===
+</span><span class="boring">
+</span>I met with Anirudh{! for the first time| for the second time}.
+<span class="boring">
+</span><span class="boring">+ [Continue] -&gt; continue
+</span><span class="boring">&quot;;
+</span><span class="boring">let mut story = read_story_from_string(content).unwrap();
+</span><span class="boring">let mut buffer = Vec::new();
+</span><span class="boring">story.start().unwrap();
+</span><span class="boring">story.resume(&amp;mut buffer).unwrap();
+</span><span class="boring">assert_eq!(&amp;buffer.last().unwrap().text, &quot;I met with Anirudh for the first time.\n&quot;);
+</span><span class="boring">story.make_choice(0).unwrap();
+</span><span class="boring">story.resume(&amp;mut buffer).unwrap();
+</span><span class="boring">assert_eq!(&amp;buffer.last().unwrap().text, &quot;I met with Anirudh for the second time.\n&quot;);
+</span><span class="boring">story.make_choice(0).unwrap();
+</span><span class="boring">story.resume(&amp;mut buffer).unwrap();
+</span><span class="boring">assert_eq!(&amp;buffer.last().unwrap().text, &quot;I met with Anirudh.\n&quot;);
+</span><span class="boring">}
+</span></code></pre></pre>
+<pre><code class="language-plain">I met with Anirudh for the first time.
+I met with Anirudh for the second time.
+I met with Anirudh.
+</code></pre>
+<h3><a class="header" href="#shuffle-sequences" id="shuffle-sequences">Shuffle sequences</a></h3>
+<p><em>Shuffle sequences</em> go through the alternatives in a random order, then shuffle the
+alternatives and deal them again. They are denoted by starting the first alternative 
+with a ‘~’ marker.</p>
+<p>Note that these are only random if <code>inkling</code> has been compiled with the <code>random</code> feature.
+Otherwise they mimic the behavior of regular sequences, just going through the alternatives
+in the declared order.</p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">let content = r&quot;
+</span><span class="boring">-&gt; continue
+</span><span class="boring">=== continue ===
+</span><span class="boring">
+</span>I was dealt a Jack of {~hearts|spades|diamonds|clubs}.
+<span class="boring">
+</span><span class="boring">+ [Continue] -&gt; continue
+</span><span class="boring">&quot;;
+</span><span class="boring">}
+</span></code></pre></pre>
+<pre><code class="language-plain">I was dealt a Jack of diamonds.
+I was dealt a Jack of spades.
+I was dealt a Jack of hearts.
+I was dealt a Jack of clubs.
+</code></pre>
+<h2><a class="header" href="#nested-alternatives" id="nested-alternatives">Nested alternatives</a></h2>
+<p>Alternatives can of course hide even more alternatives. How would we otherwise have any fun in life?</p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate inkling;
+</span><span class="boring">use inkling::read_story_from_string;
+</span><span class="boring">let content = r&quot;
+</span><span class="boring">-&gt; continue
+</span><span class="boring">=== continue ===
+</span><span class="boring">
+</span>I {&amp;{strode|walked} hastily|waltzed {gracefully|clumsily}} into the room.
+<span class="boring">
+</span><span class="boring">+ [Continue] -&gt; continue
+</span><span class="boring">&quot;;
+</span><span class="boring">let mut story = read_story_from_string(content).unwrap();
+</span><span class="boring">let mut buffer = Vec::new();
+</span><span class="boring">story.start().unwrap();
+</span><span class="boring">story.resume(&amp;mut buffer).unwrap();
+</span><span class="boring">assert_eq!(&amp;buffer.last().unwrap().text, &quot;I strode hastily into the room.\n&quot;);
+</span><span class="boring">story.make_choice(0).unwrap();
+</span><span class="boring">story.resume(&amp;mut buffer).unwrap();
+</span><span class="boring">assert_eq!(&amp;buffer.last().unwrap().text, &quot;I waltzed gracefully into the room.\n&quot;);
+</span><span class="boring">story.make_choice(0).unwrap();
+</span><span class="boring">story.resume(&amp;mut buffer).unwrap();
+</span><span class="boring">assert_eq!(&amp;buffer.last().unwrap().text, &quot;I walked hastily into the room.\n&quot;);
+</span><span class="boring">story.make_choice(0).unwrap();
+</span><span class="boring">story.resume(&amp;mut buffer).unwrap();
+</span><span class="boring">assert_eq!(&amp;buffer.last().unwrap().text, &quot;I waltzed clumsily into the room.\n&quot;);
+</span><span class="boring">}
+</span></code></pre></pre>
+<pre><code class="language-plain">I strode hastily into the room.
+I waltzed gracefully into the room.
+I walked hastily into the room.
+I waltzed clumsily into the room.
+</code></pre>
+<h2><a class="header" href="#diverts-in-alternatives" id="diverts-in-alternatives">Diverts in alternatives</a></h2>
+<p>We can use diverts inside of alternatives to alternatively trigger different parts 
+of the story.</p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate inkling;
+</span><span class="boring">use inkling::read_story_from_string;
+</span><span class="boring">let content = r&quot;
+</span><span class="boring">-&gt; continue
+</span><span class="boring">=== continue ===
+</span><span class="boring">
+</span>The {first|next} time I saw the door it was {locked. -&gt; locked_door|open. -&gt; open_door}
+
+=== locked_door ===
+I had to return another day.
+<span class="boring">-&gt; continue
+</span>
+=== open_door ===
+In the doorway stood a thin figure.
+<span class="boring">
+</span><span class="boring">&quot;;
+</span><span class="boring">let mut story = read_story_from_string(content).unwrap();
+</span><span class="boring">let mut buffer = Vec::new();
+</span><span class="boring">story.start().unwrap();
+</span><span class="boring">story.resume(&amp;mut buffer).unwrap();
+</span><span class="boring">assert_eq!(&amp;buffer[0].text, &quot;The first time I saw the door it was locked.\n&quot;);
+</span><span class="boring">assert_eq!(&amp;buffer[1].text, &quot;I had to return another day.\n&quot;);
+</span><span class="boring">assert_eq!(&amp;buffer[2].text, &quot;The next time I saw the door it was open.\n&quot;);
+</span><span class="boring">assert_eq!(&amp;buffer[3].text, &quot;In the doorway stood a thin figure.\n&quot;);
+</span><span class="boring">}
+</span></code></pre></pre>
+<pre><code class="language-plain">The first time I saw the door it was locked. 
+I had to return another day.
+The next time I saw the door it was open.
+In the doorway stood a thin figure.
+</code></pre>
+<p>Here’s where <a href="basic.html#glue">glue</a> can come in handy. By adding glue before 
+the divert we can continue the same paragraph in a new knot. Building on the
+previous example:</p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate inkling;
+</span><span class="boring">use inkling::read_story_from_string;
+</span><span class="boring">let content = r&quot;
+</span><span class="boring">-&gt; continue
+</span><span class="boring">=== continue ===
+</span><span class="boring">
+</span>The {first|next} time I saw the door it was {locked. -&gt; locked_door|open. -&gt; open_door}
+
+=== locked_door ===
+&lt;&gt; I had to return another day.
+<span class="boring">-&gt; continue
+</span>
+=== open_door ===
+&lt;&gt; In the doorway stood a thin figure.
+<span class="boring">
+</span><span class="boring">&quot;;
+</span><span class="boring">let mut story = read_story_from_string(content).unwrap();
+</span><span class="boring">let mut buffer = Vec::new();
+</span><span class="boring">story.start().unwrap();
+</span><span class="boring">story.resume(&amp;mut buffer).unwrap();
+</span><span class="boring">assert_eq!(&amp;buffer[0].text, &quot;The first time I saw the door it was locked. &quot;);
+</span><span class="boring">assert_eq!(&amp;buffer[1].text, &quot;I had to return another day.\n&quot;);
+</span><span class="boring">assert_eq!(&amp;buffer[2].text, &quot;The next time I saw the door it was open. &quot;);
+</span><span class="boring">assert_eq!(&amp;buffer[3].text, &quot;In the doorway stood a thin figure.\n&quot;);
+</span><span class="boring">}
+</span></code></pre></pre>
+<pre><code class="language-plain">The first time I saw the door it was locked. I had to return another day.
+The next time I saw the door it was open. In the doorway stood a thin figure.
+</code></pre>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                        
+                            <a rel="prev" href="../features/conditional-content.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+                        
+
+                        
+                            <a rel="next" href="../features/metadata.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+                        
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                
+                    <a rel="prev" href="../features/conditional-content.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                
+
+                
+                    <a rel="next" href="../features/metadata.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+                
+            </nav>
+
+        </div>
+
+        
+
+        
+
+        
+
+        
+
+        
+
+        
+        <script src="../elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../searcher.js" type="text/javascript" charset="utf-8"></script>
+        
+
+        <script src="../clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+        
+
+        
+
+    </body>
+</html>
