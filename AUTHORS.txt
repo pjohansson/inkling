@@ -1,7 +1,0 @@
-Main authors:
-===
-Petter Johansson
-
-With contributions from:
-===
-Matthew Woelk
