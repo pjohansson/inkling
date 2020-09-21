@@ -95,7 +95,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><a href="index.html">Inkling</a></li><li class="chapter-item expanded "><div><strong aria-hidden="true">1.</strong> Introduction</div></li><li><ol class="section"><li class="chapter-item expanded "><div><strong aria-hidden="true">1.1.</strong> What is Ink?</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">1.2.</strong> Why use Inkling?</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">1.3.</strong> Short example</div></li></ol></li><li class="chapter-item expanded "><div><strong aria-hidden="true">2.</strong> Using Inkling</div></li><li><ol class="section"><li class="chapter-item expanded "><div><strong aria-hidden="true">2.1.</strong> Design intent</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">2.2.</strong> Reading a script</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">2.3.</strong> Helper functions</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">2.4.</strong> Example: Text adventure</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">2.5.</strong> Example: Dialogue trees</div></li></ol></li><li class="chapter-item expanded "><a href="features/summary.html"><strong aria-hidden="true">3.</strong> Implemented Ink features</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="features/basic.html"><strong aria-hidden="true">3.1.</strong> Basic elements</a></li><li class="chapter-item expanded "><a href="features/structure.html"><strong aria-hidden="true">3.2.</strong> Story structure</a></li><li class="chapter-item expanded "><a href="features/variables.html"><strong aria-hidden="true">3.3.</strong> Variables</a></li><li class="chapter-item expanded "><a href="features/conditional-content.html"><strong aria-hidden="true">3.4.</strong> Conditional content</a></li><li class="chapter-item expanded "><a href="features/sequences.html"><strong aria-hidden="true">3.5.</strong> Alternating sequences</a></li><li class="chapter-item expanded "><a href="features/metadata.html"><strong aria-hidden="true">3.6.</strong> Story metadata</a></li><li class="chapter-item expanded "><a href="features/missing-features.html"><strong aria-hidden="true">3.7.</strong> Missing features</a></li></ol></li><li class="chapter-item expanded "><a href="back-matter/compatibility.html">In regards to compatibility</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="index.html">Inkling</a></li><li class="chapter-item expanded "><a href="introduction/summary.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="introduction/what-is-ink.html"><strong aria-hidden="true">1.1.</strong> What is Ink?</a></li><li class="chapter-item expanded "><a href="introduction/what-is-inkling.html"><strong aria-hidden="true">1.2.</strong> What is Inkling?</a></li><li class="chapter-item expanded "><a href="introduction/example.html"><strong aria-hidden="true">1.3.</strong> Short example</a></li></ol></li><li class="chapter-item expanded "><div><strong aria-hidden="true">2.</strong> Using Inkling</div></li><li><ol class="section"><li class="chapter-item expanded "><div><strong aria-hidden="true">2.1.</strong> Design intent</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">2.2.</strong> Reading a script</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">2.3.</strong> Helper functions</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">2.4.</strong> Saving and loading</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">2.5.</strong> Example: Text adventure</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">2.6.</strong> Example: Dialogue trees</div></li></ol></li><li class="chapter-item expanded "><a href="features/summary.html"><strong aria-hidden="true">3.</strong> Implemented Ink features</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="features/basic.html"><strong aria-hidden="true">3.1.</strong> Basic elements</a></li><li class="chapter-item expanded "><a href="features/structure.html"><strong aria-hidden="true">3.2.</strong> Story structure</a></li><li class="chapter-item expanded "><a href="features/variables.html"><strong aria-hidden="true">3.3.</strong> Variables</a></li><li class="chapter-item expanded "><a href="features/conditional-content.html"><strong aria-hidden="true">3.4.</strong> Conditional content</a></li><li class="chapter-item expanded "><a href="features/sequences.html"><strong aria-hidden="true">3.5.</strong> Alternating sequences</a></li><li class="chapter-item expanded "><a href="features/metadata.html"><strong aria-hidden="true">3.6.</strong> Story metadata</a></li><li class="chapter-item expanded "><a href="features/missing-features.html"><strong aria-hidden="true">3.7.</strong> Missing features</a></li></ol></li><li class="chapter-item expanded "><a href="back-matter/compatibility.html">In regards to compatibility</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -172,6 +172,87 @@ documentation of the API is available at <a href="https://docs.rs/inkling">docs.
 <h2><a class="header" href="#license" id="license">License</a></h2>
 <p><code>inkling</code> is copyleft, licensed under the Parity License. The code is available 
 on <a href="https://github.com/pjohansson/inkling">Github</a>.</p>
+<h1><a class="header" href="#introduction" id="introduction">Introduction</a></h1>
+<p>When writing a story for a game one has to consider how to get the script into it.
+This is simple if the script is in plain text, but depending on our game we might
+need to account for many possibilities, including but not limited to:</p>
+<ul>
+<li>Using variables for names or items which are declared elsewhere </li>
+<li>Branching the story into different paths</li>
+<li>Testing conditions for presenting certain parts</li>
+<li>Marking up content for emphasis or effect</li>
+</ul>
+<p><code>Ink</code> is a scripting language which implements many of these features in its design.
+<code>inkling</code> is a library which can read this language and present the final text 
+to the reader. This chapter will introduce what the language is and how <code>inkling</code> 
+works with it.</p>
+<h1><a class="header" href="#what-is-ink" id="what-is-ink">What is Ink?</a></h1>
+<p><code>Ink</code> is a scripting language created by game developer <a href="https://www.inklestudios.com/">Inkle</a> 
+to use in their many narrative driven games, including <a href="https://www.inklestudios.com/80days/">80 Days</a>, 
+<a href="https://www.inklestudios.com/heavensvault/">Heaven’s Vault</a> 
+and <a href="https://www.inklestudios.com/pendragon/">Pendragon</a>. </p>
+<p>It is designed to make it easy to write a script in regular text files, without the need 
+for complicated tools (although Inkle does provide <a href="https://www.github.com/inkle/inky/releases/latest">such tools</a>). 
+Since their games are narrative heavy, with dialogue and paths which change as the player
+moves through them, it has excellent support for branching the story into different parts.
+All this while still being very easy to read.</p>
+<p>More information about the language can be found on <a href="https://www.inklestudios.com/ink/">Inkle’s web site</a>.
+This includes several tutorials for getting familiar with both basic and advanced 
+features of the language.</p>
+<h1><a class="header" href="#what-is-inkling" id="what-is-inkling">What is Inkling?</a></h1>
+<p><code>inkling</code> is a library which reads stories written in <code>Ink</code> and presents their content
+to the user. It is an interface, not a game engine: it validates the script and 
+returns the text, but it is up to the caller to take that text and use it however
+they want in their game.</p>
+<h2><a class="header" href="#why-use-inkling" id="why-use-inkling">Why use <code>inkling</code>?</a></h2>
+<ul>
+<li>Simple interface</li>
+<li>Rust native</li>
+<li>Support for non-latin alphabets in identifiers</li>
+<li>Few dependencies: optional <code>serde</code> dependency for easy saving and loading, and optional 
+<code>rand</code> dependency for adding randomized features</li>
+</ul>
+<h2><a class="header" href="#why-not" id="why-not">Why not?</a></h2>
+<ul>
+<li>Fewer features than Inkle’s implementation of the language</li>
+<li>Untested in serious work loads and large scripts: expect bugs</li>
+<li>Written by a hobbyist, who cannot promise quick fixes or support</li>
+</ul>
+<h1><a class="header" href="#short-example" id="short-example">Short example</a></h1>
+<p>This section provides an example of a script and how to read it into your program
+with <code>inkling</code>.</p>
+<h2><a class="header" href="#script" id="script">Script</a></h2>
+<pre><code class="language-ink">// This is an `ink` script, saved as 'story.ink'
+
+A single candle flickered by side.
+Pen in hand I made my decision and procured a blank letter.
+
+*   &quot;Dear Guillaume&quot;
+    Sparing the more unfavorable details from him, I requested his aid.
+    -&gt; guillaume_arrives
+
+*   &quot;To the Fiendish Impostor&quot;
+    -&gt; write_to_laurent
+
+=== guillaume_arrives ===
+A few days later my servant informed me of Guillaume's arrival. 
+I met with him in the lounge.
+
+=== write_to_laurent ===
+The letter was spiked with insults and veiled threats.
+</code></pre>
+<h2><a class="header" href="#rust-code" id="rust-code">Rust code</a></h2>
+<pre><code class="language-rust ignore"><span class="boring">extern crate inkling;
+</span>use std::fs::read_to_string;
+use inkling::read_story_from_string;
+
+// Read the script into memory
+let story_content = read_to_string(&quot;story.ink&quot;).unwrap();
+
+// Read the story from the script
+let mut story = read_story_from_string(&amp;story_content);
+</code></pre>
+<p>The next chapter will explain how to proceed from here.</p>
 <h1><a class="header" href="#implemented-ink-features" id="implemented-ink-features">Implemented Ink features</a></h1>
 <p>This chapter contains a list of the <code>Ink</code> features which are available in <code>inkling</code>.</p>
 <p>More information about these features can be found in 
@@ -1656,7 +1737,7 @@ begin with the <code>#</code> marker.</p>
 <p>Tags are stored as pure strings and can thus be of any form you want. <code>inkling</code> assigns no
 meaning to them on its own, it’s for you as the user to decide how to treat them.</p>
 <h2><a class="header" href="#global-tags" id="global-tags">Global tags</a></h2>
-<p>Tags in the preamble are global story tags. Here you can typically mark up metadata for the script.</p>
+<p>Tags in the <a href="features/structure.html#preamble">preamble</a> are global story tags. Here you can typically mark up metadata for the script.</p>
 <pre><pre class="playground"><code class="language-rust edition2018">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
