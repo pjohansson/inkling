@@ -8,8 +8,8 @@ with `inkling`.
 ```ink
 // This is an `ink` script, saved as 'story.ink'
 
-A single candle flickered by side.
-Pen in hand I made my decision and procured a blank letter.
+A single candle flickered by my side.
+Pen in hand I procured a blank letter.
 
 *   "Dear Guillaume"
     Sparing the more unfavorable details from him, I requested his aid.
@@ -37,7 +37,7 @@ use inkling::read_story_from_string;
 let story_content = read_to_string("story.ink").unwrap();
 
 // Read the story from the script
-let mut story = read_story_from_string(&story_content);
+let mut story = read_story_from_string(&story_content).unwrap();
 ```
 
 The next chapter will explain how to proceed from here.

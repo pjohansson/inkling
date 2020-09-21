@@ -13,4 +13,5 @@ documentation of the API is available at [docs.rs](https://docs.rs/inkling).
 ## License 
 
 `inkling` is copyleft, licensed under the Parity License. The code is available 
-on [Github](https://github.com/pjohansson/inkling).
+on [Github](https://github.com/pjohansson/inkling). Contact us about the possibility
+of acquiring a private license.

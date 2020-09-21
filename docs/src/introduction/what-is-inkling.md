@@ -10,8 +10,8 @@ they want in their game.
 *   Simple interface
 *   Rust native
 *   Support for non-latin alphabets in identifiers
-*   Few dependencies: optional `serde` dependency for easy saving and loading, and optional 
-    `rand` dependency for adding randomized features
+*   Few dependencies: optional `serde` dependency for easy saving and loading, 
+    and optional `rand` dependency for adding randomized features
 
 
 ## Why not?
