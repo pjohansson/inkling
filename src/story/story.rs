@@ -2,7 +2,7 @@
 
 use crate::{
     consts::ROOT_KNOT_NAME,
-    error::{runtime::internal::StackError, InklingError, ReadError},
+    error::{InklingError, ReadError},
     follow::{ChoiceInfo, EncounteredEvent, FollowData, LineDataBuffer},
     knot::{get_empty_knot_counts, get_mut_stitch, get_num_visited, Address, KnotSet},
     line::Variable,
@@ -22,10 +22,12 @@ use serde::{Deserialize, Serialize};
 #[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
 /// Story with knots, diverts, choices and possibly lots of text.
 pub struct Story {
+    /// Current address in the story.
+    current_address: Address,
     /// Collection of `Knot`s which make up the story.
     knots: KnotSet,
-    /// Internal stack for which `Knot` is actively being followed.
-    stack: Vec<Address>,
+    /// History of visited addresses.
+    history: Vec<Address>,
     /// Internal data for the story.
     data: FollowData,
     /// Global tags associated with the story.
@@ -274,8 +276,7 @@ impl Story {
     /// assert_eq!(&stitch.unwrap(), "dream");
     /// ```
     pub fn get_current_location(&self) -> Result<(String, Option<String>), InklingError> {
-        let address = self.get_current_address()?;
-        let (knot, stitch) = address.get_knot_and_stitch()?;
+        let (knot, stitch) = self.current_address.get_knot_and_stitch()?;
 
         if stitch == ROOT_KNOT_NAME {
             Ok((knot.to_string(), None))
@@ -522,12 +523,10 @@ impl Story {
         selection: Option<usize>,
         line_buffer: &mut LineBuffer,
     ) -> Result<Prompt, InklingError> {
-        let current_address = self.get_current_address()?;
-
         let mut internal_buffer = Vec::new();
 
         let (result, last_address) = follow_story(
-            &current_address,
+            &self.current_address,
             &mut internal_buffer,
             selection,
             &mut self.knots,
@@ -548,14 +547,9 @@ impl Story {
         }
     }
 
-    /// Get the current address from the stack.
-    fn get_current_address(&self) -> Result<Address, InklingError> {
-        self.stack.last().cloned().ok_or(StackError::NoStack.into())
-    }
-
     /// Set the given address as active on the stack.
     fn update_last_stack(&mut self, address: &Address) {
-        self.stack.push(address.clone());
+        self.current_address = address.clone();
     }
 }
 
@@ -589,8 +583,9 @@ pub fn read_story_from_string(string: &str) -> Result<Story, ReadError> {
     );
 
     Ok(Story {
+        current_address: root_address,
         knots,
-        stack: vec![root_address],
+        history: Vec::new(),
         data,
         tags,
         last_choices: None,
@@ -1068,7 +1063,7 @@ We hurried home to Savile Row as fast as we could.
     }
 
     #[test]
-    fn following_story_wrapper_updates_stack_to_last_address() {
+    fn following_story_wrapper_updates_current_address_to_last_address() {
         let content = "
 == addis_ababa
 -> tripoli.cinema
@@ -1091,7 +1086,7 @@ We hurried home to Savile Row as fast as we could.
 
         let address = Address::from_parts_unchecked("tripoli", Some("cinema"));
 
-        assert_eq!(story.stack.last().unwrap(), &address);
+        assert_eq!(story.current_address, address);
     }
 
     #[test]
@@ -1468,7 +1463,7 @@ We hurried home as fast as we could.
 
         story.move_to("hurry_home", None).unwrap();
 
-        let address = story.stack.last().unwrap();
+        let address = story.current_address.clone();
         assert_eq!(address.get_knot().unwrap(), "hurry_home");
         assert_eq!(address.get_stitch().unwrap(), ROOT_KNOT_NAME);
 
@@ -1503,7 +1498,7 @@ Once back home we feasted on cheese.
 
         story.move_to("hurry_home", Some("at_home")).unwrap();
 
-        let address = story.stack.last().unwrap();
+        let address = story.current_address.clone();
         assert_eq!(address.get_knot().unwrap(), "hurry_home");
         assert_eq!(address.get_stitch().unwrap(), "at_home");
 
@@ -1584,7 +1579,7 @@ Once back home we feasted on cheese.
     }
 
     #[test]
-    fn current_location_in_story_is_the_latest_address_pushed_on_the_stack() {
+    fn current_location_in_story_is_the_current_address() {
         let content = "
 
 We arrived into Almaty at 9.45pm exactly.
