@@ -53,6 +53,26 @@ use std::cmp::Ordering;
 /// assert_eq!(Variable::from("💜"), Variable::String("💜".to_string()));
 /// ```
 pub enum Variable {
+    /// True or false.
+    ///
+    /// When printed, the string representation of `true` is the number 1 and `false`
+    /// is the number 0.
+    Bool(bool),
+    /// Decimal number.
+    ///
+    /// Will print as that number, although floating point numbers can print weirdly sometimes.
+    Float(f32),
+    /// Integer number.
+    ///
+    /// Will print to that number.
+    Int(i32),
+    /// Text string.
+    String(String),
+    /// Divert to another address.
+    ///
+    /// This is fully internal and will never print to the story. If encountered as a variable
+    /// in the text flow it will raise an error, since it should not be there.
+    Divert(Address),
     /// Address to a stitch or other variable.
     ///
     /// If the address is another variable in the story it will evaluate to that. If it
@@ -68,26 +88,6 @@ pub enum Variable {
     /// as an address to either a knot/stitch or a global variable. The processor will
     /// take the value at the address and print that.
     Address(Address),
-    /// True or false.
-    ///
-    /// When printed, the string representation of `true` is the number 1 and `false`
-    /// is the number 0.
-    Bool(bool),
-    /// Divert to another address.
-    ///
-    /// This is fully internal and will never print to the story. If encountered as a variable
-    /// in the text flow it will raise an error, since it should not be there.
-    Divert(Address),
-    /// Decimal number.
-    ///
-    /// Will print as that number, although floating point numbers can print weirdly sometimes.
-    Float(f32),
-    /// Integer number.
-    ///
-    /// Will print to that number.
-    Int(i32),
-    /// Text string.
-    String(String),
 }
 
 impl Variable {
