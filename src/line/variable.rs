@@ -91,12 +91,105 @@ pub enum Variable {
 }
 
 impl Variable {
-    /// Return a string representation of the variable.
-    pub(crate) fn to_string(&self, data: &FollowData) -> Result<String, InklingError> {
+    /// Return the value of the variable as a string, if it is printable.
+    ///
+    /// `Int`, `Float`, `String` and `Bool` are printable variants because they can exist
+    /// outside of the context of `inkling`.
+    ///
+    /// `Divert` and `Address` are internal `inkling` constructs and have no meaning
+    /// to the player. Variables of such kinds yield `None`. They can be printed
+    /// using the `to_string_unchecked` method.
+    ///
+    /// # Examples
+    ///
+    /// ## Printable values
+    ///
+    /// ```
+    /// # use inkling::Variable;
+    /// assert_eq!(Variable::Int(3).to_string(), Some("3".to_string()));
+    /// assert_eq!(Variable::Float(0.5).to_string(), Some("0.5".to_string()));
+    /// assert_eq!(Variable::Bool(true).to_string(), Some("true".to_string()));
+    /// assert_eq!(Variable::Bool(false).to_string(), Some("false".to_string()));
+    /// assert_eq!(Variable::String("String".into()).to_string(), Some("String".to_string()));
+    /// ```
+    ///
+    /// ## Unprintable divert
+    ///
+    /// ```
+    /// # use inkling::read_story_from_string;
+    /// let content = "\
+    /// VAR destination = -> château
+    ///
+    /// === château ===
+    /// Meg arrives at the mansion.
+    /// ";
+    ///
+    /// let story = read_story_from_string(content).unwrap();
+    /// let variable = story.get_variable("destination").unwrap();
+    ///
+    /// assert_eq!(variable.to_string(), None);
+    /// ```
+    pub fn to_string(&self) -> Option<String> {
         match &self {
+            Variable::Bool(value) => Some(format!("{}", value)),
+            Variable::Float(value) => Some(format!("{}", value)),
+            Variable::Int(value) => Some(format!("{}", value)),
+            Variable::String(string) => Some(format!("{}", string)),
+            Variable::Divert(_) | Variable::Address(_) => None,
+        }
+    }
+
+    /// Return the value of the variable as a string without checking that it is printable.
+    ///
+    /// `Int`, `Float`, `String` and `Bool` are printable variants because they can exist
+    /// outside of the context of `inkling`.
+    ///
+    /// `Divert` and `Address` are internal `inkling` constructs and have no meaning
+    /// to the player. This function forces them to print their internal addresses.
+    /// Note that global variables can never be of kind `Address`, thus they should
+    /// never be exposed to the user. `Divert` variables, however, may be.
+    ///
+    /// # Examples
+    ///
+    /// ## Printable values
+    ///
+    /// ```
+    /// # use inkling::Variable;
+    /// assert_eq!(&Variable::Int(3).to_string_unchecked(), "3");
+    /// assert_eq!(&Variable::Float(0.5).to_string_unchecked(), "0.5");
+    /// assert_eq!(&Variable::Bool(true).to_string_unchecked(), "true");
+    /// assert_eq!(&Variable::Bool(false).to_string_unchecked(), "false");
+    /// assert_eq!(&Variable::String("String".into()).to_string_unchecked(), "String");
+    /// ```
+    ///
+    /// ## Unprintable divert
+    ///
+    /// ```
+    /// # use inkling::read_story_from_string;
+    /// let content = "\
+    /// VAR destination = -> château
+    ///
+    /// === château ===
+    /// Meg arrives at the mansion.
+    /// ";
+    ///
+    /// let story = read_story_from_string(content).unwrap();
+    /// let variable = story.get_variable("destination").unwrap();
+    ///
+    /// assert_eq!(&variable.to_string_unchecked(), "-> château");
+    /// ```
+    pub fn to_string_unchecked(&self) -> String {
+        match &self {
+            Variable::Divert(address) => format!("-> {}", address.to_string()),
+            // `Address` variants are fully internal and should not be possible to be operated
+            // on by a caller. As a fallback we return the address as a string.
+            Variable::Address(address) => address.to_string(),
+            _ => self.to_string().unwrap(),
+        }
+    }
 
     /// Return a string representation of the variable for printing in the story text.
-    /// 
+    ///
     /// If the variable is an address, the address will be followed until a non-address
     /// variable is found. That variable's string representation will then be returned.
     pub(crate) fn to_string_internal(&self, data: &FollowData) -> Result<String, InklingError> {
@@ -131,7 +224,7 @@ impl Variable {
     /// Return a simple string representation of the variable which does not follow addresses.
     ///
     /// This corresponds to a string which the variable could be parsed from.
-    /// 
+    ///
     /// Used for printing errors.
     pub(crate) fn to_error_string(&self) -> String {
         match &self {
@@ -856,11 +949,99 @@ mod tests {
     }
 
     #[test]
-    fn booleans_are_printed_as_numbers() {
+    fn variable_to_string_returns_numbers_for_int_and_float_variables() {
+        assert_eq!(&Variable::Int(5).to_string().unwrap(), "5");
+        assert_eq!(Variable::Float(3.4).to_string(), Some(format!("{}", 3.4)));
+    }
+
+    #[test]
+    fn variable_to_string_returns_bool_variables_as_text() {
+        assert_eq!(&Variable::Bool(false).to_string().unwrap(), "false");
+        assert_eq!(&Variable::Bool(true).to_string().unwrap(), "true");
+    }
+
+    #[test]
+    fn variable_to_string_returns_string_variables_as_the_string() {
+        let s = "A String".to_string();
+
+        assert_eq!(&Variable::String(s.clone()).to_string().unwrap(), &s);
+    }
+
+    #[test]
+    fn variable_to_string_returns_none_for_address_and_divert_variables() {
+        let knot = Address::from_parts_unchecked("tripoli", None);
+        let stitch = Address::from_parts_unchecked("tripoli", Some("cinema"));
+
+        assert!(Variable::Divert(knot.clone()).to_string().is_none());
+        assert!(Variable::Divert(stitch.clone()).to_string().is_none());
+
+        assert!(Variable::Address(knot.clone()).to_string().is_none());
+        assert!(Variable::Address(stitch.clone()).to_string().is_none());
+    }
+
+    #[test]
+    fn to_string_unchecked_returns_same_result_as_to_string_for_printable_kinds() {
+        let var_int = Variable::Int(5);
+        let var_float = Variable::Float(3.0);
+        let var_true = Variable::Bool(true);
+        let var_false = Variable::Bool(false);
+        let var_string = Variable::String("A String".to_string());
+
+        assert_eq!(var_int.to_string().unwrap(), var_int.to_string_unchecked());
+        assert_eq!(
+            var_float.to_string().unwrap(),
+            var_float.to_string_unchecked()
+        );
+        assert_eq!(
+            var_string.to_string().unwrap(),
+            var_string.to_string_unchecked()
+        );
+        assert_eq!(
+            var_true.to_string().unwrap(),
+            var_true.to_string_unchecked()
+        );
+        assert_eq!(
+            var_false.to_string().unwrap(),
+            var_false.to_string_unchecked()
+        );
+    }
+
+    #[test]
+    fn to_string_unchecked_returns_diverts_with_preceeding_divert_marker() {
+        let knot = Address::from_parts_unchecked("tripoli", None);
+        let stitch = Address::from_parts_unchecked("tripoli", Some("cinema"));
+
+        assert_eq!(&Variable::Divert(knot).to_string_unchecked(), "-> tripoli");
+        assert_eq!(
+            &Variable::Divert(stitch).to_string_unchecked(),
+            "-> tripoli.cinema"
+        );
+    }
+
+    #[test]
+    fn to_string_unchecked_returns_addresses_as_text() {
+        let knot = Address::from_parts_unchecked("tripoli", None);
+        let stitch = Address::from_parts_unchecked("tripoli", Some("cinema"));
+
+        assert_eq!(&Variable::Address(knot).to_string_unchecked(), "tripoli");
+        assert_eq!(
+            &Variable::Address(stitch).to_string_unchecked(),
+            "tripoli.cinema"
+        );
+    }
+
+    #[test]
+    fn booleans_are_internally_printed_as_numbers() {
         let data = mock_follow_data(&[], &[]);
 
-        assert_eq!(&Variable::Bool(true).to_string_internal(&data).unwrap(), "1");
-        assert_eq!(&Variable::Bool(false).to_string_internal(&data).unwrap(), "0");
+        assert_eq!(
+            &Variable::Bool(true).to_string_internal(&data).unwrap(),
+            "1"
+        );
+        assert_eq!(
+            &Variable::Bool(false).to_string_internal(&data).unwrap(),
+            "0"
+        );
     }
 
     #[test]
@@ -868,10 +1049,18 @@ mod tests {
         let data = mock_follow_data(&[], &[]);
 
         assert_eq!(&Variable::Int(5).to_string_internal(&data).unwrap(), "5");
-        assert_eq!(&Variable::Float(1.0).to_string_internal(&data).unwrap(), "1");
-        assert_eq!(&Variable::Float(1.35).to_string_internal(&data).unwrap(), "1.35");
         assert_eq!(
-            &Variable::Float(1.0000000003).to_string_internal(&data).unwrap(),
+            &Variable::Float(1.0).to_string_internal(&data).unwrap(),
+            "1"
+        );
+        assert_eq!(
+            &Variable::Float(1.35).to_string_internal(&data).unwrap(),
+            "1.35"
+        );
+        assert_eq!(
+            &Variable::Float(1.0000000003)
+                .to_string_internal(&data)
+                .unwrap(),
             "1"
         );
     }
@@ -898,9 +1087,16 @@ mod tests {
         let tripoli = Address::from_parts_unchecked("tripoli", Some("cinema"));
         let addis_ababa = Address::from_parts_unchecked("addis_ababa", Some("with_family"));
 
-        assert_eq!(&Variable::Address(tripoli).to_string_internal(&data).unwrap(), "0");
         assert_eq!(
-            &Variable::Address(addis_ababa).to_string_internal(&data).unwrap(),
+            &Variable::Address(tripoli)
+                .to_string_internal(&data)
+                .unwrap(),
+            "0"
+        );
+        assert_eq!(
+            &Variable::Address(addis_ababa)
+                .to_string_internal(&data)
+                .unwrap(),
             "3"
         );
     }
