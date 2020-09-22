@@ -1294,7 +1294,7 @@ being returned from <code>inkling</code> at runtime.</strong></p>
 </span><span class="boring">-&gt; thrice_fail
 </span><span class="boring">
 </span>=== thrice_fail ===
-The third time we return here we are out of choices and an error is returned.
+The third time we visit this we are out of choices and an error is returned.
 
 *   First choice -&gt; thrice_fail
 *   Second choice -&gt; thrice_fail
@@ -1327,7 +1327,8 @@ which is to say that it starts with a divert <code>-&gt;</code> marker.</p>
 </span><span class="boring">-&gt; twice_fail
 </span><span class="boring">
 </span>=== twice_fail ===
-The second time we return here we are out of choices and an error is returned.
+The second time we visit this we are out of regular choices.
+We then use the fallback.
 
 *   First choice -&gt; twice_fail
 *   -&gt; fallback
@@ -1370,7 +1371,7 @@ the divert marker.</p>
     -&gt; submit_article
 
 === submit_article ===
-You submit it to your editor.
+You submit it to your editor. Wow, writing is easy!
 <span class="boring">
 </span><span class="boring">&quot;;
 </span><span class="boring">let mut story = read_story_from_string(content).unwrap();
@@ -1384,7 +1385,7 @@ You submit it to your editor.
 </span><span class="boring">story.make_choice(0).unwrap();
 </span><span class="boring">story.resume(&amp;mut buffer).unwrap(); 
 </span><span class="boring">assert_eq!(&amp;buffer[0].text, &quot;The article is finished.\n&quot;);
-</span><span class="boring">assert_eq!(&amp;buffer[1].text, &quot;You submit it to your editor.\n&quot;);
+</span><span class="boring">assert!(&amp;buffer[1].text.starts_with(&quot;You submit it to your editor.&quot;));
 </span><span class="boring">}
 </span></code></pre></pre>
 <p>Fallback choices can also be sticky. If they are not they will also be consumed after
@@ -1402,7 +1403,7 @@ This will return an error if the fallback choice is used twice.
 *   -&gt; once_only_fallback 
 
 === sticky_fallback ===
-<span class="boring">{sticky_fallback &gt; 2 : -&gt; END} // exit once we have returned here twice
+<span class="boring">{sticky_fallback &gt; 4 : -&gt; END} // exit once we have returned here a few times
 </span>This sticky fallback choice can be use any number of times.
 +   -&gt; sticky_fallback 
 <span class="boring">
@@ -1916,7 +1917,7 @@ write something like this:</p>
 </span><span class="boring">assert_eq!(&amp;buffer.last().unwrap().text, &quot;The train had arrived at its final stop.\n&quot;);
 </span><span class="boring">}
 </span></code></pre></pre>
-<p>When <a href="features/structure.html#revisiting-content">revisiting</a> this line, it will go through the 
+<p>When <a href="features/structure.html#revisiting-content-and-choices">revisiting</a> this line, it will go through the 
 alternatives in order, then repeat the final value after reaching it. In <code>Ink</code> terms,
 this is called a <em>sequence</em>.</p>
 <pre><code class="language-plain">The train had arrived in Mannheim.
@@ -1926,7 +1927,7 @@ The train had arrived at its final stop.
 </code></pre>
 <h3><a class="header" href="#cycle-sequences" id="cycle-sequences">Cycle sequences</a></h3>
 <p><em>Cycle sequences</em> repeat the entire sequence after reaching the final piece. They are 
-denoted by starting the first alternative with a ‘&amp;’ marker.</p>
+denoted by starting the first alternative with a <code>&amp;</code> marker.</p>
 <pre><pre class="playground"><code class="language-rust edition2018">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -1959,7 +1960,7 @@ Today is a Monday.
 </code></pre>
 <h3><a class="header" href="#once-only-sequences" id="once-only-sequences">Once-only sequences</a></h3>
 <p><em>Once-only sequences</em> goes through all alternatives in order and then produce nothing.
-They are denoted by starting the first alternative with a ‘!’ marker.</p>
+They are denoted by starting the first alternative with a <code>!</code> marker.</p>
 <pre><pre class="playground"><code class="language-rust edition2018">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -1993,7 +1994,7 @@ I met with Anirudh.
 <h3><a class="header" href="#shuffle-sequences" id="shuffle-sequences">Shuffle sequences</a></h3>
 <p><em>Shuffle sequences</em> go through the alternatives in a random order, then shuffle the
 alternatives and deal them again. They are denoted by starting the first alternative 
-with a ‘~’ marker.</p>
+with a <code>~</code> marker.</p>
 <p>Note that these are only random if <code>inkling</code> has been compiled with the <code>random</code> feature.
 Otherwise they mimic the behavior of cycle sequences.</p>
 <pre><pre class="playground"><code class="language-rust edition2018">
@@ -2298,11 +2299,11 @@ from the same input <code>.ink</code> script. Edge cases may be a-plenty. </p>
 <p>We do care about making <code>Ink</code> and <code>inkling</code> as similar as possible, to the extent 
 that we can. If you find cases where the results differ, please let us know by 
 opening an issue on the <a href="https://github.com/pjohansson/inkling">Github repository</a>.</p>
-<p>In the end, <code>inkling</code> cannot be considered a drop-in replacement for <code>Inkle's</code> own 
+<p>In the end, <code>inkling</code> cannot be considered a drop-in replacement for Inkle’s own 
 implementation of the language. More realistically, it’s inspired by it, sharing 
 most features but with results which may differ. Keep this in mind while writing 
 a script.</p>
-<p>I’d like to end this note by thanking <code>Inkle</code> for designing the language and 
+<p>I’d like to end this note by thanking Inkle for designing the language and 
 being the inspiration for this project. And of course for their many fantastic
 games and stories, which is some of the best work out there.</p>
 <p>— Petter Johansson, 2020</p>

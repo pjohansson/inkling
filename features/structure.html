@@ -466,7 +466,7 @@ being returned from <code>inkling</code> at runtime.</strong></p>
 </span><span class="boring">-&gt; thrice_fail
 </span><span class="boring">
 </span>=== thrice_fail ===
-The third time we return here we are out of choices and an error is returned.
+The third time we visit this we are out of choices and an error is returned.
 
 *   First choice -&gt; thrice_fail
 *   Second choice -&gt; thrice_fail
@@ -499,7 +499,8 @@ which is to say that it starts with a divert <code>-&gt;</code> marker.</p>
 </span><span class="boring">-&gt; twice_fail
 </span><span class="boring">
 </span>=== twice_fail ===
-The second time we return here we are out of choices and an error is returned.
+The second time we visit this we are out of regular choices.
+We then use the fallback.
 
 *   First choice -&gt; twice_fail
 *   -&gt; fallback
@@ -542,7 +543,7 @@ the divert marker.</p>
     -&gt; submit_article
 
 === submit_article ===
-You submit it to your editor.
+You submit it to your editor. Wow, writing is easy!
 <span class="boring">
 </span><span class="boring">&quot;;
 </span><span class="boring">let mut story = read_story_from_string(content).unwrap();
@@ -556,7 +557,7 @@ You submit it to your editor.
 </span><span class="boring">story.make_choice(0).unwrap();
 </span><span class="boring">story.resume(&amp;mut buffer).unwrap(); 
 </span><span class="boring">assert_eq!(&amp;buffer[0].text, &quot;The article is finished.\n&quot;);
-</span><span class="boring">assert_eq!(&amp;buffer[1].text, &quot;You submit it to your editor.\n&quot;);
+</span><span class="boring">assert!(&amp;buffer[1].text.starts_with(&quot;You submit it to your editor.&quot;));
 </span><span class="boring">}
 </span></code></pre></pre>
 <p>Fallback choices can also be sticky. If they are not they will also be consumed after
@@ -574,7 +575,7 @@ This will return an error if the fallback choice is used twice.
 *   -&gt; once_only_fallback 
 
 === sticky_fallback ===
-<span class="boring">{sticky_fallback &gt; 2 : -&gt; END} // exit once we have returned here twice
+<span class="boring">{sticky_fallback &gt; 4 : -&gt; END} // exit once we have returned here a few times
 </span>This sticky fallback choice can be use any number of times.
 +   -&gt; sticky_fallback 
 <span class="boring">

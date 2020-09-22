@@ -195,7 +195,7 @@ write something like this:</p>
 </span><span class="boring">assert_eq!(&amp;buffer.last().unwrap().text, &quot;The train had arrived at its final stop.\n&quot;);
 </span><span class="boring">}
 </span></code></pre></pre>
-<p>When <a href="structure.html#revisiting-content">revisiting</a> this line, it will go through the 
+<p>When <a href="structure.html#revisiting-content-and-choices">revisiting</a> this line, it will go through the 
 alternatives in order, then repeat the final value after reaching it. In <code>Ink</code> terms,
 this is called a <em>sequence</em>.</p>
 <pre><code class="language-plain">The train had arrived in Mannheim.
@@ -205,7 +205,7 @@ The train had arrived at its final stop.
 </code></pre>
 <h3><a class="header" href="#cycle-sequences" id="cycle-sequences">Cycle sequences</a></h3>
 <p><em>Cycle sequences</em> repeat the entire sequence after reaching the final piece. They are 
-denoted by starting the first alternative with a ‘&amp;’ marker.</p>
+denoted by starting the first alternative with a <code>&amp;</code> marker.</p>
 <pre><pre class="playground"><code class="language-rust edition2018">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -238,7 +238,7 @@ Today is a Monday.
 </code></pre>
 <h3><a class="header" href="#once-only-sequences" id="once-only-sequences">Once-only sequences</a></h3>
 <p><em>Once-only sequences</em> goes through all alternatives in order and then produce nothing.
-They are denoted by starting the first alternative with a ‘!’ marker.</p>
+They are denoted by starting the first alternative with a <code>!</code> marker.</p>
 <pre><pre class="playground"><code class="language-rust edition2018">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -272,7 +272,7 @@ I met with Anirudh.
 <h3><a class="header" href="#shuffle-sequences" id="shuffle-sequences">Shuffle sequences</a></h3>
 <p><em>Shuffle sequences</em> go through the alternatives in a random order, then shuffle the
 alternatives and deal them again. They are denoted by starting the first alternative 
-with a ‘~’ marker.</p>
+with a <code>~</code> marker.</p>
 <p>Note that these are only random if <code>inkling</code> has been compiled with the <code>random</code> feature.
 Otherwise they mimic the behavior of cycle sequences.</p>
 <pre><pre class="playground"><code class="language-rust edition2018">
