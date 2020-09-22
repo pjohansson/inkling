@@ -2,15 +2,15 @@
 //!
 //! Ink is a creation of [Inkle](https://www.inklestudios.com/). For more information
 //! about the language, [see their website](https://www.inklestudios.com/ink/).
-//! 
+//!
 //! # User Guide
 //! A guide detailing how to use `inkling` in a more informal manner is available
 //! [here](https://pjohansson.github.io/inkling/).
-//! 
+//!
 //! # Examples
 //! An example text based story player is available to run and browse the source for.
 //! Run `cargo run --example player` in the source directory to try it out.
-//! 
+//!
 //! # Features
 //!
 //! ## `serde_support`

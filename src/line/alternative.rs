@@ -191,7 +191,7 @@ impl AlternativeBuilder {
 mod tests {
     use super::*;
     #[cfg(feature = "random")]
-    use crate::story::rng::StoryRng;
+    use crate::{follow::FollowDataBuilder, story::rng::StoryRng};
     use crate::{line::LineChunkBuilder, process::line::tests::mock_data_with_single_stitch};
 
     #[cfg(feature = "random")]
@@ -209,11 +209,10 @@ mod tests {
         let mut knot_visit_counts = HashMap::new();
         knot_visit_counts.insert(knot.to_string(), stitch_count);
 
-        FollowData {
-            knot_visit_counts,
-            variables: HashMap::new(),
-            rng,
-        }
+        FollowDataBuilder::new()
+            .with_knots(knot_visit_counts)
+            .with_rng(rng)
+            .build()
     }
 
     #[test]

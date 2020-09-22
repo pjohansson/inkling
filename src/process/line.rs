@@ -113,12 +113,12 @@ pub mod tests {
     use super::*;
 
     use crate::{
+        follow::FollowDataBuilder,
         knot::Address,
         line::{
             expression::Operand, parse::parse_internal_line, AlternativeBuilder, ConditionBuilder,
             ConditionKind, Expression, LineChunkBuilder, Variable,
         },
-        story::rng::StoryRng,
     };
 
     use std::collections::HashMap;
@@ -148,11 +148,9 @@ pub mod tests {
         let mut knot_visit_counts = HashMap::new();
         knot_visit_counts.insert(knot.to_string(), stitch_count);
 
-        FollowData {
-            knot_visit_counts,
-            variables: HashMap::new(),
-            rng: StoryRng::default(),
-        }
+        FollowDataBuilder::new()
+            .with_knots(knot_visit_counts)
+            .build()
     }
 
     #[test]

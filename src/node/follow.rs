@@ -320,10 +320,10 @@ mod tests {
 
     use crate::{
         error::InklingError,
+        follow::FollowDataBuilder,
         knot::{get_num_visited, Address},
         line::{InternalChoice, LineChunkBuilder},
         node::builders::{BranchBuilder, BranchingPointBuilder, RootNodeBuilder},
-        story::rng::StoryRng,
     };
 
     use std::collections::HashMap;
@@ -337,11 +337,9 @@ mod tests {
         let mut knot_visit_counts = HashMap::new();
         knot_visit_counts.insert(knot.to_string(), stitch_count);
 
-        FollowData {
-            knot_visit_counts,
-            variables: HashMap::new(),
-            rng: StoryRng::default(),
-        }
+        FollowDataBuilder::new()
+            .with_knots(knot_visit_counts)
+            .build()
     }
 
     #[test]

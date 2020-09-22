@@ -227,10 +227,7 @@ impl ValidateContent for Operand {
 mod tests {
     use super::*;
 
-    use crate::{
-        knot::Address,
-        story::{rng::StoryRng, types::VariableInfo},
-    };
+    use crate::{follow::FollowDataBuilder, knot::Address, story::types::VariableInfo};
 
     use std::collections::HashMap;
 
@@ -274,11 +271,10 @@ mod tests {
             .map(|(name, var)| (name.to_string(), var))
             .collect();
 
-        FollowData {
-            knot_visit_counts,
-            variables,
-            rng: StoryRng::default(),
-        }
+        FollowDataBuilder::new()
+            .with_knots(knot_visit_counts)
+            .with_variables(variables)
+            .build()
     }
 
     #[test]

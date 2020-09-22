@@ -54,12 +54,13 @@ mod tests {
     use super::*;
 
     use crate::{
+        follow::FollowDataBuilder,
         knot::Address,
         line::{
             expression::{Expression, Operand},
             ConditionBuilder,
         },
-        story::{rng::StoryRng, types::VariableInfo},
+        story::types::VariableInfo,
     };
 
     use std::collections::HashMap;
@@ -82,11 +83,10 @@ mod tests {
             .map(|(name, var)| (name.to_string(), var))
             .collect();
 
-        FollowData {
-            knot_visit_counts,
-            variables,
-            rng: StoryRng::default(),
-        }
+        FollowDataBuilder::new()
+            .with_knots(knot_visit_counts)
+            .with_variables(variables)
+            .build()
     }
 
     fn get_true_like_condition(variable: Variable, negate: bool) -> Condition {

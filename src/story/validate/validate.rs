@@ -167,6 +167,7 @@ pub(super) mod tests {
 
     use crate::{
         consts::ROOT_KNOT_NAME,
+        follow::FollowDataBuilder,
         knot::{Knot, Stitch},
         line::Variable,
         node::RootNodeBuilder,
@@ -229,11 +230,10 @@ pub(super) mod tests {
     fn get_validation_data_from_string(content: &str) -> (KnotSet, FollowData) {
         let (knots, variables, _) = read_story_content_from_string(content).unwrap();
 
-        let data = FollowData {
-            knot_visit_counts: get_empty_knot_counts(&knots),
-            variables,
-            rng: StoryRng::default(),
-        };
+        let data = FollowDataBuilder::new()
+            .with_knots(get_empty_knot_counts(&knots))
+            .with_variables(variables)
+            .build();
 
         (knots, data)
     }

@@ -127,3 +127,45 @@ impl LineTextBuilder {
         self
     }
 }
+
+#[cfg(test)]
+/// Builder for `FollowData` during tests
+pub struct FollowDataBuilder {
+    knot_visit_counts: HashMap<String, HashMap<String, u32>>,
+    variables: VariableSet,
+    rng: StoryRng,
+}
+
+#[cfg(test)]
+impl FollowDataBuilder {
+    pub fn new() -> Self {
+        FollowDataBuilder {
+            knot_visit_counts: HashMap::new(),
+            variables: VariableSet::new(),
+            rng: StoryRng::default(),
+        }
+    }
+
+    pub fn with_knots(mut self, knot_visit_counts: HashMap<String, HashMap<String, u32>>) -> Self {
+        self.knot_visit_counts = knot_visit_counts;
+        self
+    }
+
+    pub fn with_variables(mut self, variables: VariableSet) -> Self {
+        self.variables = variables;
+        self
+    }
+
+    pub fn with_rng(mut self, rng: StoryRng) -> Self {
+        self.rng = rng;
+        self
+    }
+
+    pub fn build(self) -> FollowData {
+        FollowData {
+            knot_visit_counts: self.knot_visit_counts,
+            variables: self.variables,
+            rng: self.rng,
+        }
+    }
+}

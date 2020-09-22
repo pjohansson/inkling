@@ -246,10 +246,10 @@ mod tests {
     use super::*;
 
     use crate::{
-        follow::FollowData,
+        follow::{FollowData, FollowDataBuilder},
         knot::Address,
         line::{evaluate_expression, Variable},
-        story::{rng::StoryRng, types::VariableInfo},
+        story::types::VariableInfo,
     };
 
     use std::collections::HashMap;
@@ -272,11 +272,10 @@ mod tests {
             .map(|(name, var)| (name.to_string(), var))
             .collect();
 
-        FollowData {
-            knot_visit_counts,
-            variables,
-            rng: StoryRng::default(),
-        }
+        FollowDataBuilder::new()
+            .with_knots(knot_visit_counts)
+            .with_variables(variables)
+            .build()
     }
 
     #[test]

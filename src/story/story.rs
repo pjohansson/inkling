@@ -737,11 +737,10 @@ mod tests {
     use super::*;
 
     use crate::{
+        follow::FollowDataBuilder,
         knot::{get_num_visited, increment_num_visited},
         story::parse::tests::read_knots_from_string,
     };
-
-    use std::collections::HashMap;
 
     fn mock_last_choices(choices: &[(&str, usize)]) -> Vec<Choice> {
         choices
@@ -755,11 +754,9 @@ mod tests {
     }
 
     fn mock_follow_data(knots: &KnotSet) -> FollowData {
-        FollowData {
-            knot_visit_counts: get_empty_knot_counts(knots),
-            variables: HashMap::new(),
-            rng: StoryRng::default(),
-        }
+        FollowDataBuilder::new()
+            .with_knots(get_empty_knot_counts(knots))
+            .build()
     }
 
     #[test]
