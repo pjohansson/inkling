@@ -59,6 +59,10 @@ pub enum Variable {
     /// is a location in the story it will evaluate to the number of times it has
     /// been visited.
     ///
+    /// # Note
+    /// This kind is fully internal in the story script and cannot be used for global
+    /// variables.
+    ///
     /// # Example
     /// If a line in the story contains the expression `{hazardous}` this will be treated
     /// as an address to either a knot/stitch or a global variable. The processor will
@@ -90,6 +94,13 @@ impl Variable {
     /// Return a string representation of the variable.
     pub(crate) fn to_string(&self, data: &FollowData) -> Result<String, InklingError> {
         match &self {
+
+    /// Return a string representation of the variable for printing in the story text.
+    /// 
+    /// If the variable is an address, the address will be followed until a non-address
+    /// variable is found. That variable's string representation will then be returned.
+    pub(crate) fn to_string_internal(&self, data: &FollowData) -> Result<String, InklingError> {
+        match &self {
             Variable::Address(address) => match address {
                 Address::Validated(AddressKind::Location { .. }) => {
                     let num_visited = get_num_visited(address, data)?;
@@ -101,7 +112,7 @@ impl Variable {
                     .ok_or(InklingError::InvalidVariable {
                         name: name.to_string(),
                     })
-                    .and_then(|variable_info| variable_info.variable.to_string(data)),
+                    .and_then(|variable_info| variable_info.variable.to_string_internal(data)),
                 other => Err(InternalError::UseOfUnvalidatedAddress {
                     address: other.clone(),
                 }
@@ -117,11 +128,12 @@ impl Variable {
             Variable::String(content) => Ok(content.clone()),
         }
     }
-
     /// Return a simple string representation of the variable which does not follow addresses.
     ///
     /// This corresponds to a string which the variable could be parsed from.
-    pub(crate) fn to_string_simple(&self) -> String {
+    /// 
+    /// Used for printing errors.
+    pub(crate) fn to_error_string(&self) -> String {
         match &self {
             Variable::Address(address) => address.to_string(),
             Variable::Bool(value) => format!("{}", value),
@@ -847,37 +859,37 @@ mod tests {
     fn booleans_are_printed_as_numbers() {
         let data = mock_follow_data(&[], &[]);
 
-        assert_eq!(&Variable::Bool(true).to_string(&data).unwrap(), "1");
-        assert_eq!(&Variable::Bool(false).to_string(&data).unwrap(), "0");
+        assert_eq!(&Variable::Bool(true).to_string_internal(&data).unwrap(), "1");
+        assert_eq!(&Variable::Bool(false).to_string_internal(&data).unwrap(), "0");
     }
 
     #[test]
-    fn numbers_can_be_printed() {
+    fn numbers_can_be_internally_printed() {
         let data = mock_follow_data(&[], &[]);
 
-        assert_eq!(&Variable::Int(5).to_string(&data).unwrap(), "5");
-        assert_eq!(&Variable::Float(1.0).to_string(&data).unwrap(), "1");
-        assert_eq!(&Variable::Float(1.35).to_string(&data).unwrap(), "1.35");
+        assert_eq!(&Variable::Int(5).to_string_internal(&data).unwrap(), "5");
+        assert_eq!(&Variable::Float(1.0).to_string_internal(&data).unwrap(), "1");
+        assert_eq!(&Variable::Float(1.35).to_string_internal(&data).unwrap(), "1.35");
         assert_eq!(
-            &Variable::Float(1.0000000003).to_string(&data).unwrap(),
+            &Variable::Float(1.0000000003).to_string_internal(&data).unwrap(),
             "1"
         );
     }
 
     #[test]
-    fn strings_are_just_cloned() {
+    fn strings_are_just_cloned_when_internally_printed() {
         let data = mock_follow_data(&[], &[]);
 
         assert_eq!(
             &Variable::String("two words".to_string())
-                .to_string(&data)
+                .to_string_internal(&data)
                 .unwrap(),
             "two words"
         );
     }
 
     #[test]
-    fn addresses_are_printed_as_their_number_of_visits_if_they_are_locations() {
+    fn addresses_are_internally_printed_as_their_number_of_visits_if_they_are_locations() {
         let data = mock_follow_data(
             &[("tripoli", "cinema", 0), ("addis_ababa", "with_family", 3)],
             &[],
@@ -886,31 +898,31 @@ mod tests {
         let tripoli = Address::from_parts_unchecked("tripoli", Some("cinema"));
         let addis_ababa = Address::from_parts_unchecked("addis_ababa", Some("with_family"));
 
-        assert_eq!(&Variable::Address(tripoli).to_string(&data).unwrap(), "0");
+        assert_eq!(&Variable::Address(tripoli).to_string_internal(&data).unwrap(), "0");
         assert_eq!(
-            &Variable::Address(addis_ababa).to_string(&data).unwrap(),
+            &Variable::Address(addis_ababa).to_string_internal(&data).unwrap(),
             "3"
         );
     }
 
     #[test]
-    fn addresses_are_printed_as_the_contained_variables_if_they_are_variables() {
+    fn addresses_are_internally_printed_as_the_contained_variables_if_they_are_variables() {
         let data = mock_follow_data(&[], &[("population", Variable::Int(1305))]);
 
         let address = Address::variable_unchecked("population");
         let variable = Variable::Address(address);
 
-        assert_eq!(&variable.to_string(&data).unwrap(), "1305");
+        assert_eq!(&variable.to_string_internal(&data).unwrap(), "1305");
     }
 
     #[test]
-    fn getting_string_representation_of_unvalidated_addresses_yields_error() {
+    fn getting_internal_string_representation_of_unvalidated_addresses_yields_error() {
         let data = mock_follow_data(&[], &[("population", Variable::Int(1305))]);
 
         let raw_address = Address::Raw("population".to_string());
         let variable = Variable::Address(raw_address.clone());
 
-        match variable.to_string(&data) {
+        match variable.to_string_internal(&data) {
             Err(InklingError::Internal(InternalError::UseOfUnvalidatedAddress { address })) => {
                 assert_eq!(address, raw_address);
             }
@@ -920,13 +932,12 @@ mod tests {
             ),
         }
     }
-
     #[test]
-    fn diverts_cannot_be_printed_but_yield_error() {
+    fn diverts_cannot_be_internally_printed_but_yield_error() {
         let data = mock_follow_data(&[], &[]);
         let address = Address::from_parts_unchecked("tripoli", Some("cinema"));
 
-        assert!(Variable::Divert(address).to_string(&data).is_err());
+        assert!(Variable::Divert(address).to_string_internal(&data).is_err());
     }
 
     #[test]

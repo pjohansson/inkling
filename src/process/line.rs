@@ -76,7 +76,7 @@ fn process_content(
         }
         Content::Expression(expression) => {
             let variable = evaluate_expression(&expression, data)?;
-            buffer.push_str(&variable.to_string(data)?);
+            buffer.push_str(&variable.to_string_internal(data)?);
             Ok(EncounteredEvent::Done)
         }
         Content::Nested(chunk) => process_chunk(chunk, buffer, data),
