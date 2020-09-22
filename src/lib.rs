@@ -19,9 +19,9 @@
 //! and writing finished story files in their current state. In game terms: saving
 //! and loading.
 //!
-//! ## `shuffle_sequences`
+//! ## `random`
 //! Proper shuffle sequences using the `{~One|Two|Three}` syntax are enabled with
-//! the `shuffle_sequences` feature. This adds `rand` and `rand_chacha` as dependencies.
+//! the `random` feature. This adds `rand` and `rand_chacha` as dependencies.
 //! If combined with `serde_support`, the random number generator state will be
 //! properly saved and restored along with the rest of the data.
 //!

@@ -8,7 +8,7 @@ use crate::{
     story::validate::{ValidateContent, ValidationData},
 };
 
-#[cfg(feature = "shuffle_sequences")]
+#[cfg(feature = "random")]
 use rand::seq::SliceRandom;
 
 #[cfg(feature = "serde_support")]
@@ -36,7 +36,7 @@ pub struct Alternative {
 }
 
 impl Alternative {
-    #[allow(unused_variables)] // `data` only used when the `shuffle_sequences` feature is enabled
+    #[allow(unused_variables)] // `data` only used when the `random` feature is enabled
     /// Get the next item index in the alternative sequence.
     pub fn get_next_index(&mut self, data: &mut FollowData) -> Option<usize> {
         match self.kind {
@@ -55,7 +55,7 @@ impl Alternative {
                     self.reset_active_list()
                 }
 
-                #[cfg(feature = "shuffle_sequences")]
+                #[cfg(feature = "random")]
                 if self.is_first_item() {
                     self.active_inds.shuffle(&mut data.rng.gen);
                 }
@@ -190,11 +190,11 @@ impl AlternativeBuilder {
 #[cfg(test)]
 mod tests {
     use super::*;
-    #[cfg(feature = "shuffle_sequences")]
+    #[cfg(feature = "random")]
     use crate::story::rng::StoryRng;
     use crate::{line::LineChunkBuilder, process::line::tests::mock_data_with_single_stitch};
 
-    #[cfg(feature = "shuffle_sequences")]
+    #[cfg(feature = "random")]
     pub fn mock_data_with_single_stitch_and_rng(
         knot: &str,
         stitch: &str,
@@ -286,7 +286,7 @@ mod tests {
         assert_eq!(alternative.get_next_index(&mut data), None);
     }
 
-    #[cfg(feature = "shuffle_sequences")]
+    #[cfg(feature = "random")]
     mod shuffle {
         use super::*;
         use crate::story::rng::StoryRng;

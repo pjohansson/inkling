@@ -22,11 +22,11 @@ features = ["serde_support"]
 ## Randomization support
 
 The `Ink` language supports a few randomized features like [shuffle sequences](../features/sequences.md#shuffle-sequences).
-These are optional and can be enabled using the `shuffle_sequences` feature. This adds 
+These are optional and can be enabled using the `random` feature. This adds 
 a dependency to `rand` and its sub project `rand_chacha`.
 
 ```toml
 [dependencies.inkling]
 version = "0.12.6"
-features = ["shuffle_sequences"]
+features = ["random"]
 ```

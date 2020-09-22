@@ -1,9 +1,9 @@
 //! Wrapper around a random number generator.
 //!
-//! The wrapper is needed because we only have a generator if the `shuffle_sequences`
+//! The wrapper is needed because we only have a generator if the `random`
 //! feature is enabled. If it is not enabled, we do not have the generator. Thus,
 //! we wrap the generator (if needed) in the `StoryRng` struct, which is empty
-//! if `shuffle_sequences` is not enabled.
+//! if `random` is not enabled.
 //!
 //! This means that regardless of whether or not we need the generator, we have
 //! and object that we can pass through the system and won't have to make a lot
@@ -15,7 +15,7 @@
 // from the module.
 pub use feature_wrapper::StoryRng;
 
-#[cfg(not(feature = "shuffle_sequences"))]
+#[cfg(not(feature = "random"))]
 mod feature_wrapper {
     #[cfg(feature = "serde_support")]
     use serde::{Deserialize, Serialize};
@@ -24,16 +24,16 @@ mod feature_wrapper {
     #[derive(Clone, Debug, Default)]
     /// Random number generator for the [`Story`][crate::story::Story].
     ///
-    /// If the `shuffle_sequences` is not enabled this is a dummy struct which will
+    /// If the `random` is not enabled this is a dummy struct which will
     /// not be used when moving through the story. Otherwise, it holds the generator
     /// and complementary information for generating numbers.
     ///
-    /// If you are reading this text, the `shuffle_sequences` feature is **not**
+    /// If you are reading this text, the `random` feature is **not**
     /// currently enabled.
     pub struct StoryRng;
 }
 
-#[cfg(feature = "shuffle_sequences")]
+#[cfg(feature = "random")]
 mod feature_wrapper {
     use rand::{RngCore, SeedableRng};
     use rand_chacha::ChaCha8Rng;
