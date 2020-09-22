@@ -344,6 +344,8 @@ mod tests {
     }
 
     #[test]
+    // Verify that we process the displayed text when constructing the list of presented
+    // choices, which should update e.g. Alternative sequences
     fn getting_available_choices_processes_the_text() {
         let alternative = AlternativeBuilder::cycle()
             .with_line(LineChunkBuilder::from_string("once").build())
