@@ -405,7 +405,7 @@ impl Story {
     /// let content = "\
     /// VAR hunted_by_police = false
     /// VAR num_passengers = 0
-    /// VAR price_of_ticket = 7.50
+    /// CONST price_of_ticket = 7.50
     /// ";
     ///
     /// let mut story = read_story_from_string(content).unwrap();
@@ -419,10 +419,10 @@ impl Story {
     /// # let content = "\
     /// # VAR hunted_by_police = false
     /// # VAR num_passengers = 0
-    /// # VAR price_of_ticket = 7.50
+    /// # CONST price_of_ticket = 7.50
     /// # ";
     /// # let mut story = read_story_from_string(content).unwrap();
-    /// assert!(story.set_variable("price_of_ticket", 3.75).is_ok());
+    /// assert!(story.set_variable("num_passengers", 5).is_ok());
     /// ```
     ///
     /// ## Invalid assignment of different type
@@ -431,20 +431,23 @@ impl Story {
     /// # let content = "\
     /// # VAR hunted_by_police = false
     /// # VAR num_passengers = 0
-    /// # VAR price_of_ticket = 7.50
+    /// # CONST price_of_ticket = 7.50
     /// # ";
     /// # let mut story = read_story_from_string(content).unwrap();
     /// assert!(story.set_variable("hunted_by_police", 10).is_err());
+    /// assert!(story.set_variable("hunted_by_police", true).is_ok());
     /// ```
     ///
     /// ## Assignment to constant variable is invalid
     /// ```
     /// # use inkling::{read_story_from_string, Variable};
     /// # let content = "\
-    /// # CONST ticket_price = 0.75
+    /// # VAR hunted_by_police = false
+    /// # VAR num_passengers = 0
+    /// # CONST price_of_ticket = 7.50
     /// # ";
     /// # let mut story = read_story_from_string(content).unwrap();
-    /// assert!(story.set_variable("ticket_price", 1.5).is_err());
+    /// assert!(story.set_variable("price_of_ticket", 1.5).is_err());
     /// ```
     ///
     /// # Errors
