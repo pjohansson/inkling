@@ -53,8 +53,6 @@ pub struct Choice {
 /// let mut story = read_story_from_string(content).unwrap();
 /// let mut line_buffer = Vec::new();
 ///
-/// story.start().unwrap();
-///
 /// match story.resume(&mut line_buffer).unwrap() {
 ///     Prompt::Choice(choice_set) => {
 ///         println!("Choose:");
@@ -86,8 +84,6 @@ impl Prompt {
     ///
     /// let mut story = read_story_from_string(content).unwrap();
     /// let mut line_buffer = Vec::new();
-    ///
-    /// story.start().unwrap();
     ///
     /// if let Some(choices) = story.resume(&mut line_buffer).unwrap().get_choices() {
     ///     /* do what you want */

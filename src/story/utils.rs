@@ -17,7 +17,6 @@ use crate::story::types::LineBuffer;
 /// let mut story = read_story_from_string(content).unwrap();
 /// let mut line_buffer = Vec::new();
 ///
-/// story.start();
 /// story.resume(&mut line_buffer);
 ///
 /// let text = copy_lines_into_string(&line_buffer);

@@ -18,7 +18,6 @@ from Nantucket. {|||||We're besties.}
     let mut story = read_story_from_string(content).unwrap();
     let mut line_buffer = Vec::new();
 
-    story.start().unwrap();
     story.resume(&mut line_buffer).unwrap();
 
     story.make_choice(0).unwrap();
@@ -78,8 +77,6 @@ You meet with Aaron.
     let mut story = read_story_from_string(content).unwrap();
     let mut line_buffer = Vec::new();
 
-    story.start().unwrap();
-
     let choices = story
         .resume(&mut line_buffer)
         .unwrap()
@@ -133,7 +130,6 @@ I {nantucket: {nantucket > 1: {nantucket > 2: many times | twice } | once } | ha
     let mut story = read_story_from_string(content).unwrap();
     let mut line_buffer = Vec::new();
 
-    story.start().unwrap();
     story.resume(&mut line_buffer).unwrap();
 
     assert_eq!(
@@ -193,7 +189,6 @@ Strings can be added, too: <>
     let mut story = read_story_from_string(content).unwrap();
     let mut line_buffer = Vec::new();
 
-    story.start().unwrap();
     story.resume(&mut line_buffer).unwrap();
 
     assert_eq!(&line_buffer[1].text, "2 + 3 is 5!\n");
@@ -222,7 +217,6 @@ Float calculation works better:
     let mut story = read_story_from_string(content).unwrap();
     let mut line_buffer = Vec::new();
 
-    story.start().unwrap();
     story.resume(&mut line_buffer).unwrap();
 
     assert_eq!(
@@ -252,7 +246,6 @@ VAR b = 5
     let mut story = read_story_from_string(content).unwrap();
     let mut line_buffer = Vec::new();
 
-    story.start().unwrap();
     story.resume(&mut line_buffer).unwrap();
 
     assert_eq!(
@@ -287,7 +280,6 @@ VAR b = 5.0
     let mut story = read_story_from_string(content).unwrap();
     let mut line_buffer = Vec::new();
 
-    story.start().unwrap();
     story.resume(&mut line_buffer).unwrap();
 
     assert_eq!(&line_buffer[0].text, "True\n");

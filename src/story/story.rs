@@ -34,46 +34,15 @@ pub struct Story {
     last_choices: Option<Vec<Choice>>,
     /// Choice that has been set to resume the story with.
     selected_choice: Option<usize>,
-    /// Whether or not the story has been started.
-    in_progress: bool,
 }
 
 impl Story {
+    #[deprecated(
+        since = "0.12.6",
+        note = "This was a placeholder function that never materialized"
+    )]
     /// Mark the story as being ready to start the text flow processing.
-    ///
-    /// Must be called before the first call to [`resume`][crate::story::Story::resume()].
-    ///
-    /// # Examples
-    /// ```
-    /// # use inkling::{read_story_from_string, Story};
-    /// // From ‘A Wizard of Earthsea’ by Ursula K. Le Guin
-    /// let content = "\
-    /// Only in silence the word,
-    /// only in dark the light,
-    /// only in dying life:
-    /// bright the hawk’s flight
-    /// on the empty sky.
-    /// ";
-    ///
-    /// let mut story: Story = read_story_from_string(content).unwrap();
-    /// let mut line_buffer = Vec::new();
-    ///
-    /// story.start();
-    /// story.resume(&mut line_buffer);
-    ///
-    /// assert_eq!(line_buffer[0].text, "Only in silence the word,\n");
-    /// ```
-    ///
-    /// # Errors
-    /// *   [`StartOnStoryInProgress`][crate::error::InklingError::StartOnStoryInProgress]:
-    ///     if called twice for the same story.
     pub fn start(&mut self) -> Result<(), InklingError> {
-        if self.in_progress {
-            return Err(InklingError::StartOnStoryInProgress);
-        }
-
-        self.in_progress = true;
-
         Ok(())
     }
 
@@ -108,7 +77,6 @@ impl Story {
     /// # let mut story = read_story_from_string(content).unwrap();
     /// # let mut line_buffer = Vec::new();
     /// #
-    /// story.start();
     /// story.resume(&mut line_buffer);
     ///
     /// assert_eq!(line_buffer[0].text, "Only in silence the word,\n");
@@ -131,7 +99,6 @@ impl Story {
     /// # let mut story = read_story_from_string(content).unwrap();
     /// # let mut line_buffer = Vec::new();
     /// #
-    /// # story.start();
     /// # story.resume(&mut line_buffer);
     ///
     /// line_buffer.clear();
@@ -162,7 +129,6 @@ impl Story {
     /// # ";
     /// # let mut story = read_story_from_string(content).unwrap();
     /// # let mut line_buffer = Vec::new();
-    /// # story.start().unwrap();
     /// # story.resume(&mut line_buffer).unwrap();
     /// story.move_to("mirandas_den", Some("meeting")).unwrap();
     /// # line_buffer.clear();
@@ -175,10 +141,6 @@ impl Story {
     /// *   [`ResumeBeforeStart`][crate::error::InklingError::ResumeBeforeStart]:
     ///     if called before the `start` method was called on the story.
     pub fn resume(&mut self, line_buffer: &mut LineBuffer) -> Result<Prompt, InklingError> {
-        if !self.in_progress {
-            return Err(InklingError::ResumeBeforeStart);
-        }
-
         let selection = self.selected_choice.take();
 
         self.follow_story_wrapper(selection, line_buffer)
@@ -212,7 +174,6 @@ impl Story {
     /// // ... setup
     /// # let mut story = read_story_from_string(content).unwrap();
     /// # let mut line_buffer = Vec::new();
-    /// # story.start().unwrap();
     ///
     /// if let Prompt::Choice(choices) = story.resume(&mut line_buffer).unwrap() {
     ///     story.make_choice(0).unwrap();
@@ -274,7 +235,6 @@ impl Story {
     ///
     /// // Let’s skip ahead!
     /// story.move_to("chapter_one", None).unwrap();
-    /// story.start().unwrap();
     /// story.resume(&mut line_buffer).unwrap();
     ///
     /// assert_eq!(&line_buffer[0].text, "1992, western Estonia\n");
@@ -375,7 +335,6 @@ impl Story {
     /// # ";
     /// # let mut story = read_story_from_string(content).unwrap();
     /// # let mut line_buffer = Vec::new();
-    /// # story.start().unwrap();
     /// # story.resume(&mut line_buffer).unwrap();
     /// # story.move_to("depths", None).unwrap();
     /// # story.resume(&mut line_buffer).unwrap();
@@ -640,7 +599,6 @@ pub fn read_story_from_string(string: &str) -> Result<Story, ReadError> {
         tags,
         last_choices: None,
         selected_choice: None,
-        in_progress: false,
     })
 }
 
@@ -1039,29 +997,6 @@ We hurried home to Savile Row as fast as we could.
      ***********************/
 
     #[test]
-    fn starting_a_story_sets_in_progress_boolean() {
-        let mut story = read_story_from_string("Content.").unwrap();
-
-        assert!(!story.in_progress);
-
-        story.start().unwrap();
-
-        assert!(story.in_progress);
-    }
-
-    #[test]
-    fn starting_a_story_can_only_be_done_once() {
-        let mut story = read_story_from_string("Content.").unwrap();
-
-        assert!(story.start().is_ok());
-
-        match story.start() {
-            Err(InklingError::StartOnStoryInProgress) => (),
-            _ => panic!("did not raise `StartOnStoryInProgress` error"),
-        }
-    }
-
-    #[test]
     fn make_choice_sets_the_choice_index_from_the_last_choices_set() {
         let mut story = read_story_from_string("Content.").unwrap();
         story
@@ -1127,7 +1062,6 @@ We hurried home to Savile Row as fast as we could.
         let mut story = read_story_from_string(content).unwrap();
         let mut line_buffer = Vec::new();
 
-        story.start().unwrap();
         story.resume(&mut line_buffer).unwrap();
 
         story.make_choice(1).unwrap();
@@ -1174,7 +1108,6 @@ We hurried home to Savile Row as fast as we could.
 ";
         let mut story = read_story_from_string(content).unwrap();
         story.move_to("knot", None).unwrap();
-        story.start().unwrap();
 
         let mut line_buffer = Vec::new();
 
@@ -1270,7 +1203,6 @@ We decided to go to the <>
 
         let mut line_buffer = Vec::new();
 
-        story.start().unwrap();
         story.resume(&mut line_buffer).unwrap();
 
         story.make_choice(0).unwrap();
@@ -1296,7 +1228,6 @@ We decided to go to the <>
         assert!(story.last_choices.is_none());
 
         story.move_to("knot", None).unwrap();
-        story.start().unwrap();
         story.resume(&mut line_buffer).unwrap();
 
         let last_choices = story.last_choices.as_ref().unwrap();
@@ -1304,17 +1235,6 @@ We decided to go to the <>
         assert_eq!(last_choices.len(), 2);
         assert_eq!(&last_choices[0].text, "Choice 1");
         assert_eq!(&last_choices[1].text, "Choice 2");
-    }
-
-    #[test]
-    fn cannot_resume_on_a_story_that_has_not_started() {
-        let mut story = read_story_from_string("Content.").unwrap();
-        let mut line_buffer = Vec::new();
-
-        match story.resume(&mut line_buffer) {
-            Err(InklingError::ResumeBeforeStart) => (),
-            _ => panic!("did not raise `ResumeBeforeStart` error"),
-        }
     }
 
     #[test]
@@ -1360,7 +1280,6 @@ Hello, World!
         let mut story = read_story_from_string(content).unwrap();
         let mut line_buffer = Vec::new();
 
-        story.start().unwrap();
         story.resume(&mut line_buffer).unwrap();
 
         let address = Address::from_root_knot("$ROOT$", &story.knots).unwrap();
@@ -1453,7 +1372,6 @@ We arrived into Almaty at 9.45pm exactly.
         let mut story = read_story_from_string(content).unwrap();
         let mut line_buffer = Vec::new();
 
-        story.start().unwrap();
         story.resume(&mut line_buffer).unwrap();
 
         assert_eq!(
@@ -1487,7 +1405,6 @@ Three
         let mut story = read_story_from_string(content).unwrap();
         let mut line_buffer = Vec::new();
 
-        story.start().unwrap();
         story.resume(&mut line_buffer).unwrap();
 
         let knots = &story.knots;
@@ -1519,7 +1436,6 @@ After an arduous journey we arrived back in Almaty.
         story.move_to("back_in_almaty", None).unwrap();
 
         let mut line_buffer = Vec::new();
-        story.start().unwrap();
 
         let choices = story
             .resume(&mut line_buffer)
@@ -1553,8 +1469,6 @@ We hurried home as fast as we could.
 
         let mut story = read_story_from_string(content).unwrap();
         let mut line_buffer = Vec::new();
-
-        story.start().unwrap();
 
         story.move_to("hurry_home", None).unwrap();
 
@@ -1591,8 +1505,6 @@ Once back home we feasted on cheese.
         let mut story = read_story_from_string(content).unwrap();
         let mut line_buffer = Vec::new();
 
-        story.start().unwrap();
-
         story.move_to("hurry_home", Some("at_home")).unwrap();
 
         let address = story.stack.last().unwrap();
@@ -1600,37 +1512,6 @@ Once back home we feasted on cheese.
         assert_eq!(address.get_stitch().unwrap(), "at_home");
 
         line_buffer.clear();
-        story.resume(&mut line_buffer).unwrap();
-
-        assert_eq!(
-            &line_buffer[0].text,
-            "Once back home we feasted on cheese.\n"
-        );
-    }
-
-    #[test]
-    fn move_to_can_be_called_on_a_story_before_the_start() {
-        let content = "
-
-We arrived into Almaty at 9.45pm exactly.
--> END
-
-== hurry_home
-We hurried home as fast as we could.
--> END
-
-= at_home
-Once back home we feasted on cheese.
--> END
-
-";
-
-        let mut story = read_story_from_string(content).unwrap();
-        let mut line_buffer = Vec::new();
-
-        story.move_to("hurry_home", Some("at_home")).unwrap();
-
-        story.start().unwrap();
         story.resume(&mut line_buffer).unwrap();
 
         assert_eq!(

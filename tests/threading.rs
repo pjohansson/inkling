@@ -15,10 +15,7 @@ He befriended thousands of climbers and children sightseeing in Switzerland.
 
     let mut story = read_story_from_string(content).unwrap();
 
-    let handle = thread::spawn(move || {
-        story.start().unwrap();
-        story
-    });
+    let handle = thread::spawn(move || story);
 
     let mut story = handle.join().unwrap();
     let mut line_buffer = Vec::new();

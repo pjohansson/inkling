@@ -14,8 +14,6 @@ He befriended thousands of climbers and children sightseeing in Switzerland.
     let mut story = read_story_from_string(content).unwrap();
     let mut line_buffer = Vec::new();
 
-    story.start().unwrap();
-
     match story.resume(&mut line_buffer) {
         Ok(Prompt::Done) => {
             assert_eq!(line_buffer.len(), 2);
@@ -43,8 +41,6 @@ He just woke from a nightmare.
     let mut story = read_story_from_string(content).unwrap();
     let mut line_buffer = Vec::new();
 
-    story.start().unwrap();
-
     match story.resume(&mut line_buffer) {
         Ok(Prompt::Done) => {
             assert_eq!(line_buffer.len(), 5);
@@ -67,8 +63,6 @@ He befriended thousands of climbers and children sightseeing in Switzerland.
 
     let mut story = read_story_from_string(content).unwrap();
     let mut line_buffer = Vec::new();
-
-    story.start().unwrap();
 
     match story.resume(&mut line_buffer) {
         Ok(Prompt::Done) => {
@@ -97,8 +91,6 @@ He just woke from a nightmare.
 
     let mut story = read_story_from_string(content).unwrap();
     let mut line_buffer = Vec::new();
-
-    story.start().unwrap();
 
     match story.resume(&mut line_buffer) {
         Ok(Prompt::Done) => {
@@ -138,8 +130,6 @@ He identifies himself as being from Europol and passes the barrier.
     let mut story = read_story_from_string(content).unwrap();
     let mut line_buffer = Vec::new();
 
-    story.start().unwrap();
-
     match story.resume(&mut line_buffer) {
         Ok(Prompt::Done) => {
             assert_eq!(line_buffer.len(), 7);
@@ -176,8 +166,6 @@ He just woke from a nightmare.
 
     let mut story = read_story_from_string(content).unwrap();
     let mut line_buffer = Vec::new();
-
-    story.start().unwrap();
 
     match story.resume(&mut line_buffer) {
         Ok(Prompt::Done) => {
@@ -219,8 +207,6 @@ He just woke from a nightmare.
     let mut story = read_story_from_string(content).unwrap();
     let mut line_buffer = Vec::new();
 
-    story.start().unwrap();
-
     match story.resume(&mut line_buffer) {
         Ok(Prompt::Done) => {
             assert_eq!(line_buffer.len(), 6);
@@ -259,8 +245,6 @@ The fight barely lasts a moment before Gesicht sedates him with a large dose of 
     let mut story = read_story_from_string(content).unwrap();
     let mut line_buffer = Vec::new();
 
-    story.start().unwrap();
-
     let choices = story
         .resume(&mut line_buffer)
         .unwrap()
@@ -292,7 +276,6 @@ fn following_a_choice_adds_a_copy_of_the_choice_line_to_the_buffer() {
     let mut story = read_story_from_string(content).unwrap();
     let mut line_buffer = Vec::new();
 
-    story.start().unwrap();
     story.resume(&mut line_buffer).unwrap();
 
     story.make_choice(0).unwrap();
@@ -319,7 +302,6 @@ A robot in a frilly apron welcomes him in.
     let mut story = read_story_from_string(content).unwrap();
     let mut line_buffer = Vec::new();
 
-    story.start().unwrap();
     story.resume(&mut line_buffer).unwrap();
 
     story.make_choice(0).unwrap();
@@ -354,7 +336,6 @@ Gesicht notices that a destroyed patrol bot is being thrown away.
     let mut story = read_story_from_string(content).unwrap();
     let mut line_buffer = Vec::new();
 
-    story.start().unwrap();
     story.resume(&mut line_buffer).unwrap();
 
     story.make_choice(0).unwrap();
@@ -383,7 +364,6 @@ probably several hundred thousands.
     let mut story = read_story_from_string(content).unwrap();
     let mut line_buffer = Vec::new();
 
-    story.start().unwrap();
     story.resume(&mut line_buffer).unwrap();
 
     assert!(line_buffer[2].text.ends_with(' '));
@@ -403,8 +383,6 @@ The elevator doors swung open.
 ";
     let mut story = read_story_from_string(content).unwrap();
     let mut line_buffer = Vec::new();
-
-    story.start().unwrap();
 
     let choices = story
         .resume(&mut line_buffer)
@@ -461,7 +439,6 @@ They travelled to his apartment by car.
     let mut story = read_story_from_string(content).unwrap();
     let mut line_buffer = Vec::new();
 
-    story.start().unwrap();
     story.resume(&mut line_buffer).unwrap();
 
     story.make_choice(0).unwrap();
@@ -502,7 +479,6 @@ North no. 2 is standing in the bed room as the old man wakes up from his dream.
     let mut story = read_story_from_string(content).unwrap();
     let mut line_buffer = Vec::new();
 
-    story.start().unwrap();
     story.resume(&mut line_buffer).unwrap();
 
     story.make_choice(1).unwrap();
@@ -537,7 +513,6 @@ she sent me to a boarding school in England ...
     let mut story = read_story_from_string(content).unwrap();
     let mut line_buffer = Vec::new();
 
-    story.start().unwrap();
     story.resume(&mut line_buffer).unwrap();
 
     assert_eq!(&line_buffer[0].text, "“So she abandoned me ... ");
@@ -567,7 +542,6 @@ she sent me to a boarding school in England ...
     let mut story = read_story_from_string(content).unwrap();
     let mut line_buffer = Vec::new();
 
-    story.start().unwrap();
     story.resume(&mut line_buffer).unwrap();
 
     assert_eq!(&line_buffer[0].text, "“So she abandoned me ... ");
@@ -596,8 +570,6 @@ An old castle heaves in front of you. -> gates # description
 
     let mut story = read_story_from_string(content).unwrap();
     let mut line_buffer = Vec::new();
-
-    story.start().unwrap();
 
     let choices = story
         .resume(&mut line_buffer)
