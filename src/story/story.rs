@@ -270,24 +270,30 @@ impl Story {
     /// let mut story = read_story_from_string(content).unwrap();
     /// story.move_to("gesichts_apartment", None).unwrap();
     ///
-    /// let (knot, stitch) = story.get_current_location().unwrap();
+    /// let (knot, stitch) = story.get_current_location();
     ///
     /// assert_eq!(&knot, "gesichts_apartment");
     /// assert_eq!(&stitch.unwrap(), "dream");
     /// ```
-    pub fn get_current_location(&self) -> Result<(String, Option<String>), InklingError> {
-        let (knot, stitch) = self.current_address.get_knot_and_stitch()?;
+    pub fn get_current_location(&self) -> (String, Option<String>) {
+        let (knot, stitch) = match self.current_address.get_knot_and_stitch() {
+            Ok(result) => result,
+            Err(_) => {
+                eprintln!("`inkling` encountered an error: the current location in the story is a variable, which should not happen");
+                (ROOT_KNOT_NAME, ROOT_KNOT_NAME)
+            }
+        };
 
         if stitch == ROOT_KNOT_NAME {
-            Ok((knot.to_string(), None))
+            (knot.to_string(), None)
         } else {
-            Ok((knot.to_string(), Some(stitch.to_string())))
+            (knot.to_string(), Some(stitch.to_string()))
         }
     }
 
     /// Get the tags associated with the given knot.
     ///
-    /// Returns an error if no knot with the given name exists in the story.
+    /// Returns `None` if no knot with the given name exists in the story.
     ///
     /// # Examples
     /// ```
@@ -306,21 +312,13 @@ impl Story {
     /// assert_eq!(&tags[0], "weather: hot");
     /// assert_eq!(&tags[1], "sound: crowds");
     /// ```
-    ///
-    /// # Errors
-    /// *   [`InvalidAddress`][crate::error::InklingError::InvalidAddress]: if the name
-    ///     does not refer to a knot that exists in the story.
-    pub fn get_knot_tags(&self, knot_name: &str) -> Result<Vec<String>, InklingError> {
-        self.knots
-            .get(knot_name)
-            .map(|knot| knot.tags.clone())
-            .ok_or(InklingError::InvalidAddress {
-                knot: knot_name.to_string(),
-                stitch: None,
-            })
+    pub fn get_knot_tags(&self, knot_name: &str) -> Option<Vec<String>> {
+        self.knots.get(knot_name).map(|knot| knot.tags.clone())
     }
 
     /// Get the number of times a knot or stitch has been visited so far.
+    ///
+    /// Returns `None` if the given knot and stitch does not exist in the `Story`.
     ///
     /// # Examples
     /// ```
@@ -338,19 +336,10 @@ impl Story {
     /// let num_visited = story.get_num_visited("depths", None).unwrap();
     /// assert_eq!(num_visited, 2);
     /// ```
-    ///
-    /// # Errors
-    /// *   [`InvalidAddress`][crate::error::InklingError::InvalidAddress]: if the knot
-    ///     or stitch name does not specify an existing location in the story.
-    pub fn get_num_visited(&self, knot: &str, stitch: Option<&str>) -> Result<u32, InklingError> {
-        let address = Address::from_parts(knot, stitch, &self.knots).map_err(|_| {
-            InklingError::InvalidAddress {
-                knot: knot.to_string(),
-                stitch: stitch.map(|s| s.to_string()),
-            }
-        })?;
+    pub fn get_num_visited(&self, knot: &str, stitch: Option<&str>) -> Option<u32> {
+        let address = Address::from_parts(knot, stitch, &self.knots).ok()?;
 
-        get_num_visited(&address, &self.data).map_err(|err| err.into())
+        get_num_visited(&address, &self.data).ok()
     }
 
     /// Retrieve the global tags associated with the story.
@@ -375,6 +364,8 @@ impl Story {
 
     /// Retrieve the value of a global variable.
     ///
+    /// Returns `None` if no variable with the given name exists in the `Story`.
+    ///
     /// # Examples
     /// ```
     /// # use inkling::{read_story_from_string, Variable};
@@ -387,18 +378,11 @@ impl Story {
     ///
     /// assert_eq!(story.get_variable("books_in_library").unwrap(), Variable::Int(3));
     /// ```
-    ///
-    /// # Errors
-    /// *   [`InvalidVariable`][crate::error::InklingError::InvalidVariable]: if the name
-    ///     does not refer to a global variable that exists in the story.
-    pub fn get_variable(&self, name: &str) -> Result<Variable, InklingError> {
+    pub fn get_variable(&self, name: &str) -> Option<Variable> {
         self.data
             .variables
             .get(name)
             .map(|variable_info| variable_info.variable.clone())
-            .ok_or(InklingError::InvalidVariable {
-                name: name.to_string(),
-            })
     }
 
     /// Set the value of an existing global variable.
@@ -1525,7 +1509,7 @@ Once back home we feasted on cheese.
     }
 
     #[test]
-    fn getting_knot_tags_with_invalid_name_yields_error() {
+    fn getting_knot_tags_with_invalid_name_yields_none() {
         let content = "
 
 == tripoli
@@ -1536,17 +1520,7 @@ Once back home we feasted on cheese.
 ";
 
         let story = read_story_from_string(content).unwrap();
-
-        match story.get_knot_tags("addis_ababa") {
-            Err(InklingError::InvalidAddress { knot, stitch }) => {
-                assert_eq!(&knot, "addis_ababa");
-                assert!(stitch.is_none());
-            }
-            other => panic!(
-                "expected `InklingError::InvalidAddress` but got {:?}",
-                other
-            ),
-        }
+        assert!(story.get_knot_tags("addis_ababa").is_none());
     }
 
     #[test]
@@ -1566,14 +1540,14 @@ We hurried home as fast as we could.
         let mut story = read_story_from_string(content).unwrap();
 
         assert_eq!(
-            story.get_current_location().unwrap(),
+            story.get_current_location(),
             (ROOT_KNOT_NAME.to_string(), None)
         );
 
         story.move_to("hurry_home", None).unwrap();
 
         assert_eq!(
-            story.get_current_location().unwrap(),
+            story.get_current_location(),
             ("hurry_home".to_string(), Some("at_home".to_string()))
         );
     }
@@ -1608,7 +1582,7 @@ Once back home we feasted on cheese.
     }
 
     #[test]
-    fn getting_number_of_visits_yields_error_if_knot_or_stitch_name_is_invalid() {
+    fn getting_number_of_visits_yields_none_if_knot_or_stitch_name_is_invalid() {
         let content = "
 
 We arrived into Almaty at 9.45pm exactly.
@@ -1626,10 +1600,10 @@ Once back home we feasted on cheese.
 
         let story = read_story_from_string(content).unwrap();
 
-        assert!(story.get_num_visited("fin", None).is_err());
+        assert!(story.get_num_visited("fin", None).is_none());
         assert!(story
             .get_num_visited("hurry_home", Some("with_family"))
-            .is_err());
+            .is_none());
     }
 
     #[test]
