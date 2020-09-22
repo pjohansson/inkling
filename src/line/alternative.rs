@@ -162,6 +162,7 @@ impl AlternativeBuilder {
     }
 
     #[cfg(test)]
+    #[allow(dead_code)]
     /// Construct a builder with `AlternativeKind::OnceOnly`.
     pub fn once_only() -> Self {
         AlternativeBuilder::from_kind(AlternativeKind::OnceOnly)
@@ -190,12 +191,12 @@ impl AlternativeBuilder {
 #[cfg(test)]
 mod tests {
     use super::*;
-    #[cfg(feature = "random")]
-    use crate::{follow::FollowDataBuilder, story::rng::StoryRng};
-    use crate::{line::LineChunkBuilder, process::line::tests::mock_data_with_single_stitch};
+    use crate::{
+        follow::FollowDataBuilder, line::LineChunkBuilder,
+        process::line::tests::mock_data_with_single_stitch, story::rng::StoryRng,
+    };
 
-    #[cfg(feature = "random")]
-    pub fn mock_data_with_single_stitch_and_rng(
+    fn mock_data_with_single_stitch_and_rng(
         knot: &str,
         stitch: &str,
         num_visited: u32,
@@ -213,6 +214,17 @@ mod tests {
             .with_knots(knot_visit_counts)
             .with_rng(rng)
             .build()
+    }
+
+    /// Create an `Alternative` of given kind with a certain number of items.
+    fn create_alternative(kind: AlternativeKind, num_items: usize) -> Alternative {
+        let mut builder = AlternativeBuilder::from_kind(kind);
+
+        for i in 0..num_items {
+            builder.add_line(LineChunkBuilder::from_string(&format!("Line {}", i + 1)).build());
+        }
+
+        builder.build()
     }
 
     #[test]
@@ -237,28 +249,21 @@ mod tests {
 
     #[test]
     fn alternative_get_next_index_for_cycle_resets_list_after_yielding_all_inds() {
-        let mut alternative = AlternativeBuilder::cycle()
-            .with_line(LineChunkBuilder::from_string("Line 1").build())
-            .with_line(LineChunkBuilder::from_string("Line 2").build())
-            .build();
-
+        let mut alternative = create_alternative(AlternativeKind::Cycle, 3);
         let mut data = mock_data_with_single_stitch("", "", 0);
 
         assert_eq!(alternative.get_next_index(&mut data), Some(0));
         assert_eq!(alternative.get_next_index(&mut data), Some(1));
+        assert_eq!(alternative.get_next_index(&mut data), Some(2));
         assert_eq!(alternative.get_next_index(&mut data), Some(0));
         assert_eq!(alternative.get_next_index(&mut data), Some(1));
+        assert_eq!(alternative.get_next_index(&mut data), Some(2));
         assert_eq!(alternative.get_next_index(&mut data), Some(0));
     }
 
     #[test]
     fn alternative_get_next_index_for_sequence_yields_final_index_forever_after_the_initial() {
-        let mut alternative = AlternativeBuilder::sequence()
-            .with_line(LineChunkBuilder::from_string("Line 1").build())
-            .with_line(LineChunkBuilder::from_string("Line 2").build())
-            .with_line(LineChunkBuilder::from_string("Line 3").build())
-            .build();
-
+        let mut alternative = create_alternative(AlternativeKind::Sequence, 3);
         let mut data = mock_data_with_single_stitch("", "", 0);
 
         assert_eq!(alternative.get_next_index(&mut data), Some(0));
@@ -270,12 +275,7 @@ mod tests {
 
     #[test]
     fn alternative_get_next_index_for_once_only_yields_none_after_the_initial() {
-        let mut alternative = AlternativeBuilder::once_only()
-            .with_line(LineChunkBuilder::from_string("Line 1").build())
-            .with_line(LineChunkBuilder::from_string("Line 2").build())
-            .with_line(LineChunkBuilder::from_string("Line 3").build())
-            .build();
-
+        let mut alternative = create_alternative(AlternativeKind::OnceOnly, 3);
         let mut data = mock_data_with_single_stitch("", "", 0);
 
         assert_eq!(alternative.get_next_index(&mut data), Some(0));
@@ -285,27 +285,38 @@ mod tests {
         assert_eq!(alternative.get_next_index(&mut data), None);
     }
 
+    #[cfg(not(feature = "random"))]
+    /// Module for testing the behaviour of shuffle sequences without randomness.
+    mod not_shuffle {
+        use super::*;
+
+        #[test]
+        fn alternative_get_next_index_for_shuffle_resets_list_after_yielding_all_inds_if_not_random(
+        ) {
+            let mut alternative = create_alternative(AlternativeKind::Shuffle, 3);
+            let mut data = mock_data_with_single_stitch_and_rng("", "", 0, StoryRng::default());
+
+            assert_eq!(alternative.get_next_index(&mut data), Some(0));
+            assert_eq!(alternative.get_next_index(&mut data), Some(1));
+            assert_eq!(alternative.get_next_index(&mut data), Some(2));
+            assert_eq!(alternative.get_next_index(&mut data), Some(0));
+            assert_eq!(alternative.get_next_index(&mut data), Some(1));
+            assert_eq!(alternative.get_next_index(&mut data), Some(2));
+            assert_eq!(alternative.get_next_index(&mut data), Some(0));
+        }
+    }
+
     #[cfg(feature = "random")]
+    /// Module for testing the behaviour of shuffle sequences when `random` is activated.
     mod shuffle {
         use super::*;
-        use crate::story::rng::StoryRng;
 
         // With 10 items, the probability of drawing a particular sequence is 1 / 10! = 2.75573-07
         const NUM_ITEMS: usize = 10;
 
-        fn create_alternative(kind: AlternativeKind) -> Alternative {
-            let mut builder = AlternativeBuilder::from_kind(kind);
-
-            for _ in 0..NUM_ITEMS {
-                builder.add_line(LineChunkBuilder::from_string("Line").build());
-            }
-
-            builder.build()
-        }
-
         #[test]
         fn alternative_get_next_index_for_shuffle_shuffles_active_index_list() {
-            let mut alternative = create_alternative(AlternativeKind::Shuffle);
+            let mut alternative = create_alternative(AlternativeKind::Shuffle, NUM_ITEMS);
             let mut data = mock_data_with_single_stitch_and_rng("", "", 0, StoryRng::default());
 
             // Create reverse list from 1, since we will pop the first (0) before the comparison
@@ -317,7 +328,7 @@ mod tests {
 
         #[test]
         fn alternative_get_next_index_for_shuffle_uses_shuffle_in_place_with_the_generator() {
-            let mut alternative = create_alternative(AlternativeKind::Shuffle);
+            let mut alternative = create_alternative(AlternativeKind::Shuffle, NUM_ITEMS);
 
             let mut rng = StoryRng::default();
             let mut data = mock_data_with_single_stitch_and_rng("", "", 0, rng.clone());
@@ -331,7 +342,7 @@ mod tests {
 
         #[test]
         fn alternative_get_next_index_for_shuffle_resets_list_after_emptying() {
-            let mut alternative = create_alternative(AlternativeKind::Shuffle);
+            let mut alternative = create_alternative(AlternativeKind::Shuffle, NUM_ITEMS);
 
             let mut rng = StoryRng::default();
             let mut data = mock_data_with_single_stitch_and_rng("", "", 0, rng.clone());
