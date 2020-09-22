@@ -161,24 +161,29 @@
                     <main>
                         <h1><a class="header" href="#set-up" id="set-up">Set-up</a></h1>
 <p>To use <code>inkling</code> in your Rust project, add this line to your dependencies in <code>Cargo.toml</code>:</p>
-<pre><code class="language-toml">inkling = &quot;0.12.6&quot;
+<pre><code class="language-toml">[dependencies]
+#
+inkling = &quot;0.12.6&quot;
 </code></pre>
+<p>By default, <code>inkling</code> has no additional dependencies. Extra features which carry dependencies
+can be opted in to.</p>
 <h2><a class="header" href="#adding-serde-support" id="adding-serde-support">Adding <code>serde</code> support</a></h2>
 <p>The <a href="https://serde.rs/"><code>serde</code></a> library is widely used to serialize and deserialize data, which can be used 
-to save and restore an object. Support for this can be added to <code>inkling</code> by enabling the <code>serde_support</code> 
+to <a href="./saving-and-loading.html">save and restore</a> an object. Support for this can be added to <code>inkling</code> by enabling the <code>serde_support</code> 
 feature. This adds <code>serde</code> as a dependency.</p>
-<pre><code class="language-toml">[dependencies.inkling]
-version = &quot;0.12.6&quot;
-features = [&quot;serde_support&quot;]
+<pre><code class="language-toml">[dependencies]
+#
+inkling = { version = &quot;0.12.6&quot;, features = [&quot;serde_support&quot;] }
 </code></pre>
 <h2><a class="header" href="#randomization-support" id="randomization-support">Randomization support</a></h2>
 <p>The <code>Ink</code> language supports a few randomized features like <a href="../features/sequences.html#shuffle-sequences">shuffle sequences</a>.
-These are optional and can be enabled using the <code>random</code> feature. This adds 
+These are optional and can be enabled with the <code>random</code> feature. This adds 
 a dependency to <code>rand</code> and its sub project <code>rand_chacha</code>.</p>
-<pre><code class="language-toml">[dependencies.inkling]
-version = &quot;0.12.6&quot;
-features = [&quot;random&quot;]
+<pre><code class="language-toml">[dependencies]
+#
+inkling = { version = &quot;0.12.6&quot;, features = [&quot;random&quot;] }
 </code></pre>
+<p>If this feature is not enabled, shuffle sequences will behave as cycle sequences.</p>
 
                     </main>
 
