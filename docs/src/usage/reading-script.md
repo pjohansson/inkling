@@ -35,9 +35,6 @@ Again, we parse it into a story:
 # *   "To the Fiendish Impostor"
 # "#;
 let mut story: Story = read_story_from_string(&content).unwrap();
-
-// Mark the story as ready by calling `start`
-story.start();
 ```
 
 ### Aside: The `Story` object
@@ -66,7 +63,6 @@ to select from.
 # *   "To the Fiendish Impostor"
 # "#;
 # let mut story: Story = read_story_from_string(&content).unwrap();
-# story.start();
 use inkling::Line;
 
 // Buffer which the text lines will be added to
@@ -106,7 +102,6 @@ of type [`Prompt`][Prompt]. We can access the choices (which are of type
 # *   "To the Fiendish Impostor"
 # "#;
 # let mut story: Story = read_story_from_string(&content).unwrap();
-# story.start();
 # let mut line_buffer = Vec::new();
 # let result = story.resume(&mut line_buffer).unwrap();
 match result {
@@ -135,7 +130,6 @@ to `Choice` made.
 # *   "To the Fiendish Impostor"
 # "#;
 # let mut story: Story = read_story_from_string(&content).unwrap();
-# story.start();
 # let mut line_buffer = Vec::new();
 # let result = story.resume(&mut line_buffer).unwrap();
 story.make_choice(0).unwrap();

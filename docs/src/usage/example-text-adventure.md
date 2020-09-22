@@ -55,7 +55,6 @@ use inkling::{InklingError, Prompt, Story};
 
 fn play_story(mut story: Story) -> Result<(), InklingError> {
     let mut line_buffer = Vec::new();
-    story.start()?;
 
     while let Prompt::Choice(choices) = story.resume(&mut line_buffer)? {
         print_lines(&line_buffer);

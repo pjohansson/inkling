@@ -28,7 +28,6 @@ A dark blot spread from where my pen was resting.
 # ";
 # let mut story = read_story_from_string(content).unwrap();
 # let mut buffer = Vec::new();
-# story.start().unwrap();
 # story.resume(&mut buffer).unwrap();
 # assert_eq!(buffer[0].text, "My hand moved towards the canvas.\n");
 # assert_eq!(buffer[1].text, "The cold draft made a shudder run through my body.\n");
@@ -54,7 +53,6 @@ be glued to this, without creating a new paragraph.
 # ";
 # let mut story = read_story_from_string(content).unwrap();
 # let mut buffer = Vec::new();
-# story.start().unwrap();
 # story.resume(&mut buffer).unwrap();
 # assert!(!buffer[0].text.ends_with("\n"));
 ```
@@ -78,7 +76,6 @@ This line will
 # ";
 # let mut story = read_story_from_string(content).unwrap();
 # let mut buffer = Vec::new();
-# story.start().unwrap();
 # story.resume(&mut buffer).unwrap();
 # assert!(!buffer[0].text.ends_with("\n"));
 ```
@@ -103,7 +100,6 @@ As will the end of this. // removed comment at end of line
 # ";
 # let mut story = read_story_from_string(content).unwrap();
 # let mut buffer = Vec::new();
-# story.start().unwrap();
 # story.resume(&mut buffer).unwrap();
 # assert_eq!(buffer[0].text, "The cold could not be ignored.\n");
 # assert_eq!(buffer[1].text, "As will the end of this.\n");
@@ -126,7 +122,6 @@ To mark a choice in a branching story, use the `*` marker.
 # ";
 # let mut story = read_story_from_string(content).unwrap();
 # let mut buffer = Vec::new();
-# story.start().unwrap();
 # match story.resume(&mut buffer).unwrap() {
 #   Prompt::Choice(choices) => {
 #       assert_eq!(choices[0].text, "Choice 1");
@@ -157,7 +152,6 @@ A noise rang from the door.
 # "#;
 # let mut story = read_story_from_string(content).unwrap();
 # let mut buffer = Vec::new();
-# story.start().unwrap();
 # match story.resume(&mut buffer).unwrap() {
 #   Prompt::Choice(choices) => {
 #       assert_eq!(choices[0].text, r#""Hello?" I shouted."#);
@@ -201,7 +195,6 @@ be ignored. Building on the previous example:
 # "#;
 # let mut story = read_story_from_string(content).unwrap();
 # let mut buffer = Vec::new();
-# story.start().unwrap();
 # match story.resume(&mut buffer).unwrap() {
 #   Prompt::Choice(choices) => {
 #       assert_eq!(choices[0].text, r#""Hello?" I shouted."#);
@@ -239,7 +232,6 @@ build a simple choice text into a more presentable sentence for the story:
 # "#;
 # let mut story = read_story_from_string(content).unwrap();
 # let mut buffer = Vec::new();
-# story.start().unwrap();
 # match story.resume(&mut buffer).unwrap() {
 #   Prompt::Choice(choices) => {
 #       assert_eq!(choices[0].text, r#""Hello?""#);
@@ -279,7 +271,6 @@ to specify the depth.
 # ";
 # let mut story = read_story_from_string(content).unwrap();
 # let mut buffer = Vec::new();
-# story.start().unwrap();
 # story.resume(&mut buffer).unwrap();
 # story.make_choice(0).unwrap();
 # match story.resume(&mut buffer).unwrap() {

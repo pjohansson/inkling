@@ -27,7 +27,6 @@ visited the knot with name `tea_house`.
 # "#;
 # let mut story = read_story_from_string(content).unwrap();
 # let mut buffer = Vec::new();
-# story.start().unwrap();
 # match story.resume(&mut buffer).unwrap() {
 #   Prompt::Choice(choices) => {
 #       assert_eq!(choices.len(), 1);
@@ -65,7 +64,6 @@ is an implicit form of writing the explicit condition `{tea_house != 0}`.
 # "#;
 # let mut story = read_story_from_string(content).unwrap();
 # let mut buffer = Vec::new();
-# story.start().unwrap();
 # match story.resume(&mut buffer).unwrap() {
 #   Prompt::Choice(choices) => {
 #       assert_eq!(choices.len(), 1);
@@ -101,7 +99,6 @@ VAR coins = 3
 # ";
 # let mut story = read_story_from_string(content).unwrap();
 # let mut buffer = Vec::new();
-# story.start().unwrap();
 # match story.resume(&mut buffer).unwrap() {
 #   Prompt::Choice(choices) => {
 #       assert_eq!(choices.len(), 2);
@@ -133,7 +130,6 @@ VAR coins = 6
 # ";
 # let mut story = read_story_from_string(content).unwrap();
 # let mut buffer = Vec::new();
-# story.start().unwrap();
 # match story.resume(&mut buffer).unwrap() {
 #   Prompt::Choice(choices) => {
 #       assert_eq!(choices.len(), 2);
@@ -163,7 +159,6 @@ VAR mentor = "Evan"
 # "#;
 # let mut story = read_story_from_string(content).unwrap();
 # let mut buffer = Vec::new();
-# story.start().unwrap();
 # match story.resume(&mut buffer).unwrap() {
 #   Prompt::Choice(choices) => {
 #       assert_eq!(choices[0].text, "Evan, your mentor, greets you");
@@ -196,7 +191,6 @@ You {visited_château: recognize a painting | see nothing of interest}.
 # ";
 # let mut story = read_story_from_string(content).unwrap();
 # let mut buffer = Vec::new();
-# story.start().unwrap();
 # story.resume(&mut buffer).unwrap();
 # assert_eq!(&buffer[0].text, "You see nothing of interest.\n");
 # assert_eq!(&buffer[1].text, "You cannot afford anything.\n");
@@ -227,7 +221,6 @@ VAR met_austin = false
 # ";
 # let mut story = read_story_from_string(content).unwrap();
 # let mut buffer = Vec::new();
-# story.start().unwrap();
 # story.resume(&mut buffer).unwrap();
 # assert_eq!(&buffer[0].text, "Yes, I met with Evan but not Austin.\n");
 ```
@@ -255,7 +248,6 @@ The car ride takes a few hours.
 # ";
 # let mut story = read_story_from_string(content).unwrap();
 # let mut buffer = Vec::new();
-# story.start().unwrap();
 # story.resume(&mut buffer).unwrap();
 # assert_eq!(&buffer[0].text, "Evan takes you to his home.\n");
 # assert_eq!(&buffer[1].text, "The car ride takes a few hours.\n");

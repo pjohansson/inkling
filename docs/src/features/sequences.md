@@ -22,7 +22,6 @@ The train had arrived {in Mannheim|in Heidelberg|at its final stop}.
 # ";
 # let mut story = read_story_from_string(content).unwrap();
 # let mut buffer = Vec::new();
-# story.start().unwrap();
 # story.resume(&mut buffer).unwrap();
 # assert_eq!(&buffer.last().unwrap().text, "The train had arrived in Mannheim.\n");
 # story.make_choice(0).unwrap();
@@ -64,7 +63,6 @@ Today is a {&Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday}.
 # ";
 # let mut story = read_story_from_string(content).unwrap();
 # let mut buffer = Vec::new();
-# story.start().unwrap();
 # for day in ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday", "Monday"].iter() {
 #   story.resume(&mut buffer).unwrap();
 #   assert_eq!(buffer.last().unwrap().text, format!("Today is a {}.\n", day));
@@ -98,7 +96,6 @@ I met with Anirudh{! for the first time| for the second time}.
 # ";
 # let mut story = read_story_from_string(content).unwrap();
 # let mut buffer = Vec::new();
-# story.start().unwrap();
 # story.resume(&mut buffer).unwrap();
 # assert_eq!(&buffer.last().unwrap().text, "I met with Anirudh for the first time.\n");
 # story.make_choice(0).unwrap();
@@ -158,7 +155,6 @@ I {&{strode|walked} hastily|waltzed {gracefully|clumsily}} into the room.
 # ";
 # let mut story = read_story_from_string(content).unwrap();
 # let mut buffer = Vec::new();
-# story.start().unwrap();
 # story.resume(&mut buffer).unwrap();
 # assert_eq!(&buffer.last().unwrap().text, "I strode hastily into the room.\n");
 # story.make_choice(0).unwrap();
@@ -203,7 +199,6 @@ In the doorway stood a thin figure.
 # ";
 # let mut story = read_story_from_string(content).unwrap();
 # let mut buffer = Vec::new();
-# story.start().unwrap();
 # story.resume(&mut buffer).unwrap();
 # assert_eq!(&buffer[0].text, "The first time I saw the door it was locked.\n");
 # assert_eq!(&buffer[1].text, "I had to return another day.\n");
@@ -241,7 +236,6 @@ The {first|next} time I saw the door it was {locked. -> locked_door|open. -> ope
 # ";
 # let mut story = read_story_from_string(content).unwrap();
 # let mut buffer = Vec::new();
-# story.start().unwrap();
 # story.resume(&mut buffer).unwrap();
 # assert_eq!(&buffer[0].text, "The first time I saw the door it was locked. ");
 # assert_eq!(&buffer[1].text, "I had to return another day.\n");

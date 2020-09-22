@@ -49,7 +49,6 @@ The time was {time}. A {moon} moon illuminated the room.
 # "#;
 # let mut story = read_story_from_string(content).unwrap();
 # let mut buffer = Vec::new();
-# story.start().unwrap();
 # story.resume(&mut buffer).unwrap();
 # assert_eq!(buffer[0].text, "The time was 11. A gloomy moon illuminated the room.\n");
 ```

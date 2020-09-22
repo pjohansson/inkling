@@ -62,7 +62,6 @@ The well stank of stagnant water. # smell, fall # sound: water_drip.ogg
 # "#;
 # let mut story = read_story_from_string(content).unwrap();
 # let mut buffer = Vec::new();
-# story.start().unwrap();
 # story.resume(&mut buffer).unwrap();
 # let tags1 = &buffer[0].tags;
 # let tags2 = &buffer[1].tags;
@@ -83,7 +82,6 @@ Tags can also be added to choice lines.
 # "#;
 # let mut story = read_story_from_string(content).unwrap();
 # let mut buffer = Vec::new();
-# story.start().unwrap();
 # match story.resume(&mut buffer).unwrap() {
 #   Prompt::Choice(choices) => {
 #       assert_eq!(choices[0].tags[0], "sound: footsteps.ogg");

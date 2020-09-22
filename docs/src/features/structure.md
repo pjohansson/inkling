@@ -123,7 +123,6 @@ On the bottom I found an unlocked door.
 # ";
 # let mut story = read_story_from_string(content).unwrap();
 # let mut buffer = Vec::new();
-# story.start().unwrap();
 # story.resume(&mut buffer).unwrap();
 # assert_eq!(story.get_current_location().unwrap(), ("garden".to_string(), None));
 ```
@@ -149,7 +148,6 @@ Stitches inside knots can be diverted to using `knot.stitch` as a destination:
 # ";
 # let mut story = read_story_from_string(content).unwrap();
 # let mut buffer = Vec::new();
-# story.start().unwrap();
 # story.resume(&mut buffer).unwrap();
 # assert!(buffer[0].text.starts_with("A pale moonlight illuminated the garden."));
 ```
@@ -174,7 +172,6 @@ The well stank of stagnant water.
 # ";
 # let mut story = read_story_from_string(content).unwrap();
 # let mut buffer = Vec::new();
-# story.start().unwrap();
 # story.resume(&mut buffer).unwrap();
 # assert!(buffer[0].text.starts_with("The well stank of stagnant water."));
 ```
@@ -208,7 +205,6 @@ On the bottom I found an unlocked door.
 # ";
 # let mut story = read_story_from_string(content).unwrap();
 # let mut buffer = Vec::new();
-# story.start().unwrap();
 # story.resume(&mut buffer).unwrap();
 # story.make_choice(1).unwrap();
 # story.resume(&mut buffer).unwrap();
@@ -265,7 +261,6 @@ revisited during the story.
 # ";
 # let mut story = read_story_from_string(content).unwrap();
 # let mut buffer = Vec::new();
-# story.start().unwrap();
 # match story.resume(&mut buffer).unwrap() {
 #   Prompt::Choice(choices) => {
 #       assert_eq!(choices.len(), 2);
@@ -313,7 +308,6 @@ The third time we visit this we are out of choices and an error is returned.
 # ";
 # let mut story = read_story_from_string(content).unwrap();
 # let mut buffer = Vec::new();
-# story.start().unwrap();
 # story.resume(&mut buffer).unwrap();
 # story.make_choice(0).unwrap();
 # story.resume(&mut buffer).unwrap();
@@ -352,7 +346,6 @@ We escaped the loop!
 # ";
 # let mut story = read_story_from_string(content).unwrap();
 # let mut buffer = Vec::new();
-# story.start().unwrap();
 # match story.resume(&mut buffer).unwrap() {
 #   Prompt::Choice(choices) => {
 #       assert_eq!(choices.len(), 1);
@@ -388,7 +381,6 @@ You submit it to your editor. Wow, writing is easy!
 # ";
 # let mut story = read_story_from_string(content).unwrap();
 # let mut buffer = Vec::new();
-# story.start().unwrap();
 # story.resume(&mut buffer).unwrap(); 
 # story.make_choice(0).unwrap();
 # story.resume(&mut buffer).unwrap(); 
@@ -421,7 +413,6 @@ This sticky fallback choice can be use any number of times.
 # ";
 # let mut story = read_story_from_string(content).unwrap();
 # let mut buffer = Vec::new();
-# story.start().unwrap();
 # story.move_to("once_only_fallback", None).unwrap();
 # assert!(story.resume(&mut buffer).is_err());
 # story.move_to("sticky_fallback", None).unwrap();
@@ -457,7 +448,6 @@ or the kitchen, they return to their room. There, they are presented with the ne
 # let mut story = read_story_from_string(content).unwrap();
 # let mut story_other = read_story_from_string(content).unwrap();
 # let mut buffer = Vec::new();
-# story.start().unwrap();
 # story.resume(&mut buffer).unwrap();
 # story.make_choice(0).unwrap();
 # story.resume(&mut buffer).unwrap();
@@ -465,7 +455,6 @@ or the kitchen, they return to their room. There, they are presented with the ne
 # assert_eq!(&buffer[0].text, "The chirp of crickets greet you as you enter the garden.\n");
 # assert_eq!(&buffer[1].text, "A while later, you return to your room.\n");
 # buffer.clear();
-# story_other.start().unwrap();
 # story_other.resume(&mut buffer).unwrap();
 # story_other.make_choice(1).unwrap();
 # story_other.resume(&mut buffer).unwrap();
@@ -501,7 +490,6 @@ and 2.2 at gather 2.1. Then finally, both outer choices 1 and 2 at gather point 
 # let mut story = read_story_from_string(content).unwrap();
 # let mut story_other = read_story_from_string(content).unwrap();
 # let mut buffer = Vec::new();
-# story.start().unwrap();
 # story.resume(&mut buffer).unwrap();
 # story.make_choice(1).unwrap();
 # story.resume(&mut buffer).unwrap();
@@ -513,7 +501,6 @@ and 2.2 at gather 2.1. Then finally, both outer choices 1 and 2 at gather point 
 # assert_eq!(&buffer[2].text, "Gather 2.1\n");
 # assert_eq!(&buffer[3].text, "Gather 1\n");
 # buffer.clear();
-# story_other.start().unwrap();
 # story_other.resume(&mut buffer).unwrap();
 # story_other.make_choice(0).unwrap();
 # story_other.resume(&mut buffer).unwrap();
