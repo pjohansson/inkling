@@ -65,10 +65,6 @@ pub enum InklingError {
         name: String,
         value: Variable,
     },
-    /// Tried to resume a story that has not been started.
-    ResumeBeforeStart,
-    /// Tried to `start` a story that is already in progress.
-    StartOnStoryInProgress,
     VariableError(VariableError),
 }
 
@@ -146,10 +142,6 @@ impl fmt::Display for InklingError {
                 "Cannot print variable '{}' which has value '{:?}': invalid type",
                 name, value
             ),
-            ResumeBeforeStart => write!(f, "Tried to resume a story that has not yet been started"),
-            StartOnStoryInProgress => {
-                write!(f, "Called `start` on a story that is already in progress")
-            }
             VariableError(err) => write!(f, "{}", err),
         }
     }

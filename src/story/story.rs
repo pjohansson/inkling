@@ -136,10 +136,6 @@ impl Story {
     ///
     /// assert_eq!(&line_buffer[0].text, "Miranda was waiting in her office.\n");
     /// ```
-    ///
-    /// # Errors
-    /// *   [`ResumeBeforeStart`][crate::error::InklingError::ResumeBeforeStart]:
-    ///     if called before the `start` method was called on the story.
     pub fn resume(&mut self, line_buffer: &mut LineBuffer) -> Result<Prompt, InklingError> {
         let selection = self.selected_choice.take();
 
