@@ -211,7 +211,6 @@ fn read_story(path: &amp;std::path::Path) -&gt; Result&lt;Story, std::io::Error&
 
 fn play_story(mut story: Story) -&gt; Result&lt;(), InklingError&gt; {
     let mut line_buffer = Vec::new();
-    story.start()?;
 
     while let Prompt::Choice(choices) = story.resume(&amp;mut line_buffer)? {
         print_lines(&amp;line_buffer);

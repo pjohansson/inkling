@@ -188,7 +188,6 @@ A dark blot spread from where my pen was resting.
 </span><span class="boring">&quot;;
 </span><span class="boring">let mut story = read_story_from_string(content).unwrap();
 </span><span class="boring">let mut buffer = Vec::new();
-</span><span class="boring">story.start().unwrap();
 </span><span class="boring">story.resume(&amp;mut buffer).unwrap();
 </span><span class="boring">assert_eq!(buffer[0].text, &quot;My hand moved towards the canvas.\n&quot;);
 </span><span class="boring">assert_eq!(buffer[1].text, &quot;The cold draft made a shudder run through my body.\n&quot;);
@@ -213,7 +212,6 @@ be glued to this, without creating a new paragraph.
 </span><span class="boring">&quot;;
 </span><span class="boring">let mut story = read_story_from_string(content).unwrap();
 </span><span class="boring">let mut buffer = Vec::new();
-</span><span class="boring">story.start().unwrap();
 </span><span class="boring">story.resume(&amp;mut buffer).unwrap();
 </span><span class="boring">assert!(!buffer[0].text.ends_with(&quot;\n&quot;));
 </span><span class="boring">}
@@ -235,7 +233,6 @@ be glued to this, without creating a new paragraph.
 </span><span class="boring">&quot;;
 </span><span class="boring">let mut story = read_story_from_string(content).unwrap();
 </span><span class="boring">let mut buffer = Vec::new();
-</span><span class="boring">story.start().unwrap();
 </span><span class="boring">story.resume(&amp;mut buffer).unwrap();
 </span><span class="boring">assert!(!buffer[0].text.ends_with(&quot;\n&quot;));
 </span><span class="boring">}
@@ -259,7 +256,6 @@ As will the end of this. // removed comment at end of line
 </span><span class="boring">&quot;;
 </span><span class="boring">let mut story = read_story_from_string(content).unwrap();
 </span><span class="boring">let mut buffer = Vec::new();
-</span><span class="boring">story.start().unwrap();
 </span><span class="boring">story.resume(&amp;mut buffer).unwrap();
 </span><span class="boring">assert_eq!(buffer[0].text, &quot;The cold could not be ignored.\n&quot;);
 </span><span class="boring">assert_eq!(buffer[1].text, &quot;As will the end of this.\n&quot;);
@@ -281,7 +277,6 @@ As will the end of this. // removed comment at end of line
 </span><span class="boring">&quot;;
 </span><span class="boring">let mut story = read_story_from_string(content).unwrap();
 </span><span class="boring">let mut buffer = Vec::new();
-</span><span class="boring">story.start().unwrap();
 </span><span class="boring">match story.resume(&amp;mut buffer).unwrap() {
 </span><span class="boring">  Prompt::Choice(choices) =&gt; {
 </span><span class="boring">      assert_eq!(choices[0].text, &quot;Choice 1&quot;);
@@ -311,7 +306,6 @@ be collected and returned to the user to make a choice.</p>
 </span><span class="boring">&quot;#;
 </span><span class="boring">let mut story = read_story_from_string(content).unwrap();
 </span><span class="boring">let mut buffer = Vec::new();
-</span><span class="boring">story.start().unwrap();
 </span><span class="boring">match story.resume(&amp;mut buffer).unwrap() {
 </span><span class="boring">  Prompt::Choice(choices) =&gt; {
 </span><span class="boring">      assert_eq!(choices[0].text, r#&quot;&quot;Hello?&quot; I shouted.&quot;#);
@@ -352,7 +346,6 @@ be ignored. Building on the previous example: </p>
 </span><span class="boring">&quot;#;
 </span><span class="boring">let mut story = read_story_from_string(content).unwrap();
 </span><span class="boring">let mut buffer = Vec::new();
-</span><span class="boring">story.start().unwrap();
 </span><span class="boring">match story.resume(&amp;mut buffer).unwrap() {
 </span><span class="boring">  Prompt::Choice(choices) =&gt; {
 </span><span class="boring">      assert_eq!(choices[0].text, r#&quot;&quot;Hello?&quot; I shouted.&quot;#);
@@ -387,7 +380,6 @@ build a simple choice text into a more presentable sentence for the story:</p>
 </span><span class="boring">&quot;#;
 </span><span class="boring">let mut story = read_story_from_string(content).unwrap();
 </span><span class="boring">let mut buffer = Vec::new();
-</span><span class="boring">story.start().unwrap();
 </span><span class="boring">match story.resume(&amp;mut buffer).unwrap() {
 </span><span class="boring">  Prompt::Choice(choices) =&gt; {
 </span><span class="boring">      assert_eq!(choices[0].text, r#&quot;&quot;Hello?&quot;&quot;#);
@@ -425,7 +417,6 @@ to specify the depth.</p>
 </span><span class="boring">&quot;;
 </span><span class="boring">let mut story = read_story_from_string(content).unwrap();
 </span><span class="boring">let mut buffer = Vec::new();
-</span><span class="boring">story.start().unwrap();
 </span><span class="boring">story.resume(&amp;mut buffer).unwrap();
 </span><span class="boring">story.make_choice(0).unwrap();
 </span><span class="boring">match story.resume(&amp;mut buffer).unwrap() {

@@ -220,7 +220,6 @@ The well stank of stagnant water. # smell, fall # sound: water_drip.ogg
 </span><span class="boring">&quot;#;
 </span><span class="boring">let mut story = read_story_from_string(content).unwrap();
 </span><span class="boring">let mut buffer = Vec::new();
-</span><span class="boring">story.start().unwrap();
 </span><span class="boring">story.resume(&amp;mut buffer).unwrap();
 </span><span class="boring">let tags1 = &amp;buffer[0].tags;
 </span><span class="boring">let tags2 = &amp;buffer[1].tags;
@@ -242,7 +241,6 @@ The well stank of stagnant water. # smell, fall # sound: water_drip.ogg
 </span><span class="boring">&quot;#;
 </span><span class="boring">let mut story = read_story_from_string(content).unwrap();
 </span><span class="boring">let mut buffer = Vec::new();
-</span><span class="boring">story.start().unwrap();
 </span><span class="boring">match story.resume(&amp;mut buffer).unwrap() {
 </span><span class="boring">  Prompt::Choice(choices) =&gt; {
 </span><span class="boring">      assert_eq!(choices[0].tags[0], &quot;sound: footsteps.ogg&quot;);

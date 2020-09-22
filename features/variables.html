@@ -207,7 +207,6 @@ The time was {time}. A {moon} moon illuminated the room.
 </span><span class="boring">&quot;#;
 </span><span class="boring">let mut story = read_story_from_string(content).unwrap();
 </span><span class="boring">let mut buffer = Vec::new();
-</span><span class="boring">story.start().unwrap();
 </span><span class="boring">story.resume(&amp;mut buffer).unwrap();
 </span><span class="boring">assert_eq!(buffer[0].text, &quot;The time was 11. A gloomy moon illuminated the room.\n&quot;);
 </span><span class="boring">}

@@ -195,9 +195,6 @@ object in a <code>Result</code>.</p>
 </span><span class="boring">*   &quot;To the Fiendish Impostor&quot;
 </span><span class="boring">&quot;#;
 </span>let mut story: Story = read_story_from_string(&amp;content).unwrap();
-
-// Mark the story as ready by calling `start`
-story.start();
 <span class="boring">}
 </span></code></pre></pre>
 <h3><a class="header" href="#aside-the-story-object" id="aside-the-story-object">Aside: The <code>Story</code> object</a></h3>
@@ -224,7 +221,6 @@ to select from.</p>
 </span><span class="boring">*   &quot;To the Fiendish Impostor&quot;
 </span><span class="boring">&quot;#;
 </span><span class="boring">let mut story: Story = read_story_from_string(&amp;content).unwrap();
-</span><span class="boring">story.start();
 </span>use inkling::Line;
 
 // Buffer which the text lines will be added to
@@ -263,7 +259,6 @@ of type <a href="https://docs.rs/inkling/latest/inkling/enum.Prompt.html"><code>
 </span><span class="boring">*   &quot;To the Fiendish Impostor&quot;
 </span><span class="boring">&quot;#;
 </span><span class="boring">let mut story: Story = read_story_from_string(&amp;content).unwrap();
-</span><span class="boring">story.start();
 </span><span class="boring">let mut line_buffer = Vec::new();
 </span><span class="boring">let result = story.resume(&amp;mut line_buffer).unwrap();
 </span>match result {
@@ -293,7 +288,6 @@ to <code>Choice</code> made.</p>
 </span><span class="boring">*   &quot;To the Fiendish Impostor&quot;
 </span><span class="boring">&quot;#;
 </span><span class="boring">let mut story: Story = read_story_from_string(&amp;content).unwrap();
-</span><span class="boring">story.start();
 </span><span class="boring">let mut line_buffer = Vec::new();
 </span><span class="boring">let result = story.resume(&amp;mut line_buffer).unwrap();
 </span>story.make_choice(0).unwrap();

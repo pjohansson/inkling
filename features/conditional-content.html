@@ -185,7 +185,6 @@ visited the knot with name <code>tea_house</code>.</p>
 </span><span class="boring">&quot;#;
 </span><span class="boring">let mut story = read_story_from_string(content).unwrap();
 </span><span class="boring">let mut buffer = Vec::new();
-</span><span class="boring">story.start().unwrap();
 </span><span class="boring">match story.resume(&amp;mut buffer).unwrap() {
 </span><span class="boring">  Prompt::Choice(choices) =&gt; {
 </span><span class="boring">      assert_eq!(choices.len(), 1);
@@ -224,7 +223,6 @@ is an implicit form of writing the explicit condition <code>{tea_house != 0}</co
 </span><span class="boring">&quot;#;
 </span><span class="boring">let mut story = read_story_from_string(content).unwrap();
 </span><span class="boring">let mut buffer = Vec::new();
-</span><span class="boring">story.start().unwrap();
 </span><span class="boring">match story.resume(&amp;mut buffer).unwrap() {
 </span><span class="boring">  Prompt::Choice(choices) =&gt; {
 </span><span class="boring">      assert_eq!(choices.len(), 1);
@@ -261,7 +259,6 @@ VAR coins = 3
 </span><span class="boring">&quot;;
 </span><span class="boring">let mut story = read_story_from_string(content).unwrap();
 </span><span class="boring">let mut buffer = Vec::new();
-</span><span class="boring">story.start().unwrap();
 </span><span class="boring">match story.resume(&amp;mut buffer).unwrap() {
 </span><span class="boring">  Prompt::Choice(choices) =&gt; {
 </span><span class="boring">      assert_eq!(choices.len(), 2);
@@ -293,7 +290,6 @@ VAR coins = 6
 </span><span class="boring">&quot;;
 </span><span class="boring">let mut story = read_story_from_string(content).unwrap();
 </span><span class="boring">let mut buffer = Vec::new();
-</span><span class="boring">story.start().unwrap();
 </span><span class="boring">match story.resume(&amp;mut buffer).unwrap() {
 </span><span class="boring">  Prompt::Choice(choices) =&gt; {
 </span><span class="boring">      assert_eq!(choices.len(), 2);
@@ -323,7 +319,6 @@ quirk of the very compact <code>Ink</code> scripting language, where curly brace
 </span><span class="boring">&quot;#;
 </span><span class="boring">let mut story = read_story_from_string(content).unwrap();
 </span><span class="boring">let mut buffer = Vec::new();
-</span><span class="boring">story.start().unwrap();
 </span><span class="boring">match story.resume(&amp;mut buffer).unwrap() {
 </span><span class="boring">  Prompt::Choice(choices) =&gt; {
 </span><span class="boring">      assert_eq!(choices[0].text, &quot;Evan, your mentor, greets you&quot;);
@@ -355,7 +350,6 @@ You {visited_château: recognize a painting | see nothing of interest}.
 </span><span class="boring">&quot;;
 </span><span class="boring">let mut story = read_story_from_string(content).unwrap();
 </span><span class="boring">let mut buffer = Vec::new();
-</span><span class="boring">story.start().unwrap();
 </span><span class="boring">story.resume(&amp;mut buffer).unwrap();
 </span><span class="boring">assert_eq!(&amp;buffer[0].text, &quot;You see nothing of interest.\n&quot;);
 </span><span class="boring">assert_eq!(&amp;buffer[1].text, &quot;You cannot afford anything.\n&quot;);
@@ -383,7 +377,6 @@ VAR met_austin = false
 </span><span class="boring">&quot;;
 </span><span class="boring">let mut story = read_story_from_string(content).unwrap();
 </span><span class="boring">let mut buffer = Vec::new();
-</span><span class="boring">story.start().unwrap();
 </span><span class="boring">story.resume(&amp;mut buffer).unwrap();
 </span><span class="boring">assert_eq!(&amp;buffer[0].text, &quot;Yes, I met with Evan but not Austin.\n&quot;);
 </span><span class="boring">}
@@ -409,7 +402,6 @@ The car ride takes a few hours.
 </span><span class="boring">&quot;;
 </span><span class="boring">let mut story = read_story_from_string(content).unwrap();
 </span><span class="boring">let mut buffer = Vec::new();
-</span><span class="boring">story.start().unwrap();
 </span><span class="boring">story.resume(&amp;mut buffer).unwrap();
 </span><span class="boring">assert_eq!(&amp;buffer[0].text, &quot;Evan takes you to his home.\n&quot;);
 </span><span class="boring">assert_eq!(&amp;buffer[1].text, &quot;The car ride takes a few hours.\n&quot;);

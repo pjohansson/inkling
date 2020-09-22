@@ -181,7 +181,6 @@ write something like this:</p>
 </span><span class="boring">&quot;;
 </span><span class="boring">let mut story = read_story_from_string(content).unwrap();
 </span><span class="boring">let mut buffer = Vec::new();
-</span><span class="boring">story.start().unwrap();
 </span><span class="boring">story.resume(&amp;mut buffer).unwrap();
 </span><span class="boring">assert_eq!(&amp;buffer.last().unwrap().text, &quot;The train had arrived in Mannheim.\n&quot;);
 </span><span class="boring">story.make_choice(0).unwrap();
@@ -221,7 +220,6 @@ denoted by starting the first alternative with a <code>&amp;</code> marker.</p>
 </span><span class="boring">&quot;;
 </span><span class="boring">let mut story = read_story_from_string(content).unwrap();
 </span><span class="boring">let mut buffer = Vec::new();
-</span><span class="boring">story.start().unwrap();
 </span><span class="boring">for day in [&quot;Monday&quot;, &quot;Tuesday&quot;, &quot;Wednesday&quot;, &quot;Thursday&quot;, &quot;Friday&quot;, &quot;Saturday&quot;, &quot;Sunday&quot;, &quot;Monday&quot;].iter() {
 </span><span class="boring">  story.resume(&amp;mut buffer).unwrap();
 </span><span class="boring">  assert_eq!(buffer.last().unwrap().text, format!(&quot;Today is a {}.\n&quot;, day));
@@ -254,7 +252,6 @@ They are denoted by starting the first alternative with a <code>!</code> marker.
 </span><span class="boring">&quot;;
 </span><span class="boring">let mut story = read_story_from_string(content).unwrap();
 </span><span class="boring">let mut buffer = Vec::new();
-</span><span class="boring">story.start().unwrap();
 </span><span class="boring">story.resume(&amp;mut buffer).unwrap();
 </span><span class="boring">assert_eq!(&amp;buffer.last().unwrap().text, &quot;I met with Anirudh for the first time.\n&quot;);
 </span><span class="boring">story.make_choice(0).unwrap();
@@ -310,7 +307,6 @@ I was dealt a Jack of clubs.
 </span><span class="boring">&quot;;
 </span><span class="boring">let mut story = read_story_from_string(content).unwrap();
 </span><span class="boring">let mut buffer = Vec::new();
-</span><span class="boring">story.start().unwrap();
 </span><span class="boring">story.resume(&amp;mut buffer).unwrap();
 </span><span class="boring">assert_eq!(&amp;buffer.last().unwrap().text, &quot;I strode hastily into the room.\n&quot;);
 </span><span class="boring">story.make_choice(0).unwrap();
@@ -353,7 +349,6 @@ In the doorway stood a thin figure.
 </span><span class="boring">&quot;;
 </span><span class="boring">let mut story = read_story_from_string(content).unwrap();
 </span><span class="boring">let mut buffer = Vec::new();
-</span><span class="boring">story.start().unwrap();
 </span><span class="boring">story.resume(&amp;mut buffer).unwrap();
 </span><span class="boring">assert_eq!(&amp;buffer[0].text, &quot;The first time I saw the door it was locked.\n&quot;);
 </span><span class="boring">assert_eq!(&amp;buffer[1].text, &quot;I had to return another day.\n&quot;);
@@ -390,7 +385,6 @@ previous example:</p>
 </span><span class="boring">&quot;;
 </span><span class="boring">let mut story = read_story_from_string(content).unwrap();
 </span><span class="boring">let mut buffer = Vec::new();
-</span><span class="boring">story.start().unwrap();
 </span><span class="boring">story.resume(&amp;mut buffer).unwrap();
 </span><span class="boring">assert_eq!(&amp;buffer[0].text, &quot;The first time I saw the door it was locked. &quot;);
 </span><span class="boring">assert_eq!(&amp;buffer[1].text, &quot;I had to return another day.\n&quot;);
