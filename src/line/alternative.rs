@@ -102,6 +102,10 @@ pub enum AlternativeKind {
     Sequence,
     /// Shuffles the active list, then goes through it and cycles with a new shuffle at the end.
     ///
+    /// # Note
+    /// This is only a randomly shuffled sequence if the `random` feature is enabled. Otherwise,
+    /// it defaults to being a `Cycle` sequence.
+    ///
     /// # Example
     /// A set of three cards `[One, Two, Three]` will be shuffled then dealt one by one. Once
     /// the set is empty, the deck is reshuffled.
