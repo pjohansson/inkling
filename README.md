@@ -1,6 +1,6 @@
 # Inkling
 
-[![User Guide](https://img.shields.io/badge/book-guide-blue)](https://pjohansson.github.io/inkling/) [![crates.io](https://img.shields.io/crates/v/inkling.svg)](https://crates.io/crates/inkling) [![P](https://docs.rs/inkling/badge.svg)](https://docs.rs/inkling)
+[![User Guide](https://img.shields.io/badge/book-guide-blue)](https://pjohansson.github.io/inkling/) [![Documentation](https://docs.rs/inkling/badge.svg)](https://docs.rs/inkling) [![crates.io](https://img.shields.io/crates/v/inkling.svg)](https://crates.io/crates/inkling)
 
 Partial implementation of the *Ink* markup language for game dialogue.
 
