@@ -74,10 +74,10 @@ impl Story {
     /// bright the hawk’s flight
     /// on the empty sky.
     /// ";
-    /// 
+    ///
     /// let mut story = read_story_from_string(content).unwrap();
     /// let mut line_buffer = Vec::new();
-    /// 
+    ///
     /// story.resume(&mut line_buffer);
     ///
     /// assert_eq!(line_buffer[0].text, "Only in silence the word,\n");
