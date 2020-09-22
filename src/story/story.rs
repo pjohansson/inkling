@@ -50,9 +50,8 @@ impl Story {
 
     /// Resume the story text flow while reading all encountered lines into the supplied buffer.
     ///
-    /// Should be called to resume the flow after the story has been started with
-    /// [`start`][crate::story::Story::start()], a choice was made with
-    /// [`make_choice`][crate::story::Story::make_choice()] or the
+    /// Should be called to either start the flow after the story, or to resume it
+    /// after a choice was made with [`make_choice`][crate::story::Story::make_choice()] or the
     /// [`move_to`][crate::story::Story::move_to()] method was called to change the story
     /// location.
     ///
@@ -68,17 +67,17 @@ impl Story {
     /// ## Starting the story processing
     /// ```
     /// # use inkling::{read_story_from_string, Story};
-    /// # let content = "\
-    /// # Only in silence the word,
-    /// # only in dark the light,
-    /// # only in dying life:
-    /// # bright the hawk’s flight
-    /// # on the empty sky.
-    /// # ";
-    /// #
-    /// # let mut story = read_story_from_string(content).unwrap();
-    /// # let mut line_buffer = Vec::new();
-    /// #
+    /// let content = "\
+    /// Only in silence the word,
+    /// only in dark the light,
+    /// only in dying life:
+    /// bright the hawk’s flight
+    /// on the empty sky.
+    /// ";
+    /// 
+    /// let mut story = read_story_from_string(content).unwrap();
+    /// let mut line_buffer = Vec::new();
+    /// 
     /// story.resume(&mut line_buffer);
     ///
     /// assert_eq!(line_buffer[0].text, "Only in silence the word,\n");
@@ -93,8 +92,8 @@ impl Story {
     /// # use inkling::read_story_from_string;
     /// let content = "\
     /// The next destination in our strenuous journey was ...
-    /// *   Rabat[]!
-    /// *   Addis Ababa[]!
+    /// *   Rabat!
+    /// *   Addis Ababa!
     /// ";
     ///
     /// // ... setup
