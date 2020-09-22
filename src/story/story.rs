@@ -401,35 +401,6 @@ impl Story {
             })
     }
 
-    /// Retrieve the value of a global variable in its string representation.
-    ///
-    /// Will return an error if the variable contains a `Divert` value, which cannot be
-    /// printed as text.
-    ///
-    /// # Examples
-    /// ```
-    /// # use inkling::{read_story_from_string, Variable};
-    /// # let content = "\
-    /// # VAR books_in_library = 3
-    /// # VAR title = \"A Momentuous Spectacle\"
-    /// # ";
-    /// # let story = read_story_from_string(content).unwrap();
-    /// assert_eq!(&story.get_variable_as_string("title").unwrap(), "A Momentuous Spectacle");
-    /// ```
-    ///
-    /// # Errors
-    /// *   [`InvalidVariable`][crate::error::InklingError::InvalidVariable]: if the name
-    ///     does not refer to a global variable that exists in the story.
-    pub fn get_variable_as_string(&self, name: &str) -> Result<String, InklingError> {
-        self.data
-            .variables
-            .get(name)
-            .ok_or(InklingError::InvalidVariable {
-                name: name.to_string(),
-            })
-            .and_then(|variable_info| variable_info.variable.to_string(&self.data))
-    }
-
     /// Set the value of an existing global variable.
     ///
     /// New variables cannot be created using this method. They have to be defined in the Ink
@@ -1674,22 +1645,6 @@ VAR hazardous = true
         assert_eq!(
             story.get_variable("hazardous").unwrap(),
             Variable::Bool(true)
-        );
-    }
-
-    #[test]
-    fn getting_variable_with_string_representation() {
-        let content = "
-
-VAR message = \"Good afternoon!\"
-
-";
-
-        let story = read_story_from_string(content).unwrap();
-
-        assert_eq!(
-            &story.get_variable_as_string("message").unwrap(),
-            "Good afternoon!"
         );
     }
 
