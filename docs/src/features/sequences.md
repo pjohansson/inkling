@@ -36,7 +36,7 @@ The train had arrived {in Mannheim|in Heidelberg|at its final stop}.
 # assert_eq!(&buffer.last().unwrap().text, "The train had arrived at its final stop.\n");
 ```
 
-When [revisiting](structure.md#revisiting-content) this line, it will go through the 
+When [revisiting](structure.md#revisiting-content-and-choices) this line, it will go through the 
 alternatives in order, then repeat the final value after reaching it. In `Ink` terms,
 this is called a *sequence*.
 
@@ -49,7 +49,7 @@ The train had arrived at its final stop.
 
 ### Cycle sequences
 *Cycle sequences* repeat the entire sequence after reaching the final piece. They are 
-denoted by starting the first alternative with a '&' marker.
+denoted by starting the first alternative with a `&` marker.
 
 ```rust
 # extern crate inkling;
@@ -83,7 +83,7 @@ Today is a Monday.
 
 ### Once-only sequences
 *Once-only sequences* goes through all alternatives in order and then produce nothing.
-They are denoted by starting the first alternative with a '!' marker.
+They are denoted by starting the first alternative with a `!` marker.
 
 ```rust
 # extern crate inkling;
@@ -118,11 +118,10 @@ I met with Anirudh.
 ### Shuffle sequences
 *Shuffle sequences* go through the alternatives in a random order, then shuffle the
 alternatives and deal them again. They are denoted by starting the first alternative 
-with a '~' marker.
+with a `~` marker.
 
 Note that these are only random if `inkling` has been compiled with the `random` feature.
-Otherwise they mimic the behavior of regular sequences, just going through the alternatives
-in the declared order.
+Otherwise they mimic the behavior of cycle sequences.
 
 ```rust
 # let content = r"

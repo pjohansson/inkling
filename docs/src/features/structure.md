@@ -305,7 +305,7 @@ being returned from `inkling` at runtime.**
 # -> thrice_fail
 #
 === thrice_fail ===
-The third time we return here we are out of choices and an error is returned.
+The third time we visit this we are out of choices and an error is returned.
 
 *   First choice -> thrice_fail
 *   Second choice -> thrice_fail
@@ -340,7 +340,8 @@ which is to say that it starts with a divert `->` marker.
 # -> twice_fail
 #
 === twice_fail ===
-The second time we return here we are out of choices and an error is returned.
+The second time we visit this we are out of regular choices.
+We then use the fallback.
 
 *   First choice -> twice_fail
 *   -> fallback
@@ -382,7 +383,7 @@ the divert marker.
     -> submit_article
 
 === submit_article ===
-You submit it to your editor.
+You submit it to your editor. Wow, writing is easy!
 #
 # ";
 # let mut story = read_story_from_string(content).unwrap();
@@ -396,7 +397,7 @@ You submit it to your editor.
 # story.make_choice(0).unwrap();
 # story.resume(&mut buffer).unwrap(); 
 # assert_eq!(&buffer[0].text, "The article is finished.\n");
-# assert_eq!(&buffer[1].text, "You submit it to your editor.\n");
+# assert!(&buffer[1].text.starts_with("You submit it to your editor."));
 ```
 
 Fallback choices can also be sticky. If they are not they will also be consumed after
@@ -413,7 +414,7 @@ This will return an error if the fallback choice is used twice.
 *   -> once_only_fallback 
 
 === sticky_fallback ===
-# {sticky_fallback > 2 : -> END} // exit once we have returned here twice
+# {sticky_fallback > 4 : -> END} // exit once we have returned here a few times
 This sticky fallback choice can be use any number of times.
 +   -> sticky_fallback 
 #
