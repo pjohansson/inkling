@@ -13,7 +13,7 @@ He befriended thousands of climbers and children sightseeing in Switzerland.
 
 ";
 
-    let mut story = read_story_from_string(content).unwrap();
+    let story = read_story_from_string(content).unwrap();
 
     let handle = thread::spawn(move || story);
 
