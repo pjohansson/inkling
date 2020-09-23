@@ -139,6 +139,12 @@ impl Story {
     /// assert_eq!(&line_buffer[0].text, "Miranda was waiting in her office.\n");
     /// ```
     pub fn resume(&mut self, line_buffer: &mut LineBuffer) -> Result<Prompt, InklingError> {
+        // Break early if we are at a choice but no choice has yet been made
+        match (self.selected_choice, self.last_choices.as_ref()) {
+            (None, Some(choices)) => return Ok(Prompt::Choice(choices.clone())),
+            _ => (),
+        }
+
         let selection = self.selected_choice.take();
 
         self.follow_story_wrapper(selection, line_buffer)
@@ -1401,6 +1407,33 @@ After an arduous journey we arrived back in Almaty.
 
         assert_eq!(choices, resume_choices);
         assert!(line_buffer.is_empty());
+    }
+
+    #[test]
+    fn calling_resume_on_a_story_at_a_choice_without_making_a_choice_does_not_update_the_story() {
+        let content = "
+
+== back_in_almaty
+
+After an arduous journey we arrived back in {Almaty|Addis Ababa|Tripoli}.
+
+*   We hurried home {as fast as we could|slowly}.
+    -> END
+*   But we decided our trip wasn't done yet.
+    We immediately left the city.
+
+";
+        let mut story = read_story_from_string(content).unwrap();
+        story.move_to("back_in_almaty", None).unwrap();
+
+        let mut line_buffer = Vec::new();
+
+        story.resume(&mut line_buffer).unwrap();
+
+        let story_backup = story.clone();
+        story.resume(&mut line_buffer).unwrap();
+
+        assert_eq!(story, story_backup);
     }
 
     #[test]
