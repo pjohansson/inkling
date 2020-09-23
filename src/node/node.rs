@@ -11,6 +11,7 @@ use crate::{
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug)]
+#[cfg_attr(test, derive(PartialEq))]
 #[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
 /// Root of a single `Stitch`, containing all text and branching content belonging to it.
 pub struct RootNode {
@@ -21,6 +22,7 @@ pub struct RootNode {
 }
 
 #[derive(Clone, Debug)]
+#[cfg_attr(test, derive(PartialEq))]
 #[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
 /// Branch from a set of choices in a `Stitch`.
 ///
@@ -36,6 +38,7 @@ pub struct Branch {
 }
 
 #[derive(Clone, Debug)]
+#[cfg_attr(test, derive(PartialEq))]
 #[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
 /// Every item that a `Stitch` contains can be either some text producing asset
 /// or a branching point which the user must select an option from to continue.

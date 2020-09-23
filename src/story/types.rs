@@ -104,6 +104,7 @@ pub type LineBuffer = Vec<Line>;
 pub type VariableSet = HashMap<String, VariableInfo>;
 
 #[derive(Clone, Debug)]
+#[cfg_attr(test, derive(PartialEq))]
 #[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
 /// Information about a global variable in the story.
 pub struct VariableInfo {

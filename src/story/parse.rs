@@ -1360,4 +1360,36 @@ Line two.
             other => panic!("expected `ReadError::ParseError` but got {:?}", other),
         }
     }
+
+    #[test]
+    fn reading_story_content_trims_leading_whitespace_off_of_identifiers_and_tags() {
+        let content_whitespace = "\
+    \t# title: Test
+  VAR trimmed = true
+
+  -> knot
+  == knot
+  # Knot tag
+    Line one.
+    \t= stitch
+    Line two.
+    ";
+
+    let content_nowhitespace = "\
+# title: Test
+VAR trimmed = true
+
+-> knot
+== knot
+# Knot tag
+Line one.
+\t= stitch
+Line two.
+";
+
+        assert_eq!(
+            read_story_content_from_string(&content_nowhitespace).unwrap(),
+            read_story_content_from_string(&content_whitespace).unwrap()
+        );
+    }
 }
