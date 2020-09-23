@@ -1114,6 +1114,21 @@ Second line.
     }
 
     #[test]
+    fn empty_knot_yields_error() {
+        let lines = enumerate(&["== knot_name"]);
+
+        match get_knot_from_lines(lines) {
+            Err(KnotError { line_errors, .. }) => {
+                match &line_errors[0] {
+                    KnotErrorKind::EmptyKnot => (),
+                    other => panic!("expected `KnotErrorKind::EmptyKnot` but got `{:?}`", other),
+                }
+            },
+            Ok(other) => panic!("expected `KnotError` but got `{:?}`", other),
+        }
+    }
+
+    #[test]
     fn reading_story_data_gets_unordered_variables_in_prelude() {
         let content = "
 # Random tag
