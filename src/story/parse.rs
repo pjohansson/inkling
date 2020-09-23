@@ -30,13 +30,8 @@ use std::collections::HashMap;
 pub fn read_story_content_from_string(
     content: &str,
 ) -> Result<(KnotSet, VariableSet, Vec<String>), ReadError> {
-    let all_lines = content
-        .lines()
-        .zip(0..)
-        .map(|(line, line_index)| (line, MetaData { line_index }))
-        .collect::<Vec<_>>();
-
-    let mut content_lines = remove_empty_and_comment_lines(all_lines);
+    let mut content_lines = process_file_content_into_lines_and_metadata(content);
+    prune_empty_lines(&mut content_lines);
 
     let (root_knot, variables, tags, prelude_errors) =
         split_off_and_parse_prelude(&mut content_lines)?;
@@ -59,6 +54,18 @@ pub fn read_story_content_from_string(
         }
         .into())
     }
+}
+
+/// Split the content from a `.ink` file into lines, trim them and add MetaData.
+/// 
+/// This also removes comments from the lines, leaving only the actual content that will
+/// be used into story.
+fn process_file_content_into_lines_and_metadata(content: &str) -> Vec<(&str, MetaData)> {
+    content
+        .lines()
+        .zip(0..)
+        .map(|(line, line_index)| (trim_comment(line).trim(), MetaData { line_index }))
+        .collect()
 }
 
 /// Split off lines until the first named knot then parse its content and root knot.
@@ -386,31 +393,20 @@ fn divide_lines_at_marker<'a>(
     buffer.into_iter().rev().collect()
 }
 
-/// Filter empty and comment lines from a set.
-///
-/// Should at some point be removed since we ultimately want to return errors from parsing
-/// lines along with their original line numbers, which are thrown away by filtering some
-/// of them.
-fn remove_empty_and_comment_lines(content: Vec<(&str, MetaData)>) -> Vec<(&str, MetaData)> {
-    content
-        .into_iter()
-        .inspect(|(line, meta_data)| {
-            if line.starts_with(TODO_COMMENT_MARKER) {
-                eprintln!("{} (line {})", &line, meta_data.line_index + 1);
-            }
-        })
-        .filter(|(line, _)| {
-            !(line.starts_with(LINE_COMMENT_MARKER) || line.starts_with(TODO_COMMENT_MARKER))
-        })
-        .filter(|(line, _)| !line.trim().is_empty())
-        .map(|(line, meta_data)| {
-            if let Some(i) = line.find("//") {
-                (line.get(..i).unwrap(), meta_data)
-            } else {
-                (line, meta_data)
-            }
-        })
-        .collect()
+/// Trim TODO and line comments from a line.
+fn trim_comment(line: &str) -> &str {
+    if let Some(i) = line.find(LINE_COMMENT_MARKER) {
+        line.get(..i).unwrap()
+    } else if line.starts_with(TODO_COMMENT_MARKER) {
+        ""
+    } else {
+        line
+    }
+}
+
+/// Filter empty lines from the set.
+fn prune_empty_lines(content: &mut Vec<(&str, MetaData)>) {
+    content.retain(|(line, _)| !(line.trim().is_empty()));
 }
 
 /// Split given list of lines into a prelude and knot content.
@@ -914,33 +910,77 @@ Second line.
     }
 
     #[test]
-    fn empty_lines_and_comment_lines_are_removed_by_initial_processing() {
-        let content = vec![
-            "Good line",
-            "// Comment line is remove",
-            "",        // removed
-            "       ", // removed
-            "TODO: As is todo comments",
-            "TODO but not without a colon!",
+    fn comment_lines_are_trimmed_by_initial_processing() {
+        let content_lines = vec![
+            "Good line, kept",
+            "// Comment line, removed",
+            "TODO: todo comments, removed",
+            "TODO but not without a colon, kept!",
         ];
 
-        let lines = remove_empty_and_comment_lines(enumerate(&content));
-        assert_eq!(
-            &denumerate(lines),
-            &[content[0].clone(), content[5].clone()]
-        );
+        let content = content_lines.join("\n");
+        let lines = process_file_content_into_lines_and_metadata(&content);
+
+        assert_eq!(lines.len(), 4);
+        assert_eq!(lines[0], (content_lines[0], MetaData::from(0)));
+        assert_eq!(lines[1], ("", MetaData::from(1)));
+        assert_eq!(lines[2], ("", MetaData::from(2)));
+        assert_eq!(lines[3], (content_lines[3], MetaData::from(3)));
     }
 
     #[test]
-    fn initial_processing_splits_off_line_comments() {
-        let content = vec![
-            "Line before comment marker // Removed part",
+    fn line_comments_at_the_end_are_trimmed_by_initial_processing() {
+        let content_lines = vec![
             "Line with no comment marker",
+            "Line before comment marker // Removed part",
+            "Another line",
         ];
 
-        let lines = remove_empty_and_comment_lines(enumerate(&content));
-        assert_eq!(lines[0].0, "Line before comment marker ");
-        assert_eq!(lines[1].0, "Line with no comment marker");
+        let content = content_lines.join("\n");
+        let lines = process_file_content_into_lines_and_metadata(&content);
+
+        assert_eq!(lines.len(), 3);
+        assert_eq!(lines[0], (content_lines[0], MetaData::from(0)));
+        assert_eq!(lines[1], ("Line before comment marker", MetaData::from(1)));
+        assert_eq!(lines[2], (content_lines[2], MetaData::from(2)));
+    }
+
+    #[test]
+    fn lines_are_trimmed_of_whitespace_by_initial_processing() {
+        let content_lines = vec![
+            "    Initial",
+            "End    ",
+            "    // Before comment",
+            "After comment    // Comment",
+            "    ",     // pure whitespace
+            "\tBoth\t", // tabs
+        ];
+
+        let content = content_lines.join("\n");
+        let lines = process_file_content_into_lines_and_metadata(&content);
+
+        assert_eq!(lines.len(), 6);
+        assert_eq!(lines[0], ("Initial", MetaData::from(0)));
+        assert_eq!(lines[1], ("End", MetaData::from(1)));
+        assert_eq!(lines[2], ("", MetaData::from(2)));
+        assert_eq!(lines[3], ("After comment", MetaData::from(3)));
+        assert_eq!(lines[4], ("", MetaData::from(4)));
+        assert_eq!(lines[5], ("Both", MetaData::from(5)));
+    }
+
+    #[test]
+    fn empty_lines_are_counted_for_meta_data_by_initial_processing() {
+        let content_lines = vec!["Line 1", "", "Line 3", "     ", "Line 5"];
+
+        let content = content_lines.join("\n");
+        let lines = process_file_content_into_lines_and_metadata(&content);
+
+        assert_eq!(lines.len(), 5);
+        assert_eq!(lines[0], (content_lines[0], MetaData::from(0)));
+        assert_eq!(lines[1], (content_lines[1], MetaData::from(1)));
+        assert_eq!(lines[2], (content_lines[2], MetaData::from(2)));
+        assert_eq!(lines[3], ("", MetaData::from(3)));
+        assert_eq!(lines[4], (content_lines[4], MetaData::from(4)));
     }
 
     #[test]
