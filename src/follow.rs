@@ -49,6 +49,7 @@ impl ChoiceInfo {
 }
 
 #[derive(Debug)]
+#[cfg_attr(test, derive(Clone, PartialEq))]
 #[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
 /// Data used during a follow through knots and nodes.
 pub struct FollowData {

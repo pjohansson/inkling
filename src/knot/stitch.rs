@@ -36,7 +36,7 @@ use std::collections::HashMap;
 pub type KnotSet = HashMap<String, Knot>;
 
 #[derive(Debug)]
-#[cfg_attr(test, derive(PartialEq))]
+#[cfg_attr(test, derive(Clone, PartialEq))]
 #[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
 /// Knots groups story content into bits. Knots are further subdivided into `Stitch`es,
 /// which contain the content.
@@ -57,7 +57,7 @@ pub struct Knot {
 }
 
 #[derive(Debug)]
-#[cfg_attr(test, derive(PartialEq))]
+#[cfg_attr(test, derive(Clone, PartialEq))]
 #[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
 /// Stitches contain the actual story content and are grouped in larger `Knot`s.
 pub struct Stitch {

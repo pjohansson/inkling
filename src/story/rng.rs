@@ -21,6 +21,7 @@ mod feature_wrapper {
     use serde::{Deserialize, Serialize};
 
     #[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
+    #[cfg_attr(test, derive(PartialEq))]
     #[derive(Clone, Debug, Default)]
     /// Random number generator for the [`Story`][crate::story::Story].
     ///
@@ -215,17 +216,19 @@ mod feature_wrapper {
         }
     }
 
+    #[cfg(test)]
+    // Implementation for `PartialEq` to satisfy bounds on `serde_test` functions
+    impl PartialEq for StoryRng {
+        fn eq(&self, other: &Self) -> bool {
+            self.seed == other.seed
+                && self.gen.get_word_pos() == other.gen.get_word_pos()
+        }
+    }
+
     #[cfg(all(test, feature = "serde_support"))]
     mod tests {
         use super::*;
         use serde_test::*;
-
-        // Implementation for `PartialEq` to satisfy bounds on `serde_test` functions
-        impl PartialEq for StoryRng {
-            fn eq(&self, other: &Self) -> bool {
-                self.seed == other.seed && self.gen.get_word_pos() == other.gen.get_word_pos()
-            }
-        }
 
         #[test]
         fn story_rng_serializes_with_seed() {

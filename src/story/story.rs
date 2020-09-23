@@ -19,6 +19,7 @@ use crate::{
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug)]
+#[cfg_attr(test, derive(Clone, PartialEq))]
 #[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
 /// Story with knots, diverts, choices and possibly lots of text.
 pub struct Story {
