@@ -220,8 +220,7 @@ mod feature_wrapper {
     // Implementation for `PartialEq` to satisfy bounds on `serde_test` functions
     impl PartialEq for StoryRng {
         fn eq(&self, other: &Self) -> bool {
-            self.seed == other.seed
-                && self.gen.get_word_pos() == other.gen.get_word_pos()
+            self.seed == other.seed && self.gen.get_word_pos() == other.gen.get_word_pos()
         }
     }
 
