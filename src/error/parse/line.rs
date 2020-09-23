@@ -10,7 +10,7 @@ use crate::{
     },
 };
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 /// Error from parsing individual lines in a story.
 pub struct LineError {
     /// Line that caused the error.
@@ -21,7 +21,7 @@ pub struct LineError {
     pub meta_data: MetaData,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 /// Variants of line errors.
 pub enum LineErrorKind {
     /// Condition was invalid.

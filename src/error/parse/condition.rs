@@ -4,7 +4,7 @@ use std::{error::Error, fmt};
 
 use crate::error::parse::{expression::ExpressionError, variable::VariableError};
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 /// Error from parsing `Condition` objects.
 pub struct ConditionError {
     /// Content of string that caused the error.
@@ -13,7 +13,7 @@ pub struct ConditionError {
     pub kind: ConditionErrorKind,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 /// Variant of `Condition` parsing error.
 pub enum ConditionErrorKind {
     /// The first item in a condition was not `Blank` or any other item was not `And` or `Or`.

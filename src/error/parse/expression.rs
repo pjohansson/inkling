@@ -4,7 +4,7 @@ use std::{error::Error, fmt};
 
 use crate::error::parse::variable::VariableError;
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 /// Error from parsing `Expression` objects from strings.
 pub struct ExpressionError {
     /// Content of string that could not parse into a valid `Expression`.
@@ -13,7 +13,7 @@ pub struct ExpressionError {
     pub kind: ExpressionErrorKind,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 /// Variant of `Expression` parsing error.
 pub enum ExpressionErrorKind {
     /// Empty expression string.

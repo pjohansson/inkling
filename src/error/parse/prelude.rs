@@ -7,7 +7,7 @@ use crate::error::{
     utils::{write_line_information, MetaData},
 };
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 /// Error from parsing a line in the prelude.
 pub struct PreludeError {
     /// Line that caused the error.
@@ -18,7 +18,7 @@ pub struct PreludeError {
     pub meta_data: MetaData,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 /// Variant of error from parsing the prelude.
 pub enum PreludeErrorKind {
     /// Variable with given name was defined multiple times.

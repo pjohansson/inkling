@@ -2,7 +2,7 @@
 
 use std::{error::Error, fmt};
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 /// Error from parsing individual lines in a story.
 pub struct VariableError {
     /// Content that caused the error.
@@ -11,7 +11,7 @@ pub struct VariableError {
     pub kind: VariableErrorKind,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 /// Variants of line errors.
 pub enum VariableErrorKind {
     /// Found an address with invalid characters.
@@ -19,7 +19,7 @@ pub enum VariableErrorKind {
     /// Divert variable contained an invalid address.
     InvalidDivert { address: String },
     /// Number variable contained a number that could not be parsed.
-    InvalidNumericValue { err: Box<dyn Error + 'static> },
+    InvalidNumericValue { from_string: String },
 }
 
 impl Error for VariableError {
@@ -43,7 +43,9 @@ impl fmt::Display for VariableErrorKind {
         match &self {
             InvalidAddress => write!(f, "invalid address"),
             InvalidDivert { address } => write!(f, "invalid divert address '{}'", address),
-            InvalidNumericValue { .. } => write!(f, "could not parse number"),
+            InvalidNumericValue { from_string } => {
+                write!(f, "could not parse number from '{}'", &from_string)
+            }
         }
     }
 }

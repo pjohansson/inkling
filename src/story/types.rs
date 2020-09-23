@@ -38,7 +38,7 @@ pub struct Choice {
     pub(crate) index: usize,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 /// Result from following a `Story`.
 ///
 /// # Examples

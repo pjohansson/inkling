@@ -46,12 +46,16 @@ fn parse_number(content: &str) -> Result<Variable, VariableErrorKind> {
         content
             .parse::<f32>()
             .map(|value| Variable::Float(value))
-            .map_err(|err| VariableErrorKind::InvalidNumericValue { err: Box::new(err) })
+            .map_err(|_| VariableErrorKind::InvalidNumericValue {
+                from_string: content.to_string(),
+            })
     } else {
         content
             .parse::<i32>()
             .map(|value| Variable::Int(value))
-            .map_err(|err| VariableErrorKind::InvalidNumericValue { err: Box::new(err) })
+            .map_err(|_| VariableErrorKind::InvalidNumericValue {
+                from_string: content.to_string(),
+            })
     }
 }
 

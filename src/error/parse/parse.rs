@@ -12,7 +12,7 @@ use crate::error::parse::{
 
 impl Error for ParseError {}
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 /// List of errors encountered when parsing a story.
 ///
 /// Note that this may not contain all errors in the story. Individual lines return an error

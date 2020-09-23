@@ -17,7 +17,7 @@ use std::{
     fmt::{self, Write},
 };
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 /// Collection of errors encountered when validating a story.
 pub struct ValidationError {
     /// Errors from invalid addresses to knots, stitchs or variables.
@@ -69,7 +69,7 @@ impl ValidationError {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 /// Error type for invalid variables inside expressions and conditions.
 pub struct InvalidVariableExpression {
     /// Whether the error is in a condition or expression.
@@ -80,14 +80,14 @@ pub struct InvalidVariableExpression {
     pub meta_data: MetaData,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 /// Kind of encountered invalid expression.
 pub enum ExpressionKind {
     Condition,
     Expression,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 /// Error variant for invalid variables inside expressions and conditions.
 pub enum InvalidVariableExpressionError {
     /// An invalid variable assignment, comparison or operation caused the error.
@@ -101,7 +101,7 @@ pub enum InvalidVariableExpressionError {
     Internal(InklingError),
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 /// Error type for name space collisions.
 pub struct NameSpaceCollision {
     /// Shared name of the two items.

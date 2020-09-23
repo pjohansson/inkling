@@ -7,7 +7,7 @@ use crate::error::parse::{
     validate::{print_validation_error, ValidationError},
 };
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 /// Errors from reading a story.
 ///
 /// A full print out of all individual errors can be made through

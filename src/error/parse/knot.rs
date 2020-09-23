@@ -7,7 +7,7 @@ use crate::error::{
     utils::{write_line_information, MetaData},
 };
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 /// Errors from parsing a single knot from lines.
 pub struct KnotError {
     /// Information about the line at which the knot starts.
@@ -16,7 +16,7 @@ pub struct KnotError {
     pub line_errors: Vec<KnotErrorKind>,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 /// Error from parsing a `Knot` or `Stitch` in a story.
 pub enum KnotErrorKind {
     /// Duplicate knot name was found in a story.
