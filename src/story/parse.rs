@@ -365,12 +365,10 @@ fn get_knot_tags(lines: &mut Vec<(&str, MetaData)>) -> Vec<String> {
         .position(|(line, _)| !(line.is_empty() || line.starts_with(TAG_MARKER)))
         .unwrap_or(lines.len());
 
-    let is_tag_char = |c: char| c.is_whitespace() || c == TAG_MARKER;
-
     lines
         .drain(..i)
         .filter(|(line, _)| !line.is_empty())
-        .map(|(line, _)| line.trim_start_matches(is_tag_char).to_string())
+        .map(|(line, _)| parse_tag_from_line(line))
         .collect()
 }
 
@@ -393,6 +391,15 @@ fn divide_lines_at_marker<'a>(
     }
 
     buffer.into_iter().rev().collect()
+}
+
+/// Return the tag from a line.
+///
+/// Assumes that the line only contains a single tag, i.e. this is not suitable for
+/// line tags.
+fn parse_tag_from_line(line: &str) -> String {
+    line.trim_start_matches(|c: char| c.is_whitespace() || c == TAG_MARKER)
+        .to_string()
 }
 
 /// Trim TODO and line comments from a line.
@@ -461,7 +468,7 @@ fn parse_global_tags(lines: &[(&str, MetaData)]) -> Vec<String> {
         .iter()
         .map(|(line, _)| line.trim())
         .filter(|line| line.starts_with(TAG_MARKER))
-        .map(|line| line.get(1..).unwrap().trim().to_string())
+        .map(|line| parse_tag_from_line(line))
         .collect()
 }
 
