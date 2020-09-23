@@ -57,7 +57,7 @@ pub fn read_story_content_from_string(
 }
 
 /// Split the content from a `.ink` file into lines, trim them and add MetaData.
-/// 
+///
 /// This also removes comments from the lines, leaving only the actual content that will
 /// be used into story.
 fn process_file_content_into_lines_and_metadata(content: &str) -> Vec<(&str, MetaData)> {
@@ -184,11 +184,11 @@ fn get_knot_from_lines(lines: Vec<(&str, MetaData)>) -> Result<(String, Knot), K
         }
     };
 
+    let tags = get_knot_tags(&mut tail);
+
     if tail.is_empty() {
         line_errors.push(KnotErrorKind::EmptyKnot);
     }
-
-    let tags = get_knot_tags(&mut tail);
 
     let (default_stitch, stitches, stitch_errors) = get_stitches_from_lines(tail, &knot_name);
     line_errors.extend(stitch_errors);
@@ -355,21 +355,23 @@ fn get_stitch_identifier(name: Option<String>, stitch_index: usize) -> String {
 /// Parse knot tags from lines until the first line with content.
 ///
 /// The lines which contain tags are split off of the input list.
+///
+/// # Notes
+/// Assumes that the lines have been trimmed of whitespace from both ends,
+/// which we do with `get_content_from_string`.
 fn get_knot_tags(lines: &mut Vec<(&str, MetaData)>) -> Vec<String> {
-    if let Some(i) = lines
+    let i = lines
         .iter()
-        .map(|(line, _)| line.trim_start())
-        .position(|line| !(line.is_empty() || line.starts_with('#')))
-    {
-        lines
-            .drain(..i)
-            .map(|(line, _)| line.trim())
-            .filter(|line| !line.is_empty())
-            .map(|line| line.trim_start_matches("#").trim_start().to_string())
-            .collect()
-    } else {
-        Vec::new()
-    }
+        .position(|(line, _)| !(line.is_empty() || line.starts_with(TAG_MARKER)))
+        .unwrap_or(lines.len());
+
+    let is_tag_char = |c: char| c.is_whitespace() || c == TAG_MARKER;
+
+    lines
+        .drain(..i)
+        .filter(|(line, _)| !line.is_empty())
+        .map(|(line, _)| line.trim_start_matches(is_tag_char).to_string())
+        .collect()
 }
 
 /// Split a set of lines where they start with a marker.
@@ -1158,11 +1160,22 @@ Second line.
         let lines = enumerate(&["== knot_name"]);
 
         match get_knot_from_lines(lines) {
-            Err(KnotError { line_errors, .. }) => {
-                match &line_errors[0] {
-                    KnotErrorKind::EmptyKnot => (),
-                    other => panic!("expected `KnotErrorKind::EmptyKnot` but got `{:?}`", other),
-                }
+            Err(KnotError { line_errors, .. }) => match &line_errors[0] {
+                KnotErrorKind::EmptyKnot => (),
+                other => panic!("expected `KnotErrorKind::EmptyKnot` but got `{:?}`", other),
+            },
+            Ok(other) => panic!("expected `KnotError` but got `{:?}`", other),
+        }
+    }
+
+    #[test]
+    fn empty_knot_with_tags_yields_error() {
+        let lines = enumerate(&["== knot_name", "# Tag", "# Tag 2"]);
+
+        match get_knot_from_lines(lines) {
+            Err(KnotError { line_errors, .. }) => match &line_errors[0] {
+                KnotErrorKind::EmptyKnot => (),
+                other => panic!("expected `KnotErrorKind::EmptyKnot` but got `{:?}`", other),
             },
             Ok(other) => panic!("expected `KnotError` but got `{:?}`", other),
         }
@@ -1375,7 +1388,7 @@ Line two.
     Line two.
     ";
 
-    let content_nowhitespace = "\
+        let content_nowhitespace = "\
 # title: Test
 VAR trimmed = true
 
