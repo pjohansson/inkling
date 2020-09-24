@@ -124,7 +124,7 @@ On the bottom I found an unlocked door.
 # let mut story = read_story_from_string(content).unwrap();
 # let mut buffer = Vec::new();
 # story.resume(&mut buffer).unwrap();
-# assert_eq!(story.get_current_location().unwrap(), ("garden".to_string(), None));
+# assert_eq!(story.get_current_location(), ("garden".to_string(), None));
 ```
 
 Diverts are automatically followed as they are encountered.
@@ -208,7 +208,7 @@ On the bottom I found an unlocked door.
 # story.resume(&mut buffer).unwrap();
 # story.make_choice(1).unwrap();
 # story.resume(&mut buffer).unwrap();
-# assert_eq!(story.get_current_location().unwrap(), ("desk".to_string(), None));
+# assert_eq!(story.get_current_location(), ("desk".to_string(), None));
 ```
 
 ## Revisiting content and choices
@@ -545,6 +545,6 @@ I opened my notebook to a blank page, pen in hand.
 # let tags = story.get_story_tags();
 # assert_eq!(&tags[0], "title: Inkling");
 # assert_eq!(&tags[1], "author: Petter Johansson");
-# assert!(story.get_variable("name").is_ok());
-# assert!(story.get_variable("rank").is_ok());
+# assert!(story.get_variable("name").is_some());
+# assert!(story.get_variable("rank").is_some());
 ```

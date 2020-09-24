@@ -26,7 +26,7 @@ VAR a_destination = "-> stairwell"
 # assert_eq!(story.get_variable("a_int").unwrap(), Variable::Int(2));
 # assert_eq!(story.get_variable("a_bool").unwrap(), Variable::Bool(false));
 # assert_eq!(story.get_variable("a_string").unwrap(), Variable::String("A String".to_string()));
-# assert!(story.get_variable("a_destination").is_ok());
+# assert!(story.get_variable("a_destination").is_some());
 ```
 
 As shown in this example, the variable type is automatically assigned from

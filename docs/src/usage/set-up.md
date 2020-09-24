@@ -5,7 +5,7 @@ To use `inkling` in your Rust project, add this line to your dependencies in `Ca
 ```toml
 [dependencies]
 #
-inkling = "0.12.6"
+inkling = "1.0.0-pre.1"
 ```
 
 By default, `inkling` has no additional dependencies. Extra features which carry dependencies
@@ -20,7 +20,7 @@ feature. This adds `serde` as a dependency.
 ```toml
 [dependencies]
 #
-inkling = { version = "0.12.6", features = ["serde_support"] }
+inkling = { version = "1.0.0-pre.1", features = ["serde_support"] }
 ```
 
 
@@ -33,7 +33,7 @@ a dependency to `rand` and its sub project `rand_chacha`.
 ```toml
 [dependencies]
 #
-inkling = { version = "0.12.6", features = ["random"] }
+inkling = { version = "1.0.0-pre.1", features = ["random"] }
 ```
 
 If this feature is not enabled, shuffle sequences will behave as cycle sequences.
