@@ -4,7 +4,6 @@ use std::{error::Error, fmt};
 
 use crate::{
     error::{runtime::internal::StackError, variable::VariableError, InternalError},
-    knot::{Address, AddressKind},
     line::Variable,
     story::{Choice, Location},
 };
@@ -53,9 +52,9 @@ pub enum InklingError {
     ///
     /// Likely directly at the start of a story or after a `move_to` call was made.
     MadeChoiceWithoutChoice,
-    /// No choices or fallback choices were available in a story branch at the given address.
+    /// No choices or fallback choices were available in a story branch at the given location.
     OutOfChoices {
-        address: Address,
+        location: Location,
     },
     /// No content was available for the story to continue from.
     OutOfContent,
@@ -124,19 +123,21 @@ impl fmt::Display for InklingError {
                  and assert that a branching choice is returned before calling this again."
             ),
             OutOfChoices {
-                address: Address::Validated(AddressKind::Location { knot, stitch }),
-            } => write!(
-                f,
-                "Story reached a branching choice with no available choices to present \
-                 or default choices to fall back on (knot: {}, stitch: {})",
-                knot, stitch
-            ),
-            OutOfChoices { address } => write!(
-                f,
-                "Internal error: Tried to use a non-validated or non-location `Address` ('{:?}') \
-                 when following a story",
-                address
-            ),
+                location: Location { knot, stitch },
+            } => {
+                write!(
+                    f,
+                    "Story reached a branching choice with no available choices to present \
+                    or default choices to fall back on (knot: {}",
+                    knot
+                )?;
+
+                if let Some(name) = stitch {
+                    write!(f, ", stitch: {}", name)?;
+                }
+
+                write!(f, ")")
+            }
             OutOfContent => write!(f, "Story ran out of content before an end was reached"),
             PrintInvalidVariable { name, value } => write!(
                 f,

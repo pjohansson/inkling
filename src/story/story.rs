@@ -670,7 +670,7 @@ fn get_fallback_choice(
 ) -> Result<Choice, InklingError> {
     get_fallback_choices(choice_set, data).and_then(|choices| {
         choices.first().cloned().ok_or(InklingError::OutOfChoices {
-            address: current_address.clone(),
+            location: Location::from(current_address.to_string().as_ref()),
         })
     })
 }
