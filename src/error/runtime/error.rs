@@ -6,7 +6,7 @@ use crate::{
     error::{runtime::internal::StackError, variable::VariableError, InternalError},
     knot::{Address, AddressKind},
     line::Variable,
-    story::Choice,
+    story::{Choice, Location},
 };
 
 impl Error for InklingError {}
@@ -34,10 +34,9 @@ pub enum InklingError {
     },
     /// Internal errors caused by `inkling`.
     Internal(InternalError),
-    /// Used a knot or stitch name that is not present in the story as an input variable.
+    /// Use of a `Location` which does not exist in the story.
     InvalidAddress {
-        knot: String,
-        stitch: Option<String>,
+        location: Location,
     },
     /// An invalid choice index was given to resume the story with.
     InvalidChoice {
@@ -89,7 +88,9 @@ impl fmt::Display for InklingError {
                 write!(f, "Tried to assign a value to CONST variable '{}'", name)
             }
             Internal(err) => write!(f, "INTERNAL ERROR: {}", err),
-            InvalidAddress { knot, stitch } => match stitch {
+            InvalidAddress {
+                location: Location { knot, stitch },
+            } => match stitch {
                 Some(stitch_name) => write!(
                     f,
                     "Invalid address: knot '{}' does not contain a stitch named '{}'",

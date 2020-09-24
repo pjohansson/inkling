@@ -259,13 +259,12 @@ impl Story {
     /// ```
     ///
     /// # Errors
-    /// *   [`InvalidAddress`][crate::error::InklingError::InvalidAddress]: if the knot
-    ///     or stitch name does not specify an existing location in the story.
+    /// *   [`InvalidAddress`][crate::error::InklingError::InvalidAddress]: if the given
+    ///     location does not exist in the story.
     pub fn move_to(&mut self, location: &Location) -> Result<(), InklingError> {
         let to_address = Address::from_location(location, &self.knots).map_err(|_| {
             InklingError::InvalidAddress {
-                knot: location.knot.clone(),
-                stitch: location.stitch.clone(),
+                location: location.clone(),
             }
         })?;
 
