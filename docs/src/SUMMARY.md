@@ -1,6 +1,6 @@
 # Summary
 
-[Inkling](README.md)
+[Inkling](./front-matter/about.md)
 
 *   [Introduction](./introduction/summary.md)
     *   [What is Ink?](./introduction/what-is-ink.md)

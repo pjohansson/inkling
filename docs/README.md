@@ -8,4 +8,4 @@ Compile the book by running `make`.
 
 ## Test
 
-Code examples are tested with `make test`
+Code examples are tested with `make test`.
