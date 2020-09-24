@@ -105,6 +105,9 @@ impl Prompt {
 ///
 /// Can be used to move to new locations with `Story::move_to`.
 ///
+/// Implements `From<&str>` for strings. Strings are parsed like `Ink` addresses
+/// in `knot.stitch` format.
+///
 /// # Examples
 ///
 /// ## Move to a new location
@@ -120,11 +123,6 @@ impl Prompt {
 ///
 /// let mut story = read_story_from_string(content).unwrap();
 ///
-/// let twenty_fourth = Location {
-///     knot: "24th_island_sequence".to_string(),
-///     stitch: None,
-/// };
-///
 /// let twenty_fifth = Location {
 ///     knot: "25th_island_sequence".to_string(),
 ///     stitch: None,
@@ -134,15 +132,23 @@ impl Prompt {
 /// assert_eq!(&story.get_current_location(), &twenty_fifth);
 /// ```
 ///
-/// ## Create a `Location` from a string
+/// ## Parsing from strings
 /// ```
 /// # use inkling::Location;
 /// assert_eq!(
+///     Location::from("25th_island_sequence"),
 ///     Location {
 ///         knot: "25th_island_sequence".to_string(),
 ///         stitch: None,
-///     },
-///     Location::from("25th_island_sequence")
+///     }
+/// );
+///
+/// assert_eq!(
+///     Location::from("24th_island_sequence.pyramids"),
+///     Location {
+///         knot: "24th_island_sequence".to_string(),
+///         stitch: Some("pyramids".to_string()),
+///     }
 /// );
 /// ```
 pub struct Location {
@@ -150,11 +156,13 @@ pub struct Location {
     pub stitch: Option<String>,
 }
 
-impl<T: ToString> From<T> for Location {
-    fn from(knot: T) -> Self {
-        Location {
-            knot: knot.to_string(),
-            stitch: None,
+impl From<&str> for Location {
+    fn from(address: &str) -> Self {
+        if let Some(i) = address.find('.') {
+            let (knot, stitch) = address.split_at(i);
+            Location::with_stitch(knot, stitch.get(1..).unwrap())
+        } else {
+            Location::new(address, None)
         }
     }
 }
@@ -279,5 +287,37 @@ mod tests {
         };
 
         assert_eq!(format!("{:?}", err), format!("{:?}", expected_err));
+    }
+
+    #[test]
+    fn location_from_string_sets_knot_if_no_periods_are_involved() {
+        assert_eq!(
+            Location::from("knot_address"),
+            Location::new("knot_address", None),
+        );
+    }
+
+    #[test]
+    fn location_from_string_splits_knot_and_stitch_at_period_if_present() {
+        assert_eq!(
+            Location::from("knot_address.stitch_address"),
+            Location::with_stitch("knot_address", "stitch_address"),
+        );
+    }
+
+    #[test]
+    fn location_from_string_splits_at_first_period_if_multiple() {
+        assert_eq!(
+            Location::from("knot_address.stitch_address.second"),
+            Location::with_stitch("knot_address", "stitch_address.second"),
+        );
+    }
+
+    #[test]
+    fn location_from_string_returns_address_if_nothing_after_period() {
+        assert_eq!(
+            Location::from("knot_address."),
+            Location::with_stitch("knot_address", ""),
+        );
     }
 }
