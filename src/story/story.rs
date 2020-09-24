@@ -40,23 +40,12 @@ pub struct Story {
 }
 
 impl Story {
-    #[deprecated(
-        since = "0.12.6",
-        note = "This was a placeholder function that never materialized"
-    )]
-    /// Mark the story as being ready to start the text flow processing.
-    pub fn start(&mut self) -> Result<(), InklingError> {
-        Ok(())
-    }
-
     /// Resume the story text flow while reading all encountered lines into the supplied buffer.
     ///
-    /// Should be called to either start the flow after the story, or to resume it
-    /// after a choice was made with [`make_choice`][crate::story::Story::make_choice()] or the
-    /// [`move_to`][crate::story::Story::move_to()] method was called to change the story
-    /// location.
+    /// Should be called to start the flow through the story or to resume it
+    /// after a choice is made with [`make_choice`][crate::story::Story::make_choice()].
     ///
-    /// Returns either when the story reached an end or when a set of choices was encountered,
+    /// Returns either when the story reaches an end or when a set of choices is encountered,
     /// which requires the user to select one. Make a choice by calling
     /// [`make_choice`][crate::story::Story::make_choice()].
     ///
@@ -259,6 +248,12 @@ impl Story {
 
         self.last_choices = None;
 
+        Ok(())
+    }
+
+    #[deprecated(since = "0.12.6", note = "will be removed in 1.0.0")]
+    /// Mark the story as being ready to start the text flow processing.
+    pub fn start(&mut self) -> Result<(), InklingError> {
         Ok(())
     }
 
