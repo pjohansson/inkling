@@ -14,7 +14,7 @@ visited the knot with name `tea_house`.
 
 ```rust
 # extern crate inkling;
-# use inkling::{read_story_from_string, Prompt};
+# use inkling::{read_story_from_string, Location, Prompt};
 # let content = r#"
 # -> choice
 # === choice ===
@@ -34,7 +34,7 @@ visited the knot with name `tea_house`.
 #   }
 #   _ => unreachable!()
 # }
-# story.move_to("tea_house", None).unwrap();
+# story.move_to(&Location::from("tea_house")).unwrap();
 # match story.resume(&mut buffer).unwrap() {
 #   Prompt::Choice(choices) => {
 #       assert_eq!(choices.len(), 2);
@@ -51,7 +51,7 @@ is an implicit form of writing the explicit condition `{tea_house != 0}`.
 
 ```rust
 # extern crate inkling;
-# use inkling::{read_story_from_string, Prompt};
+# use inkling::{read_story_from_string, Location, Prompt};
 # let content = r#"
 # -> choice
 # === choice ===
@@ -71,7 +71,7 @@ is an implicit form of writing the explicit condition `{tea_house != 0}`.
 #   }
 #   _ => unreachable!()
 # }
-# story.move_to("tea_house", None).unwrap();
+# story.move_to(&Location::from("tea_house")).unwrap();
 # match story.resume(&mut buffer).unwrap() {
 #   Prompt::Choice(choices) => {
 #       assert_eq!(choices.len(), 2);

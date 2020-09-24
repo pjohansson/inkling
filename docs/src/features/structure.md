@@ -14,7 +14,7 @@ a name for the knot. On the following lines, the story text can resume.
 
 ```rust
 # extern crate inkling;
-# use inkling::read_story_from_string;
+# use inkling::{read_story_from_string, Location};
 # let content = r"
 #
 == stairwell
@@ -22,7 +22,7 @@ I made my way down the empty stairwell.
 #
 # ";
 # let mut story = read_story_from_string(content).unwrap();
-# assert!(story.move_to("stairwell", None).is_ok());
+# assert!(story.move_to(&Location::from("stairwell")).is_ok());
 ```
 
 The name ('stairwell' in the previous example) cannot contain spaces or non-alphanumeric
@@ -32,7 +32,7 @@ example:
 
 ```rust
 # extern crate inkling;
-# use inkling::read_story_from_string;
+# use inkling::{read_story_from_string, Location};
 # let content = r"
 #
 === stairwell ===
@@ -40,7 +40,7 @@ I made my way down the empty stairwell.
 #
 # ";
 # let mut story = read_story_from_string(content).unwrap();
-# assert!(story.move_to("stairwell", None).is_ok());
+# assert!(story.move_to(&Location::from("stairwell")).is_ok());
 ```
 
 ### Non-latin characters
@@ -53,7 +53,7 @@ find any exceptions.
 
 ```rust
 # extern crate inkling;
-# use inkling::read_story_from_string;
+# use inkling::{read_story_from_string, Location};
 # let content = r"
 #
 === عقدة ===
@@ -70,10 +70,10 @@ allowed.
 #
 # ";
 # let mut story = read_story_from_string(content).unwrap();
-# assert!(story.move_to("عقدة", None).is_ok());
-# assert!(story.move_to("매듭", None).is_ok());
-# assert!(story.move_to("गांठ", None).is_ok());
-# assert!(story.move_to("結", None).is_ok());
+# assert!(story.move_to(&Location::from("عقدة")).is_ok());
+# assert!(story.move_to(&Location::from("매듭")).is_ok());
+# assert!(story.move_to(&Location::from("गांठ")).is_ok());
+# assert!(story.move_to(&Location::from("結")).is_ok());
 ```
 
 ## Stitches
@@ -81,7 +81,7 @@ Knots may be further subdivided into *stitches*. These are denoted by single `=`
 
 ```rust
 # extern crate inkling;
-# use inkling::read_story_from_string;
+# use inkling::{read_story_from_string, Location};
 # let content = r"
 #
 === garden ===
@@ -93,8 +93,8 @@ The well stank of stagnant water. Is that an eel I see at the bottom?
 #
 # ";
 # let mut story = read_story_from_string(content).unwrap();
-# assert!(story.move_to("garden", Some("entrance")).is_ok());
-# assert!(story.move_to("garden", Some("well")).is_ok());
+# assert!(story.move_to(&Location::from("garden.entrance")).is_ok());
+# assert!(story.move_to(&Location::from("garden.well")).is_ok());
 ```
 
 ## Diverts
@@ -104,7 +104,7 @@ by the destination.
 
 ```rust
 # extern crate inkling;
-# use inkling::read_story_from_string;
+# use inkling::{read_story_from_string, Location};
 # let content = r"
 # -> stairwell
 #
@@ -124,7 +124,7 @@ On the bottom I found an unlocked door.
 # let mut story = read_story_from_string(content).unwrap();
 # let mut buffer = Vec::new();
 # story.resume(&mut buffer).unwrap();
-# assert_eq!(story.get_current_location(), ("garden".to_string(), None));
+# assert_eq!(story.get_current_location(), Location::from("garden"));
 ```
 
 Diverts are automatically followed as they are encountered.
@@ -188,7 +188,7 @@ A common use of branches is to divert to other knots.
 
 ```rust
 # extern crate inkling;
-# use inkling::read_story_from_string;
+# use inkling::{read_story_from_string, Location};
 # let content = r"
 #
 *   [Descend stairs] -> lower_floor
@@ -208,7 +208,7 @@ On the bottom I found an unlocked door.
 # story.resume(&mut buffer).unwrap();
 # story.make_choice(1).unwrap();
 # story.resume(&mut buffer).unwrap();
-# assert_eq!(story.get_current_location(), ("desk".to_string(), None));
+# assert_eq!(story.get_current_location(), Location::from("desk"));
 ```
 
 ## Revisiting content and choices
@@ -398,7 +398,7 @@ will not be returned to multiple times.
 
 ```rust
 # extern crate inkling;
-# use inkling::{read_story_from_string, Prompt};
+# use inkling::{read_story_from_string, Location, Prompt};
 # let content = r"
 #
 === once_only_fallback ===
@@ -413,9 +413,9 @@ This sticky fallback choice can be use any number of times.
 # ";
 # let mut story = read_story_from_string(content).unwrap();
 # let mut buffer = Vec::new();
-# story.move_to("once_only_fallback", None).unwrap();
+# story.move_to(&Location::from("once_only_fallback")).unwrap();
 # assert!(story.resume(&mut buffer).is_err());
-# story.move_to("sticky_fallback", None).unwrap();
+# story.move_to(&Location::from("sticky_fallback")).unwrap();
 # story.resume(&mut buffer).unwrap(); 
 # assert!(story.resume(&mut buffer).is_ok());
 ```
