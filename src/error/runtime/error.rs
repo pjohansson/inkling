@@ -28,15 +28,11 @@ impl Error for InklingError {}
 /// please open an issue on Github.
 pub enum InklingError {
     /// Tried to assign a new value to a CONST variable.
-    AssignedToConst {
-        name: String,
-    },
+    AssignedToConst { name: String },
     /// Internal errors caused by `inkling`.
     Internal(InternalError),
     /// Use of a `Location` which does not exist in the story.
-    InvalidAddress {
-        location: Location,
-    },
+    InvalidAddress { location: Location },
     /// An invalid choice index was given to resume the story with.
     InvalidChoice {
         /// Choice input by the user to resume the story with.
@@ -45,24 +41,18 @@ pub enum InklingError {
         presented_choices: Vec<Choice>,
     },
     /// Used a variable name that is not present in the story as an input variable.
-    InvalidVariable {
-        name: String,
-    },
+    InvalidVariable { name: String },
     /// Called `make_choice` when no choice had been requested.
     ///
     /// Likely directly at the start of a story or after a `move_to` call was made.
     MadeChoiceWithoutChoice,
     /// No choices or fallback choices were available in a story branch at the given location.
-    OutOfChoices {
-        location: Location,
-    },
+    OutOfChoices { location: Location },
     /// No content was available for the story to continue from.
     OutOfContent,
     /// Tried to print a variable that cannot be printed.
-    PrintInvalidVariable {
-        name: String,
-        value: Variable,
-    },
+    PrintInvalidVariable { name: String, value: Variable },
+    /// Invalid variable assignment or operation.
     VariableError(VariableError),
 }
 
