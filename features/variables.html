@@ -185,7 +185,7 @@ VAR a_destination = &quot;-&gt; stairwell&quot;
 </span><span class="boring">assert_eq!(story.get_variable(&quot;a_int&quot;).unwrap(), Variable::Int(2));
 </span><span class="boring">assert_eq!(story.get_variable(&quot;a_bool&quot;).unwrap(), Variable::Bool(false));
 </span><span class="boring">assert_eq!(story.get_variable(&quot;a_string&quot;).unwrap(), Variable::String(&quot;A String&quot;.to_string()));
-</span><span class="boring">assert!(story.get_variable(&quot;a_destination&quot;).is_ok());
+</span><span class="boring">assert!(story.get_variable(&quot;a_destination&quot;).is_some());
 </span><span class="boring">}
 </span></code></pre></pre>
 <p>As shown in this example, the variable type is automatically assigned from

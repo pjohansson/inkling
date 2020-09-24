@@ -286,7 +286,7 @@ On the bottom I found an unlocked door.
 </span><span class="boring">let mut story = read_story_from_string(content).unwrap();
 </span><span class="boring">let mut buffer = Vec::new();
 </span><span class="boring">story.resume(&amp;mut buffer).unwrap();
-</span><span class="boring">assert_eq!(story.get_current_location().unwrap(), (&quot;garden&quot;.to_string(), None));
+</span><span class="boring">assert_eq!(story.get_current_location(), (&quot;garden&quot;.to_string(), None));
 </span><span class="boring">}
 </span></code></pre></pre>
 <p>Diverts are automatically followed as they are encountered.</p>
@@ -369,7 +369,7 @@ On the bottom I found an unlocked door.
 </span><span class="boring">story.resume(&amp;mut buffer).unwrap();
 </span><span class="boring">story.make_choice(1).unwrap();
 </span><span class="boring">story.resume(&amp;mut buffer).unwrap();
-</span><span class="boring">assert_eq!(story.get_current_location().unwrap(), (&quot;desk&quot;.to_string(), None));
+</span><span class="boring">assert_eq!(story.get_current_location(), (&quot;desk&quot;.to_string(), None));
 </span><span class="boring">}
 </span></code></pre></pre>
 <h2><a class="header" href="#revisiting-content-and-choices" id="revisiting-content-and-choices">Revisiting content and choices</a></h2>
@@ -702,8 +702,8 @@ I opened my notebook to a blank page, pen in hand.
 </span><span class="boring">let tags = story.get_story_tags();
 </span><span class="boring">assert_eq!(&amp;tags[0], &quot;title: Inkling&quot;);
 </span><span class="boring">assert_eq!(&amp;tags[1], &quot;author: Petter Johansson&quot;);
-</span><span class="boring">assert!(story.get_variable(&quot;name&quot;).is_ok());
-</span><span class="boring">assert!(story.get_variable(&quot;rank&quot;).is_ok());
+</span><span class="boring">assert!(story.get_variable(&quot;name&quot;).is_some());
+</span><span class="boring">assert!(story.get_variable(&quot;rank&quot;).is_some());
 </span><span class="boring">}
 </span></code></pre></pre>
 

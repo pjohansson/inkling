@@ -263,7 +263,7 @@ check out the full <a href="https://docs.rs/inkling/">documentation</a>.</p>
 <p>To use <code>inkling</code> in your Rust project, add this line to your dependencies in <code>Cargo.toml</code>:</p>
 <pre><code class="language-toml">[dependencies]
 #
-inkling = &quot;0.12.6&quot;
+inkling = &quot;1.0.0-pre.1&quot;
 </code></pre>
 <p>By default, <code>inkling</code> has no additional dependencies. Extra features which carry dependencies
 can be opted in to.</p>
@@ -273,7 +273,7 @@ to <a href="usage/./saving-and-loading.html">save and restore</a> an object. Sup
 feature. This adds <code>serde</code> as a dependency.</p>
 <pre><code class="language-toml">[dependencies]
 #
-inkling = { version = &quot;0.12.6&quot;, features = [&quot;serde_support&quot;] }
+inkling = { version = &quot;1.0.0-pre.1&quot;, features = [&quot;serde_support&quot;] }
 </code></pre>
 <h2><a class="header" href="#randomization-support" id="randomization-support">Randomization support</a></h2>
 <p>The <code>Ink</code> language supports a few randomized features like <a href="usage/../features/sequences.html#shuffle-sequences">shuffle sequences</a>.
@@ -281,7 +281,7 @@ These are optional and can be enabled with the <code>random</code> feature. This
 a dependency to <code>rand</code> and its sub project <code>rand_chacha</code>.</p>
 <pre><code class="language-toml">[dependencies]
 #
-inkling = { version = &quot;0.12.6&quot;, features = [&quot;random&quot;] }
+inkling = { version = &quot;1.0.0-pre.1&quot;, features = [&quot;random&quot;] }
 </code></pre>
 <p>If this feature is not enabled, shuffle sequences will behave as cycle sequences.</p>
 <h1><a class="header" href="#reading-a-script" id="reading-a-script">Reading a script</a></h1>
@@ -1098,7 +1098,7 @@ On the bottom I found an unlocked door.
 </span><span class="boring">let mut story = read_story_from_string(content).unwrap();
 </span><span class="boring">let mut buffer = Vec::new();
 </span><span class="boring">story.resume(&amp;mut buffer).unwrap();
-</span><span class="boring">assert_eq!(story.get_current_location().unwrap(), (&quot;garden&quot;.to_string(), None));
+</span><span class="boring">assert_eq!(story.get_current_location(), (&quot;garden&quot;.to_string(), None));
 </span><span class="boring">}
 </span></code></pre></pre>
 <p>Diverts are automatically followed as they are encountered.</p>
@@ -1181,7 +1181,7 @@ On the bottom I found an unlocked door.
 </span><span class="boring">story.resume(&amp;mut buffer).unwrap();
 </span><span class="boring">story.make_choice(1).unwrap();
 </span><span class="boring">story.resume(&amp;mut buffer).unwrap();
-</span><span class="boring">assert_eq!(story.get_current_location().unwrap(), (&quot;desk&quot;.to_string(), None));
+</span><span class="boring">assert_eq!(story.get_current_location(), (&quot;desk&quot;.to_string(), None));
 </span><span class="boring">}
 </span></code></pre></pre>
 <h2><a class="header" href="#revisiting-content-and-choices" id="revisiting-content-and-choices">Revisiting content and choices</a></h2>
@@ -1514,8 +1514,8 @@ I opened my notebook to a blank page, pen in hand.
 </span><span class="boring">let tags = story.get_story_tags();
 </span><span class="boring">assert_eq!(&amp;tags[0], &quot;title: Inkling&quot;);
 </span><span class="boring">assert_eq!(&amp;tags[1], &quot;author: Petter Johansson&quot;);
-</span><span class="boring">assert!(story.get_variable(&quot;name&quot;).is_ok());
-</span><span class="boring">assert!(story.get_variable(&quot;rank&quot;).is_ok());
+</span><span class="boring">assert!(story.get_variable(&quot;name&quot;).is_some());
+</span><span class="boring">assert!(story.get_variable(&quot;rank&quot;).is_some());
 </span><span class="boring">}
 </span></code></pre></pre>
 <h1><a class="header" href="#variables" id="variables">Variables</a></h1>
@@ -1544,7 +1544,7 @@ VAR a_destination = &quot;-&gt; stairwell&quot;
 </span><span class="boring">assert_eq!(story.get_variable(&quot;a_int&quot;).unwrap(), Variable::Int(2));
 </span><span class="boring">assert_eq!(story.get_variable(&quot;a_bool&quot;).unwrap(), Variable::Bool(false));
 </span><span class="boring">assert_eq!(story.get_variable(&quot;a_string&quot;).unwrap(), Variable::String(&quot;A String&quot;.to_string()));
-</span><span class="boring">assert!(story.get_variable(&quot;a_destination&quot;).is_ok());
+</span><span class="boring">assert!(story.get_variable(&quot;a_destination&quot;).is_some());
 </span><span class="boring">}
 </span></code></pre></pre>
 <p>As shown in this example, the variable type is automatically assigned from
