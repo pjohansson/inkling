@@ -1,3 +1,13 @@
+# 1.0.0
+
+*   Deprecate `start` method in `Story`
+*   Stabilize public API
+*   Add User Guide using `mdbook`
+*   Add support for CONST variables
+*   Add shuffle sequences with `rand` (with enabled feature `random`)
+*   Return `Option` instead of `Result` for getter methods in `Story`
+*   Add `to_string` methods for `Variable`
+
 # 0.12.0
 
 *   Breaking change: `start` does not begin the text processing. Instead, use `resume` after `start` has been called.
@@ -37,11 +47,6 @@ This release focuses on validating the content of a story after successfully par
 ## 0.12.5
 
 *   Relicensed under Parity 7.0 and Apache 2.0
-
-## 0.12.6
-
-*   Added support for CONST variables
-*   Added shuffle sequences with `rand`
 
 # 0.11.0
 

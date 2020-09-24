@@ -1,6 +1,6 @@
 [package]
 name = "inkling"
-version = "0.12.5"
+version = "1.0.0-pre.1"
 authors = ["Petter Johansson"]
 description = "Limited implementation of the Ink markup language."
 edition = "2018"
