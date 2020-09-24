@@ -11,6 +11,7 @@ use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
 /// Single line of text in a story, ready to display.
 pub struct Line {
     /// Text to display.
@@ -39,6 +40,7 @@ pub struct Choice {
 }
 
 #[derive(Clone, Debug)]
+#[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
 /// Result from following a `Story`.
 ///
 /// # Examples
