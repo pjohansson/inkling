@@ -103,7 +103,7 @@ impl Prompt {
 #[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
 /// Knot and (possible) stitch location in the story.
 ///
-/// Can be used to move to new locations with `Story::move_to`.
+/// Can be used to move to new locations with [`Story::move_to`][crate::story::Story::move_to()].
 ///
 /// Implements `From<&str>` for strings. Strings are parsed like `Ink` addresses
 /// in `knot.stitch` format.
