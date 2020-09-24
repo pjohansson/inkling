@@ -9,7 +9,10 @@ use crate::{
     },
     follow::FollowData,
     knot::{get_num_visited, Address, AddressKind},
-    story::validate::{ValidateContent, ValidationData},
+    story::{
+        validate::{ValidateContent, ValidationData},
+        Location,
+    },
 };
 
 #[cfg(feature = "serde_support")]
@@ -185,6 +188,38 @@ impl Variable {
             // on by a caller. As a fallback we return the address as a string.
             Variable::Address(address) => address.to_string(),
             _ => self.to_string().unwrap(),
+        }
+    }
+
+    /// Get the target `Location` of a `Variable::Divert` variant.
+    ///
+    /// `Variables` which are not of `Divert` type yield `None`.
+    ///
+    /// # Examples
+    /// ```
+    /// # use inkling::{read_story_from_string, Location, Variable};
+    /// let content = "\
+    /// VAR location = -> mirandas_den.dream
+    /// ";
+    ///
+    /// let story = read_story_from_string(content).unwrap();
+    /// let variable = story.get_variable("location").unwrap();
+    /// assert_eq!(
+    ///     variable.get_location(),
+    ///     Some(Location {
+    ///         knot: "mirandas_den".to_string(),
+    ///         stitch: Some("dream".to_string()),
+    ///     })
+    /// );
+    ///
+    /// assert!(Variable::Int(5).get_location().is_none());
+    /// assert!(Variable::Float(3.0).get_location().is_none());
+    /// assert!(Variable::Bool(true).get_location().is_none());
+    /// assert!(Variable::String("knot.stitch".to_string()).get_location().is_none());
+    pub fn get_location(&self) -> Option<Location> {
+        match self {
+            Variable::Divert(address) => Some(Location::from(address.to_string().as_ref())),
+            _ => None,
         }
     }
 
@@ -1297,5 +1332,26 @@ mod tests {
 
         assert!(Variable::from(1).remainder(&0.into()).is_err());
         assert!(Variable::from(1.0).remainder(&0.0.into()).is_err());
+    }
+
+    #[test]
+    fn get_location_yields_target_for_divert() {
+        let address = Address::from_parts_unchecked("tripoli", Some("cinema"));
+        let location = Location::with_stitch("tripoli", "cinema");
+
+        assert_eq!(Variable::Divert(address).get_location(), Some(location));
+    }
+
+    #[test]
+    fn get_location_yields_none_for_anything_but_diverts() {
+        let address = Address::from_parts_unchecked("tripoli", Some("cinema"));
+
+        assert!(Variable::Int(5).get_location().is_none());
+        assert!(Variable::Float(3.0).get_location().is_none());
+        assert!(Variable::Bool(true).get_location().is_none());
+        assert!(Variable::String("knot.stitch".to_string())
+            .get_location()
+            .is_none());
+        assert!(Variable::Address(address).get_location().is_none());
     }
 }
