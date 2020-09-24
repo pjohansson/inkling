@@ -189,7 +189,7 @@ impl Location {
     ///     }
     /// );
     /// ```
-    pub fn new<T: ToString>(knot: T, stitch: Option<T>) -> Self {
+    pub fn new<S: ToString>(knot: S, stitch: Option<S>) -> Self {
         Location {
             knot: knot.to_string(),
             stitch: stitch.map(|s| s.to_string()),
@@ -209,7 +209,7 @@ impl Location {
     ///     }
     /// );
     /// ```
-    pub fn with_stitch<T: ToString>(knot: T, stitch: T) -> Self {
+    pub fn with_stitch<S: ToString>(knot: S, stitch: S) -> Self {
         Location {
             knot: knot.to_string(),
             stitch: Some(stitch.to_string()),
