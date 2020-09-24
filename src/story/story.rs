@@ -10,7 +10,7 @@ use crate::{
     story::{
         parse::read_story_content_from_string,
         rng::StoryRng,
-        types::{Choice, LineBuffer, Prompt},
+        types::{Choice, LineBuffer, Location, Prompt},
         validate::validate_story_content,
     },
 };
@@ -101,7 +101,7 @@ impl Story {
     ///
     /// ## Moving to a new knot
     /// ```
-    /// # use inkling::read_story_from_string;
+    /// # use inkling::{read_story_from_string, Location};
     /// # let content = "\
     /// # Sam was in real trouble now. The fleet footed criminals were just about to corner her.
     /// #
@@ -121,7 +121,12 @@ impl Story {
     /// # let mut story = read_story_from_string(content).unwrap();
     /// # let mut line_buffer = Vec::new();
     /// # story.resume(&mut line_buffer).unwrap();
-    /// story.move_to("mirandas_den", Some("meeting")).unwrap();
+    /// let location = Location {
+    ///     knot: "mirandas_den".to_string(),
+    ///     stitch: Some("meeting".to_string()),
+    /// };
+    ///
+    /// story.move_to(&location).unwrap();
     /// # line_buffer.clear();
     /// story.resume(&mut line_buffer).unwrap();
     ///
@@ -210,9 +215,10 @@ impl Story {
     /// to continue the text flow from that point.
     ///
     /// # Examples
+    /// ## Using `Location` to move
     /// ```
     /// // From ‘Purge’ by Sofi Oksanen
-    /// # use inkling::read_story_from_string;
+    /// # use inkling::{read_story_from_string, Location};
     /// let content = "\
     /// May, 1949
     /// For the free Estonia!
@@ -227,20 +233,39 @@ impl Story {
     /// # let mut line_buffer = Vec::new();
     ///
     /// // Let’s skip ahead!
-    /// story.move_to("chapter_one", None).unwrap();
+    /// let location = Location {
+    ///     knot: "chapter_one".to_string(),
+    ///     stitch: None,
+    /// };
+    ///
+    /// story.move_to(&location).unwrap();
     /// story.resume(&mut line_buffer).unwrap();
     ///
     /// assert_eq!(&line_buffer[0].text, "1992, western Estonia\n");
     /// ```
     ///
+    /// ## Using `From<&str>` for `Location`
+    /// ```
+    /// # use inkling::{read_story_from_string, Location};
+    /// let content = "\
+    /// == 24th_island_sequence
+    /// Island sequence 24 is ending.
+    /// ";
+    ///
+    /// let mut story = read_story_from_string(content).unwrap();
+    ///
+    /// story.move_to(&"24th_island_sequence".into()).unwrap();
+    /// assert_eq!(&story.get_current_location(), &Location::from("24th_island_sequence"));
+    /// ```
+    ///
     /// # Errors
     /// *   [`InvalidAddress`][crate::error::InklingError::InvalidAddress]: if the knot
     ///     or stitch name does not specify an existing location in the story.
-    pub fn move_to(&mut self, knot: &str, stitch: Option<&str>) -> Result<(), InklingError> {
-        let to_address = Address::from_parts(knot, stitch, &self.knots).map_err(|_| {
+    pub fn move_to(&mut self, location: &Location) -> Result<(), InklingError> {
+        let to_address = Address::from_location(location, &self.knots).map_err(|_| {
             InklingError::InvalidAddress {
-                knot: knot.to_string(),
-                stitch: stitch.map(|s| s.to_string()),
+                knot: location.knot.clone(),
+                stitch: location.stitch.clone(),
             }
         })?;
 
@@ -262,7 +287,7 @@ impl Story {
     ///
     /// # Examples
     /// ```
-    /// # use inkling::{read_story_from_string, Prompt};
+    /// # use inkling::{read_story_from_string, Location, Prompt};
     /// let content = "\
     /// === gesichts_apartment ===
     /// = dream
@@ -270,14 +295,17 @@ impl Story {
     /// ";
     ///
     /// let mut story = read_story_from_string(content).unwrap();
-    /// story.move_to("gesichts_apartment", None).unwrap();
     ///
-    /// let (knot, stitch) = story.get_current_location();
+    /// let location = Location {
+    ///     knot: "gesichts_apartment".to_string(),
+    ///     stitch: Some("dream".to_string()),
+    /// };
     ///
-    /// assert_eq!(&knot, "gesichts_apartment");
-    /// assert_eq!(&stitch.unwrap(), "dream");
+    /// story.move_to(&location).unwrap();
+    ///
+    /// assert_eq!(story.get_current_location(), location);
     /// ```
-    pub fn get_current_location(&self) -> (String, Option<String>) {
+    pub fn get_current_location(&self) -> Location {
         let (knot, stitch) = match self.current_address.get_knot_and_stitch() {
             Ok(result) => result,
             Err(_) => {
@@ -287,9 +315,9 @@ impl Story {
         };
 
         if stitch == ROOT_KNOT_NAME {
-            (knot.to_string(), None)
+            Location::from(knot)
         } else {
-            (knot.to_string(), Some(stitch.to_string()))
+            Location::with_stitch(knot, stitch)
         }
     }
 
@@ -324,7 +352,7 @@ impl Story {
     ///
     /// # Examples
     /// ```
-    /// # use inkling::read_story_from_string;
+    /// # use inkling::{read_story_from_string, Location};
     /// # let content = "\
     /// # -> depths
     /// # === depths ===
@@ -333,13 +361,20 @@ impl Story {
     /// # let mut story = read_story_from_string(content).unwrap();
     /// # let mut line_buffer = Vec::new();
     /// # story.resume(&mut line_buffer).unwrap();
-    /// # story.move_to("depths", None).unwrap();
+    /// #
+    /// let location = Location {
+    ///     knot: "depths".to_string(),
+    ///     stitch: None,
+    /// };
+    ///
+    /// # story.move_to(&location).unwrap();
     /// # story.resume(&mut line_buffer).unwrap();
-    /// let num_visited = story.get_num_visited("depths", None).unwrap();
+    /// #
+    /// let num_visited = story.get_num_visited(&location).unwrap();
     /// assert_eq!(num_visited, 2);
     /// ```
-    pub fn get_num_visited(&self, knot: &str, stitch: Option<&str>) -> Option<u32> {
-        let address = Address::from_parts(knot, stitch, &self.knots).ok()?;
+    pub fn get_num_visited(&self, location: &Location) -> Option<u32> {
+        let address = Address::from_location(&location, &self.knots).ok()?;
 
         get_num_visited(&address, &self.data).ok()
     }
@@ -1038,7 +1073,7 @@ We hurried home to Savile Row as fast as we could.
 ";
 
         let mut story = read_story_from_string(content).unwrap();
-        story.move_to("addis_ababa", None).unwrap();
+        story.move_to(&"addis_ababa".into()).unwrap();
 
         let mut line_buffer = Vec::new();
 
@@ -1058,7 +1093,7 @@ We hurried home to Savile Row as fast as we could.
     Fallback choice
 ";
         let mut story = read_story_from_string(content).unwrap();
-        story.move_to("knot", None).unwrap();
+        story.move_to(&"knot".into()).unwrap();
 
         let mut line_buffer = Vec::new();
 
@@ -1150,7 +1185,7 @@ We decided to go to the <>
 ";
 
         let mut story = read_story_from_string(content).unwrap();
-        story.move_to("knot", None).unwrap();
+        story.move_to(&"knot".into()).unwrap();
 
         let mut line_buffer = Vec::new();
 
@@ -1178,7 +1213,7 @@ We decided to go to the <>
 
         assert!(story.last_choices.is_none());
 
-        story.move_to("knot", None).unwrap();
+        story.move_to(&"knot".into()).unwrap();
         story.resume(&mut line_buffer).unwrap();
 
         let last_choices = story.last_choices.as_ref().unwrap();
@@ -1203,7 +1238,7 @@ We arrived into Almaty at 9.45pm exactly.
 ";
 
         let mut story = read_story_from_string(content).unwrap();
-        story.move_to("back_in_almaty", None).unwrap();
+        story.move_to(&"back_in_almaty".into()).unwrap();
 
         let mut line_buffer = Vec::new();
 
@@ -1384,7 +1419,7 @@ After an arduous journey we arrived back in Almaty.
 
 ";
         let mut story = read_story_from_string(content).unwrap();
-        story.move_to("back_in_almaty", None).unwrap();
+        story.move_to(&"back_in_almaty".into()).unwrap();
 
         let mut line_buffer = Vec::new();
 
@@ -1420,7 +1455,7 @@ After an arduous journey we arrived back in {Almaty|Addis Ababa|Tripoli}.
 
 ";
         let mut story = read_story_from_string(content).unwrap();
-        story.move_to("back_in_almaty", None).unwrap();
+        story.move_to(&"back_in_almaty".into()).unwrap();
 
         let mut line_buffer = Vec::new();
 
@@ -1448,7 +1483,7 @@ We hurried home as fast as we could.
         let mut story = read_story_from_string(content).unwrap();
         let mut line_buffer = Vec::new();
 
-        story.move_to("hurry_home", None).unwrap();
+        story.move_to(&"hurry_home".into()).unwrap();
 
         let address = story.current_address.clone();
         assert_eq!(address.get_knot().unwrap(), "hurry_home");
@@ -1481,12 +1516,12 @@ We hurried home as fast as we could.
 -> END
 ";
         let mut story = read_story_from_string(content).unwrap();
-        story.move_to("back_in_almaty", None).unwrap();
+        story.move_to(&"back_in_almaty".into()).unwrap();
 
         let mut line_buffer = Vec::new();
         story.resume(&mut line_buffer).unwrap();
 
-        story.move_to("hurry_home", None).unwrap();
+        story.move_to(&"hurry_home".into()).unwrap();
 
         assert!(story.last_choices.is_none());
     }
@@ -1509,13 +1544,13 @@ We hurried home as fast as we could.
 -> END
 ";
         let mut story = read_story_from_string(content).unwrap();
-        story.move_to("back_in_almaty", None).unwrap();
+        story.move_to(&"back_in_almaty".into()).unwrap();
 
         let mut line_buffer = Vec::new();
         story.resume(&mut line_buffer).unwrap();
         story.make_choice(0).unwrap();
 
-        story.move_to("hurry_home", None).unwrap();
+        story.move_to(&"hurry_home".into()).unwrap();
 
         assert!(story.selected_choice.is_none());
     }
@@ -1540,7 +1575,8 @@ Once back home we feasted on cheese.
         let mut story = read_story_from_string(content).unwrap();
         let mut line_buffer = Vec::new();
 
-        story.move_to("hurry_home", Some("at_home")).unwrap();
+        let location = Location::with_stitch("hurry_home", "at_home");
+        story.move_to(&location).unwrap();
 
         let address = story.current_address.clone();
         assert_eq!(address.get_knot().unwrap(), "hurry_home");
@@ -1574,8 +1610,10 @@ Once back home we feasted on cheese.
 
         let mut story = read_story_from_string(content).unwrap();
 
-        assert!(story.move_to("fin", None).is_err());
-        assert!(story.move_to("hurry_home", Some("not_at_home")).is_err());
+        assert!(story.move_to(&"fin".into()).is_err());
+
+        let location = Location::with_stitch("hurry_home", "not_at_home");
+        assert!(story.move_to(&location).is_err());
     }
 
     #[test]
@@ -1630,14 +1668,16 @@ We hurried home as fast as we could.
 
         assert_eq!(
             story.get_current_location(),
-            (ROOT_KNOT_NAME.to_string(), None)
+            Location::from(ROOT_KNOT_NAME),
+            // (ROOT_KNOT_NAME.to_string(), None)
         );
 
-        story.move_to("hurry_home", None).unwrap();
+        story.move_to(&"hurry_home".into()).unwrap();
 
         assert_eq!(
             story.get_current_location(),
-            ("hurry_home".to_string(), Some("at_home".to_string()))
+            Location::with_stitch("hurry_home", "at_home"),
+            // ("hurry_home".to_string(), Some("at_home".to_string()))
         );
     }
 
@@ -1656,18 +1696,14 @@ Once back home we feasted on cheese.
 
         let mut story = read_story_from_string(content).unwrap();
 
-        let address = Address::from_parts("hurry_home", Some("at_home"), &story.knots).unwrap();
+        let location = Location::with_stitch("hurry_home", "at_home");
+        let address = Address::from_location(&location, &story.knots).unwrap();
 
         increment_num_visited(&address, &mut story.data).unwrap();
         increment_num_visited(&address, &mut story.data).unwrap();
 
-        assert_eq!(story.get_num_visited("hurry_home", None).unwrap(), 0);
-        assert_eq!(
-            story
-                .get_num_visited("hurry_home", Some("at_home"))
-                .unwrap(),
-            2
-        );
+        assert_eq!(story.get_num_visited(&"hurry_home".into()).unwrap(), 0);
+        assert_eq!(story.get_num_visited(&location).unwrap(), 2);
     }
 
     #[test]
@@ -1689,9 +1725,9 @@ Once back home we feasted on cheese.
 
         let story = read_story_from_string(content).unwrap();
 
-        assert!(story.get_num_visited("fin", None).is_none());
+        assert!(story.get_num_visited(&"fin".into()).is_none());
         assert!(story
-            .get_num_visited("hurry_home", Some("with_family"))
+            .get_num_visited(&Location::with_stitch("hurry_home", "fin"))
             .is_none());
     }
 

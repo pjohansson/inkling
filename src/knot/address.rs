@@ -47,6 +47,8 @@ impl From<AddressKind> for Address {
     }
 }
 
+use crate::story::Location;
+
 impl Address {
     /// Return an address from a string that is just a knot name.
     ///
@@ -68,28 +70,28 @@ impl Address {
         }))
     }
 
-    pub fn from_parts(
-        knot_name: &str,
-        stitch_name: Option<&str>,
+    /// Validate that a specified location exists in the knotset and create it's `Address`.
+    pub fn from_location(
+        location: &Location,
         knots: &KnotSet,
     ) -> Result<Self, InvalidAddressErrorKind> {
         let knot = knots
-            .get(knot_name)
+            .get(&location.knot)
             .ok_or(InvalidAddressErrorKind::UnknownKnot {
-                knot_name: knot_name.to_string(),
+                knot_name: location.knot.to_string(),
             })?;
 
-        let stitch_name = stitch_name.unwrap_or(&knot.default_stitch);
+        let stitch_name = location.stitch.as_ref().unwrap_or(&knot.default_stitch);
 
         if knot.stitches.contains_key(stitch_name) {
             Ok(Address::Validated(AddressKind::Location {
-                knot: knot_name.to_string(),
-                stitch: stitch_name.to_string(),
+                knot: location.knot.clone(),
+                stitch: stitch_name.clone(),
             }))
         } else {
             Err(InvalidAddressErrorKind::UnknownStitch {
-                knot_name: knot_name.to_string(),
-                stitch_name: stitch_name.to_string(),
+                knot_name: location.knot.clone(),
+                stitch_name: stitch_name.clone(),
             })
         }
     }
@@ -632,7 +634,7 @@ You find yourself in Tripoli, the capital of Libya.
     }
 
     #[test]
-    fn address_can_be_validated_from_parts() {
+    fn address_from_location_is_validated() {
         let content = "
 == tripoli
 You find yourself in Tripoli, the capital of Libya.
@@ -650,7 +652,7 @@ You find yourself in Addis Ababa, the capital of Ethiopia.
         let knots = read_knots_from_string(content).unwrap();
 
         assert_eq!(
-            Address::from_parts("addis_ababa", None, &knots).unwrap(),
+            Address::from_location(&"addis_ababa".into(), &knots).unwrap(),
             Address::Validated(AddressKind::Location {
                 knot: "addis_ababa".to_string(),
                 stitch: ROOT_KNOT_NAME.to_string()
@@ -658,7 +660,7 @@ You find yourself in Addis Ababa, the capital of Ethiopia.
         );
 
         assert_eq!(
-            Address::from_parts("tripoli", None, &knots).unwrap(),
+            Address::from_location(&"tripoli".into(), &knots).unwrap(),
             Address::Validated(AddressKind::Location {
                 knot: "tripoli".to_string(),
                 stitch: ROOT_KNOT_NAME.to_string()
@@ -666,39 +668,43 @@ You find yourself in Addis Ababa, the capital of Ethiopia.
         );
 
         assert_eq!(
-            Address::from_parts("tripoli", Some("cinema"), &knots).unwrap(),
+            Address::from_location(&Location::with_stitch("tripoli", "cinema"), &knots).unwrap(),
             Address::Validated(AddressKind::Location {
                 knot: "tripoli".to_string(),
                 stitch: "cinema".to_string()
             })
         );
 
-        assert!(Address::from_parts("rabat", None, &knots).is_err());
-        assert!(Address::from_parts("addis_ababa", Some("cinema"), &knots).is_err());
-        assert!(Address::from_parts("tripoli", Some("with_family"), &knots).is_err());
+        assert!(Address::from_location(&"rabat".into(), &knots).is_err());
+        assert!(
+            Address::from_location(&Location::with_stitch("addis_ababa", "cinema"), &knots)
+                .is_err()
+        );
+        assert!(
+            Address::from_location(&Location::with_stitch("tripoli", "with_family"), &knots)
+                .is_err()
+        );
     }
 
     #[test]
-    fn if_a_default_stitch_is_set_for_the_knot_it_is_used() {
+    fn address_from_location_uses_default_stitch_if_set() {
         let content = "
 == tripoli
 You find yourself in Tripoli, the capital of Libya.
--> END
 
 = cinema
--> END
+Ah, the cinema. // We should not end up at this stitch by default
 
 == cairo
 = airport
 You find yourself in Cairo, the capital of Egypt.
--> END
 
 ";
 
         let knots = read_knots_from_string(content).unwrap();
 
         assert_eq!(
-            Address::from_parts("tripoli", None, &knots).unwrap(),
+            Address::from_location(&"tripoli".into(), &knots).unwrap(),
             Address::Validated(AddressKind::Location {
                 knot: "tripoli".to_string(),
                 stitch: ROOT_KNOT_NAME.to_string()
@@ -706,7 +712,7 @@ You find yourself in Cairo, the capital of Egypt.
         );
 
         assert_eq!(
-            Address::from_parts("cairo", None, &knots).unwrap(),
+            Address::from_location(&"cairo".into(), &knots).unwrap(),
             Address::Validated(AddressKind::Location {
                 knot: "cairo".to_string(),
                 stitch: "airport".to_string()

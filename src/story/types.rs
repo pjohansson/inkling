@@ -99,6 +99,116 @@ impl Prompt {
     }
 }
 
+#[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
+/// Knot and (possible) stitch location in the story.
+///
+/// Can be used to move to new locations with `Story::move_to`.
+///
+/// # Examples
+///
+/// ## Move to a new location
+/// ```
+/// # use inkling::{read_story_from_string, Location};
+/// let content = "\
+/// == 24th_island_sequence
+/// Island sequence 24 is ending.
+///
+/// == 25th_island_sequence
+/// Perfect 25 is awaiting.
+/// ";
+///
+/// let mut story = read_story_from_string(content).unwrap();
+///
+/// let twenty_fourth = Location {
+///     knot: "24th_island_sequence".to_string(),
+///     stitch: None,
+/// };
+///
+/// let twenty_fifth = Location {
+///     knot: "25th_island_sequence".to_string(),
+///     stitch: None,
+/// };
+///
+/// story.move_to(&twenty_fifth).unwrap();
+/// assert_eq!(&story.get_current_location(), &twenty_fifth);
+/// ```
+///
+/// ## Create a `Location` from a string
+/// ```
+/// # use inkling::Location;
+/// assert_eq!(
+///     Location {
+///         knot: "25th_island_sequence".to_string(),
+///         stitch: None,
+///     },
+///     Location::from("25th_island_sequence")
+/// );
+/// ```
+pub struct Location {
+    pub knot: String,
+    pub stitch: Option<String>,
+}
+
+impl<T: ToString> From<T> for Location {
+    fn from(knot: T) -> Self {
+        Location {
+            knot: knot.to_string(),
+            stitch: None,
+        }
+    }
+}
+
+impl Location {
+    /// Create a `Location` with a knot and possible stitch address.
+    ///
+    /// # Examples
+    /// ```
+    /// # use inkling::Location;
+    /// assert_eq!(
+    ///     Location::new("gesichts_apartment", None),
+    ///     Location {
+    ///         knot: "gesichts_apartment".to_string(),
+    ///         stitch: None,
+    ///     }
+    /// );
+    ///
+    /// assert_eq!(
+    ///     Location::new("mirandas_den", Some("dream")),
+    ///     Location {
+    ///         knot: "mirandas_den".to_string(),
+    ///         stitch: Some("dream".to_string()),
+    ///     }
+    /// );
+    /// ```
+    pub fn new<T: ToString>(knot: T, stitch: Option<T>) -> Self {
+        Location {
+            knot: knot.to_string(),
+            stitch: stitch.map(|s| s.to_string()),
+        }
+    }
+
+    /// Create a `Location` with knot and stitch address.
+    ///
+    /// # Examples
+    /// ```
+    /// # use inkling::Location;
+    /// assert_eq!(
+    ///     Location::with_stitch("mirandas_den", "dream"),
+    ///     Location {
+    ///         knot: "mirandas_den".to_string(),
+    ///         stitch: Some("dream".to_string()),
+    ///     }
+    /// );
+    /// ```
+    pub fn with_stitch<T: ToString>(knot: T, stitch: T) -> Self {
+        Location {
+            knot: knot.to_string(),
+            stitch: Some(stitch.to_string()),
+        }
+    }
+}
+
 /// Convenience type to indicate when a buffer of `Line` objects is being manipulated.
 pub type LineBuffer = Vec<Line>;
 

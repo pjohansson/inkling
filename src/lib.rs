@@ -48,5 +48,6 @@ mod utils;
 pub use error::InklingError;
 pub use line::Variable;
 pub use story::{
-    copy_lines_into_string, read_story_from_string, Choice, Line, LineBuffer, Prompt, Story,
+    copy_lines_into_string, read_story_from_string, Choice, Line, LineBuffer, Location, Prompt,
+    Story,
 };
