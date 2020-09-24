@@ -247,6 +247,7 @@ impl Story {
         self.update_last_stack(&to_address);
 
         self.last_choices = None;
+        self.selected_choice = None;
 
         Ok(())
     }
@@ -1460,6 +1461,63 @@ We hurried home as fast as we could.
             &line_buffer[0].text,
             "We hurried home as fast as we could.\n"
         );
+    }
+
+    #[test]
+    fn moving_to_a_new_location_resets_current_choice_list() {
+        let content = "
+
+== back_in_almaty
+
+After an arduous journey we arrived back in {Almaty|Addis Ababa|Tripoli}.
+
+*   We hurried home {as fast as we could|slowly}.
+    -> END
+*   But we decided our trip wasn't done yet.
+    We immediately left the city.
+
+== hurry_home
+We hurried home as fast as we could.
+-> END
+";
+        let mut story = read_story_from_string(content).unwrap();
+        story.move_to("back_in_almaty", None).unwrap();
+
+        let mut line_buffer = Vec::new();
+        story.resume(&mut line_buffer).unwrap();
+
+        story.move_to("hurry_home", None).unwrap();
+
+        assert!(story.last_choices.is_none());
+    }
+
+    #[test]
+    fn moving_to_a_new_location_resets_selected_choice() {
+        let content = "
+
+== back_in_almaty
+
+After an arduous journey we arrived back in {Almaty|Addis Ababa|Tripoli}.
+
+*   We hurried home {as fast as we could|slowly}.
+    -> END
+*   But we decided our trip wasn't done yet.
+    We immediately left the city.
+
+== hurry_home
+We hurried home as fast as we could.
+-> END
+";
+        let mut story = read_story_from_string(content).unwrap();
+        story.move_to("back_in_almaty", None).unwrap();
+
+        let mut line_buffer = Vec::new();
+        story.resume(&mut line_buffer).unwrap();
+        story.make_choice(0).unwrap();
+
+        story.move_to("hurry_home", None).unwrap();
+
+        assert!(story.selected_choice.is_none());
     }
 
     #[test]
