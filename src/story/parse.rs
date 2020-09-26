@@ -563,7 +563,7 @@ fn parse_variable_name(lhs: &str, is_const: bool) -> Result<String, PreludeError
 pub mod tests {
     use super::*;
 
-    use crate::{knot::Address, line::Variable};
+    use crate::{knot::Address, line::Variable, story::log::MessageKind};
 
     pub fn read_knots_from_string(content: &str) -> Result<KnotSet, Vec<KnotError>> {
         let lines = content
@@ -1475,7 +1475,10 @@ Placeholder text.
         let mut log = Logger::default();
         read_story_content_from_string(content, &mut log).unwrap();
 
-        assert_eq!(&log.todo_comments[0].message, "Write this scene.");
+        assert_eq!(
+            log.todo_comments[0].message,
+            MessageKind::Todo("Write this scene.".to_string())
+        );
         assert_eq!(log.todo_comments[0].meta_data.line(), 2);
     }
 }

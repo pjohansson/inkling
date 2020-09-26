@@ -11,7 +11,7 @@
 //! Most of the rest of this module deals with processing internal data into a form
 //! presented to the user, or validating the content of the story as it is being accessed.
 
-mod log;
+pub(crate) mod log;
 pub(crate) mod parse;
 pub(crate) mod rng;
 mod story;

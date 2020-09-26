@@ -6,8 +6,8 @@ use crate::{
     knot::Address,
     line::LineChunk,
     story::{
+        log::{Logger, Warning},
         validate::{ValidateContent, ValidationData},
-        Logger,
     },
 };
 
@@ -127,12 +127,7 @@ impl ValidateContent for Alternative {
         #[cfg(not(feature = "random"))]
         match self.kind {
             AlternativeKind::Shuffle => {
-                log.add_warning(
-                    "found a shuffle sequence but the `random` feature is not enabled: \
-                     changed it to a cycle sequence (fix: compile `inkling` with the \
-                     `random` feature)",
-                    meta_data,
-                );
+                log.add_warning(Warning::ShuffleSequenceNoRandom, meta_data);
             }
             _ => (),
         }
