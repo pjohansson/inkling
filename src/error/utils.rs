@@ -13,12 +13,22 @@ use serde::{Deserialize, Serialize};
 /// the error originated from.
 pub struct MetaData {
     /// Which line in the original story the item originated from.
-    pub line_index: u32,
+    pub(crate) line_index: u32,
 }
 
 impl fmt::Display for MetaData {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "line {}", self.line_index + 1)
+        write!(f, "line {}", self.line())
+    }
+}
+
+impl MetaData {
+    /// Get the line number of the corresponding data in a file.
+    ///
+    /// # Indexing
+    /// Line numbers start from 1.
+    pub fn line(&self) -> u32 {
+        self.line_index + 1
     }
 }
 
@@ -69,7 +79,6 @@ macro_rules! impl_from_error {
     }
 }
 
-#[cfg(test)]
 impl From<usize> for MetaData {
     fn from(line_index: usize) -> Self {
         MetaData {
@@ -82,5 +91,20 @@ impl From<usize> for MetaData {
 impl From<()> for MetaData {
     fn from(_: ()) -> Self {
         MetaData { line_index: 0 }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn meta_data_from_index_sets_index() {
+        assert_eq!(MetaData::from(6), MetaData { line_index: 6 });
+    }
+
+    #[test]
+    fn meta_data_line_number_starts_from_one() {
+        assert_eq!(MetaData::from(6).line(), 7);
     }
 }

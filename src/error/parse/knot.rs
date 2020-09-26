@@ -116,7 +116,7 @@ impl fmt::Display for KnotError {
             f,
             "{} error(s) from parsing knot starting at line {}",
             self.line_errors.len(),
-            self.knot_meta_data.line_index + 1,
+            self.knot_meta_data.line()
         )
     }
 }

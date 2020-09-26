@@ -87,7 +87,7 @@ impl InternalLine {
             tags: Vec::new(),
             glue_begin: false,
             glue_end: false,
-            meta_data: MetaData { line_index: 0 },
+            meta_data: MetaData::from(0),
         }
     }
 
