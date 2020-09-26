@@ -1,3 +1,5 @@
+//! Utilities for inspecting warnings and other non-fatal errors.
+
 mod logger;
 mod message;
 

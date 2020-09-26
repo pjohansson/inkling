@@ -1,8 +1,12 @@
 use crate::error::utils::MetaData;
 use std::fmt;
 
+#[cfg(feature = "serde_support")]
+use serde::{Deserialize, Serialize};
+
 #[derive(Clone, Debug)]
 #[cfg_attr(test, derive(PartialEq))]
+#[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
 /// Log message with additional information.
 pub struct LogMessage {
     /// Logged message.
@@ -22,6 +26,7 @@ impl LogMessage {
 
 #[derive(Clone, Debug)]
 #[cfg_attr(test, derive(PartialEq))]
+#[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
 /// Type of log message with content.
 pub enum MessageKind {
     /// Todo comment.
@@ -32,6 +37,7 @@ pub enum MessageKind {
 
 #[derive(Clone, Debug)]
 #[cfg_attr(test, derive(PartialEq))]
+#[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
 /// A detected non-fatal error or incompatibility.
 pub enum Warning {
     /// Found a shuffle sequence but the `random` feature is not enabled.

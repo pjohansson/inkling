@@ -4,7 +4,11 @@ use crate::{
     log::{LogMessage, MessageKind, Warning},
 };
 
+#[cfg(feature = "serde_support")]
+use serde::{Deserialize, Serialize};
+
 #[derive(Clone, Debug, Default)]
+#[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
 /// Log of warnings and to-do comments of the current script.
 pub struct Logger {
     /// To-do comments.

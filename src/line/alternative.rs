@@ -5,9 +5,12 @@ use crate::{
     follow::FollowData,
     knot::Address,
     line::LineChunk,
-    log::{Logger, Warning},
+    log::Logger,
     story::validate::{ValidateContent, ValidationData},
 };
+
+#[cfg(not(feature = "random"))]
+use crate::log::Warning;
 
 #[cfg(feature = "random")]
 use rand::seq::SliceRandom;
