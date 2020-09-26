@@ -4,7 +4,10 @@ use crate::{
     error::{parse::validate::ValidationError, utils::MetaData},
     knot::Address,
     line::{Condition, InternalLine},
-    story::validate::{ValidateContent, ValidationData},
+    story::{
+        validate::{ValidateContent, ValidationData},
+        Logger,
+    },
 };
 
 use std::sync::{Arc, Mutex};
@@ -72,6 +75,7 @@ impl ValidateContent for InternalChoice {
     fn validate(
         &mut self,
         error: &mut ValidationError,
+        log: &mut Logger,
         current_location: &Address,
         _: &MetaData,
         data: &ValidationData,
@@ -80,6 +84,7 @@ impl ValidateContent for InternalChoice {
 
         self.selection_text.lock().unwrap().deref_mut().validate(
             error,
+            log,
             current_location,
             &self.meta_data,
             data,
@@ -93,11 +98,11 @@ impl ValidateContent for InternalChoice {
         // the display part. Otherwise multiple errors about the same part may be raised.
         if num_address_errors == error.invalid_address_errors.len() {
             self.display_text
-                .validate(error, current_location, &self.meta_data, data);
+                .validate(error, log, current_location, &self.meta_data, data);
         }
 
         if let Some(ref mut condition) = self.condition {
-            condition.validate(error, current_location, &self.meta_data, data);
+            condition.validate(error, log, current_location, &self.meta_data, data);
         }
     }
 }

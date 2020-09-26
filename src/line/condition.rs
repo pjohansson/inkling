@@ -38,7 +38,10 @@ use crate::{
     knot::Address,
     line::{Expression, Variable},
     process::check_condition,
-    story::validate::{ValidateContent, ValidationData},
+    story::{
+        validate::{ValidateContent, ValidationData},
+        Logger,
+    },
 };
 
 use std::{cmp::Ordering, error::Error};
@@ -235,6 +238,7 @@ impl ValidateContent for Condition {
     fn validate(
         &mut self,
         error: &mut ValidationError,
+        log: &mut Logger,
         current_location: &Address,
         meta_data: &MetaData,
         data: &ValidationData,
@@ -243,11 +247,12 @@ impl ValidateContent for Condition {
 
         self.root
             .kind
-            .validate(error, current_location, meta_data, data);
+            .validate(error, log, current_location, meta_data, data);
 
         self.items.iter_mut().for_each(|item| match item {
             AndOr::And(item) | AndOr::Or(item) => {
-                item.kind.validate(error, current_location, meta_data, data)
+                item.kind
+                    .validate(error, log, current_location, meta_data, data)
             }
         });
 
@@ -267,6 +272,7 @@ impl ValidateContent for ConditionKind {
     fn validate(
         &mut self,
         error: &mut ValidationError,
+        log: &mut Logger,
         current_location: &Address,
         meta_data: &MetaData,
         data: &ValidationData,
@@ -274,9 +280,11 @@ impl ValidateContent for ConditionKind {
         match self {
             ConditionKind::True | ConditionKind::False => (),
             ConditionKind::Nested(condition) => {
-                condition.validate(error, current_location, meta_data, data)
+                condition.validate(error, log, current_location, meta_data, data)
             }
-            ConditionKind::Single(kind) => kind.validate(error, current_location, meta_data, data),
+            ConditionKind::Single(kind) => {
+                kind.validate(error, log, current_location, meta_data, data)
+            }
         }
     }
 }
@@ -285,6 +293,7 @@ impl ValidateContent for StoryCondition {
     fn validate(
         &mut self,
         error: &mut ValidationError,
+        log: &mut Logger,
         current_location: &Address,
         meta_data: &MetaData,
         data: &ValidationData,
@@ -295,11 +304,11 @@ impl ValidateContent for StoryCondition {
                 ref mut rhs_variable,
                 ..
             } => {
-                lhs_variable.validate(error, current_location, meta_data, data);
-                rhs_variable.validate(error, current_location, meta_data, data);
+                lhs_variable.validate(error, log, current_location, meta_data, data);
+                rhs_variable.validate(error, log, current_location, meta_data, data);
             }
             StoryCondition::IsTrueLike { variable } => {
-                variable.validate(error, current_location, meta_data, data)
+                variable.validate(error, log, current_location, meta_data, data)
             }
         }
     }

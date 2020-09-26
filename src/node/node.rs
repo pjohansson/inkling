@@ -4,7 +4,10 @@ use crate::{
     error::{parse::validate::ValidationError, utils::MetaData},
     knot::Address,
     line::{InternalChoice, InternalLine},
-    story::validate::{ValidateContent, ValidationData},
+    story::{
+        validate::{ValidateContent, ValidationData},
+        Logger,
+    },
 };
 
 #[cfg(feature = "serde_support")]
@@ -69,13 +72,14 @@ impl ValidateContent for RootNode {
     fn validate(
         &mut self,
         error: &mut ValidationError,
+        log: &mut Logger,
         current_location: &Address,
         meta_data: &MetaData,
         data: &ValidationData,
     ) {
         self.items
             .iter_mut()
-            .for_each(|item| item.validate(error, current_location, meta_data, data))
+            .for_each(|item| item.validate(error, log, current_location, meta_data, data))
     }
 }
 
@@ -83,6 +87,7 @@ impl ValidateContent for Branch {
     fn validate(
         &mut self,
         error: &mut ValidationError,
+        log: &mut Logger,
         current_location: &Address,
         meta_data: &MetaData,
         data: &ValidationData,
@@ -90,7 +95,7 @@ impl ValidateContent for Branch {
         let num_errors = error.num_errors();
 
         self.choice
-            .validate(error, current_location, meta_data, data);
+            .validate(error, log, current_location, meta_data, data);
 
         // The first line of these items is the selection text from the choice. If we found
         // errors when evaluating that we do not want to add copies of them:
@@ -98,12 +103,12 @@ impl ValidateContent for Branch {
         // we have to ensure that addresses are validated in it.
         if let Some((choice_display_line, items)) = self.items.split_first_mut() {
             if num_errors == error.num_errors() {
-                choice_display_line.validate(error, current_location, meta_data, data);
+                choice_display_line.validate(error, log, current_location, meta_data, data);
             }
 
             items
                 .iter_mut()
-                .for_each(|item| item.validate(error, current_location, meta_data, data));
+                .for_each(|item| item.validate(error, log, current_location, meta_data, data));
         }
     }
 }
@@ -112,6 +117,7 @@ impl ValidateContent for NodeItem {
     fn validate(
         &mut self,
         error: &mut ValidationError,
+        log: &mut Logger,
         current_location: &Address,
         meta_data: &MetaData,
         data: &ValidationData,
@@ -119,8 +125,8 @@ impl ValidateContent for NodeItem {
         match self {
             NodeItem::BranchingPoint(branches) => branches
                 .iter_mut()
-                .for_each(|item| item.validate(error, current_location, meta_data, data)),
-            NodeItem::Line(line) => line.validate(error, current_location, meta_data, data),
+                .for_each(|item| item.validate(error, log, current_location, meta_data, data)),
+            NodeItem::Line(line) => line.validate(error, log, current_location, meta_data, data),
         };
     }
 }

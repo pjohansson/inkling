@@ -5,7 +5,10 @@ use crate::{
     follow::FollowData,
     knot::Address,
     line::LineChunk,
-    story::validate::{ValidateContent, ValidationData},
+    story::{
+        validate::{ValidateContent, ValidationData},
+        Logger,
+    },
 };
 
 #[cfg(feature = "random")]
@@ -116,13 +119,14 @@ impl ValidateContent for Alternative {
     fn validate(
         &mut self,
         error: &mut ValidationError,
+        log: &mut Logger,
         current_location: &Address,
         meta_data: &MetaData,
         data: &ValidationData,
     ) {
         self.items
             .iter_mut()
-            .for_each(|item| item.validate(error, current_location, meta_data, data));
+            .for_each(|item| item.validate(error, log, current_location, meta_data, data));
     }
 }
 

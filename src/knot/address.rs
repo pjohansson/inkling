@@ -14,7 +14,10 @@ use crate::{
         InternalError,
     },
     knot::KnotSet,
-    story::validate::{KnotValidationInfo, ValidateContent, ValidationData},
+    story::{
+        validate::{KnotValidationInfo, ValidateContent, ValidationData},
+        Logger,
+    },
 };
 
 use std::collections::HashMap;
@@ -181,6 +184,7 @@ impl ValidateContent for Address {
     fn validate(
         &mut self,
         error: &mut ValidationError,
+        _log: &mut Logger,
         current_location: &Address,
         meta_data: &MetaData,
         data: &ValidationData,
@@ -355,8 +359,9 @@ pub mod tests {
         data: &ValidationData,
     ) -> Result<(), InvalidAddressError> {
         let mut error = ValidationError::new();
+        let mut log = Logger::default();
 
-        address.validate(&mut error, current_location, &().into(), data);
+        address.validate(&mut error, &mut log, current_location, &().into(), data);
 
         if error.is_empty() {
             Ok(())

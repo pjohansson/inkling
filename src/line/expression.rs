@@ -9,7 +9,10 @@ use crate::{
     follow::FollowData,
     knot::Address,
     line::Variable,
-    story::validate::{ValidateContent, ValidationData},
+    story::{
+        validate::{ValidateContent, ValidationData},
+        Logger,
+    },
 };
 
 #[cfg(feature = "serde_support")]
@@ -180,17 +183,19 @@ impl ValidateContent for Expression {
     fn validate(
         &mut self,
         error: &mut ValidationError,
+        log: &mut Logger,
         current_location: &Address,
         meta_data: &MetaData,
         data: &ValidationData,
     ) {
         let num_errors = error.num_errors();
 
-        self.head.validate(error, current_location, meta_data, data);
+        self.head
+            .validate(error, log, current_location, meta_data, data);
 
-        self.tail
-            .iter_mut()
-            .for_each(|(_, operand)| operand.validate(error, current_location, meta_data, data));
+        self.tail.iter_mut().for_each(|(_, operand)| {
+            operand.validate(error, log, current_location, meta_data, data)
+        });
 
         if num_errors == error.num_errors() {
             if let Err(err) = evaluate_expression(self, &data.follow_data) {
@@ -208,16 +213,17 @@ impl ValidateContent for Operand {
     fn validate(
         &mut self,
         error: &mut ValidationError,
+        log: &mut Logger,
         current_location: &Address,
         meta_data: &MetaData,
         data: &ValidationData,
     ) {
         match self {
             Operand::Nested(ref mut expression) => {
-                expression.validate(error, current_location, meta_data, data)
+                expression.validate(error, log, current_location, meta_data, data)
             }
             Operand::Variable(ref mut variable) => {
-                variable.validate(error, current_location, meta_data, data)
+                variable.validate(error, log, current_location, meta_data, data)
             }
         }
     }

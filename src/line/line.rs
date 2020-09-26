@@ -4,7 +4,10 @@ use crate::{
     error::{parse::validate::ValidationError, utils::MetaData},
     knot::Address,
     line::{Alternative, Condition, Expression},
-    story::validate::{ValidateContent, ValidationData},
+    story::{
+        validate::{ValidateContent, ValidationData},
+        Logger,
+    },
 };
 
 #[cfg(feature = "serde_support")]
@@ -122,12 +125,13 @@ impl ValidateContent for InternalLine {
     fn validate(
         &mut self,
         error: &mut ValidationError,
+        log: &mut Logger,
         current_location: &Address,
         _: &MetaData,
         data: &ValidationData,
     ) {
         self.chunk
-            .validate(error, current_location, &self.meta_data, data);
+            .validate(error, log, current_location, &self.meta_data, data);
     }
 }
 
@@ -135,18 +139,19 @@ impl ValidateContent for LineChunk {
     fn validate(
         &mut self,
         error: &mut ValidationError,
+        log: &mut Logger,
         current_location: &Address,
         meta_data: &MetaData,
         data: &ValidationData,
     ) {
         if let Some(condition) = self.condition.as_mut() {
-            condition.validate(error, current_location, meta_data, data);
+            condition.validate(error, log, current_location, meta_data, data);
         }
 
         self.items
             .iter_mut()
             .chain(self.else_items.iter_mut())
-            .for_each(|item| item.validate(error, current_location, meta_data, data));
+            .for_each(|item| item.validate(error, log, current_location, meta_data, data));
     }
 }
 
@@ -154,20 +159,23 @@ impl ValidateContent for Content {
     fn validate(
         &mut self,
         error: &mut ValidationError,
+        log: &mut Logger,
         current_location: &Address,
         meta_data: &MetaData,
         data: &ValidationData,
     ) {
         match self {
             Content::Alternative(alternative) => {
-                alternative.validate(error, current_location, meta_data, data)
+                alternative.validate(error, log, current_location, meta_data, data)
             }
-            Content::Divert(address) => address.validate(error, current_location, meta_data, data),
+            Content::Divert(address) => {
+                address.validate(error, log, current_location, meta_data, data)
+            }
             Content::Empty | Content::Text(..) => (),
             Content::Expression(expression) => {
-                expression.validate(error, current_location, meta_data, data)
+                expression.validate(error, log, current_location, meta_data, data)
             }
-            Content::Nested(chunk) => chunk.validate(error, current_location, meta_data, data),
+            Content::Nested(chunk) => chunk.validate(error, log, current_location, meta_data, data),
         }
     }
 }

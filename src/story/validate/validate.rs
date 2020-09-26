@@ -4,7 +4,10 @@ use crate::{
     error::{parse::validate::ValidationError, utils::MetaData},
     follow::FollowData,
     knot::{get_empty_knot_counts, Address, AddressKind, KnotSet},
-    story::{rng::StoryRng, types::VariableSet, validate::namespace::validate_story_name_spaces},
+    story::{
+        log::Logger, rng::StoryRng, types::VariableSet,
+        validate::namespace::validate_story_name_spaces,
+    },
 };
 
 use std::collections::HashMap;
@@ -113,6 +116,7 @@ pub trait ValidateContent {
     fn validate(
         &mut self,
         errors: &mut ValidationError,
+        log: &mut Logger,
         current_location: &Address,
         current_meta_data: &MetaData,
         follow_data: &ValidationData,
@@ -129,6 +133,7 @@ pub trait ValidateContent {
 pub fn validate_story_content(
     knots: &mut KnotSet,
     follow_data: &FollowData,
+    log: &mut Logger,
 ) -> Result<(), ValidationError> {
     let validation_data = ValidationData::from_data(knots, &follow_data.variables);
 
@@ -143,6 +148,7 @@ pub fn validate_story_content(
 
             stitch.root.validate(
                 &mut error,
+                log,
                 &current_location,
                 &stitch.meta_data,
                 &validation_data,
@@ -171,7 +177,6 @@ pub(super) mod tests {
         knot::{Knot, Stitch},
         line::Variable,
         node::RootNodeBuilder,
-        story::Logger,
         story::{
             parse::read_story_content_from_string,
             types::{VariableInfo, VariableSet},
@@ -242,12 +247,16 @@ pub(super) mod tests {
 
     fn get_validation_result_from_string(content: &str) -> Result<(), ValidationError> {
         let (mut knots, data) = get_validation_data_from_string(content);
-        validate_story_content(&mut knots, &data)
+        let mut log = Logger::default();
+
+        validate_story_content(&mut knots, &data, &mut log)
     }
 
     fn get_validation_error_from_string(content: &str) -> ValidationError {
         let (mut knots, data) = get_validation_data_from_string(content);
-        validate_story_content(&mut knots, &data).unwrap_err()
+        let mut log = Logger::default();
+
+        validate_story_content(&mut knots, &data, &mut log).unwrap_err()
     }
 
     #[test]
@@ -456,13 +465,14 @@ VAR variable = true
 ";
 
         let (mut knots, data) = get_validation_data_from_string(content);
+        let mut log = Logger::default();
 
         let pre_validated_addresses = format!("{:?}", &knots).matches("Validated(").count();
         let pre_raw_addresses = format!("{:?}", &knots).matches("Raw(").count();
 
         assert!(pre_raw_addresses >= 2);
 
-        validate_story_content(&mut knots, &data).unwrap();
+        validate_story_content(&mut knots, &data, &mut log).unwrap();
 
         let validated_addresses = format!("{:?}", &knots).matches("Validated(").count();
         let raw_addresses = format!("{:?}", &knots).matches("Raw(").count();
@@ -575,12 +585,13 @@ Line
 ";
 
         let (mut knots, data) = get_validation_data_from_string(content);
+        let mut log = Logger::default();
 
         let pre_raw_addresses = format!("{:?}", &knots).matches("Raw(").count();
 
         assert!(pre_raw_addresses >= 3);
 
-        validate_story_content(&mut knots, &data).unwrap();
+        validate_story_content(&mut knots, &data, &mut log).unwrap();
 
         dbg!(&knots);
 

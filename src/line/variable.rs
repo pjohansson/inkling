@@ -11,7 +11,7 @@ use crate::{
     knot::{get_num_visited, Address, AddressKind},
     story::{
         validate::{ValidateContent, ValidationData},
-        Location,
+        Location, Logger,
     },
 };
 
@@ -838,13 +838,14 @@ impl ValidateContent for Variable {
     fn validate(
         &mut self,
         error: &mut ValidationError,
+        log: &mut Logger,
         current_location: &Address,
         meta_data: &MetaData,
         data: &ValidationData,
     ) {
         match self {
             Variable::Address(address) | Variable::Divert(address) => {
-                address.validate(error, current_location, meta_data, data);
+                address.validate(error, log, current_location, meta_data, data);
             }
             Variable::Bool(..) | Variable::Float(..) | Variable::Int(..) | Variable::String(..) => {
                 ()
