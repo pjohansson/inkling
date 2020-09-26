@@ -35,6 +35,11 @@ pub struct Logger {
 
 #[allow(dead_code)]
 impl Logger {
+    /// Return whether or not the log has any entries.
+    pub fn has_entries(&self) -> bool {
+        !self.todo_comments.is_empty() || !self.warnings.is_empty()
+    }
+
     pub(crate) fn add_todo(&mut self, comment: &str, meta_data: &MetaData) {
         let without_marker = comment
             .trim_start()
@@ -195,5 +200,27 @@ mod tests {
 
         assert_eq!(into_iter_messages.len(), 4);
         assert_eq!(into_iter_messages, iter_messages);
+    }
+
+    #[test]
+    fn logger_has_entries_if_todo_or_warnings_list_has() {
+        let mut logger = Logger::default();
+        assert!(!logger.has_entries());
+
+        logger.add_todo("Comment 1", &MetaData::from(1));
+        assert!(logger.has_entries());
+
+        logger.todo_comments.clear();
+        assert!(!logger.has_entries());
+
+        logger.add_warning(Warning::ShuffleSequenceNoRandom, &MetaData::from(0));
+        assert!(logger.has_entries());
+
+        logger.warnings.clear();
+        assert!(!logger.has_entries());
+
+        logger.add_todo("Comment 1", &MetaData::from(1));
+        logger.add_warning(Warning::ShuffleSequenceNoRandom, &MetaData::from(0));
+        assert!(logger.has_entries());
     }
 }
