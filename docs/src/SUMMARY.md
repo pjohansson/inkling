@@ -12,6 +12,7 @@
     *   [Reading a script](./usage/reading-script.md)
     *   [Design intent](./usage/design-intent.md)
     *   [Helper functions](./usage/helper-functions.md)
+    *   [Inspecting the log](./usage/inspecting-the-log.md)
     *   [Dealing with errors](./usage/error-handling.md)
     *   [Saving and loading](./usage/saving-and-loading.md)
     *   [Example: Text adventure](./usage/example-text-adventure.md)
