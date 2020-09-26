@@ -124,6 +124,19 @@ impl ValidateContent for Alternative {
         meta_data: &MetaData,
         data: &ValidationData,
     ) {
+        #[cfg(not(feature = "random"))]
+        match self.kind {
+            AlternativeKind::Shuffle => {
+                log.add_warning(
+                    "found a shuffle sequence but the `random` feature is not enabled: \
+                     changed it to a cycle sequence (fix: compile `inkling` with the \
+                     `random` feature)",
+                    meta_data,
+                );
+            }
+            _ => (),
+        }
+
         self.items
             .iter_mut()
             .for_each(|item| item.validate(error, log, current_location, meta_data, data));
@@ -298,6 +311,8 @@ mod tests {
     mod not_shuffle {
         use super::*;
 
+        use std::collections::HashMap;
+
         #[test]
         fn alternative_get_next_index_for_shuffle_resets_list_after_yielding_all_inds_if_not_random(
         ) {
@@ -312,12 +327,30 @@ mod tests {
             assert_eq!(alternative.get_next_index(&mut data), Some(2));
             assert_eq!(alternative.get_next_index(&mut data), Some(0));
         }
+
+        #[test]
+        fn shuffle_alternative_yields_warning_during_validation_if_random_is_not_enabled() {
+            let validation_data = ValidationData::from_data(&HashMap::new(), &HashMap::new());
+            let meta_data = MetaData::from(3);
+            let address = Address::from_parts_unchecked("tripoli", None);
+
+            let mut alternative = create_alternative(AlternativeKind::Shuffle, 3);
+            let mut log = Logger::default();
+            let mut error = ValidationError::new();
+
+            alternative.validate(&mut error, &mut log, &address, &meta_data, &validation_data);
+
+            assert_eq!(log.warnings.len(), 1);
+            assert_eq!(log.warnings[0].meta_data, MetaData::from(3));
+        }
     }
 
     #[cfg(feature = "random")]
     /// Module for testing the behaviour of shuffle sequences when `random` is activated.
     mod shuffle {
         use super::*;
+
+        use std::collections::HashMap;
 
         // With 10 items, the probability of drawing a particular sequence is 1 / 10! = 2.75573-07
         const NUM_ITEMS: usize = 10;
@@ -369,6 +402,21 @@ mod tests {
 
             assert_eq!(alternative.get_next_index(&mut data), active_inds.pop());
             assert_eq!(&alternative.active_inds, &active_inds);
+        }
+
+        #[test]
+        fn shuffle_alternative_do_not_yield_warning_during_validation_if_random_is_enabled() {
+            let validation_data = ValidationData::from_data(&HashMap::new(), &HashMap::new());
+            let meta_data = MetaData::from(3);
+            let address = Address::from_parts_unchecked("tripoli", None);
+
+            let mut alternative = create_alternative(AlternativeKind::Shuffle, 3);
+            let mut log = Logger::default();
+            let mut error = ValidationError::new();
+
+            alternative.validate(&mut error, &mut log, &address, &meta_data, &validation_data);
+
+            assert!(log.warnings.is_empty());
         }
     }
 }

@@ -18,9 +18,10 @@ impl Message {
 #[derive(Clone, Debug, Default)]
 pub struct Logger {
     pub todo_comments: Vec<Message>,
-    pub warning: Vec<Message>,
+    pub warnings: Vec<Message>,
 }
 
+#[allow(dead_code)]
 impl Logger {
     pub(crate) fn add_todo(&mut self, comment: &str, meta_data: &MetaData) {
         let without_marker = comment
@@ -30,5 +31,9 @@ impl Logger {
 
         self.todo_comments
             .push(Message::new(without_marker, meta_data));
+    }
+
+    pub(crate) fn add_warning(&mut self, warning: &str, meta_data: &MetaData) {
+        self.warnings.push(Message::new(warning, meta_data));
     }
 }
