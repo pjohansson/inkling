@@ -5,6 +5,7 @@ use crate::{
 };
 
 #[derive(Clone, Debug, Default)]
+/// Log of warnings and to-do comments of the current script.
 pub struct Logger {
     /// To-do comments.
     pub todo_comments: Vec<LogMessage>,
@@ -34,14 +35,52 @@ impl Logger {
     }
 }
 
+/****************************
+ * Iterator implementations *
+ ****************************/
+
 impl Logger {
-    /// Create an iterator over the log items.
+    /// Iterate over the logged messages.
     ///
     /// The iterator visits the messages in the order of their line numbers.
     pub fn iter(&self) -> LoggerIter {
         LoggerIter {
             todo_comments: self.todo_comments.iter().peekable(),
             warnings: self.warnings.iter().peekable(),
+        }
+    }
+}
+
+impl IntoIterator for Logger {
+    type Item = LogMessage;
+    type IntoIter = LoggerIntoIter;
+
+    fn into_iter(self) -> Self::IntoIter {
+        LoggerIntoIter {
+            todo_comments: self.todo_comments.into_iter().peekable(),
+            warnings: self.warnings.into_iter().peekable(),
+        }
+    }
+}
+
+pub struct LoggerIntoIter {
+    todo_comments: std::iter::Peekable<std::vec::IntoIter<LogMessage>>,
+    warnings: std::iter::Peekable<std::vec::IntoIter<LogMessage>>,
+}
+
+impl Iterator for LoggerIntoIter {
+    type Item = LogMessage;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match (self.todo_comments.peek(), self.warnings.peek()) {
+            (Some(msg_todo), Some(msg_warn)) => {
+                if msg_todo.meta_data.line() < msg_warn.meta_data.line() {
+                    self.todo_comments.next()
+                } else {
+                    self.warnings.next()
+                }
+            }
+            _ => self.todo_comments.next().or(self.warnings.next()),
         }
     }
 }
@@ -120,5 +159,21 @@ mod tests {
         assert_eq!(iter.next().unwrap(), todo_comments[1]);
         assert_eq!(iter.next().unwrap(), warnings[1]);
         assert!(iter.next().is_none());
+    }
+
+    #[test]
+    fn into_iter_yields_items_in_same_order_as_iter() {
+        let mut logger = Logger::default();
+
+        logger.add_todo("Comment 1", &MetaData::from(1));
+        logger.add_todo("Comment 2", &MetaData::from(2));
+        logger.add_warning(Warning::ShuffleSequenceNoRandom, &MetaData::from(0));
+        logger.add_warning(Warning::ShuffleSequenceNoRandom, &MetaData::from(3));
+
+        let iter_messages = logger.iter().cloned().collect::<Vec<_>>();
+        let into_iter_messages = logger.into_iter().collect::<Vec<_>>();
+
+        assert_eq!(into_iter_messages.len(), 4);
+        assert_eq!(into_iter_messages, iter_messages);
     }
 }
