@@ -8,6 +8,7 @@ use crate::{
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Default)]
+#[cfg_attr(test, derive(PartialEq))]
 #[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
 /// Log of warnings and to-do comments of the current script.
 ///

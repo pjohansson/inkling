@@ -38,6 +38,8 @@ pub struct Story {
     last_choices: Option<Vec<Choice>>,
     /// Choice that has been set to resume the story with.
     selected_choice: Option<usize>,
+    /// Log of warnings and to-do comments encountered when parsing the `Story` from the script.
+    pub log: Logger,
 }
 
 impl Story {
@@ -586,6 +588,7 @@ pub fn read_story_from_string(string: &str) -> Result<Story, ReadError> {
         tags,
         last_choices: None,
         selected_choice: None,
+        log,
     })
 }
 
