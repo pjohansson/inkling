@@ -10,6 +10,21 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Debug, Default)]
 #[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
 /// Log of warnings and to-do comments of the current script.
+///
+/// Use `Logger::iter()` to iterate over the warning messages. All messages implement `Display`
+/// which means that printing the errors to any sort of string buffer or file is trivial.
+///
+/// # Examples
+/// ```
+/// # use inkling::{error::MetaData, log::{Logger, Warning}};
+/// let mut logger = Logger::default();
+///
+/// // Items are added
+///
+/// for msg in logger {
+///     eprintln!("{}", msg);
+/// }
+/// ```
 pub struct Logger {
     /// To-do comments.
     pub todo_comments: Vec<LogMessage>,
