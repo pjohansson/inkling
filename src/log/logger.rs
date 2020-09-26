@@ -17,12 +17,11 @@ use serde::{Deserialize, Serialize};
 ///
 /// # Examples
 /// ```
-/// # use inkling::{error::MetaData, log::{Logger, Warning}};
-/// let mut logger = Logger::default();
+/// # use inkling::read_story_from_string;
+/// # let content = "Story content.";
+/// let story = read_story_from_string(content).unwrap();
 ///
-/// // Items are added
-///
-/// for msg in logger {
+/// for msg in story.log.iter() {
 ///     eprintln!("{}", msg);
 /// }
 /// ```
