@@ -6,9 +6,9 @@ use crate::{
     follow::{ChoiceInfo, EncounteredEvent, FollowData, LineDataBuffer},
     knot::{get_empty_knot_counts, get_mut_stitch, get_num_visited, Address, KnotSet},
     line::Variable,
+    log::Logger,
     process::{get_fallback_choices, prepare_choices_for_user, process_buffer},
     story::{
-        log::Logger,
         parse::read_story_content_from_string,
         rng::StoryRng,
         types::{Choice, LineBuffer, Location, Prompt},

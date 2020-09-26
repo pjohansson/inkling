@@ -1,43 +1,13 @@
-use crate::{consts::TODO_COMMENT_MARKER, error::MetaData};
+use crate::error::utils::MetaData;
 use std::fmt;
-
-#[derive(Clone, Debug, Default)]
-pub struct Logger {
-    /// To-do comments.
-    pub todo_comments: Vec<LogMessage>,
-    /// Non-fatal errors and incompatibilities.
-    pub warnings: Vec<LogMessage>,
-}
-
-#[allow(dead_code)]
-impl Logger {
-    pub(crate) fn add_todo(&mut self, comment: &str, meta_data: &MetaData) {
-        let without_marker = comment
-            .trim_start()
-            .trim_start_matches(TODO_COMMENT_MARKER)
-            .trim();
-
-        let message = MessageKind::Todo(without_marker.to_string());
-
-        self.todo_comments
-            .push(LogMessage::with_kind(message, meta_data));
-    }
-
-    pub(crate) fn add_warning(&mut self, warning: Warning, meta_data: &MetaData) {
-        self.warnings.push(LogMessage::with_kind(
-            MessageKind::Warning(warning),
-            meta_data,
-        ));
-    }
-}
 
 #[derive(Clone, Debug)]
 #[cfg_attr(test, derive(PartialEq))]
-///
+/// Log message with additional information.
 pub struct LogMessage {
-    /// Type of message that was logged.
+    /// Logged message.
     pub message: MessageKind,
-    /// Meta data of where the message originated from.
+    /// Information of where the message originated from.
     pub meta_data: MetaData,
 }
 

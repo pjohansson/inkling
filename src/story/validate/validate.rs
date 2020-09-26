@@ -4,10 +4,8 @@ use crate::{
     error::{parse::validate::ValidationError, utils::MetaData},
     follow::FollowData,
     knot::{get_empty_knot_counts, Address, AddressKind, KnotSet},
-    story::{
-        log::Logger, rng::StoryRng, types::VariableSet,
-        validate::namespace::validate_story_name_spaces,
-    },
+    log::Logger,
+    story::{rng::StoryRng, types::VariableSet, validate::namespace::validate_story_name_spaces},
 };
 
 use std::collections::HashMap;

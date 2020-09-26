@@ -14,10 +14,8 @@ use crate::{
         InternalError,
     },
     knot::KnotSet,
-    story::{
-        validate::{KnotValidationInfo, ValidateContent, ValidationData},
-        Logger,
-    },
+    log::Logger,
+    story::validate::{KnotValidationInfo, ValidateContent, ValidationData},
 };
 
 use std::collections::HashMap;

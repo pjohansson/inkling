@@ -37,11 +37,9 @@ use crate::{
     },
     knot::Address,
     line::{Expression, Variable},
+    log::Logger,
     process::check_condition,
-    story::{
-        validate::{ValidateContent, ValidationData},
-        Logger,
-    },
+    story::validate::{ValidateContent, ValidationData},
 };
 
 use std::{cmp::Ordering, error::Error};

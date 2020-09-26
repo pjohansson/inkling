@@ -21,10 +21,8 @@ use crate::{
     },
     knot::{parse_stitch_from_lines, read_knot_name, read_stitch_name, Knot, KnotSet, Stitch},
     line::parse_variable,
-    story::{
-        types::{VariableInfo, VariableSet},
-        Logger,
-    },
+    log::Logger,
+    story::types::{VariableInfo, VariableSet},
 };
 
 use std::collections::HashMap;
@@ -563,7 +561,7 @@ fn parse_variable_name(lhs: &str, is_const: bool) -> Result<String, PreludeError
 pub mod tests {
     use super::*;
 
-    use crate::{knot::Address, line::Variable, story::log::MessageKind};
+    use crate::{knot::Address, line::Variable, log::MessageKind};
 
     pub fn read_knots_from_string(content: &str) -> Result<KnotSet, Vec<KnotError>> {
         let lines = content

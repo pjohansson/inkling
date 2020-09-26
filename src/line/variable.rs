@@ -9,9 +9,10 @@ use crate::{
     },
     follow::FollowData,
     knot::{get_num_visited, Address, AddressKind},
+    log::Logger,
     story::{
         validate::{ValidateContent, ValidationData},
-        Location, Logger,
+        Location,
     },
 };
 

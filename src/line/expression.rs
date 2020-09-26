@@ -9,10 +9,8 @@ use crate::{
     follow::FollowData,
     knot::Address,
     line::Variable,
-    story::{
-        validate::{ValidateContent, ValidationData},
-        Logger,
-    },
+    log::Logger,
+    story::validate::{ValidateContent, ValidationData},
 };
 
 #[cfg(feature = "serde_support")]

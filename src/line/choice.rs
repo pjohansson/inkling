@@ -4,10 +4,8 @@ use crate::{
     error::{parse::validate::ValidationError, utils::MetaData},
     knot::Address,
     line::{Condition, InternalLine},
-    story::{
-        validate::{ValidateContent, ValidationData},
-        Logger,
-    },
+    log::Logger,
+    story::validate::{ValidateContent, ValidationData},
 };
 
 use std::sync::{Arc, Mutex};

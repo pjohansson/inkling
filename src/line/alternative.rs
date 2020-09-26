@@ -5,10 +5,8 @@ use crate::{
     follow::FollowData,
     knot::Address,
     line::LineChunk,
-    story::{
-        log::{Logger, Warning},
-        validate::{ValidateContent, ValidationData},
-    },
+    log::{Logger, Warning},
+    story::validate::{ValidateContent, ValidationData},
 };
 
 #[cfg(feature = "random")]

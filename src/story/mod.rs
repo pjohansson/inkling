@@ -11,7 +11,6 @@
 //! Most of the rest of this module deals with processing internal data into a form
 //! presented to the user, or validating the content of the story as it is being accessed.
 
-pub(crate) mod log;
 pub(crate) mod parse;
 pub(crate) mod rng;
 mod story;
@@ -19,7 +18,6 @@ pub(crate) mod types;
 mod utils;
 pub(crate) mod validate;
 
-pub use log::Logger;
 pub use parse::read_story_content_from_string;
 pub use story::{read_story_from_string, Story};
 pub use types::{Choice, Line, LineBuffer, Location, Prompt};
