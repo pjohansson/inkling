@@ -21,7 +21,10 @@ use crate::{
     },
     knot::{parse_stitch_from_lines, read_knot_name, read_stitch_name, Knot, KnotSet, Stitch},
     line::parse_variable,
-    story::types::{VariableInfo, VariableSet},
+    story::{
+        types::{VariableInfo, VariableSet},
+        Logger,
+    },
 };
 
 use std::collections::HashMap;
@@ -29,8 +32,9 @@ use std::collections::HashMap;
 /// Read an Ink story from a string and return knots along with the metadata.
 pub fn read_story_content_from_string(
     content: &str,
+    log: &mut Logger,
 ) -> Result<(KnotSet, VariableSet, Vec<String>), ReadError> {
-    let mut content_lines = process_file_content_into_lines_and_metadata(content);
+    let mut content_lines = process_file_content_into_lines_and_metadata(content, log);
     prune_empty_lines(&mut content_lines);
 
     let (root_knot, variables, tags, prelude_errors) =
@@ -60,11 +64,15 @@ pub fn read_story_content_from_string(
 ///
 /// This also removes comments from the lines, leaving only the actual content that will
 /// be used into story.
-fn process_file_content_into_lines_and_metadata(content: &str) -> Vec<(&str, MetaData)> {
+fn process_file_content_into_lines_and_metadata<'a>(
+    content: &'a str,
+    log: &mut Logger,
+) -> Vec<(&'a str, MetaData)> {
     content
         .lines()
         .zip(0..)
-        .map(|(line, line_index)| (trim_comment(line).trim(), MetaData { line_index }))
+        .map(|(line, line_index)| (line, MetaData::from(line_index)))
+        .map(|(line, meta_data)| (trim_comment(line, log, &meta_data).trim(), meta_data))
         .collect()
 }
 
@@ -403,10 +411,11 @@ fn parse_tag_from_line(line: &str) -> String {
 }
 
 /// Trim TODO and line comments from a line.
-fn trim_comment(line: &str) -> &str {
+fn trim_comment<'a>(line: &'a str, log: &mut Logger, meta_data: &MetaData) -> &'a str {
     if let Some(i) = line.find(LINE_COMMENT_MARKER) {
         line.get(..i).unwrap()
-    } else if line.starts_with(TODO_COMMENT_MARKER) {
+    } else if line.trim_start().starts_with(TODO_COMMENT_MARKER) {
+        log.add_todo(line, meta_data);
         ""
     } else {
         line
@@ -928,7 +937,9 @@ Second line.
         ];
 
         let content = content_lines.join("\n");
-        let lines = process_file_content_into_lines_and_metadata(&content);
+
+        let mut log = Logger::default();
+        let lines = process_file_content_into_lines_and_metadata(&content, &mut log);
 
         assert_eq!(lines.len(), 4);
         assert_eq!(lines[0], (content_lines[0], MetaData::from(0)));
@@ -946,12 +957,34 @@ Second line.
         ];
 
         let content = content_lines.join("\n");
-        let lines = process_file_content_into_lines_and_metadata(&content);
+
+        let mut log = Logger::default();
+        let lines = process_file_content_into_lines_and_metadata(&content, &mut log);
 
         assert_eq!(lines.len(), 3);
         assert_eq!(lines[0], (content_lines[0], MetaData::from(0)));
         assert_eq!(lines[1], ("Line before comment marker", MetaData::from(1)));
         assert_eq!(lines[2], (content_lines[2], MetaData::from(2)));
+    }
+
+    #[test]
+    fn todo_comments_can_have_initial_whitespace() {
+        let content_lines = vec![
+            "Line",
+            "TODO: Comment",
+            " TODO: Another comment",
+            "Line two",
+        ];
+
+        let content = content_lines.join("\n");
+
+        let mut log = Logger::default();
+        let lines = process_file_content_into_lines_and_metadata(&content, &mut log);
+
+        assert_eq!(lines[0], (content_lines[0], MetaData::from(0)));
+        assert_eq!(lines[1], ("", MetaData::from(1)));
+        assert_eq!(lines[2], ("", MetaData::from(2)));
+        assert_eq!(lines[3], (content_lines[3], MetaData::from(3)));
     }
 
     #[test]
@@ -966,7 +999,9 @@ Second line.
         ];
 
         let content = content_lines.join("\n");
-        let lines = process_file_content_into_lines_and_metadata(&content);
+
+        let mut log = Logger::default();
+        let lines = process_file_content_into_lines_and_metadata(&content, &mut log);
 
         assert_eq!(lines.len(), 6);
         assert_eq!(lines[0], ("Initial", MetaData::from(0)));
@@ -982,7 +1017,9 @@ Second line.
         let content_lines = vec!["Line 1", "", "Line 3", "     ", "Line 5"];
 
         let content = content_lines.join("\n");
-        let lines = process_file_content_into_lines_and_metadata(&content);
+
+        let mut log = Logger::default();
+        let lines = process_file_content_into_lines_and_metadata(&content, &mut log);
 
         assert_eq!(lines.len(), 5);
         assert_eq!(lines[0], (content_lines[0], MetaData::from(0)));
@@ -1200,7 +1237,8 @@ VAR hazardous = true
 -> introduction
 ";
 
-        let (_, variables, _) = read_story_content_from_string(content).unwrap();
+        let mut log = Logger::default();
+        let (_, variables, _) = read_story_content_from_string(content, &mut log).unwrap();
 
         assert_eq!(variables.len(), 2);
         assert!(variables.contains_key("counter"));
@@ -1216,7 +1254,8 @@ VAR counter = 0
 VAR hazardous = true
 ";
 
-        let (_, variables, _) = read_story_content_from_string(content).unwrap();
+        let mut log = Logger::default();
+        let (_, variables, _) = read_story_content_from_string(content, &mut log).unwrap();
 
         assert_eq!(variables.len(), 1);
         assert!(variables.contains_key("counter"));
@@ -1229,7 +1268,8 @@ VAR hazardous = true
 -> introduction
 ";
 
-        let (_, variables, _) = read_story_content_from_string(content).unwrap();
+        let mut log = Logger::default();
+        let (_, variables, _) = read_story_content_from_string(content, &mut log).unwrap();
 
         assert_eq!(variables.len(), 0);
     }
@@ -1246,7 +1286,8 @@ VAR hazardous = true
 -> introduction
 ";
 
-        let (_, _, tags) = read_story_content_from_string(content).unwrap();
+        let mut log = Logger::default();
+        let (_, _, tags) = read_story_content_from_string(content, &mut log).unwrap();
 
         assert_eq!(
             &tags,
@@ -1269,7 +1310,8 @@ One line.
 Second line.
 ";
 
-        let (knots, _, _) = read_story_content_from_string(content).unwrap();
+        let mut log = Logger::default();
+        let (knots, _, _) = read_story_content_from_string(content, &mut log).unwrap();
 
         assert_eq!(knots.get("root").unwrap().meta_data.line_index, 5);
         assert_eq!(knots.get("second").unwrap().meta_data.line_index, 8);
@@ -1288,7 +1330,8 @@ VAR = 0
 
 ";
 
-        match read_story_content_from_string(content) {
+        let mut log = Logger::default();
+        match read_story_content_from_string(content, &mut log) {
             Err(ReadError::ParseError(error)) => {
                 assert_eq!(error.prelude_errors.len(), 1);
                 assert_eq!(error.knot_errors.len(), 2);
@@ -1306,7 +1349,8 @@ VAR = 0
 Line one.
 ";
 
-        assert!(read_story_content_from_string(content).is_ok());
+        let mut log = Logger::default();
+        assert!(read_story_content_from_string(content, &mut log).is_ok());
     }
 
     #[test]
@@ -1316,7 +1360,8 @@ Line one.
 Line one.
 ";
 
-        assert!(read_story_content_from_string(content).is_ok());
+        let mut log = Logger::default();
+        assert!(read_story_content_from_string(content, &mut log).is_ok());
     }
 
     #[test]
@@ -1325,7 +1370,8 @@ Line one.
 === knot ===
 ";
 
-        assert!(read_story_content_from_string(content).is_err());
+        let mut log = Logger::default();
+        assert!(read_story_content_from_string(content, &mut log).is_err());
     }
 
     #[test]
@@ -1335,7 +1381,8 @@ Line one.
 = stitch
 ";
 
-        assert!(read_story_content_from_string(content).is_err());
+        let mut log = Logger::default();
+        assert!(read_story_content_from_string(content, &mut log).is_err());
     }
 
     #[test]
@@ -1348,7 +1395,8 @@ Line one.
 Line two.
 ";
 
-        match read_story_content_from_string(content) {
+        let mut log = Logger::default();
+        match read_story_content_from_string(content, &mut log) {
             Err(ReadError::ParseError(err)) => match &err.knot_errors[0].line_errors[0] {
                 KnotErrorKind::DuplicateStitchName { .. } => (),
                 other => panic!(
@@ -1369,7 +1417,8 @@ Line one.
 Line two.
 ";
 
-        match read_story_content_from_string(content) {
+        let mut log = Logger::default();
+        match read_story_content_from_string(content, &mut log) {
             Err(ReadError::ParseError(err)) => match &err.knot_errors[0].line_errors[0] {
                 KnotErrorKind::DuplicateKnotName { .. } => (),
                 other => panic!(
@@ -1407,9 +1456,26 @@ Line one.
 Line two.
 ";
 
+        let mut log = Logger::default();
+
         assert_eq!(
-            read_story_content_from_string(&content_nowhitespace).unwrap(),
-            read_story_content_from_string(&content_whitespace).unwrap()
+            read_story_content_from_string(&content_nowhitespace, &mut log).unwrap(),
+            read_story_content_from_string(&content_whitespace, &mut log).unwrap()
         );
+    }
+
+    #[test]
+    fn todo_comments_logs_comment_with_line_number() {
+        let content = "\
+== knot
+TODO: Write this scene.
+Placeholder text.
+";
+
+        let mut log = Logger::default();
+        read_story_content_from_string(content, &mut log).unwrap();
+
+        assert_eq!(&log.todo_comments[0].message, "Write this scene.");
+        assert_eq!(log.todo_comments[0].meta_data.line(), 2);
     }
 }

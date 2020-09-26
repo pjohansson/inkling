@@ -560,7 +560,9 @@ impl Story {
 /// let story: Story = read_story_from_string(content).unwrap();
 /// ```
 pub fn read_story_from_string(string: &str) -> Result<Story, ReadError> {
-    let (mut knots, variables, tags) = read_story_content_from_string(string)?;
+    use crate::story::Logger;
+    let mut log = Logger::default();
+    let (mut knots, variables, tags) = read_story_content_from_string(string, &mut log)?;
 
     let data = FollowData {
         knot_visit_counts: get_empty_knot_counts(&knots),

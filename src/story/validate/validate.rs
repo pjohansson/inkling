@@ -171,6 +171,7 @@ pub(super) mod tests {
         knot::{Knot, Stitch},
         line::Variable,
         node::RootNodeBuilder,
+        story::Logger,
         story::{
             parse::read_story_content_from_string,
             types::{VariableInfo, VariableSet},
@@ -228,7 +229,8 @@ pub(super) mod tests {
     }
 
     fn get_validation_data_from_string(content: &str) -> (KnotSet, FollowData) {
-        let (knots, variables, _) = read_story_content_from_string(content).unwrap();
+        let mut log = Logger::default();
+        let (knots, variables, _) = read_story_content_from_string(content, &mut log).unwrap();
 
         let data = FollowDataBuilder::new()
             .with_knots(get_empty_knot_counts(&knots))
@@ -263,7 +265,8 @@ pub(super) mod tests {
 -> END
 ";
 
-        let (knots, _, _) = read_story_content_from_string(content).unwrap();
+        let mut log = Logger::default();
+        let (knots, _, _) = read_story_content_from_string(content, &mut log).unwrap();
 
         let data = ValidationData::from_data(&knots, &HashMap::new());
 
@@ -291,7 +294,8 @@ pub(super) mod tests {
 -> END
 ";
 
-        let (knots, _, _) = read_story_content_from_string(content).unwrap();
+        let mut log = Logger::default();
+        let (knots, _, _) = read_story_content_from_string(content, &mut log).unwrap();
 
         let data = ValidationData::from_data(&knots, &HashMap::new());
 
