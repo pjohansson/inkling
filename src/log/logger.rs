@@ -21,7 +21,7 @@ use serde::{Deserialize, Serialize};
 /// # let content = "Story content.";
 /// let story = read_story_from_string(content).unwrap();
 ///
-/// for msg in story.log.iter() {
+/// for msg in story.get_log().iter() {
 ///     eprintln!("{}", msg);
 /// }
 /// ```

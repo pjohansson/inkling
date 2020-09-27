@@ -112,7 +112,7 @@ Emtithal woke up to the sound of fireworks.
 # 
 # "#;
 # let mut story = read_story_from_string(content).unwrap();
-# assert_eq!(story.log.todo_comments.len(), 1);
+# assert_eq!(story.get_log().todo_comments.len(), 1);
 # let mut buffer = Vec::new();
 # story.resume(&mut buffer).unwrap();
 # assert_eq!(&buffer[0].text, "Emtithal woke up to the sound of fireworks.\n");

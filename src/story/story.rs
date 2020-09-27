@@ -39,7 +39,7 @@ pub struct Story {
     /// Choice that has been set to resume the story with.
     selected_choice: Option<usize>,
     /// Log of warnings and to-do comments encountered when parsing the `Story` from the script.
-    pub log: Logger,
+    log: Logger,
 }
 
 impl Story {
@@ -346,6 +346,26 @@ impl Story {
     /// ```
     pub fn get_knot_tags(&self, knot_name: &str) -> Option<Vec<String>> {
         self.knots.get(knot_name).map(|knot| knot.tags.clone())
+    }
+
+    /// Access the log of the story.
+    ///
+    /// The log can only be modified by the story itself, but accessed and checked
+    /// using this function.
+    ///
+    /// # Example
+    /// ```
+    /// # use inkling::read_story_from_string;
+    /// # let content = "Tokyo was full of things that startled Sanshirō.";
+    /// # let story = read_story_from_string(content).unwrap();
+    /// let log = story.get_log();
+    ///
+    /// if log.has_entries() {
+    ///     // ...
+    /// }
+    /// ```
+    pub fn get_log(&self) -> &Logger {
+        &self.log
     }
 
     /// Get the number of times a knot or stitch has been visited so far.

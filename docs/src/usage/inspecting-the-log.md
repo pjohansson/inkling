@@ -30,12 +30,14 @@ and to-do comments at once.
 # "#;
 let mut story: Story = read_story_from_string(&content).unwrap();
 
+let log = story.get_log();
+
 // Print all warnings and comments to standard error for inspection
-for message in story.log.iter() {
+for message in log.iter() {
     eprintln!("{}", message);
 }
 #
-# assert_eq!(story.log.todo_comments.len(), 1);
+# assert_eq!(log.todo_comments.len(), 1);
 ```
 
 [log]: https://docs.rs/inkling/latest/inkling/struct.Story.html#structfield.log

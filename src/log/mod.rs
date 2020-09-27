@@ -13,7 +13,7 @@
 //! # let content = "Empty story.";
 //! let story = read_story_from_string(content).unwrap();
 //!
-//! for message in story.log.iter() {
+//! for message in story.get_log().iter() {
 //!     eprintln!("{}", message);
 //! }
 //! ```
@@ -28,9 +28,11 @@
 //! ";
 //!
 //! let story = read_story_from_string(content).unwrap();
-//! assert_eq!(story.log.todo_comments.len(), 1);
 //!
-//! for comment in story.log.todo_comments.iter() {
+//! let log = story.get_log();
+//! assert_eq!(log.todo_comments.len(), 1);
+//!
+//! for comment in log.todo_comments.iter() {
 //!     eprintln!("{}", comment);
 //! }
 //! ```
