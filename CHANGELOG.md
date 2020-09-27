@@ -7,6 +7,9 @@
 *   Add shuffle sequences with `rand` (with enabled feature `random`)
 *   Return `Option` instead of `Result` for getter methods in `Story`
 *   Add `to_string` methods for `Variable`
+*   Add `Location` struct for interacting with `Story`
+*   Add `Logger` struct for logging warnings and to-do comments when parsing `Story`
+*   Add public `create_divert` function for creating validated divert variables
 
 # 0.12.0
 
