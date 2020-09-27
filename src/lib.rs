@@ -36,6 +36,7 @@
 //! a pull request.
 
 mod consts;
+mod derives;
 pub mod error;
 mod follow;
 mod knot;
@@ -44,12 +45,8 @@ pub mod log;
 mod node;
 mod process;
 mod story;
-mod utils;
 
 pub use error::InklingError;
 pub use line::Variable;
 pub use log::Logger;
-pub use story::{
-    copy_lines_into_string, read_story_from_string, Choice, Line, LineBuffer, Location, Prompt,
-    Story,
-};
+pub use story::{read_story_from_string, utils, Choice, Line, LineBuffer, Location, Prompt, Story};

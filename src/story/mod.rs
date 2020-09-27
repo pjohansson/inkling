@@ -15,10 +15,9 @@ pub(crate) mod parse;
 pub(crate) mod rng;
 mod story;
 pub(crate) mod types;
-mod utils;
+pub mod utils;
 pub(crate) mod validate;
 
 pub use parse::read_story_content_from_string;
 pub use story::{read_story_from_string, Story};
 pub use types::{Choice, Line, LineBuffer, Location, Prompt};
-pub use utils::copy_lines_into_string;

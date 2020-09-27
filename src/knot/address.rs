@@ -334,7 +334,7 @@ pub mod tests {
             })
         }
 
-        /// Get an unvalidated address from parts
+        /// Get a validated address from parts, without validating it against a set
         pub fn from_parts_unchecked(knot: &str, stitch: Option<&str>) -> Self {
             let stitch_name = stitch.unwrap_or(ROOT_KNOT_NAME);
 
