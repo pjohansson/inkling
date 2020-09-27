@@ -493,6 +493,8 @@ impl Story {
     /// # Errors
     /// *   [`AssignedToConst`][crate::error::InklingError::AssignedToConst]: if the name
     ///     refers to a constant variable.
+    /// *   [`InvalidAddress`][crate::error::InklingError::InvalidAddress]: if a divert variable
+    ///     to a location which does not exist in the story is given.
     /// *   [`InvalidVariable`][crate::error::InklingError::InvalidVariable]: if the name
     ///     does not refer to a global variable that exists in the story.
     /// *   [`VariableError`][crate::error::InklingError::VariableError]: if
@@ -502,13 +504,18 @@ impl Story {
         name: &str,
         value: T,
     ) -> Result<(), InklingError> {
+        let variable = value.into();
+
+        // Assert that the variable can be set.
+        self.validate_variable(&variable)?;
+
         self.data
             .variables
             .get_mut(name)
             .ok_or(InklingError::InvalidVariable {
                 name: name.to_string(),
             })
-            .and_then(|variable_info| variable_info.assign(value.into(), name))
+            .and_then(|variable_info| variable_info.assign(variable, name))
     }
 
     /// Wrapper for calling `follow_story` with a prepared internal buffer.
@@ -547,6 +554,43 @@ impl Story {
     /// Set the given address as active on the stack.
     fn update_last_stack(&mut self, address: &Address) {
         self.current_address = address.clone();
+    }
+
+    /// Verify that a variable from the user can be set in the story, yield error if not.
+    ///
+    /// This currently asserts for `Divert` and `Address` variables that the addresses
+    /// exist in the story.
+    ///
+    /// Note that and `InternalError` is yielded if the contained address is to a
+    /// variable or a raw string. These variants should never have been given to the
+    /// user in the first place, which is the real cause of this. In short, it should
+    /// never happen -- but we fail gracefully if it does.
+    ///
+    /// (Same goes for `Variable::Address` types, which also should not be possible
+    /// for the user to obtain and give to us. But, we treat that correctly nonetheless.)
+    fn validate_variable(&self, variable: &Variable) -> Result<(), InklingError> {
+        match &variable {
+            Variable::Divert(address) | Variable::Address(address) => {
+                let (knot, stitch) = address.get_knot_and_stitch()?;
+
+                self.knots
+                    .get(knot)
+                    .and_then(|knot_data| knot_data.stitches.get(stitch))
+                    .ok_or(InklingError::InvalidAddress {
+                        location: Location {
+                            knot: knot.to_string(),
+                            stitch: if stitch == ROOT_KNOT_NAME {
+                                None
+                            } else {
+                                Some(stitch.to_string())
+                            },
+                        },
+                    })?;
+            }
+            _ => (),
+        }
+
+        Ok(())
     }
 }
 
@@ -1794,6 +1838,64 @@ CONST const_variable = 3
         };
 
         assert_eq!(format!("{:?}", err), format!("{:?}", expected_err));
+    }
+
+    #[test]
+    fn setting_variable_is_only_allowed_for_existing_variables() {
+        let content = "
+
+VAR variable = 3
+
+";
+
+        let mut story = read_story_from_string(content).unwrap();
+
+        match story.set_variable("precision", Variable::Int(3)) {
+            Err(InklingError::InvalidVariable { name }) => assert_eq!(name, "precision"),
+            other => panic!(
+                "expected `Err(InklingError::InvalidVariable)` but got `{:?}`",
+                other
+            ),
+        }
+    }
+
+    #[test]
+    fn setting_variables_is_allowed_for_divert_variables_with_addresses_in_story() {
+        let content = "
+VAR location = -> addis_ababa
+
+== addis_ababa
+-> tripoli.cinema
+
+== tripoli
+
+= cinema
+-> END
+
+= visit_family
+-> END
+";
+
+        let mut story = read_story_from_string(content).unwrap();
+
+        let target_good = Variable::Divert(Address::from_parts_unchecked("addis_ababa", None));
+        let target_good_stitch =
+            Variable::Divert(Address::from_parts_unchecked("tripoli", Some("cinema")));
+
+        story.set_variable("location", target_good.clone()).unwrap();
+        assert_eq!(story.get_variable("location"), Some(target_good));
+
+        story
+            .set_variable("location", target_good_stitch.clone())
+            .unwrap();
+        assert_eq!(story.get_variable("location"), Some(target_good_stitch));
+
+        let target_bad = Variable::Divert(Address::from_parts_unchecked("paris", None));
+        assert!(story.set_variable("location", target_bad).is_err());
+
+        let target_bad_stitch =
+            Variable::Divert(Address::from_parts_unchecked("addis_ababa", Some("cinema")));
+        assert!(story.set_variable("location", target_bad_stitch).is_err());
     }
 
     #[test]
