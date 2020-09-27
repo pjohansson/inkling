@@ -285,6 +285,10 @@ impl Story {
         Ok(())
     }
 
+    /***********************
+     * Getters and setters *
+     ***********************/
+
     /// Get the knot and stitch (if applicable) that the story is at currently.
     ///
     /// # Examples
@@ -538,6 +542,10 @@ impl Story {
             .and_then(|variable_info| variable_info.assign(variable, name))
     }
 
+    /*******************
+     * Private methods *
+     *******************/
+
     /// Wrapper for calling `follow_story` with a prepared internal buffer.
     ///
     /// Updates the stack to the last visited address and the last presented set of choices
@@ -655,6 +663,10 @@ pub fn read_story_from_string(string: &str) -> Result<Story, ReadError> {
         log,
     })
 }
+
+/*********************
+ * Utility functions *
+ *********************/
 
 /// Follow the nodes in a story with selected branch index if supplied.
 ///
