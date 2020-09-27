@@ -1,4 +1,4 @@
-# 1.0.0
+# 1.0.0 (WIP)
 
 *   Deprecate `start` method in `Story`
 *   Stabilize public API
