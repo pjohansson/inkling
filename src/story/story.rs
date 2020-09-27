@@ -27,7 +27,7 @@ pub struct Story {
     /// Current address in the story.
     current_address: Address,
     /// Collection of `Knot`s which make up the story.
-    knots: KnotSet,
+    pub(crate) knots: KnotSet,
     /// History of visited addresses.
     history: Vec<Address>,
     /// Internal data for the story.
