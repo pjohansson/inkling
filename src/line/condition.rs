@@ -45,7 +45,7 @@ use crate::{
 use std::{cmp::Ordering, error::Error};
 
 #[cfg(feature = "serde_support")]
-use crate::utils::OrderingDerive;
+use crate::derives::OrderingDerive;
 #[cfg(feature = "serde_support")]
 use serde::{Deserialize, Serialize};
 
