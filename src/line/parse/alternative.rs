@@ -1,7 +1,7 @@
 //! Parse `Alternative` line chunks.
 
 use crate::{
-    consts::{CYCLE_MARKER, ONCE_ONLY_MARKER, SEQUENCE_SEPARATOR, SHUFFLE_MARKER},
+    consts::{CYCLE_MARKER, ONCE_ONLY_MARKER, STOPPING_SEPARATOR, SHUFFLE_MARKER},
     error::parse::line::LineErrorKind,
     line::{
         parse::{parse_chunk, split_line_at_separator_braces},
@@ -17,7 +17,7 @@ use crate::{
 pub fn parse_alternative(content: &str) -> Result<Alternative, LineErrorKind> {
     let (tail, kind) = get_alternative_kind_and_cut_marker(content.trim_start());
 
-    let items = split_line_at_separator_braces(tail, SEQUENCE_SEPARATOR, None)?
+    let items = split_line_at_separator_braces(tail, STOPPING_SEPARATOR, None)?
         .into_iter()
         .map(|text| parse_chunk(text))
         .collect::<Result<Vec<_>, _>>()?;
@@ -30,7 +30,7 @@ pub fn parse_alternative(content: &str) -> Result<Alternative, LineErrorKind> {
 /// Determine the alternating sequence kind and return the string without the marker.
 fn get_alternative_kind_and_cut_marker(content: &str) -> (&str, AlternativeKind) {
     match get_sequence_kind(content) {
-        AlternativeKind::Sequence => (content, AlternativeKind::Sequence),
+        AlternativeKind::Stopping => (content, AlternativeKind::Stopping),
         kind => (content.get(1..).unwrap(), kind),
     }
 }
@@ -44,7 +44,7 @@ fn get_sequence_kind(content: &str) -> AlternativeKind {
     } else if content.starts_with(SHUFFLE_MARKER) {
         AlternativeKind::Shuffle
     } else {
-        AlternativeKind::Sequence
+        AlternativeKind::Stopping
     }
 }
 
@@ -72,8 +72,8 @@ mod tests {
         let text = "One|Two|Three";
 
         match &parse_alternative(text).unwrap().kind {
-            AlternativeKind::Sequence => (),
-            kind => panic!("expected `AlternativeKind::Sequence` but got {:?}", kind),
+            AlternativeKind::Stopping => (),
+            kind => panic!("expected `AlternativeKind::Stopping` but got {:?}", kind),
         }
     }
 

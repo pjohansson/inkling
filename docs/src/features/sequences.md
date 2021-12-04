@@ -1,12 +1,12 @@
 # Alternating sequences
 
-`Ink` comes with several methods which vary the content of a line every time it is 
+`Ink` comes with several methods which vary the content of a line every time it is
 seen. These are known as *alternating sequences* of content.
 
 ## Sequences
 
-Alternative sequences can be declared in a line using curly braces and `|` separators. 
-Every time the line is revisited, the next piece will be presented, allowing us to 
+Alternative sequences can be declared in a line using curly braces and `|` separators.
+Every time the line is revisited, the next piece will be presented, allowing us to
 write something like this:
 
 ```rust
@@ -35,9 +35,9 @@ The train had arrived {in Mannheim|in Heidelberg|at its final stop}.
 # assert_eq!(&buffer.last().unwrap().text, "The train had arrived at its final stop.\n");
 ```
 
-When [revisiting](structure.md#revisiting-content-and-choices) this line, it will go through the 
+When [revisiting](structure.md#revisiting-content-and-choices) this line, it will go through the
 alternatives in order, then repeat the final value after reaching it. In `Ink` terms,
-this is called a *sequence*.
+this is called a *stopping sequence*.
 
 ```plain
 The train had arrived in Mannheim.
@@ -47,7 +47,7 @@ The train had arrived at its final stop.
 ```
 
 ### Cycle sequences
-*Cycle sequences* repeat the entire sequence after reaching the final piece. They are 
+*Cycle sequences* repeat the entire sequence after reaching the final piece. They are
 denoted by starting the first alternative with a `&` marker.
 
 ```rust
@@ -114,7 +114,7 @@ I met with Anirudh.
 
 ### Shuffle sequences
 *Shuffle sequences* go through the alternatives in a random order, then shuffle the
-alternatives and deal them again. They are denoted by starting the first alternative 
+alternatives and deal them again. They are denoted by starting the first alternative
 with a `~` marker.
 
 Note that these are only random if `inkling` has been compiled with the `random` feature.
@@ -177,7 +177,7 @@ I waltzed clumsily into the room.
 
 ## Diverts in alternatives
 
-We can use diverts inside of alternatives to alternatively trigger different parts 
+We can use diverts inside of alternatives to alternatively trigger different parts
 of the story.
 
 ```rust
@@ -195,7 +195,7 @@ I had to return another day.
 
 === open_door ===
 In the doorway stood a thin figure.
-# 
+#
 # ";
 # let mut story = read_story_from_string(content).unwrap();
 # let mut buffer = Vec::new();
@@ -207,13 +207,13 @@ In the doorway stood a thin figure.
 ```
 
 ```plain
-The first time I saw the door it was locked. 
+The first time I saw the door it was locked.
 I had to return another day.
 The next time I saw the door it was open.
 In the doorway stood a thin figure.
 ```
 
-Here's where [glue](basic.md#glue) can come in handy. By adding glue before 
+Here's where [glue](basic.md#glue) can come in handy. By adding glue before
 the divert we can continue the same paragraph in a new knot. Building on the
 previous example:
 
@@ -232,7 +232,7 @@ The {first|next} time I saw the door it was {locked. -> locked_door|open. -> ope
 
 === open_door ===
 <> In the doorway stood a thin figure.
-# 
+#
 # ";
 # let mut story = read_story_from_string(content).unwrap();
 # let mut buffer = Vec::new();

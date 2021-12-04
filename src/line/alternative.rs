@@ -45,8 +45,8 @@ impl Alternative {
     pub fn get_next_index(&mut self, data: &mut FollowData) -> Option<usize> {
         match self.kind {
             AlternativeKind::OnceOnly => self.active_inds.pop(),
-            AlternativeKind::Sequence if self.active_inds.len() > 1 => self.active_inds.pop(),
-            AlternativeKind::Sequence => self.active_inds.get(0).cloned(),
+            AlternativeKind::Stopping if self.active_inds.len() > 1 => self.active_inds.pop(),
+            AlternativeKind::Stopping => self.active_inds.get(0).cloned(),
             AlternativeKind::Cycle => {
                 if self.active_inds.is_empty() {
                     self.reset_active_list()
@@ -98,12 +98,12 @@ pub enum AlternativeKind {
     /// A countdown from `[Three, Two, One]` will print the numbers, then nothing after
     /// the last item has been shown.
     OnceOnly,
-    /// Goes through the set of content once, then repeats the final item.
+    /// Goes through the set of content once, then stops at and repeats the final item.
     ///
     /// # Example
     /// A train traveling to its destination `[Frankfurt, Mannheim, Heidelberg]` will print
     /// each destination, then `Heidelberg` forever after reaching the city.
-    Sequence,
+    Stopping,
     /// Shuffles the active list, then goes through it and cycles with a new shuffle at the end.
     ///
     /// # Note
@@ -186,9 +186,9 @@ impl AlternativeBuilder {
     }
 
     #[cfg(test)]
-    /// Construct a builder with `AlternativeKind::Sequence`.
+    /// Construct a builder with `AlternativeKind::Stopping`.
     pub fn sequence() -> Self {
-        AlternativeBuilder::from_kind(AlternativeKind::Sequence)
+        AlternativeBuilder::from_kind(AlternativeKind::Stopping)
     }
 
     #[cfg(test)]
@@ -280,7 +280,7 @@ mod tests {
 
     #[test]
     fn alternative_get_next_index_for_sequence_yields_final_index_forever_after_the_initial() {
-        let mut alternative = create_alternative(AlternativeKind::Sequence, 3);
+        let mut alternative = create_alternative(AlternativeKind::Stopping, 3);
         let mut data = mock_data_with_single_stitch("", "", 0);
 
         assert_eq!(alternative.get_next_index(&mut data), Some(0));

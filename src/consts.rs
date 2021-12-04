@@ -38,8 +38,8 @@ pub const ONCE_ONLY_MARKER: char = '!';
 /// Marker for a shuffle alternative sequence.
 pub const SHUFFLE_MARKER: char = '~';
 
-/// Marker for sequence item separator.
-pub const SEQUENCE_SEPARATOR: &'static str = "|";
+/// Marker for stopping item separator.
+pub const STOPPING_SEPARATOR: &'static str = "|";
 
 /****************
  * Knot markers *
